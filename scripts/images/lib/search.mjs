@@ -9,8 +9,17 @@ export function queryFor(item, domain = null) {
   const brand = item.brand && !/^(local|private)/i.test(item.brand) ? item.brand : "";
   const name = String(item.name_en ?? "");
   const text = [brand && !name.toLowerCase().includes(brand.toLowerCase()) ? brand : "", name].filter(Boolean).join(" ");
-  return `${domain ? `site:${domain} ` : ""}${text} product`.trim();
+  // A packed item is searched as a pack shot; a loose one (sold by weight or piece, no brand) as the item on white.
+  const tail = brand ? "pack shot" : "white background";
+  return `${domain ? `site:${domain} ` : ""}${text} ${domain ? "product" : tail}`.trim();
 }
+
+// Stock-photo and picture-sharing hosts: their pictures carry a watermark or a lifestyle scene, or are lifted from elsewhere.
+// Not asked about their pictures at all (a person may extend this list). The vision check still looks at everything else.
+export const SKIP_HOSTS = ["shutterstock.com", "alamy.com", "dreamstime.com", "istockphoto.com", "gettyimages.com", "depositphotos.com", "123rf.com",
+  "adobestock.com", "stock.adobe.com", "pinterest.com", "pinimg.com", "facebook.com", "fbcdn.net", "instagram.com", "tiktok.com", "vecteezy.com", "freepik.com",
+  "pngtree.com", "pngegg.com", "cleanpng.com", "kissclipart.com", "vectorstock.com", "bigstockphoto.com", "canstockphoto.com", "ebay.com", "alicdn.com", "aliexpress.com"];
+export const skipHost = (url) => { try { const h = new URL(url).hostname.toLowerCase(); return SKIP_HOSTS.some((d) => h === d || h.endsWith("." + d)); } catch { return true; } };
 
 export function parseBrave(body) {
   const out = [];
@@ -18,13 +27,17 @@ export function parseBrave(body) {
     const imageUrl = r?.properties?.url ?? null;
     const pageUrl = r?.url ?? null;
     if (typeof imageUrl !== "string" || !/^https:\/\//.test(imageUrl)) continue;
-    out.push({ imageUrl, pageUrl: typeof pageUrl === "string" ? pageUrl : null, hintWidth: Number(r?.properties?.width) || null });
+    const hintWidth = Number(r?.properties?.width) || null;
+    if (hintWidth && hintWidth < 800) continue;                                   // too narrow to qualify: not downloaded, not paid for
+    if (skipHost(imageUrl) || (typeof pageUrl === "string" && skipHost(pageUrl))) continue;
+    out.push({ imageUrl, pageUrl: typeof pageUrl === "string" ? pageUrl : null, hintWidth });
   }
   return out;
 }
 
-export async function braveImages(query, apiKey, { fetchImpl = fetch, count = 8, wait = async () => {} } = {}) {
+export async function braveImages(query, apiKey, { fetchImpl = fetch, count = 12, wait = async () => {}, onRequest = () => {} } = {}) {
   await wait();
+  onRequest();
   const url = `${BRAVE_IMAGES}?${new URLSearchParams({ q: query, count: String(count), safesearch: "strict" })}`;
   const res = await fetchRetry(url, { headers: { accept: "application/json", "x-subscription-token": apiKey } }, { fetchImpl });
   if (!res.ok) throw new Error(`search_http_${res.status}`);

@@ -1,5 +1,5 @@
 // Measure, then resize for storage (5.17 steps 3 and 5): at least 800 px wide to qualify; stored with the longest side
-// 1200 px, under 300 KB. Pictures are untrusted input: capped pixel count, decoded by sharp, re-encoded to JPEG.
+// 1200 px (a picture of 800 to 1199 px is brought up to 1200: one canonical size), under 300 KB. Pictures are untrusted input: capped pixel count, decoded by sharp, re-encoded to JPEG.
 import { createHash } from "node:crypto";
 
 export const MIN_WIDTH = 800;
@@ -21,13 +21,13 @@ export async function measure(buf, sharp) {
   return { width: turned ? m.height : m.width, height: turned ? m.width : m.height, format: m.format };
 }
 
-/** JPEG, longest side <= 1200, never enlarged, white behind transparency; quality steps down until it is under 300 KB. */
+/** JPEG, longest side exactly 1200 (a smaller one is enlarged, a larger one reduced), white behind transparency; quality steps down until it is under 300 KB. */
 export async function shrink(buf, sharp) {
   let size = MAX_SIDE;
   for (let attempt = 0; attempt < 6; attempt++) {
     for (const quality of [85, 78, 70, 62, 54, 46]) {
       const out = await sharp(buf, { limitInputPixels: 100_000_000, failOn: "error" })
-        .rotate().resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
+        .rotate().resize({ width: size, height: size, fit: "inside", withoutEnlargement: false, kernel: "lanczos3" })
         .flatten({ background: "#ffffff" }).jpeg({ quality, mozjpeg: true }).toBuffer({ resolveWithObject: true });
       if (out.data.length <= MAX_BYTES) {
         return { data: out.data, width: out.info.width, height: out.info.height, bytes: out.data.length,
