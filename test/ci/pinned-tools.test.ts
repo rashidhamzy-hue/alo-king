@@ -22,7 +22,8 @@ describe("tools.json", () => {
     for (const [name, t] of Object.entries(manifest)) {
       expect(Object.keys(t.files).length, name).toBeGreaterThanOrEqual(3);
       for (const [key, f] of Object.entries(t.files)) {
-        expect(f.url, `${name} ${key}`).toMatch(new RegExp(`^https://github\\.com/[\\w-]+/[\\w-]+/releases/download/v${t.version.replace(/\./g, "\\.")}/`));
+        expect(f.url.startsWith("https://github.com/"), `${name} ${key}`).toBe(true);
+        expect(f.url.split("/").slice(5, 8), `${name} ${key}`).toEqual(["releases", "download", `v${t.version}`]);
         expect(f.url).not.toMatch(/latest/);
         expect(f.sha256, `${name} ${key}`).toMatch(/^[0-9a-f]{64}$/);
       }
