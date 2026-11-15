@@ -133,7 +133,34 @@ const CHANGE_CLAIM = /عدّلنا|عدلنا|عدّلت|عدلت|عم (?:م?ن|
 
 /** M1: at most two sentences, each short. A line break ends a sentence too (a list is not two sentences). */
 export const MAX_SENTENCES = 2;
-export const MAX_SENTENCE_CHARS = 160;
+/** B1b (SIM1 fix 7): the message rules' line limit (rule 1). A sentence becomes a line, so it is the sentence limit too. */
+export const MAX_LINE_CHARS = 120;
+export const MAX_SENTENCE_CHARS = MAX_LINE_CHARS;
+/** The emojis a message may carry (rule 4); the crown is the greeting's only. */
+export const ALLOWED_EMOJI = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢"]);
+const EMOJI_RE = /\p{Extended_Pictographic}\uFE0F?/gu;
+
+/** Arabic-Indic and Persian digits to Latin, the Arabic decimal mark to "." (message rule 7). Nothing else changes. */
+export const latinDigits = (text: string): string => text
+  .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+  .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+  .replace(/(?<=\d)٫(?=\d)/g, ".");
+
+/**
+ * B1b (SIM1 fix 7): the model's words shaped to the message rules before the checks and the send. Digits copied from the customer
+ * («٣ بيبسي») or a product name become Latin; an emoji outside the allowed set is dropped; a line over the limit is split into its
+ * sentences, one per line. A sentence still over the limit is left as it is, and checkModelText refuses it (too_long), so the model
+ * says it shorter. In SIM1, 261 of 500 conversations broke a rule, nearly all in the model's own lines.
+ */
+export function shapeModelText(text: string): string {
+  const folded = latinDigits(text)
+    .replace(EMOJI_RE, (e) => (ALLOWED_EMOJI.has(e) || (e.replace("\uFE0F", "") === "⚠" && ALLOWED_EMOJI.has("⚠️")) ? e : ""));
+  return folded.split("\n").map((line) => {
+    const l = line.replace(/[ \t]{2,}/g, " ").trim();
+    if (l.length <= MAX_LINE_CHARS) return l;
+    return l.split(/(?<=[.!?؟…])\s+/u).map((x) => x.trim()).filter(Boolean).join("\n");
+  }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 /** The model's sentences: split after . ! ? ؟ followed by a space or the end, and at line breaks ("2.5 kg" stays whole). */
 export function modelSentences(text: string): string[] {
   return text.split(/(?<=[.!?؟…])\s+|\n+/u).map((x) => x.trim()).filter((x) => /[\p{L}\p{N}]/u.test(x));
@@ -189,7 +216,7 @@ export const GUARD_HINT: Record<GuardCode, string> = {
   unapproved_food_claim: "No approved record for this food fact came back from a tool. Say you do not have verified information, and offer to ask the merchant or suggest checking the label.",
   allergy_reassurance: "Never reassure about an allergy or a diet. Pass it on as an allergy and say the kitchen must confirm before the order is accepted.",
   sensitive_inference: "Never mention or infer a religion, health condition or diet from a name, a place or past orders. Ask only what the customer wants to exclude.",
-  too_long: "Your own words are at most two short sentences. Say one thing: ask the one question that matters, or offer the choices as buttons (at most three). Lists, cards and totals are sent by the system.",
+  too_long: "Your own words are at most two short sentences, each under 120 characters. Say one thing: ask the one question that matters, or offer the choices as buttons (at most three). Lists, cards and totals are sent by the system.",
   minimum_by_code: "Do not mention the minimum order: the system already tells the customer the minimum, their basket and what is missing, with buttons. Answer the rest of their message, or ask what they want to add.",
   change_claim: "Never say the order or basket was changed unless quote_order changed it this turn. To change it, call quote_order with the new lines (and remove), then send_confirmation for the new card; or ask what to change.",
   catalogue_claim: "Say only what a tool returned about the catalogue. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",

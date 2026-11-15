@@ -4,6 +4,7 @@ import { ar } from "./ar";
 import { en } from "./en";
 import { fr } from "./fr";
 import type { Lang, Messages } from "./types";
+import { latinDigits } from "../output-guard";
 
 export { usd, grouped } from "./types";
 export type { Lang, Messages, PayMethod } from "./types";
@@ -32,7 +33,9 @@ export const asLang = (lang?: string | null): Lang => (lang === "en" || lang ===
 // own word; ask what to leave out (the case's "must", evals/cases/neutral_and_food_facts.json).
 // Runs 43649220096, 43651509767, 43654783093: the first draft declined in the customer's words («ما بقدر أحدد الأحسن», "I can't
 // pick the healthiest"), which the guard refuses: say what to do instead (sort by a fact, invariant 14), not the word.
-export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. To a question about which is good, better or healthier, do not answer or repeat its words, not even to decline: offer to sort by price, delivery time or size, as buttons. Never write a diet, fasting, health or halal word (not even the customer's own) unless a tool returned it; for such a request ask what to leave out.";
+// B1b (SIM1 fixes 6 and 7): the line limit of the message rules, and the conversation's language (Arabizi customers were answered in
+// English in 67 replies of SIM1, because the model followed an English product name or button).
+export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences, each under 120 characters: one thing at a time; offer choices as buttons. Write in `reply_language` when it is given, whatever language the product names are in. To a question about which is good, better or healthier, do not answer or repeat its words, not even to decline: offer to sort by price, delivery time or size, as buttons. Never write a diet, fasting, health or halal word (not even the customer's own) unless a tool returned it; for such a request ask what to leave out.";
 
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";
@@ -72,7 +75,8 @@ export interface Named { product_id?: string | null; name: string; name_ar?: str
  */
 export function productName(p: Named, lang: Lang, gaps?: Set<string>): string {
   if (lang !== "ar") return p.name;
-  if (p.name_ar && p.name_ar.trim()) return p.name_ar;
+  // B1b (SIM1 fix 7): an approved Arabic name may carry Arabic-Indic digits («٢٫٢٥ ل»); messages show Latin digits (rule 7).
+  if (p.name_ar && p.name_ar.trim()) return latinDigits(p.name_ar);
   if (gaps && p.product_id) gaps.add(p.product_id);
   return p.name;
 }

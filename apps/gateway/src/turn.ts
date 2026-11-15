@@ -20,7 +20,8 @@ import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, par
 import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
-import { langFromReading, langOfText, messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
+import { messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
+import { keepLanguage, langOfSpeech, replyLanguage, type Speech } from "@ak/agents/language";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
@@ -159,6 +160,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const texts: string[] = [];
   const turnIds = pending.map((p) => p.event.message.id);
   const transcripts: { primary: string; secondary?: string }[] = [];
+  // B1b (SIM1 fix 6): the customer's language is kept for the conversation, learnt from their own words only (language.ts). A tapped
+  // button's title is ours (often an English product name) and is evidence only when nothing else is known yet.
+  const tapTitles: string[] = [];
+  const ownTexts: string[] = [];
+  const learnLang = (own: string[], reading?: string | null) => {
+    const prev = state.speech ?? (state.lang ? (state.lang as Speech) : undefined);
+    state.speech = keepLanguage(prev, { reading: reading ?? null, own, taps: tapTitles }) ?? state.speech;
+    state.lang = langOfSpeech(state.speech) ?? state.lang;
+  };
   let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false, personAsked = false, chased = false;
   const openCases = conv.cases ?? [];
 
@@ -349,7 +359,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           action: tapped === "marketing:yes" ? "opt_in" : "opt_out", source: "marketing_button", evidence_message_id: m.id });
         continue;
       }
-      texts.push(m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? tapped);     // a button the Concierge itself offered
+      const title = m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? tapped;
+      texts.push(title);     // a button the Concierge itself offered
+      if (title !== tapped) tapTitles.push(title);
       continue;
     }
 
@@ -379,8 +391,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 3. STOP wins, before any model.
     if (m.type === "text") {
       const body = m.text?.body ?? "";
-      const said = langOfText(body);
-      if (said) state.lang = said;
+      learnLang([body]);
       const signal = detectConsentSignal(body);
       if (signal === "opt_out") {
         await say(T().fixed.optOut);                                    // the one permitted confirmation, sent before the gate closes
@@ -404,7 +415,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       // HO1: "I want a person" in any of the four ways of writing, before any model.
       const sig = personSignal(body);
       if (sig === "person") personAsked = true; else if (sig === "chase") chased = true;
-      texts.push(body);
+      texts.push(body); ownTexts.push(body);
       continue;
     }
 
@@ -420,6 +431,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       const { verdict } = await readVoiceNote({ db, fetchMedia: deps.fetchMedia, stt: deps.stt }, conv.party_id, m, seconds);
       if (verdict.usable) {
         transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
+        learnLang([verdict.primary.text]);
         const sig = personSignal(verdict.primary.text);
         if (sig === "person") personAsked = true; else if (sig === "chase") chased = true;
       }
@@ -556,8 +568,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const reading = await extractOrder(model, deps.modelName, input);
     add(reading.usage);
     intent = reading.intent;
-    // M1: the reading names the customer's language; the fixed messages follow it from here (Arabizi is Arabic, "mixed" keeps it).
-    state.lang = langFromReading(intent?.language) ?? state.lang;
+    // M1: the reading names the customer's language when their own words have not (B1b: it never overrides them, language.ts).
+    learnLang([...ownTexts, ...transcripts.map((t) => t.primary)], intent?.language);
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
@@ -572,7 +584,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? (ctx.support?.opened ? "case" : "answered") : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
-    const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE };
+    // B1b (SIM1 fix 6): the language to write in, kept for the conversation (Arabizi in Latin letters for an Arabizi customer).
+    const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE, ...(replyLanguage(state.speech) ? { reply_language: replyLanguage(state.speech) } : {}) };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);

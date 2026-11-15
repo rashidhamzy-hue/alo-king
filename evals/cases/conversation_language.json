@@ -1,0 +1,61 @@
+{
+  "about": "Session B1b (SIM1 fix 6): the language of our replies is the customer's, kept for the conversation. Each case is a conversation: per turn the customer's own words (typed or spoken), any button titles they tapped (never evidence of their language: the titles are ours, often product names in English), and what the model's reading said (language). `expect` is the conversation's language after that turn: ar (Lebanese Arabic, Arabic script), arabizi (Lebanese Arabic in Latin letters), en, fr. Fixed messages for ar and arabizi are Arabic; the model writes arabizi in Latin letters. From the transcripts of SIM1 (run 43696512658) and B1a's third run on main (43736730998), where a tap or a short word switched an Arabizi or Arabic customer to English or French. Judged by evals/test/conversation-language.test.ts (code, no model).",
+  "cases": [
+    { "id": "sim-010", "turns": [
+      { "voice": "baddi loubye bas w tnein sabon", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "la 2, mesh loubye bas, baddi loubye khadra (green beans) kilo, w tnein sabon Wellplus Marrakesh Mystique", "reading": "arabizi", "expect": "arabizi" },
+      { "tap": "Wellplus Liquid Soap", "reading": "en", "expect": "arabizi" },
+      { "typed": "Wellplus soap Marrakesh Mystique", "reading": "en", "expect": "arabizi" },
+      { "typed": "ma fhemt, l basket sar 1.50? 3tini tnein soap w kilo loubye, hek talabet", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "bas hek, kilo loubye w tnein soap. shu fi bel cart halla2?", "reading": "en", "expect": "arabizi" } ] },
+    { "id": "sim-021", "turns": [
+      { "typed": "bonsoir, baddi Kinder Chocolate Barrette Maxi 21G w Oui Oui wet wipes Aqua Pure 80 sheets please", "reading": "fr", "expect": "arabizi" },
+      { "typed": "ok merci, bshuf bokra bel sob7 ba3t l talab", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "ok zidoulé 3 Kinder Choco Wafer Tronky w 2 Dolsi Chips Crunchy Peanuts 80G la ykamel l minimum", "reading": "fr", "expect": "arabizi" },
+      { "typed": "zidoulé kaman 1 Snack Jiha Chips Peanuts 25G", "reading": "fr", "expect": "arabizi" } ] },
+    { "id": "sim-140", "turns": [
+      { "typed": "marhaba, baddi mayy Rim please", "reading": "en", "expect": "arabizi" },
+      { "typed": "Maasser Beiteddine, merci", "reading": "fr", "expect": "arabizi" },
+      { "typed": "baddi 2 tenyin mayy Rim 2L X 6 please", "reading": "en", "expect": "arabizi" },
+      { "typed": "ok zidlo wa7de kamen, ya3ni 3 total", "reading": "en", "expect": "arabizi" } ] },
+    { "id": "sim-049", "turns": [
+      { "voice": "مرحبا بدي اتنين دولسي وكيس رز ديروني", "reading": "ar_lb", "expect": "ar" },
+      { "tap": "Elegance Stars", "reading": "en", "expect": "ar" },
+      { "typed": "بدي كمان بسكوت، عطيني 5 من الـ Edita Olive", "reading": "ar_lb", "expect": "ar" } ] },
+    { "id": "sim-072", "turns": [
+      { "typed": "مرحبا، بدي توم جاهز للاكل لو سمحت", "reading": "ar_lb", "expect": "ar" },
+      { "tap": "Mamig's Kitchen Garlic", "reading": "en", "expect": "ar" } ] },
+    { "id": "sim-084", "turns": [
+      { "voice": "Hi, I ordered yesterday and it never came, I want to talk to someone now", "reading": null, "expect": "en" },
+      { "typed": "Hello?? Is anyone there or are you all asleep again like last time? Useless service.", "reading": "en", "expect": "en" } ] },
+    { "id": "sim-117", "turns": [
+      { "typed": "Marhaba, kifkon? baddi talab men 3andkon law sama7tou, baddi 1 ras asfour la7me w 3 Candia Silhouette 1L. Merci ktir", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "el binaye bayda, el tabe2 etteni. merci ktir", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "3afwan, ana ma talabt bayd. baddi bass 3 Candia Silhouette 1L. bte2dar tba3tli waraket el talab?", "reading": "fr", "expect": "arabizi" } ] },
+    { "id": "sim-133", "turns": [
+      { "voice": "marhaba baddi 7alib candia", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "el building abyad, el tabe2 el tene", "reading": "arabizi", "expect": "arabizi" },
+      { "tap": "Candia 180ml", "reading": "en", "expect": "arabizi" },
+      { "typed": "3tine 9 3ilab halib Candia 180ml", "reading": "en", "expect": "arabizi" } ] },
+    { "id": "sim-002", "turns": [
+      { "typed": "marhaba, el sardine Maxbell fiya bayd? ibni 3ando 7asesiyye", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "ok merci", "reading": "fr", "expect": "arabizi" } ] },
+    { "id": "en-stays-en", "turns": [
+      { "typed": "Hi, I want 1 pack Tannourine water 2L x6 and 1 Kinder Barrette Maxi", "reading": "en", "expect": "en" },
+      { "typed": "ok merci", "reading": "fr", "expect": "en" },
+      { "typed": "yalla", "reading": "arabizi", "expect": "en" } ] },
+    { "id": "fr-stays-fr", "turns": [
+      { "typed": "Bonjour, je voudrais 3 viande hachée fine et 3 bottes de persil svp", "reading": "fr", "expect": "fr" },
+      { "tap": "Oui, la fine", "reading": "fr", "expect": "fr" },
+      { "typed": "ok thanks", "reading": "en", "expect": "fr" } ] },
+    { "id": "a-real-switch", "turns": [
+      { "typed": "marhaba baddi 2 labne", "reading": "arabizi", "expect": "arabizi" },
+      { "typed": "Sorry, can you write to me in English please? I don't read Arabic well", "reading": "en", "expect": "en" } ] },
+    { "id": "arabic-to-arabizi-family", "turns": [
+      { "typed": "بدي ربطة خبز", "reading": "ar_lb", "expect": "ar" },
+      { "typed": "w baddi kamen 2 labne w ma3on, shu fi 3andkon?", "reading": "arabizi", "expect": "arabizi" } ] },
+    { "id": "first-tap-only", "turns": [
+      { "tap": "Same as last time", "reading": "en", "expect": "en" },
+      { "typed": "w zid 2 labne", "reading": "arabizi", "expect": "arabizi" } ] }
+  ]
+}
