@@ -94,8 +94,8 @@ customer gets the question.
 
 **Tested here (CI, no key):** every row above; `npm run typecheck` clean, `npm test` green (2,130 + the B1c tests).
 **The language gate, offline:** the 2,970 recorded readings of `results/after.json` replayed through the planner (`replay.test.ts`): main
-F1 0.909, wrong 0; B1c REPLAY_RESULT. The founder's demo h0013 («كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار») is right through the defaults.
-GATE_RESULT
+F1 0.909, wrong 0; B1c **F1 0.909, wrong 0** (first cut 0.894: brand + an unknown word went not found, and the founder's own generic sentences asked; the brand rule was narrowed and the defaults proposed; two wrong products the replay found, g0151 and g0426, are in `zero-wrong.json`). The founder's demo h0013 («كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار») is right through the defaults.
+**The live gate** (`language-pack` on the branch): [run 43766779770](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43766779770), 990 readings, F1 0.913, the 0.13 demo right, live evals 103 of 103, but **one wrong product**: g0370 «please send pain d'or khebez 3arabe, 900g» cut into «pain d'or» and «khebez 3arabe, 900g», whose bread line took the house loaf. The brand the message names now narrows what fits (as it narrows a tie); the reading is in `zero-wrong.json`. GATE2
 
 SIM_RESULT
 

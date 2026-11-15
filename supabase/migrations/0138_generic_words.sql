@@ -203,6 +203,10 @@ begin
            and exists (select 1 from jsonb_array_elements(v_fit) m where jsonb_array_length(coalesce(m->'loose_numbers', '[]'::jsonb)) > 0) then
           select jsonb_agg(m) into v_fit from jsonb_array_elements(v_fit) m where jsonb_array_length(coalesce(m->'loose_numbers', '[]'::jsonb)) = 0;
         end if;
+        -- a brand the message names keeps only its products, as it does for the tie (gate run 43766779770, g0370: «pain d'or» and
+        -- «khebez 3arabe, 900g» cut into two lines; the bread line took the house loaf)
+        select coalesce(jsonb_agg(m), '[]'::jsonb) into narrowed from jsonb_array_elements(v_fit) m where (m->>'product_id')::uuid = any(v_ev_brand);
+        if jsonb_array_length(narrowed) > 0 then v_fit := narrowed; end if;
         -- The customer named only what kind of thing it is («ربطة خبز», «قنينة مي», "wet wipes") and more than one product is that
         -- kind, or only a brand ("Pepsi", «Gorosti»): generic. No rule below chooses for them (bought before, the model's phrase, the
         -- best seller): the house default if there is exactly one, else a question. sim-test 43756167947 put the best seller or
