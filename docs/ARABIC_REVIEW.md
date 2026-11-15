@@ -119,5 +119,62 @@ is not listed here.
 | `unit_each` | بالقطعة | each | RA 15 Nov |
 | `live_hint` | تظهر النتائج أثناء الكتابة. | Results appear as you type. | RA 15 Nov |
 
+
+## CX1, the customer pack (16 November 2026)
+
+Source: `messages(...).cx` and the six new lines of `messages(...).ops` in `packages/agents/src/messages/ar.ts`. When each is sent:
+`packages/agents/src/customer-pack.ts` and `docs/HANDOFF.md`, CX1. Model-written; **not read by a person yet**. The privacy line
+(`cx.privacy`) is also the wording kept with each customer's consent (`customer_welcomes`, 0143): a change to it is a change of wording
+that later customers agree to. List rows are cut by WhatsApp at 24 characters and buttons at 20.
+
+| Key | Arabic | English | Read by |
+|---|---|---|---|
+| `cx.welcome("08:00", "22:00")` | 👑 أهلا فيك بألو كينغ!<br>منوصّلك أغراض البيت لعند بابك بالشوف. اكتبلي شو بدك أو ابعت رسالة صوتية.<br>🌙 الدوام من 08:00 لـ 22:00.<br>بمراسلتك إلنا بتوافق إنّو نحفظ رسايلك وطلباتك بس لنخدمك فيها. فيك تكتب STOP بأي وقت. | 👑 Welcome to Alo King!<br>We bring home groceries to your door in the Chouf. Tell me what you need, in writing or by voice note.<br>🌙 We are open from 08:00 to 22:00.<br>By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time. | |
+| `cx.privacy` | بمراسلتك إلنا بتوافق إنّو نحفظ رسايلك وطلباتك بس لنخدمك فيها. فيك تكتب STOP بأي وقت. | By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time. | |
+| `cx.orderButton` | اطلب | Order | |
+| `cx.areaButton` | بتوصلو لعندي؟ | Do you deliver here? | |
+| `cx.orderAsk` | تفضّل، اكتبلي شو بدك أو ابعت رسالة صوتية. | Go ahead: tell me what you need, or send a voice note. | |
+| `cx.areaAsk` | 📍 ابعتلنا موقعك من الزر تحت أو اكتب اسم الضيعة، ومنقلّك إذا منوصل لعندك. | 📍 Send your location with the button below, or type your village, and we'll tell you if we deliver there. | |
+| `cx.keepLine` | الفراطة بتبقى رصيد إلك. | Your change stays with us as credit. | |
+| `cx.choicesButton` | خيارات | Options | |
+| `cx.choicesMissing` | إذا في غرض ناقص | If an item is missing | |
+| `cx.choicesNote` | الدفع كاش | Paying cash | |
+| `cx.choicesOrder` | الطلب | The order | |
+| `cx.exactRow` | معي المبلغ مظبوط | I have the exact amount | |
+| `cx.keepRow` | خلّوا الفراطة رصيد | Keep change as credit | |
+| `cx.cancelRow` | إلغاء الطلب | Cancel the order | |
+| `cx.exactSet` | ✅ تمام: الدفع بالمبلغ المظبوط. | ✅ Done: you'll pay the exact amount. | |
+| `cx.needsNote` | اختار أوّل الورقة يلي رح تدفع فيها. | First choose the note you'll pay with. | |
+| `cx.cancelYes` | إيه، ألغيه | Yes, cancel it | |
+| `cx.pickupOff` | الاستلام من المحل مش متوفّر بعد، فمنوصّلك لعند بيتك. | Pickup isn't available yet, so we'll deliver to your home. | |
+| `cx.missingLine(best_match)` | إذا في غرض ناقص: منحطّ أقرب بديل | If an item is missing: we put the closest match | |
+| `cx.missingRow.best_match` | حطّولي أقرب بديل | Closest match | |
+| `cx.missingSet(best_match)` | ✅ تمام: إذا في غرض ناقص منحطّ أقرب بديل. | ✅ Done: if an item is missing, we put the closest match. | |
+| `cx.missingLine(ask)` | إذا في غرض ناقص: منسألك | If an item is missing: we ask you | |
+| `cx.missingRow.ask` | اسألوني | Ask me | |
+| `cx.missingSet(ask)` | ✅ تمام: إذا في غرض ناقص منسألك قبل ما نبدّل. | ✅ Done: if an item is missing, we ask you before swapping. | |
+| `cx.missingLine(remove)` | إذا في غرض ناقص: منشيلو من الطلب | If an item is missing: we take it off | |
+| `cx.missingRow.remove` | شيلوه من الطلب | Take it off | |
+| `cx.missingSet(remove)` | ✅ تمام: إذا في غرض ناقص منشيلو من الطلب. | ✅ Done: if an item is missing, we take it off the order. | |
+| `cx.noteRow(20)` | بدفع بورقة $20.00 | I'll pay with $20.00 | |
+| `cx.noteSet(20, 12.73)` | ✅ تمام، منجيب فراطة لورقة $20.00<br>الفراطة: $12.73 | ✅ Done, we'll bring change for $20.00<br>Your change: $12.73 | |
+| `cx.keepSet(12.73)` | ✅ تمام، ما منرجّعلك فراطة.<br>بتصير رصيد إلك بعد الدفع: $12.73 | ✅ Done, no change will be given back.<br>It becomes your credit once paid: $12.73 | |
+| `cx.noteTooSmall(7.27)` | هالورقة أقل من المجموع: $7.27 | That note is less than the total: $7.27 | |
+| `cx.choiceTooLate` | بلّشنا نحضّر طلبك AK-1234، وما بقى فينا نغيّر هالخيار. | We've started preparing order AK-1234, so this can't change any more. | |
+| `cx.cancelAsk` (cash) | بدك نلغي طلبك AK-1234؟ لسّا ما بلّشنا نحضّرو. | Cancel order AK-1234? We haven't started preparing it. | |
+| `cx.cancelAsk` (paid) | بدك نلغي طلبك AK-1234؟ لسّا ما بلّشنا نحضّرو.<br>المبلغ يلي دفعتو بيرجع رصيد إلك: $7.27 | Cancel order AK-1234? We haven't started preparing it.<br>What you paid comes back as credit: $7.27 | |
+| `cx.cancelAfterPick` | بلّشنا نحضّر طلبك AK-1234، فما فينا نلغيه من هون.<br>إذا لغيناه، بيرجعلك رصيد: $5.27<br>ما بيرجعو عالرفّ: لبنة.<br>حدا من الفريق رح يحكيك هلّق. | We've started preparing order AK-1234, so it can't be cancelled from here.<br>If we cancel it, your credit back: $5.27<br>Can't go back on the shelf: Labneh.<br>A person from our team will talk to you now. | |
+| `cx.cancelAfterPickCash` | بلّشنا نحضّر طلبك AK-1234، فما فينا نلغيه من هون.<br>ما دفعت شي بعد. حدا من الفريق رح يحكيك هلّق. | We've started preparing order AK-1234, so it can't be cancelled from here.<br>You haven't paid anything. A person from our team will talk to you now. | |
+| `cx.cancelOnTheWay` | 🛵 طلبك AK-1234 صار عالطريق، فما فينا نلغيه من هون.<br>حدا من الفريق رح يحكيك هلّق. | 🛵 Order AK-1234 is on its way, so it can't be cancelled from here.<br>A person from our team will talk to you now. | |
+| `cx.handoverCode` | 🔢 رمز الاستلام: 4821<br>عطيه للسائق بس لمّا يوصلك الطلب. | 🔢 Your handover code: 4821<br>Give it to the rider only when you have your order. | |
+| `cx.pickupAt` | 🏠 استلام من مستودع ألو كينغ، بلا رسم توصيل | 🏠 Pickup at the Alo King hub, no delivery fee | |
+| `cx.pickupReady` | 📦 طلبك AK-1234 جاهز للاستلام من مستودع ألو كينغ.<br>إذا كان مدفوع، جيب معك رمز الاستلام. | 📦 Order AK-1234 is ready for pickup at the Alo King hub.<br>If it's prepaid, bring your handover code. | |
+| `ops.askCode` (rider) | 🔢 الطلب #AK-1234 مدفوع سلف.<br>اطلب من الزبون رمز الاستلام (4 أرقام) واكتبو هون. | 🔢 Order #AK-1234 is prepaid.<br>Ask the customer for their handover code (4 digits) and type it here. | |
+| `ops.wrongCode` (rider) | الرمز غلط. باقي 4 محاولات. | Wrong code. 4 tries left. | |
+| `ops.codeLocked` (rider) | ⚠️ الرمز غلط كذا مرة للطلب #AK-1234. ما تسلّم، العمليات رح تتصل فيك. | ⚠️ Too many wrong codes for order #AK-1234. Do not hand it over; ops will call you. | |
+| `ops.codeLockedAlert` (ops) | ⚠️ رمز الاستلام للطلب #AK-1234 انقفل بعد محاولات غلط. اتصلوا بالزبون والسائق. | ⚠️ The handover code of order #AK-1234 is locked after wrong tries. Call the customer and the rider. | |
+| `ops.codeOk` (rider) | ✅ الرمز صحيح: تسلّم الطلب #AK-1234. | ✅ Code correct: order #AK-1234 handed over. | |
+| `ops.keepChange` (rider) | 💵 ما في فراطة: الزبون بيترك الباقي رصيد. الورقة: $20.00 | 💵 No change: the customer keeps it as credit. The note: $20.00 | |
+
 ## D4b, the pick queue, rider jobs and rider incidents (console, written by a model)
 The pages choose a line with `pick(lang, English, Arabic)` in `apps/console/src/pages/pick.ts`, `riderjobs.ts` and `riderincidents.ts` (about 120 short lines: buttons, warnings, the refusals' explanations), and the packing steps are in the `packing_checklist` setting (migration 0147): «المنتجات المبرّدة والمجمّدة والطازجة في الحقيبة الباردة.», «البيض والخبز في الأعلى ولا شيء ثقيل فوقهما.», «ملصق الكيس عليه رمز الطلب واسم القرية.» The customer messages are the existing ones (`messages/`). A reader should check: the picker's words (التقاط، ناقص، تجهيز), the rider words (مندوب), and that the long warnings read as an instruction to a person at work.

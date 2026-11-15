@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buttons, type Outbound } from "@ak/wa/kapso";
 import type { SendRequest, SendResult } from "@ak/wa/gateway";
+import { claimOrderMessage } from "./messages/notify";
 
 export const FEEDBACK_TEXT = {
   ask: (code: string) => `وصلك طلبك ${code}؟ إذا في شي ناقص أو مش مزبوط، دقّ «في مشكلة» وبيحكيك حدا من الفريق.`,
@@ -35,6 +36,10 @@ export async function sendFeedbackRequests(deps: { db: SupabaseClient; send: (r:
   for (const d of due) {
     const to = await addressOf(d.customer_id);
     if (!to) continue;
+    // CX1: the feedback card counts against the order's four messages; over the budget it is not sent, and not asked again.
+    if (!(await claimOrderMessage(deps.db, d.order_id, "feedback", `feedback:${d.order_id}`, d.customer_id))) {
+      await deps.db.rpc("mark_feedback_asked", { p_order: d.order_id }); continue;
+    }
     const r = await deps.send({ line: "customer", partyId: d.customer_id, to, msg: feedbackCard(d.order_id, d.short_code), category: "service",
                                 orderId: d.order_id, dedupeKey: `feedback:${d.order_id}` });
     if (r.ok) { await deps.db.rpc("mark_feedback_asked", { p_order: d.order_id }); n++; }

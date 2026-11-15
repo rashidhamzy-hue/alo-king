@@ -45,8 +45,24 @@ export function templateMessage(name: string, lang: Lang, b: Pick<Built, "params
  * customer's language (0093's customer_language) and the event's template in that language with its approval. Fail closed: a
  * refusal is returned, never retried here; an outbox failure throws, as every send does.
  */
+/**
+ * CX1: at most four messages started by code per order (settings.message_budget, claim_order_message, 0143). A message about an order
+ * claims its place first; one the customer must act on or must know always goes, anything else only under the budget. A refusal is
+ * recorded (agent_runs, reason over_budget), so nothing is dropped in silence. Fail closed: an error claiming means nothing is sent.
+ */
+export async function claimOrderMessage(db: SupabaseClient, orderId: string, kind: string, key: string, partyId?: string | null): Promise<boolean> {
+  const { data, error } = await db.rpc("claim_order_message", { p_order: orderId, p_kind: kind, p_key: key });
+  if (error) throw new Error(`claim_order_message: ${error.message}`);
+  const c = data as { allowed: boolean; again?: boolean } | null;
+  if (c?.allowed) return true;
+  if (!c?.again) await db.from("agent_runs").insert({ agent: "compliance_gateway", order_id: orderId, outcome: "skipped",
+    trace: { reason: "over_budget", event: kind, key, party_id: partyId ?? null } });
+  return false;
+}
+
 export async function sendCodeStarted(deps: { db: SupabaseClient; send: (r: SendRequest) => Promise<SendResult> }, partyId: string,
                                       event: TemplateEvent, build: (m: Messages, lang: Lang) => Built, dedupeKey: string, orderId?: string): Promise<SendResult> {
+  if (orderId && !(await claimOrderMessage(deps.db, orderId, event, dedupeKey, partyId))) return { ok: false, refused: "over_budget" };
   const { data, error } = await deps.db.rpc("customer_reach", { p_party: partyId, p_event: event });
   if (error) throw new Error(`customer_reach: ${error.message}`);
   const reach = data as Reach | null;

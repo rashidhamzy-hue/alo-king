@@ -8,6 +8,8 @@ export interface JobStop {
   order_id?: string | null; short_code?: string | null; order_status?: string | null; customer?: string | null; phone?: string | null;
   village?: string | null; lat?: number | null; lng?: number | null; directions?: string | null; notes?: string | null;
   payment_method?: string | null; total_usd?: number | null; fx_rate_lbp?: number | null; change_for_usd?: number | null; paid?: boolean; items?: number;
+  /** CX1 (0146): the customer keeps the change as credit; the order waits for the customer's handover code. */
+  keep_change?: boolean; code_required?: boolean;
 }
 export interface Job { delivery_id: string; driver_id: string; status: string; collect_usd: number; stops: JobStop[] }
 
@@ -50,8 +52,12 @@ export function pickupCard(job: Job): Outbound {
 /** The next door. The pin goes as a separate location message so it opens in the rider's maps app. */
 export function dropCard(s: JobStop): Outbound {
   const total = Number(s.total_usd ?? 0);
-  return buttons(O.drop({ code: s.short_code ?? "", customer: s.customer ?? "", village: s.village ?? "", directions: s.directions ?? null, phone: s.phone ?? null,
-                          notes: s.notes ?? null, paid: !!s.paid, total, lbp: lbpOf(total, s.fx_rate_lbp), changeFor: s.change_for_usd ?? null }), [
+  const keep = s.keep_change && s.change_for_usd && !s.paid;
+  // CX1: what the rider must know at the door: no change to give (the customer keeps it as credit), or a code to ask for.
+  const extra = [keep ? O.keepChange(Number(s.change_for_usd)) : null, s.code_required ? O.askCode(s.short_code ?? "") : null].filter(Boolean);
+  const body = O.drop({ code: s.short_code ?? "", customer: s.customer ?? "", village: s.village ?? "", directions: s.directions ?? null, phone: s.phone ?? null,
+                        notes: s.notes ?? null, paid: !!s.paid, total, lbp: lbpOf(total, s.fx_rate_lbp), changeFor: keep ? null : s.change_for_usd ?? null });
+  return buttons([body, ...extra].join("\n"), [
     { id: riderButtonId({ kind: "stop", action: "arrived", id: s.order_id! }), title: O.arrived },
     { id: riderButtonId({ kind: "stop", action: "delivered", id: s.order_id! }), title: O.delivered },
     { id: riderButtonId({ kind: "stop", action: "noanswer", id: s.order_id! }), title: O.noAnswer },

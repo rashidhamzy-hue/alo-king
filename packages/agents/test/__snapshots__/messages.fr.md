@@ -182,6 +182,7 @@ ou 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -207,6 +208,7 @@ Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
 Nous apporterons la monnaie pour un billet de :
 $20.00
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -230,6 +232,7 @@ ou 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Demain 10:00-12:00
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -253,6 +256,7 @@ ou 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Mercredi 18/11, 10:00-12:00
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -274,6 +278,7 @@ ou 561,000 LBP
 
 🏠 Retrait au magasin
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -302,6 +307,7 @@ Arrivée dans environ 30 minutes
 💵 Paiement : virement Whish
 Un montant reste dû, donc cette commande se paie d'avance (virement Whish) avant la préparation.
 Nous vous enverrons les détails après la confirmation.
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -329,6 +335,7 @@ Une première commande se paie en espèces jusqu'à :
 $50.00
 Celle-ci est plus grande, elle se paie donc d'avance (virement Whish) avant la préparation.
 Nous vous enverrons les détails après la confirmation.
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -352,6 +359,7 @@ ou 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Demain 10:00-12:00
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 Ce bon remplace votre commande AK-1040.
 Rien ne change avant votre confirmation.
 
@@ -377,6 +385,7 @@ ou 651,000 LBP
 📍 Baakline
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -484,6 +493,7 @@ ou 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
+Si un article manque : nous vous demandons
 
 En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation.
 ```
@@ -1342,6 +1352,276 @@ Une personne de notre équipe la vérifie et revient vers vous.
 ```text
 Nous n'avons pas pu ouvrir l'image.
 Pouvez-vous renvoyer la photo du reçu ?
+```
+
+## cx.welcome
+
+```text
+👑 Bienvenue chez Alo King !
+Nous livrons vos courses à domicile dans le Chouf. Dites-moi ce qu'il vous faut, par écrit ou par message vocal.
+🌙 Ouvert de 08:00 à 22:00.
+En nous écrivant, vous acceptez que nous gardions vos messages et commandes pour les traiter. STOP à tout moment.
+```
+
+## cx.welcome.noHours
+
+```text
+👑 Bienvenue chez Alo King !
+Nous livrons vos courses à domicile dans le Chouf. Dites-moi ce qu'il vous faut, par écrit ou par message vocal.
+En nous écrivant, vous acceptez que nous gardions vos messages et commandes pour les traiter. STOP à tout moment.
+```
+
+## cx.privacy
+
+```text
+En nous écrivant, vous acceptez que nous gardions vos messages et commandes pour les traiter. STOP à tout moment.
+```
+
+## cx.orderButton
+
+```text
+Commander
+```
+
+## cx.areaButton
+
+```text
+Vous livrez ici ?
+```
+
+## cx.orderAsk
+
+```text
+Allez-y : dites-moi ce qu'il vous faut, ou envoyez un message vocal.
+```
+
+## cx.areaAsk
+
+```text
+📍 Envoyez votre position avec le bouton ci-dessous, ou écrivez votre village, et nous vous dirons si nous y livrons.
+```
+
+## cx.keepLine
+
+```text
+Votre monnaie reste chez nous en crédit.
+```
+
+## cx.choicesButton
+
+```text
+Options
+```
+
+## cx.choicesMissing
+
+```text
+Si un article manque
+```
+
+## cx.choicesNote
+
+```text
+Paiement en espèces
+```
+
+## cx.choicesOrder
+
+```text
+La commande
+```
+
+## cx.exactRow
+
+```text
+J'ai le montant exact
+```
+
+## cx.keepRow
+
+```text
+Monnaie en crédit
+```
+
+## cx.cancelRow
+
+```text
+Annuler la commande
+```
+
+## cx.exactSet
+
+```text
+✅ C'est noté : vous payez le montant exact.
+```
+
+## cx.needsNote
+
+```text
+Choisissez d'abord le billet avec lequel vous payez.
+```
+
+## cx.cancelYes
+
+```text
+Oui, annulez
+```
+
+## cx.pickupOff
+
+```text
+Le retrait n'est pas encore possible : nous livrons chez vous.
+```
+
+## cx.missingLine.best_match
+
+```text
+Si un article manque : nous mettons le plus proche
+```
+
+## cx.missingRow.best_match
+
+```text
+Le plus proche
+```
+
+## cx.missingSet.best_match
+
+```text
+✅ C'est noté : si un article manque, nous mettons le plus proche.
+```
+
+## cx.missingLine.ask
+
+```text
+Si un article manque : nous vous demandons
+```
+
+## cx.missingRow.ask
+
+```text
+Demandez-moi
+```
+
+## cx.missingSet.ask
+
+```text
+✅ C'est noté : si un article manque, nous vous demandons avant de le remplacer.
+```
+
+## cx.missingLine.remove
+
+```text
+Si un article manque : nous le retirons
+```
+
+## cx.missingRow.remove
+
+```text
+Retirez-le
+```
+
+## cx.missingSet.remove
+
+```text
+✅ C'est noté : si un article manque, nous le retirons de la commande.
+```
+
+## cx.noteRow
+
+```text
+Je paie avec $20.00
+```
+
+## cx.noteSet
+
+```text
+✅ C'est noté, nous apportons la monnaie sur $20.00
+Votre monnaie : $12.73
+```
+
+## cx.keepSet
+
+```text
+✅ C'est noté, aucune monnaie ne sera rendue.
+Elle devient votre crédit une fois payé : $12.73
+```
+
+## cx.noteTooSmall
+
+```text
+Ce billet est inférieur au total : $7.27
+```
+
+## cx.choiceTooLate
+
+```text
+La préparation de la commande AK-1042 a commencé : ce choix ne peut plus changer.
+```
+
+## cx.cancelAsk
+
+```text
+Annuler la commande AK-1042 ? Sa préparation n'a pas commencé.
+```
+
+## cx.cancelAsk.credit
+
+```text
+Annuler la commande AK-1042 ? Sa préparation n'a pas commencé.
+Ce que vous avez payé revient en crédit : $7.27
+```
+
+## cx.cancelAfterPick
+
+```text
+La préparation de la commande AK-1042 a commencé : elle ne peut pas être annulée d'ici.
+Si nous l'annulons, votre crédit : $5.27
+Une personne de l'équipe vous parle tout de suite.
+```
+
+## cx.cancelAfterPick.kept
+
+```text
+La préparation de la commande AK-1042 a commencé : elle ne peut pas être annulée d'ici.
+Si nous l'annulons, votre crédit : $5.27
+Ne retournent pas en rayon : Tannourine water 2 L (pack of 6), Al Forno white bread, large 800 g,
+Najjar Classic coffee 180 g.
+Une personne de l'équipe vous parle tout de suite.
+```
+
+## cx.cancelAfterPickCash
+
+```text
+La préparation de la commande AK-1042 a commencé : elle ne peut pas être annulée d'ici.
+Vous n'avez rien payé. Une personne de l'équipe vous parle tout de suite.
+```
+
+## cx.cancelOnTheWay
+
+```text
+🛵 La commande AK-1042 est en route : elle ne peut pas être annulée d'ici.
+Une personne de l'équipe vous parle tout de suite.
+```
+
+## cx.handoverCode
+
+```text
+🔢 Votre code de remise : 4821
+Donnez-le au livreur seulement quand vous avez votre commande.
+```
+
+## cx.pickupAt
+
+```text
+🏠 Retrait à the Alo King hub, Baakline, sans frais de livraison
+```
+
+## cx.pickupReady
+
+```text
+📦 La commande AK-1042 est prête à retirer à the Alo King hub, Baakline.
+Si elle est payée d'avance, apportez votre code de remise.
 ```
 
 ## support.opened
@@ -2487,6 +2767,66 @@ $7.27
 ```text
 ⚠️ Un client a dépassé 30 messages à l'assistant en une heure.
 Il reçoit un menu fixe jusqu'à l'heure suivante.
+```
+
+## ops.askCode
+
+```text
+🔢 La commande #AK-1042 est payée d'avance.
+Demandez au client son code de remise (4 chiffres) et tapez-le ici.
+```
+
+## ops.wrongCode
+
+```text
+Code faux. Il reste 4 essais.
+```
+
+## ops.codeLocked
+
+```text
+⚠️ Trop de codes faux pour la commande #AK-1042. Ne la remettez pas ; les opérations vous appellent.
+```
+
+## ops.codeLockedAlert
+
+```text
+⚠️ Le code de remise de la commande #AK-1042 est bloqué après des essais faux. Appelez le client et le livreur.
+```
+
+## ops.codeOk
+
+```text
+✅ Code correct : commande #AK-1042 remise.
+```
+
+## ops.keepChange
+
+```text
+💵 Pas de monnaie : le client la garde en crédit. Le billet : $20.00
+```
+
+## ops.drop.keepChange
+
+```text
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
+💵 حصّل:
+$7.27
+أو 651,000 ل.ل
+💵 ما في فراطة: الزبون بيترك الباقي رصيد. الورقة: $20.00
+```
+
+## ops.drop.code
+
+```text
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
+مدفوع مسبقاً. ما تاخد مصاري.
+🔢 الطلب #AK-1042 مدفوع سلف.
+اطلب من الزبون رمز الاستلام (4 أرقام) واكتبو هون.
 ```
 
 # Utility templates (templates/templates.json)

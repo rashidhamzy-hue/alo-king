@@ -18,7 +18,7 @@ import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
 import { messages } from "@ak/agents/messages";
 import { supportMessage } from "@ak/agents/support";
-import { logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
+import { claimOrderMessage, logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 
 export interface Env {
@@ -256,7 +256,7 @@ async function customerAddress(supa: SupabaseClient, partyId: string): Promise<s
 
 /** lang (0093, A4): the customer's language, from how they last wrote. The template and the words that fill it are in it. */
 /** template_approved (M1, 0121): the template may be sent, approved AND utility; template_status and template_category say why not. */
-interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received"; order_id: string; short_code: string;
+interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received" | "pickup_ready"; order_id: string; short_code: string;
   customer_id: string; params: string[]; lang?: "ar" | "en" | "fr"; template: string | null; template_approved: boolean;
   template_status?: string | null; template_category?: string | null }
 
@@ -267,6 +267,7 @@ const NOTICE_TEXT = (lang: "ar" | "en" | "fr"): Record<Notice["kind"], (p: strin
     order_cancelled: (p) => m.orderCancelled(p[0] ?? "", p[1] ?? ""),
     rider_at_door: (p) => m.riderAtDoor(p[0] ?? ""),
     payment_received: (p) => m.paymentReceived(p[0] ?? "", p[1] ?? ""),
+    pickup_ready: (p) => messages(lang).cx.pickupReady(p[0] ?? "", p[1] ?? ""),
   };
 };
 
@@ -276,7 +277,10 @@ const NOTICE_TEXT = (lang: "ar" | "en" | "fr"): Record<Notice["kind"], (p: strin
 export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
   const to = await customerAddress(deps.db, n.customer_id);
   let outcome = "refused:no_address";
-  if (to) {
+  // CX1: every notice counts against the order's four messages (claim_order_message, 0143); these kinds are all essential, so the
+  // claim records them and never refuses one today.
+  if (to && !(await claimOrderMessage(deps.db, n.order_id, n.kind, n.key, n.customer_id))) outcome = "refused:over_budget";
+  else if (to) {
     const lang = n.lang ?? "ar";
     const msg: Outbound = n.template && n.template_approved
       ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }

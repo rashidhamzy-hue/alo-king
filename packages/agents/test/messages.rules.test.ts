@@ -153,6 +153,19 @@ function render(m: Messages): Rendered[] {
   add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));
   add("payment.proofReceived", m.payment.proofReceived(CODE)); add("payment.proofResend", m.payment.proofResend);
+  // CX1: the welcome (the one other place 👑 may appear: it is a greeting), the card's choices, cancel, the handover code, pickup.
+  const cx = m.cx;
+  add("cx.welcome", cx.welcome("08:00", "22:00"), { greeting: true }); add("cx.welcome.noHours", cx.welcome(null, null), { greeting: true });
+  for (const k of ["privacy", "orderButton", "areaButton", "orderAsk", "areaAsk", "keepLine", "choicesButton", "choicesMissing", "choicesNote", "choicesOrder",
+                   "exactRow", "keepRow", "cancelRow", "exactSet", "needsNote", "cancelYes", "pickupOff"] as const) add(`cx.${k}`, cx[k]);
+  for (const p of ["best_match", "ask", "remove"] as const) {
+    add(`cx.missingLine.${p}`, cx.missingLine(p)); add(`cx.missingRow.${p}`, cx.missingRow[p]); add(`cx.missingSet.${p}`, cx.missingSet(p));
+  }
+  add("cx.noteRow", cx.noteRow(20)); add("cx.noteSet", cx.noteSet(20, 12.73)); add("cx.keepSet", cx.keepSet(12.73)); add("cx.noteTooSmall", cx.noteTooSmall(7.27));
+  add("cx.choiceTooLate", cx.choiceTooLate(CODE)); add("cx.cancelAsk", cx.cancelAsk(CODE, 0)); add("cx.cancelAsk.credit", cx.cancelAsk(CODE, 7.27));
+  add("cx.cancelAfterPick", cx.cancelAfterPick(CODE, 5.27, [])); add("cx.cancelAfterPick.kept", cx.cancelAfterPick(CODE, 5.27, names));
+  add("cx.cancelAfterPickCash", cx.cancelAfterPickCash(CODE)); add("cx.cancelOnTheWay", cx.cancelOnTheWay(CODE)); add("cx.handoverCode", cx.handoverCode("4821"));
+  add("cx.pickupAt", cx.pickupAt(L === "ar" ? "مستودع ألو كينغ، بعقلين" : "the Alo King hub, Baakline")); add("cx.pickupReady", cx.pickupReady(CODE, L === "ar" ? "مستودع ألو كينغ، بعقلين" : "the Alo King hub, Baakline"));
   // HO1: the six case lines, their buttons, the technical lines and the Inbox drafts.
   const sp = m.support;
   for (const k of ["opened", "reminder", "stillOnIt", "resumed", "resolved", "callbackButton", "keepOrderingButton", "voiceNoteButton", "callbackNoted",
@@ -213,6 +226,9 @@ function render(m: Messages): Rendered[] {
   S("stillPicking", o.stillPicking([CODE])); S("collected", o.collected(49.77)); S("waitMore", o.waitMore(3)); S("noAnswerLogged", o.noAnswerLogged(true));
   S("noAnswerAlert", o.noAnswerAlert(CODE)); S("mismatch", o.mismatch(7.27)); S("riderErrorAlert", o.riderErrorAlert("x"));
   S("proofAlert", o.proofAlert("Whish", CODE, 7.27, true)); S("turnCap", o.turnCap(30));
+  S("askCode", o.askCode(CODE)); S("wrongCode", o.wrongCode(4)); S("codeLocked", o.codeLocked(CODE)); S("codeLockedAlert", o.codeLockedAlert(CODE));
+  S("codeOk", o.codeOk(CODE)); S("keepChange", o.keepChange(20));
+  S("drop.keepChange", bodyOf(dropCard({ ...job.stops[1]!, keep_change: true }))); S("drop.code", bodyOf(dropCard({ ...job.stops[1]!, paid: true, code_required: true })));
   return r;
 }
 

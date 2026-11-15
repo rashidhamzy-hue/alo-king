@@ -30,3 +30,15 @@ describe("docs/ARABIC_REVIEW.md lists every B1b Arabic line", () => {
   const lines = [f.noPinCall("بعقلين"), f.askVillageLandmark, f.noPinNote, f.welcome];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
 });
+
+describe("docs/ARABIC_REVIEW.md lists every CX1 Arabic line", () => {
+  const c = ar.cx, o = ar.ops;
+  const lines = [c.welcome("08:00", "22:00"), c.privacy, c.orderButton, c.areaButton, c.orderAsk, c.areaAsk, c.keepLine, c.choicesButton, c.choicesMissing,
+    c.choicesNote, c.choicesOrder, c.exactRow, c.keepRow, c.cancelRow, c.exactSet, c.needsNote, c.cancelYes, c.pickupOff,
+    ...(["best_match", "ask", "remove"] as const).flatMap((p) => [c.missingLine(p), c.missingRow[p], c.missingSet(p)]),
+    c.noteRow(20), c.noteSet(20, 12.73), c.keepSet(12.73), c.noteTooSmall(7.27), c.choiceTooLate("AK-1234"), c.cancelAsk("AK-1234", 0),
+    c.cancelAsk("AK-1234", 7.27), c.cancelAfterPick("AK-1234", 5.27, ["لبنة"]), c.cancelAfterPickCash("AK-1234"), c.cancelOnTheWay("AK-1234"),
+    c.handoverCode("4821"), c.pickupAt("مستودع ألو كينغ"), c.pickupReady("AK-1234", "مستودع ألو كينغ"),
+    o.askCode("AK-1234"), o.wrongCode(4), o.codeLocked("AK-1234"), o.codeLockedAlert("AK-1234"), o.codeOk("AK-1234"), o.keepChange(20)];
+  it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
+});

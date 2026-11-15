@@ -70,7 +70,8 @@ run("Worker end to end (workerd + real Postgres)", () => {
     sql = pg.connect(5);
     pg.psql("scripts/staging/prepare-staging.sql");                         // the probe customer and rider, stock, fx, hub
     await sql.unsafe(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours';
-                      update settings set value = value || '{"every_minutes": 60}' where key = 'probe';`);
+                      update settings set value = value || '{"every_minutes": 60}' where key = 'probe';
+                      update settings set value = '{"enabled": false}' where key = 'welcome';`);   // CX1's welcome: off, as in test/db/harness.ts
     rest = await startPostgrest(sql);
     const kapsoUrl = await listen((path, body) => {
       const m = /\/meta\/whatsapp\/v[\d.]+\/(\d+)\/messages$/.exec(path);

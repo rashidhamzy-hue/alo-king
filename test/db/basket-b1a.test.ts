@@ -308,7 +308,8 @@ describe("fix 9: a cancel the database refuses gets a fixed answer and a case, n
     await t.tap(orderButtonId("confirm", o.id));
     await db.pg.query(`select transition_order($1, 'preparing', 'system', null, 'test')`, [o.id]);
     await t.tap(orderButtonId("cancel", o.id));
-    expect(bodyOf(outbound.at(-1)!)).toBe(ar.basket.cancelRefused(o.short_code));
+    // CX1 (0145): the tap is answered with what picking started means for this order (a cash order: nothing paid), and the case.
+    expect(bodyOf(outbound.at(-1)!)).toBe(ar.cx.cancelAfterPickCash(o.short_code));
     expect((await db.one(`select status from orders where id = $1`, [o.id])).status).toBe("preparing");
     const cs = await db.all(`select kind, topic from handoffs where conversation_id = $1`, [c.conversation_id]);
     expect(cs.some((x: any) => x.kind === "order_problem" && String(x.topic).startsWith("cancel_refused"))).toBe(true);

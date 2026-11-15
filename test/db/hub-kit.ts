@@ -72,7 +72,10 @@ export async function deliverToDoor(h: Hub, orderId: string, rider = h.riders[0]
   await db.rpc("rider_respond", { p_delivery: delivery, p_driver: rider, p_accept: true });
   const p = await db.rpc("rider_picked_up", { p_delivery: delivery, p_driver: rider });
   if (p.ok === false) throw new Error("pickup refused: " + JSON.stringify(p));
-  await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider });
+  // CX1 (0146): a prepaid order is handed over with the customer's four-digit code, typed by the rider at the door.
+  const code = (await db.one(`select handover_code from orders where id = $1`, [orderId])).handover_code as string | null;
+  if (code) await db.rpc("rider_handover", { p_order: orderId, p_driver: rider, p_code: code });
+  else await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider });
   return delivery;
 }
 

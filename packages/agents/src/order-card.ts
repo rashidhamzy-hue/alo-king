@@ -34,7 +34,11 @@ export interface CardInput { orderId: string; shortCode: string; quote: Quote; p
   replaces?: string | null;
   /** M1: the conversation's language (default Arabic) and the delivery address. */
   lang?: Lang;
-  address?: CardAddress | null }
+  address?: CardAddress | null;
+  /** CX1: what to do if an item is missing (default: ask), change kept as credit, and where a pickup is collected (settings.pickup). */
+  missingPref?: "best_match" | "ask" | "remove" | null;
+  keepChange?: boolean;
+  pickupPlace?: string | null }
 
 const qty = (q: number) => String(Number(q));
 export const orderButtonId = (action: "confirm" | "edit" | "cancel", orderId: string) => `order:${action}:${orderId}`;
@@ -110,7 +114,7 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
   if (q.total_lbp) sums.push(m.card.orLbp(q.total_lbp));
 
   const terms: string[] = [];
-  if (q.pickup) terms.push(m.card.pickup);
+  if (q.pickup) terms.push(input.pickupPlace ? m.cx.pickupAt(input.pickupPlace) : m.card.pickup);
   else {
     terms.push(m.card.address(addressText(input.address, q, lang)));
     terms.push(input.window ? m.card.window(windowLabel(input.window, lang)) : q.eta_minutes ? m.card.eta(q.eta_minutes) : m.card.deliverNow);
@@ -120,7 +124,12 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
   // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
   if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") terms.push(m.card.prepayFirst(how, input.prepay.maxCodUsd));
   else if (dues > 0 && input.paymentMethod !== "cod") terms.push(m.card.prepay(how));
-  if (input.changeForUsd && input.paymentMethod === "cod") terms.push(m.card.changeFor, usd(input.changeForUsd));
+  if (input.changeForUsd && input.paymentMethod === "cod") {
+    terms.push(m.card.changeFor, usd(input.changeForUsd));
+    if (input.keepChange) terms.push(m.cx.keepLine);
+  }
+  // CX1: the missing-item choice, always said (the list under the confirmation changes it, until picking starts).
+  terms.push(m.cx.missingLine(input.missingPref ?? "ask"));
   if (input.replaces) terms.push(m.card.replaces(input.replaces));
   terms.push("", m.card.consent);
 
@@ -148,7 +157,7 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
 
 /** Fixed replies to the three buttons. Deterministic text, no model. 2.8 adds the window and the scheduled-order answers. */
 export function buttonReplyText(r: { status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number;
-                                     window?: DeliveryWindow | null; replaces?: string; credit_usd?: number },
+                                     window?: DeliveryWindow | null; replaces?: string; credit_usd?: number | string },
                                 transferTo: { whish?: string; omt?: string } = {}, lang: Lang = "ar"): string {
   const t = messages(lang).tap;
   const when = r.window ? windowLabel(r.window, lang) : null;

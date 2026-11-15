@@ -172,6 +172,45 @@ export interface Messages {
 
   payment: { proofReceived: (code: S) => S; proofResend: S };
 
+  /**
+   * CX1 (the customer pack, docs/strategy/02 section 1 and 03 section B): the first-ever welcome with its privacy line, the card's two
+   * choices (a missing item, the note the customer pays with and the change kept as credit), self-service cancel, the handover code
+   * and pickup at the hub. Every amount comes from the database.
+   */
+  cx: {
+    /** The welcome: what we do and the hours; `privacy` is its last line, the words kept with the customer's consent. */
+    welcome: (open: S | null, close: S | null) => S;
+    privacy: S;
+    orderButton: S; areaButton: S;
+    orderAsk: S; areaAsk: S;
+    /** On the card: what happens if an item is missing, and the note for cash. */
+    missingLine: (pref: "best_match" | "ask" | "remove") => S;
+    keepLine: S;
+    /** The list under the confirmation: its button, sections and rows (WhatsApp: titles of at most 24 characters). */
+    choicesButton: S; choicesMissing: S; choicesNote: S; choicesOrder: S;
+    missingRow: Record<"best_match" | "ask" | "remove", S>;
+    exactRow: S; noteRow: (note: number) => S; keepRow: S; cancelRow: S;
+    /** The answers to a row. */
+    missingSet: (pref: "best_match" | "ask" | "remove") => S;
+    exactSet: S;
+    noteSet: (note: number, change: number) => S;
+    keepSet: (change: number) => S;
+    needsNote: S; noteTooSmall: (total: number) => S; choiceTooLate: (code: S) => S;
+    /** "Cancel my order" in words: what a cancel gives back, with a button that cancels. */
+    cancelAsk: (code: S, credit: number) => S;
+    cancelYes: S;
+    /** Picking started: nothing is cancelled by the tap; a person decides, and the exact amount is said. */
+    cancelAfterPick: (code: S, refundable: number, kept: S[]) => S;
+    cancelAfterPickCash: (code: S) => S;
+    cancelOnTheWay: (code: S) => S;
+    /** The handover code, told with the confirmation of a prepaid order. */
+    handoverCode: (code: S) => S;
+    /** Pickup at the hub: the card's line, "not available yet", and the "ready" notice. */
+    pickupAt: (place: S) => S;
+    pickupOff: S;
+    pickupReady: (code: S, place: S) => S;
+  };
+
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours. */
   notice: {
     orderCancelled: (code: S, reason: S) => S;
@@ -315,5 +354,12 @@ export interface Messages {
     riderErrorAlert: (err: S) => S;
     proofAlert: (method: S, code: S, total: number, reused: boolean) => S;
     turnCap: (limit: number) => S;
+    /** CX1: the handover code at the door (a prepaid order), and change the customer keeps as credit. */
+    askCode: (code: S) => S;
+    wrongCode: (left: number) => S;
+    codeLocked: (code: S) => S;
+    codeLockedAlert: (code: S) => S;
+    codeOk: (code: S) => S;
+    keepChange: (note: number) => S;
   };
 }
