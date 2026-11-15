@@ -1,7 +1,13 @@
 ---
+// One product (redesigned in DS1; docs/strategy/05, section B): a large picture, the name, how it is sold, the price, the stock, and
+// the food facts with their status, or "not verified" (invariant 15: unknown is never safe). The one action is "order on WhatsApp"
+// until the cart exists (WEB2). Product microdata, no script. Not here yet (docs/HANDOFF.md, DS1): a substitute when out of stock.
 import Base from "../../layouts/Base.astro";
 import Unavailable from "../../components/Unavailable.astro";
-import { nameIn, t, unitLabel, usd } from "../../lib/i18n";
+import Button from "@ak/ui-astro/Button.astro";
+import Badge from "@ak/ui-astro/Badge.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import { chatBase, nameIn, t, unitLabel, usd } from "../../lib/i18n";
 import { pictureUrl } from "../../lib/db";
 import { groupFacts } from "../../lib/facts";
 const { lang, catalog, env } = Astro.locals;
@@ -17,28 +23,32 @@ const nothingVerified = groups.every((g) => g.empty);
 const pic = ok?.picture ?? null;
 const ask = ok?.whatsapp ? ok.whatsapp.replaceAll("{sku}", encodeURIComponent(ok.product.sku)) : null;
 ---
-<Base title={name} lang={lang} path={Astro.url.pathname}>
+<Base title={name} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(ok?.whatsapp)}>
   {failed ? <Unavailable lang={lang} /> : !ok ? <Unavailable lang={lang} notFound /> : <>
-    <p class="small"><a href="/">{t(lang, "home")}</a> › <a href={`/c/${ok.category.code}`}>{nameIn(lang, ok.category.name_en, ok.category.name_ar)}</a></p>
-    <div class="product">
+    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li><a href={`/c/${ok.category.code}`}>{nameIn(lang, ok.category.name_en, ok.category.name_ar)}</a></li></ol>
+    <div class="product" itemscope itemtype="https://schema.org/Product">
       <div>
         {pic
-          ? <img class="pic" src={pictureUrl(env, pic.path, 1200)} alt={name} width={pic.width_px ?? 1200} height={pic.height_px ?? 1200} decoding="async" fetchpriority="high" />
-          : <div class="ph" role="img" aria-label={t(lang, "no_picture")}></div>}
+          ? <img class="pic" src={pictureUrl(env, pic.path, 1200)} alt={name} width={pic.width_px ?? 1200} height={pic.height_px ?? 1200} decoding="async" fetchpriority="high" itemprop="image" />
+          : <div class="ph" role="img" aria-label={t(lang, "no_picture")}><Icon name="image" /></div>}
         {pic?.attribution && <p class="muted small">{pic.attribution}{pic.source_url && <> · <a href={pic.source_url} rel="noopener nofollow">{new URL(pic.source_url).hostname}</a></>}</p>}
       </div>
       <div>
-        <h1>{name}</h1>
+        <h1 itemprop="name">{name}</h1>
         {ok.product.name_ar && ok.product.name_en && lang !== "ar" ? <p class="muted" lang="ar" dir="rtl">{ok.product.name_ar}</p> : null}
         {ok.product.name_ar && ok.product.name_en && lang === "ar" ? <p class="muted" lang="en" dir="ltr">{ok.product.name_en}</p> : null}
-        <p class="price big"><bdi>{usd(ok.product.price_usd)}</bdi></p>
-        <p><span class={ok.product.in_stock ? "badge" : "badge out"}>{ok.product.in_stock ? t(lang, "in_stock") : t(lang, "out_of_stock")}</span></p>
         <p class="muted small">
-          {ok.product.brand && <span>{t(lang, "brand")}: {ok.product.brand}</span>}
+          {ok.product.brand && <span>{t(lang, "brand")}: <span itemprop="brand">{ok.product.brand}</span></span>}
           {ok.product.brand && unit && " · "}
           {unit && <span>{t(lang, "size_unit")}: {unit}</span>}
         </p>
-        {ask && <p><a class="btn" href={ask} rel="noopener">{t(lang, "order_whatsapp")}</a></p>}
+        <div class="buy" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <meta itemprop="sku" content={ok.product.sku}><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content={Number(ok.product.price_usd).toFixed(2)}>
+          <link itemprop="availability" href={`https://schema.org/${ok.product.in_stock ? "InStock" : "OutOfStock"}`}>
+          <span class="ak-price ak-price--big"><bdi>{usd(ok.product.price_usd)}</bdi></span>
+          {ok.product.in_stock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, "out_of_stock")} tone="warn" />}
+        </div>
+        {ask && <p><Button label={ok.product.in_stock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={ok.product.in_stock ? "primary" : "default"} external /></p>}
 
         <h2>{t(lang, "facts_title")}</h2>
         <p class="notice small">{t(lang, "facts_intro")}</p>

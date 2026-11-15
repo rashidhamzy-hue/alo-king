@@ -1,4 +1,5 @@
-// HO1 (docs/strategy/05 section D, "What staff experience"): the Inbox. A plain page; DS1 restyles it later.
+// HO1 (docs/strategy/05 section D, "What staff experience"): the Inbox. Drawn again in DS1 (section A): the logic, the routes and
+// what each form posts are HO1's, unchanged; only how the page looks and its two languages are new.
 // A person is added to a conversation; the bot is never removed from it. The list is the open cases, the oldest timer first
 // (cases_inbox, 0136). Opening one shows the chat, the order and a reply drafted from the case by code (support.draft, from the
 // read-only case_context; no model, nothing sent by itself). The person edits it and sends it through the gateway in one tap
@@ -6,9 +7,11 @@
 // for settings.support.pause_min; "give back to the bot" ends the pause; resolve closes the case and sends one closing line.
 // Below the list: the automatic credits of the last 30 days, for the spot check, counted per picker (0137).
 import { act, html, id, render, text, UserError, type Ctx, type Section } from "../app";
-import { form, when } from "../html";
+import { form, usd, when } from "../html";
+import { pick, t, type Lang as UiLang } from "../i18n";
 import { LEADS } from "../roles";
 import { messages, type Lang } from "@ak/agents/messages";
+import { badge, caseList, caseRow, dataTable, empty, icon, tabs, timerChip } from "@ak/ui/components";
 
 type InboxRow = { case_id: string; kind: string; topic: string | null; state: string; order_code: string | null; customer: string; minutes: number;
   late: boolean; after_hours: boolean; callback_requested: boolean; rounds: number; claimed_by: string | null; pause_until: string | null;
@@ -20,65 +23,82 @@ type CaseContext = { case_id: string; kind: Parameters<ReturnType<typeof message
   messages: { direction: string; type: string; body: string | null; at: string }[] };
 type Credit = { order_id: string; customer_id: string; picker_id: string | null; amount_usd: number; decision: string; why: string | null; created_at: string };
 
-const KIND: Record<string, string> = { person_requested: "Asked for a person", order_problem: "Order problem", complaint: "Complaint", refund: "Refund",
-  payment: "Payment", safety: "Safety", other: "Other" };
-const kindName = (k: string) => KIND[k] ?? k;
-const said = (m: { type: string; body: string | null } | null) => (m ? (m.type === "audio" ? "[voice note]" : m.type === "image" ? "[picture]" : m.body ?? `[${m.type}]`) : "");
+const KIND: Record<string, [string, string]> = { person_requested: ["Asked for a person", "طلب شخصاً"], order_problem: ["Order problem", "مشكلة في الطلب"], complaint: ["Complaint", "شكوى"],
+  refund: ["Refund", "استرداد"], payment: ["Payment", "دفع"], safety: ["Safety", "سلامة"], other: ["Other", "أخرى"] };
+const kindName = (k: string, L: UiLang = "en") => (KIND[k] ? pick(L, KIND[k]![0], KIND[k]![1]) : k);
+const said = (m: { type: string; body: string | null } | null, L: UiLang = "en") => (m ? (m.type === "audio" ? pick(L, "[voice note]", "[رسالة صوتية]") : m.type === "image" ? pick(L, "[picture]", "[صورة]") : m.body ?? `[${m.type}]`) : "");
+export const inboxTabs = (L: UiLang, here: "cases" | "complaints", waiting = 0) =>
+  tabs([{ label: t(L, "tab_cases"), href: "/inbox", current: here === "cases", count: waiting }, { label: t(L, "tab_complaints"), href: "/cases", current: here === "complaints" }], t(L, "nav_inbox"));
 
 async function list(c: Ctx) {
   const { db } = c.deps;
+  const L = c.lang;
   const rows = await db.rpc<InboxRow[]>("cases_inbox", { p_staff: c.staff.partyId });
   const since = new Date(c.deps.now().getTime() - 30 * 86_400_000).toISOString();
   const credits = await db.rows<Credit>("auto_credits", { select: "order_id,customer_id,picker_id,amount_usd,decision,why,created_at",
     where: { created_at: { gte: since } }, order: [{ col: "created_at", desc: true }], limit: 200 }).catch(() => [] as Credit[]);
   const pickerIds = [...new Set(credits.map((x) => x.picker_id).filter((x): x is string => !!x))];
   const pickers = pickerIds.length ? await db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: pickerIds } } }) : [];
-  const name = (p: string | null) => (p ? pickers.find((x) => x.id === p)?.display_name ?? "Picker" : "Not recorded");
+  const name = (p: string | null) => (p ? pickers.find((x) => x.id === p)?.display_name ?? pick(L, "Picker", "مجهّز") : pick(L, "Not recorded", "غير مسجّل"));
   const perPicker = [...new Set(credits.map((x) => x.picker_id))].map((p) => ({ p, n: credits.filter((x) => x.picker_id === p && x.decision === "credited").length,
     usd: credits.filter((x) => x.picker_id === p && x.decision === "credited").reduce((s, x) => s + Number(x.amount_usd), 0),
     toPerson: credits.filter((x) => x.picker_id === p && x.decision === "to_person").length }));
+  // The ladder's minutes are settings (settings.support), never numbers here: a claimed case is calm, an unclaimed one turns amber at the first alert.
+  const ladder = await db.rpc<{ claim_alert_min?: number; late_min?: number } | null>("setting", { p_key: "support" }).catch(() => null);
+  const claimAt = Number(ladder?.claim_alert_min ?? NaN);
 
-  return render(c, "Inbox", html`
-<p class="muted">Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; claim a case to step it back.</p>
-${rows.length === 0 ? html`<p class="muted">Nobody is waiting for a person.</p>` : html`<table>
-<tr><th>Waiting</th><th>Kind</th><th>Order</th><th>Last message</th><th>Who has it</th><th></th></tr>
-${rows.map((r) => html`<tr>
-<td><strong class="${r.late ? "warn" : ""}">${r.minutes} min</strong>${r.late ? html`<br><span class="warn">late</span>` : ""}${r.after_hours ? html`<br><span class="muted">after hours</span>` : ""}</td>
-<td>${kindName(r.kind)}${r.callback_requested ? html`<br><strong>call back</strong>` : ""}${r.rounds ? html`<br><span class="muted">came back ${r.rounds}×</span>` : ""}</td>
-<td>${r.order_code ?? ""}</td>
-<td>${r.last_message ? html`<span class="muted">${r.last_message.direction === "inbound" ? r.customer : "us"}:</span> ${said(r.last_message).slice(0, 120)}` : ""}</td>
-<td>${r.state === "claimed" ? r.claimed_by ?? "someone" : html`<span class="warn">nobody yet</span>`}</td>
-<td><a class="btn" href="/inbox/${r.case_id}">Open</a></td></tr>`)}</table>`}
-<h2>Automatic credits, last 30 days (spot check)</h2>
-${credits.length === 0 ? html`<p class="muted">None.</p>` : html`
-<table><tr><th>Picker</th><th>Credited</th><th>Amount</th><th>Sent to a person</th></tr>
-${perPicker.map((x) => html`<tr><td>${name(x.p)}</td><td>${x.n}</td><td>$${x.usd.toFixed(2)}</td><td>${x.toPerson}</td></tr>`)}</table>
-<table><tr><th>When</th><th>Decision</th><th>Amount</th><th>Why</th><th>Picker</th><th></th></tr>
-${credits.slice(0, 50).map((x) => html`<tr><td>${when(x.created_at)}</td><td>${x.decision === "credited" ? "credited" : "to a person"}</td><td>$${Number(x.amount_usd).toFixed(2)}</td>
-<td>${x.why ?? ""}</td><td>${name(x.picker_id)}</td><td><a href="/orders/${x.order_id}">order</a></td></tr>`)}</table>`}`);
+  return render(c, t(L, "nav_inbox"), html`
+${inboxTabs(L, "cases", rows.length)}
+<p class="muted">${pick(L, "Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; claim a case to step it back.", "الزبائن الذين ينتظرون شخصاً، الأطول انتظاراً أولاً. الروبوت يواصل الرد عليهم؛ استلم الحالة ليتراجع.")}</p>
+${rows.length === 0 ? empty({ ok: true, title: pick(L, "Nobody is waiting for a person.", "لا أحد ينتظر شخصاً.") }) : caseList(rows.map((r) => caseRow({
+    href: `/inbox/${r.case_id}`, openLabel: pick(L, "Open", "افتح"),
+    state: r.late ? "late" : r.state === "claimed" ? "claimed" : "open",
+    timer: timerChip({ minutes: r.minutes, promise: null, text: `${r.minutes} ${pick(L, "min", "د")}`, state: r.late ? "late" : r.state === "claimed" ? "idle" : r.minutes >= claimAt ? "warn" : "ok" }),
+    title: `${kindName(r.kind, L)} · ${r.customer}`, order: r.order_code,
+    last: r.last_message ? `${r.last_message.direction === "inbound" ? r.customer : pick(L, "us", "نحن")}: ${said(r.last_message, L).slice(0, 120)}` : undefined,
+    tags: [
+      r.state === "claimed" ? badge(r.claimed_by ?? pick(L, "someone", "أحدهم"), "ok", "user") : badge(pick(L, "nobody yet", "لا أحد بعد"), "warn"),
+      ...(r.late ? [badge(pick(L, "late", "متأخرة"), "danger")] : []),
+      ...(r.callback_requested ? [badge(pick(L, "call back", "طلب اتصالاً"), "gold", "phone")] : []),
+      ...(r.after_hours ? [badge(pick(L, "after hours", "خارج الدوام"))] : []),
+      ...(r.rounds ? [badge(pick(L, `came back ${r.rounds}×`, `عادت ${r.rounds}×`))] : []),
+    ] })))}
+<h2>${pick(L, "Automatic credits, last 30 days (spot check)", "الأرصدة التلقائية، آخر 30 يوماً (تدقيق)")}</h2>
+${credits.length === 0 ? html`<p class="muted">${pick(L, "None.", "لا شيء.")}</p>` : html`
+${dataTable({ caption: pick(L, "Automatic credits per picker", "الأرصدة التلقائية لكل مجهّز"),
+    columns: [{ label: pick(L, "Picker", "المجهّز") }, { label: pick(L, "Credited", "أُضيف رصيد"), num: true }, { label: pick(L, "Amount", "المبلغ"), num: true }, { label: pick(L, "Sent to a person", "حُوّل إلى شخص"), num: true }],
+    rows: perPicker.map((x) => ({ cells: [name(x.p), x.n, `$${x.usd.toFixed(2)}`, x.toPerson] })) })}
+<p></p>
+${dataTable({ caption: pick(L, "The latest automatic credits", "آخر الأرصدة التلقائية"),
+    columns: [{ label: pick(L, "When", "متى") }, { label: pick(L, "Decision", "القرار") }, { label: pick(L, "Amount", "المبلغ"), num: true }, { label: pick(L, "Why", "السبب"), wrap: true }, { label: pick(L, "Picker", "المجهّز") }, { label: pick(L, "Order", "الطلب") }],
+    rows: credits.slice(0, 50).map((x) => ({ cells: [when(x.created_at), x.decision === "credited" ? pick(L, "credited", "أُضيف رصيد") : pick(L, "to a person", "إلى شخص"), `$${Number(x.amount_usd).toFixed(2)}`,
+      x.why ?? "", name(x.picker_id), html`<a href="/orders/${x.order_id}">${pick(L, "order", "الطلب")}</a>`] })) })}`}`, { translated: true });
 }
 
 async function one(c: Ctx) {
+  const L = c.lang;
   const caseId = id(c, "case");
   const x = await c.deps.db.rpc<CaseContext>("case_context", { p_case: caseId, p_staff: c.staff.partyId });
   const draft = messages(x.lang).support.draft(x.kind, x.order?.short_code ?? null);
   const paused = x.pause_until && new Date(x.pause_until) > c.deps.now();
   const open = x.state !== "resolved";
-  return render(c, `Inbox: ${kindName(x.kind)}`, html`
-<p><a href="/inbox">← Inbox</a></p>
-<p><strong>${x.customer ?? "Customer"}</strong> · ${kindName(x.kind)} · ${x.state}${x.claimed_by ? html` (${x.claimed_by})` : ""} · opened ${when(x.opened_at)}
-${x.late ? html` · <strong class="warn">late</strong>` : ""}${x.callback_requested ? html` · <strong>asked to be called back</strong>` : ""}</p>
-${x.topic ? html`<p class="muted">About: ${x.topic}</p>` : ""}
-${x.order ? html`<p>Order <a href="/orders/${x.order.short_code}">${x.order.short_code}</a>: ${x.order.status}, $${Number(x.order.total_usd).toFixed(2)}, ${x.order.payment_method}</p>` : ""}
-<p>${paused ? html`The bot is stepped back until ${when(x.pause_until)}; each reply you send renews it.` : "The bot is answering this customer."}</p>
-<table>${x.messages.map((m) => html`<tr><td class="muted">${when(m.at)}</td><td>${m.direction === "inbound" ? "customer" : "us"}</td><td>${said(m)}</td></tr>`)}</table>
-${!open ? html`<p class="muted">Resolved.</p>` : html`
-${x.state === "open" ? form(c.f, `/inbox/${caseId}/claim`, html`<button>Claim (the bot steps back)</button>`) : ""}
-${x.window_open ? form(c.f, `/inbox/${caseId}/reply`, html`<p class="muted">A draft from the case; edit it before sending. It goes from the customer number.</p>
-<p><textarea name="text" rows="4" cols="60" maxlength="1500" required>${draft}</textarea></p><p><button>Send</button></p>`)
-                : html`<p><strong class="warn">WhatsApp's 24-hour window is closed: a reply cannot be sent. Call the customer.</strong></p>`}
-${paused ? form(c.f, `/inbox/${caseId}/release`, html`<button>Give back to the bot now</button>`) : ""}
-${form(c.f, `/inbox/${caseId}/resolve`, html`<p><input name="outcome" maxlength="500" required placeholder="What was done (for the record)"> <button>Resolve</button></p>`)}`}`);
+  const stateWord = x.state === "claimed" ? pick(L, "claimed", "مستلمة") : x.state === "resolved" ? pick(L, "resolved", "محلولة") : pick(L, "open", "مفتوحة");
+  return render(c, `${t(L, "nav_inbox")}: ${kindName(x.kind, L)}`, html`
+<p><a href="/inbox">${icon("chevron", { back: true })} ${t(L, "nav_inbox")}</a></p>
+<div class="card"><p><strong>${x.customer ?? pick(L, "Customer", "الزبون")}</strong> · ${kindName(x.kind, L)} · ${badge(`${stateWord}${x.claimed_by ? ` (${x.claimed_by})` : ""}`, x.state === "claimed" ? "ok" : "neutral")} · ${pick(L, "opened", "فُتحت")} ${when(x.opened_at)}
+${x.late ? html` ${badge(pick(L, "late", "متأخرة"), "danger")}` : ""}${x.callback_requested ? html` ${badge(pick(L, "asked to be called back", "طلب أن نتصل به"), "gold", "phone")}` : ""}</p>
+${x.topic ? html`<p class="muted">${pick(L, "About", "الموضوع")}: ${x.topic}</p>` : ""}
+${x.order ? html`<p>${pick(L, "Order", "الطلب")} <a href="/orders/${x.order.short_code}">${x.order.short_code}</a>: ${x.order.status}, ${usd(x.order.total_usd)}, ${x.order.payment_method}</p>` : ""}
+<p class="muted">${paused ? html`${pick(L, "The bot is stepped back until", "الروبوت متراجع حتى")} ${when(x.pause_until)}${pick(L, "; each reply you send renews it.", "؛ كل رد ترسله يجدّد ذلك.")}` : pick(L, "The bot is answering this customer.", "الروبوت يرد على هذا الزبون.")}</p></div>
+<h2>${pick(L, "The chat", "المحادثة")}</h2>
+<ol class="ak-chat">${x.messages.map((m) => html`<li class="${m.direction === "inbound" ? "" : "us"}"><time>${when(m.at)} · ${m.direction === "inbound" ? pick(L, "customer", "الزبون") : pick(L, "us", "نحن")}</time><span dir="auto">${said(m, L)}</span></li>`)}</ol>
+${!open ? html`<p class="muted">${pick(L, "Resolved.", "حُلّت.")}</p>` : html`
+${x.state === "open" ? form(c.f, `/inbox/${caseId}/claim`, html`<button>${pick(L, "Claim (the bot steps back)", "استلم (يتراجع الروبوت)")}</button>`) : ""}
+${x.window_open ? form(c.f, `/inbox/${caseId}/reply`, html`<h2>${pick(L, "Reply", "الرد")}</h2><p class="muted">${pick(L, "A draft from the case; edit it before sending. It goes from the customer number.", "مسودة من الحالة؛ عدّلها قبل الإرسال. تُرسل من رقم الزبائن.")}</p>
+<p><textarea name="text" rows="4" cols="60" maxlength="1500" required dir="auto">${draft}</textarea></p><p><button>${pick(L, "Send", "إرسال")}</button></p>`, { cls: "reply" })
+                : html`<p><strong class="warn">${pick(L, "WhatsApp's 24-hour window is closed: a reply cannot be sent. Call the customer.", "نافذة واتساب (24 ساعة) مغلقة: لا يمكن إرسال رد. اتصل بالزبون.")}</strong></p>`}
+<div class="actions-row">${paused ? form(c.f, `/inbox/${caseId}/release`, html`<button class="secondary">${pick(L, "Give back to the bot now", "أعِدها إلى الروبوت الآن")}</button>`) : ""}</div>
+${form(c.f, `/inbox/${caseId}/resolve`, html`<h2>${pick(L, "Resolve", "إغلاق الحالة")}</h2><p><input name="outcome" maxlength="500" required placeholder="${pick(L, "What was done (for the record)", "ماذا فُعل (للسجل)")}" size="34"> <button>${pick(L, "Resolve", "حُلّت")}</button></p>`)}`}`, { translated: true });
 }
 
 async function claim(c: Ctx) {

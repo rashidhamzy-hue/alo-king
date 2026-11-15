@@ -1,23 +1,18 @@
 ---
+// One item in a list (redesigned in DS1): the shared product card of packages/ui, filled from the catalog. The one-tap action is
+// "order this item on WhatsApp" until the cart exists (session WEB2), and only when a person has set the chat's address.
 import type { CatalogCard } from "@ak/commerce/index";
+import ProductCard from "@ak/ui-astro/ProductCard.astro";
 import { nameIn, t, unitLabel, usd, type Lang } from "../lib/i18n";
 import { pictureUrl } from "../lib/db";
-interface Props { item: CatalogCard; lang: Lang; env: App.Locals["env"] }
-const { item, lang, env } = Astro.props;
+interface Props { item: CatalogCard; lang: Lang; env: App.Locals["env"]; whatsapp?: string | null }
+const { item, lang, env, whatsapp = null } = Astro.props;
 const name = nameIn(lang, item.name_en, item.name_ar);
 const unit = unitLabel(lang, item.sell_unit);
 const pic = item.picture;
+const ask = whatsapp && whatsapp.includes("{sku}") && item.in_stock ? whatsapp.replaceAll("{sku}", encodeURIComponent(item.sku)) : null;
 ---
-<li class="card">
-  <a class="cover" href={`/p/${encodeURIComponent(item.sku)}`}>
-    {pic
-      ? <img class="pic" src={pictureUrl(env, pic.path, 400)} alt={name} loading="lazy" decoding="async" width={pic.width_px ?? 400} height={pic.height_px ?? 400} />
-      : <div class="ph" role="img" aria-label={t(lang, "no_picture")}></div>}
-    <span class="body">
-      <span class="name">{name}</span>
-      {(item.brand || unit) && <span class="muted small">{[item.brand, unit].filter(Boolean).join(" · ")}</span>}
-      <span class="price"><bdi>{usd(item.price_usd)}</bdi></span>
-      <span class={item.in_stock ? "badge" : "badge out"}>{item.in_stock ? t(lang, "in_stock") : t(lang, "out_of_stock")}</span>
-    </span>
-  </a>
-</li>
+<ProductCard href={`/p/${encodeURIComponent(item.sku)}`} name={name} meta={[item.brand, unit].filter(Boolean).join(" · ") || undefined} price={usd(item.price_usd)} inStock={item.in_stock}
+  picture={pic ? { src: pictureUrl(env, pic.path, 400), width: pic.width_px ?? 400, height: pic.height_px ?? 400 } : null}
+  labels={{ inStock: t(lang, "in_stock"), outOfStock: t(lang, "out_of_stock"), noPicture: t(lang, "no_picture") }}
+  action={ask ? { href: ask, label: t(lang, "order_item_whatsapp"), icon: "chat", external: true } : null} />

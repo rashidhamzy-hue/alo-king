@@ -1,18 +1,29 @@
 ---
+// The frame of every page (redesigned in DS1; docs/strategy/05, section B): the crown and the name, search, language, and Order on
+// WhatsApp on every page: in the header on a laptop, in the bottom bar on a phone. The cart button joins it in session WEB2; until
+// the cart exists no cart is shown. `whatsapp` is the chat's address from the database (settings.catalog.product_link, set by a
+// person); when it is not set, no WhatsApp button is shown anywhere.
 import "../styles/site.css";
-import { LANGS, LANG_NAMES, dirOf, t, type Lang } from "../lib/i18n";
-interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string }
-const { title, lang, description, q = "", path = "/" } = Astro.props;
+import Crown from "@ak/ui-astro/Crown.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import arabic400 from "../../../../packages/ui/fonts/plex-arabic-400.woff2?url";
+import latin400 from "../../../../packages/ui/fonts/plex-latin-400.woff2?url";
+import { LANGS, LANG_NAMES, dirOf, t, withGreeting, type Lang } from "../lib/i18n";
+interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean }
+const { title, lang, description, q = "", path = "/", whatsapp = null, live = false } = Astro.props;
 const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}`;
+const chat = withGreeting(whatsapp, lang);
 ---
 <!doctype html>
 <html lang={lang} dir={dirOf(lang)}>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{full}</title>
   {description && <meta name="description" content={description}>}
-  <meta name="theme-color" content="#1f6f4a">
+  <meta name="theme-color" content="#0E0F12">
+  <link rel="preload" href={lang === "ar" ? arabic400 : latin400} as="font" type="font/woff2" crossorigin>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
@@ -21,16 +32,17 @@ const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}
   <a class="skip" href="#main">{t(lang, "skip")}</a>
   <header class="top">
     <div class="wrap">
-      <a class="brand" href="/">{t(lang, "site")}</a>
+      <a class="ak-logo" href="/"><Crown /><span>{t(lang, "site")}</span></a>
       <form class="search" action="/search" method="get" role="search">
-        <input type="search" name="q" value={q} placeholder={t(lang, "search_placeholder")} aria-label={t(lang, "search_label")} maxlength="80" autocomplete="off">
-        <button type="submit">{t(lang, "search")}</button>
+        <input class="ak-input" type="search" name="q" value={q} placeholder={t(lang, "search_placeholder")} aria-label={t(lang, "search_label")} maxlength="80" autocomplete="off" enterkeyhint="search" data-live-search={live ? "" : undefined}>
+        <Button label={t(lang, "search")} icon="search" iconOnly />
       </form>
       <nav class="langs" aria-label={t(lang, "language")}>
         {LANGS.map((l) => l === lang
           ? <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l} aria-current="true">{LANG_NAMES[l]}</a>
           : <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l}>{LANG_NAMES[l]}</a>)}
       </nav>
+      {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="primary" external cls="wa" />}
     </div>
   </header>
   <main id="main" class="wrap"><slot /></main>
@@ -41,6 +53,8 @@ const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}
       <a href="/terms">{t(lang, "terms")}</a>
     </div>
   </footer>
+  {chat && <div class="bottom"><Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="primary" external /></div>}
   <script src="/sw-register.js" defer></script>
+  <script src="/site.js" defer></script>
 </body>
 </html>

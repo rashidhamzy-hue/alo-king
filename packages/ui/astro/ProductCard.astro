@@ -1,0 +1,6 @@
+---
+// The product card: picture or a neutral placeholder, name, size, price, stock, one action. Markup from productCard().
+import { productCard, type ProductCardOpts } from "../src/components";
+type Props = ProductCardOpts;
+---
+<Fragment set:html={productCard(Astro.props).s} />

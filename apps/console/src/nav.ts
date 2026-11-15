@@ -1,21 +1,31 @@
-// Navigation (session D5): five places on a phone (Today, Orders, Approve, Stock, More), one list on a wide screen, and a badge
-// on every place that has something waiting. The pages register themselves as sections (pages/index.ts); this file only decides
-// where each section's link is shown, by its address, so no page module had to change. A section not listed here lands in "Other".
+// Navigation (redesigned in DS1; docs/strategy/05, section A): six groups and Settings in a sidebar on a laptop, each with an icon
+// and a badge; five places in the bottom bar on a phone (Today, Orders, Inbox, Approve, More); and the list the command bar searches.
+// The pages register themselves as sections (pages/index.ts); this file only decides where each section's link is shown, by its
+// address, so no page module had to change. A section not listed here lands in "Other". Reports has no page yet (session AN1), so
+// the group is not shown. Removed from navigation only, never from the routes: Vendors (/merchants), until the first vendor.
 import type { Deps, Section } from "./app";
+import type { IconName } from "@ak/ui/components";
+import { kindHref, kindName } from "./kinds";
 import { LEADS, type Role } from "./roles";
 import { NAV_AR, t, type Lang, type Key } from "./i18n";
 
 export interface NavLink { href: string; label: string; badge: number; current: boolean }
-export interface NavGroup { id: string; heading: string | null; hubHref: string | null; links: NavLink[] }
-export interface Nav { bottom: (NavLink & { icon: string })[]; groups: NavGroup[] }
+export interface NavGroup { id: string; heading: string | null; icon: IconName; hubHref: string | null; links: NavLink[]; badge: number; current: boolean }
+export interface Nav { bottom: (NavLink & { icon: IconName })[]; groups: NavGroup[] }
 
-/** Which hub shows which pages, in order. The home page and the orders page are first-level and belong to no group. */
-export const GROUPS: { id: "run" | "approve" | "stock"; key: Key; hub: string | null; hrefs: string[] }[] = [
-  { id: "run", key: "g_run", hub: "/more", hrefs: ["/day-open", "/day-close", "/exceptions", "/riders", "/windows", "/cases", "/merchants", "/templates", "/staff"] },
-  { id: "approve", key: "g_approve", hub: "/approve", hrefs: ["/approvals", "/names", "/readiness", "/pictures", "/food-facts", "/search-words", "/auto-approvals", "/intake"] },
-  { id: "stock", key: "g_stock", hub: "/stock", hrefs: ["/payments", "/catalog", "/receiving", "/returns", "/refunds", "/money", "/fx", "/zones"] },
+type GroupId = "today" | "inbox" | "orders" | "approve" | "stock" | "money" | "settings";
+/** Which group shows which pages, in order. `hub` is the page a phone opens for the group (the sidebar needs none). */
+export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null; hrefs: string[]; /** Pages merged into the group's one page as a tab (section A): no link of their own, but the group is current on them. */ also?: string[] }[] = [
+  { id: "today", key: "nav_today", icon: "home", hub: null, hrefs: ["/"], also: ["/exceptions"] },
+  { id: "inbox", key: "nav_inbox", icon: "inbox", hub: null, hrefs: ["/inbox"], also: ["/cases"] },
+  { id: "orders", key: "nav_orders", icon: "orders", hub: null, hrefs: ["/orders"] },
+  { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approvals", "/names", "/pictures", "/food-facts", "/intake", "/search-words", "/auto-approvals"] },
+  { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/catalog", "/readiness", "/receiving", "/returns"] },
+  { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/day-open", "/day-close", "/payments", "/refunds", "/riders", "/money", "/fx"] },
+  { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/zones", "/windows", "/staff", "/templates"] },
 ];
-const TOP = ["/", "/orders"];
+/** Pages that keep their route and are in no menu (section A: "Hide until the first vendor"). */
+export const HIDDEN = ["/merchants"];
 
 export const badgeText = (n: number) => (n > 99 ? "99+" : String(n));
 
@@ -26,31 +36,37 @@ export function labelFor(s: Section, lang: Lang): string {
 }
 
 export function buildNav(sections: Section[], role: Role, lang: Lang, path: string, badges: Record<string, number>): Nav {
-  const mine = sections.filter((s) => s.nav.roles.includes(role));
+  const mine = sections.filter((s) => s.nav.roles.includes(role) && !HIDDEN.includes(s.nav.href));
   const link = (s: Section): NavLink => ({ href: s.nav.href, label: labelFor(s, lang), badge: badges[s.nav.href] ?? 0, current: s.nav.href === "/" ? path === "/" : path === s.nav.href || path.startsWith(s.nav.href + "/") });
   const seen = new Set<string>();
   const groups: NavGroup[] = [];
-  const top = TOP.flatMap((h) => mine.filter((s) => s.nav.href === h)).map((s) => { seen.add(s.nav.href); return link(s); });
-  if (top.length) groups.push({ id: "top", heading: null, hubHref: null, links: top });
+  const under = (h: string) => path === h || path.startsWith(h + "/");
+  const group = (id: string, heading: string, icon: IconName, hub: string | null, links: NavLink[], also: string[] = []) =>
+    groups.push({ id, heading, icon, hubHref: hub, links, badge: links.reduce((a, l) => a + l.badge, 0), current: links.some((l) => l.current) || also.some(under) || (hub !== null && hub !== "/more" && path === hub) });
   for (const g of GROUPS) {
     const links = g.hrefs.flatMap((h) => mine.filter((s) => s.nav.href === h)).map((s) => { seen.add(s.nav.href); return link(s); });
-    if (links.length) groups.push({ id: g.id, heading: t(lang, g.key), hubHref: g.hub, links });
+    const also = (g.also ?? []).filter((h) => mine.some((s) => s.nav.href === h));
+    also.forEach((h) => seen.add(h));
+    if (links.length) group(g.id, t(lang, g.key), g.icon, g.hub, links, also);
   }
   const other = mine.filter((s) => !seen.has(s.nav.href)).map(link);
-  if (other.length) groups.push({ id: "other", heading: t(lang, "g_other"), hubHref: "/more", links: other });
+  if (other.length) group("other", t(lang, "g_other"), "list", "/more", other);
 
-  groups.push({ id: "menu", heading: null, hubHref: null, links: [{ href: "/more", label: t(lang, "nav_more"), badge: 0, current: path === "/more" || path === "/install" }] });
-  const sum = (id: string) => (groups.find((g) => g.id === id)?.links ?? []).reduce((a, l) => a + l.badge, 0);
-  const has = (id: string) => (groups.find((g) => g.id === id)?.links.length ?? 0) > 0;
-  const ordersHere = mine.some((s) => s.nav.href === "/orders");
+  const g = (id: string) => groups.find((x) => x.id === id);
+  const has = (id: string) => (g(id)?.links.length ?? 0) > 0;
+  const onMore = path === "/more" || path === "/install" || path === "/gallery";
   const bottom: Nav["bottom"] = [
-    { href: "/", label: t(lang, "nav_today"), icon: "●", badge: badges["/"] ?? 0, current: path === "/" },
-    ...(ordersHere ? [{ href: "/orders", label: t(lang, "nav_orders"), icon: "▤", badge: badges["/orders"] ?? 0, current: path === "/orders" || path.startsWith("/orders/") }] : []),
-    ...(has("approve") ? [{ href: "/approve", label: t(lang, "nav_approve"), icon: "✓", badge: sum("approve"), current: path === "/approve" || groups.find((g) => g.id === "approve")!.links.some((l) => l.current) }] : []),
-    ...(has("stock") ? [{ href: "/stock", label: t(lang, "nav_stock"), icon: "▦", badge: sum("stock"), current: path === "/stock" || groups.find((g) => g.id === "stock")!.links.some((l) => l.current) }] : []),
-    { href: "/more", label: t(lang, "nav_more"), icon: "≡", badge: sum("run") + sum("other"),
-      current: path === "/more" || [...(groups.find((g) => g.id === "run")?.links ?? []), ...(groups.find((g) => g.id === "other")?.links ?? [])].some((l) => l.current) },
+    { href: "/", label: t(lang, "nav_today"), icon: "home", badge: badges["/"] ?? 0, current: g("today")?.current ?? path === "/" },
+    ...(has("orders") ? [{ href: "/orders", label: t(lang, "nav_orders"), icon: "orders" as const, badge: g("orders")!.badge, current: g("orders")!.current }] : []),
+    ...(has("inbox") ? [{ href: "/inbox", label: t(lang, "nav_inbox"), icon: "inbox" as const, badge: g("inbox")!.badge, current: g("inbox")!.current }] : []),
+    ...(has("approve") ? [{ href: "/approve", label: t(lang, "nav_approve"), icon: "approve" as const, badge: g("approve")!.badge, current: g("approve")!.current }] : []),
   ];
+  // A role with room left (a picker has no Orders and no Inbox) gets Stock, which is most of its work.
+  if (bottom.length < 4 && has("stock")) bottom.push({ href: "/stock", label: t(lang, "nav_stock"), icon: "stock", badge: g("stock")!.badge, current: g("stock")!.current });
+  // More holds every group that has no place of its own in the bar.
+  const shown = new Set(bottom.map((b) => b.href));
+  const rest = groups.filter((x) => !["today", "inbox", "orders"].includes(x.id) && !(x.hubHref && shown.has(x.hubHref)));
+  bottom.push({ href: "/more", label: t(lang, "nav_more"), icon: "menu", badge: rest.reduce((a, x) => a + x.badge, 0), current: onMore || rest.some((x) => x.current) });
   return { bottom, groups };
 }
 
@@ -68,6 +84,7 @@ export async function computeBadges(deps: Deps, role: Role): Promise<Record<stri
     await Promise.all([
       count("/exceptions", () => rows("ops_exceptions", { status: { in: ["open", "acknowledged"] } })),
       count("/orders", async () => (await deps.db.rows<{ id: string }>("orders", { select: "id", where: { status: { in: ["delivered", "failed_delivery"] } }, limit: 500 })).length),
+      count("/inbox", () => rows("support_cases", { state: { in: ["open", "claimed"] } })),
       count("/approvals", () => rows("pending_approvals", { status: "pending" })),
       count("/names", () => rows("product_name_proposals", { status: "proposed" })),
       count("/payments", () => rpcCount("payment_proofs_open")),
@@ -76,4 +93,22 @@ export async function computeBadges(deps: Deps, role: Role): Promise<Record<stri
     out["/"] = out["/exceptions"] ?? 0;
   }
   return out;
+}
+
+export interface BellData { count: number; items: { label: string; href: string; meta: string }[] }
+/**
+ * The bell: the open exceptions of the kinds that are pushed to a phone (settings.push_alerts.high_priority_kinds), oldest first.
+ * The same items as the push alerts, so the bell never shows something a phone was not told. A lagging database gives an empty bell.
+ */
+export async function computeBell(deps: Deps, role: Role, lang: Lang, now: Date): Promise<BellData> {
+  if (!LEADS.includes(role)) return { count: 0, items: [] };
+  try {
+    const cfg = await deps.db.rpc<{ high_priority_kinds?: string[] } | null>("setting", { p_key: "push_alerts" });
+    const kinds = cfg?.high_priority_kinds ?? [];
+    if (kinds.length === 0) return { count: 0, items: [] };
+    const rows = await deps.db.rows<{ id: string; kind: string; ref: string; detail: Record<string, unknown> | null; created_at: string }>("ops_exceptions", {
+      select: "id,kind,ref,detail,created_at", where: { status: { in: ["open", "acknowledged"] }, kind: { in: kinds } }, order: [{ col: "created_at" }], limit: 100 });
+    const mins = (at: string) => Math.max(0, Math.floor((now.getTime() - new Date(at).getTime()) / 60000));
+    return { count: rows.length, items: rows.slice(0, 6).map((e) => ({ label: kindName(e.kind, lang), href: kindHref(e), meta: `${mins(e.created_at)} ${t(lang, "min")}` })) };
+  } catch { return { count: 0, items: [] }; }
 }

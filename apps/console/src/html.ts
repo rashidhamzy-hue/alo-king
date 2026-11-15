@@ -1,25 +1,13 @@
 // Server-rendered pages. The shell (head, navigation, language, install metadata) is built here; the stylesheet is style.ts.
 // Every interpolated value is escaped unless it is itself a fragment built with `html`.
 
-export class Raw { constructor(readonly s: string) {} toString() { return this.s; } }
-
-const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-export const escape = (v: unknown): string => String(v ?? "").replace(/[&<>"']/g, (c) => ESC[c]!);
-
-function piece(v: unknown): string {
-  if (v instanceof Raw) return v.s;
-  if (Array.isArray(v)) return v.map(piece).join("");
-  if (v === null || v === undefined || v === false) return "";
-  return escape(v);
-}
-
-export function html(strings: TemplateStringsArray, ...values: unknown[]): Raw {
-  let out = strings[0]!;
-  values.forEach((v, i) => { out += piece(v) + strings[i + 1]!; });
-  return new Raw(out);
-}
+// The fragment type and the tagged template are packages/ui's, so a component built there is a fragment here too.
+import { Raw, escape, html } from "@ak/ui/h";
+export { Raw, escape, html };
 
 export const usd = (n: unknown) => (n === null || n === undefined || n === "" ? "" : `$${Number(n).toFixed(2)}`);
+/** An amount as a fragment that keeps its order inside Arabic text ($ first, Western digits). */
+export const money = (n: unknown, more: string = "") => html`<bdi>${usd(n)}${more}</bdi>`;
 export const lbp = (n: unknown) => (n === null || n === undefined || n === "" ? "" : `${Math.round(Number(n)).toLocaleString("en-US")} LBP`);
 export const when = (t: unknown) => {
   if (!t) return "";
@@ -37,45 +25,73 @@ export function form(f: FormCtx, action: string, body: Raw | Raw[], opts: { cls?
 }
 
 import { dirOf, t, type Lang } from "./i18n";
-import type { Nav } from "./nav";
+import type { BellData, Nav } from "./nav";
 import { badgeText } from "./nav";
+import { bell as bellPanel, commandBar, crown, icon, type Command } from "@ak/ui/components";
 export { CSS } from "./style";
+import { UI_TOKENS } from "./ui.generated";
+
+export type Theme = "auto" | "light" | "dark";
+export const THEMES: readonly Theme[] = ["auto", "light", "dark"];
 
 export interface PageOpts {
   title: string;
   staff?: { name: string; role: string; csrf: string } | null;
   nav?: Nav | null;
   lang?: Lang;
-  /** True for a page whose words follow the language choice (the shell, Today, Orders, the hubs). Older pages stay English inside. */
+  /** True for a page whose words follow the language choice (the shell, Today, Inbox, Orders, the hubs). Older pages stay English inside. */
   translated?: boolean;
   flash?: { ok?: string; err?: string } | null;
   environment: string;
   body: Raw | Raw[];
   /** The address, so the language switch comes back to the same page. */
   path?: string;
+  /** The staff member's own choice (a cookie); "auto" follows the phone. */
+  theme?: Theme;
+  /** The open high-priority exceptions: the same items the push alerts carry. Leads only. */
+  bell?: BellData | null;
+  /** May this person search orders from the command bar (the orders page is for leads)? */
+  canSearchOrders?: boolean;
 }
 
 const badge = (n: number) => (n > 0 ? html`<span class="badge">${badgeText(n)}</span>` : "");
+const cur = (on: boolean) => (on ? new Raw(' aria-current="page"') : "");
 
 export function page(opts: PageOpts): Response {
   const lang: Lang = opts.lang ?? "en";
   const nav = opts.nav;
-  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${nav.groups.map((g) => html`${g.heading ? html`<h2>${g.heading}</h2>` : ""}
-${g.links.map((l) => html`<a href="${l.href}"${l.current ? new Raw(' aria-current="page"') : ""}><span>${l.label}</span>${badge(l.badge)}</a>`)}`)}</aside>` : "";
-  const bottom = nav ? html`<nav class="bottom-nav" aria-label="${t(lang, "main_menu")}">${nav.bottom.map((l) => html`<a href="${l.href}"${l.current ? new Raw(' aria-current="page"') : ""}><span class="ic" aria-hidden="true">${l.icon}</span><span>${l.label}</span>${badge(l.badge)}</a>`)}</nav>` : "";
-  const who = opts.staff ? html`<div class="who"><span>${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
-<form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button>${t(lang, "sign_out")}</button></form></div>` : "";
+  // The sidebar: a group with one page is a link; a group with several opens to show them, and is open when you are in it.
+  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${nav.groups.map((g) => g.links.length === 1 && g.id !== "approve" && g.id !== "stock"
+    ? html`<a href="${g.links[0]!.href}"${cur(g.current)}>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}</a>`
+    : html`<details${g.current ? new Raw(" open") : ""}><summary>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}${icon("chevron", { flip: true, cls: "chev" })}</summary>
+${g.links.map((l) => html`<a href="${l.href}"${cur(l.current)}><span>${l.label}</span>${badge(l.badge)}</a>`)}</details>`)}</aside>` : "";
+  const bottom = nav ? html`<nav class="bottom-nav" aria-label="${t(lang, "main_menu")}">${nav.bottom.map((l) => html`<a href="${l.href}"${cur(l.current)}><span class="ic">${icon(l.icon)}</span><span>${l.label}</span>${badge(l.badge)}</a>`)}</nav>` : "";
+  const commands: Command[] = nav ? [
+    ...nav.groups.flatMap((g) => g.links.map((l) => ({ label: l.label, href: l.href, hint: g.links.length > 1 ? g.heading ?? undefined : undefined, icon: g.icon }))),
+    { label: t(lang, "nav_more"), href: "/more", icon: "menu" as const },
+  ] : [];
+  const tools = nav ? html`<a class="tool search" href="/more" data-open-cmdk aria-keyshortcuts="Control+K">${icon("search")}<span class="lbl">${t(lang, "cmd_open")}</span><kbd>Ctrl K</kbd></a>
+${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), items: opts.bell.items, empty: t(lang, "bell_empty"), allHref: "/exceptions", allLabel: t(lang, "bell_all") }) : ""}` : "";
+  const who = opts.staff ? html`<div class="who"><span class="name">${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
+<form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button aria-label="${t(lang, "sign_out")}" title="${t(lang, "sign_out")}">${icon("signout", { flip: true })}</button></form></div>` : "";
   const banner = opts.environment === "production" ? "" : html`<div class="env">${t(lang, "test_data", { env: opts.environment.toUpperCase() })}</div>`;
   const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? html`<p class="flash ok">${opts.flash.ok}</p>` : "";
   // A page not yet translated keeps its own language inside an Arabic shell, so assistive technology is not told English is Arabic.
   const mainAttrs = lang === "ar" && !opts.translated ? new Raw(' lang="en" dir="ltr"') : "";
-  const doc = html`<!doctype html><html lang="${lang}" dir="${dirOf(lang)}"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0f3d5e">
+  const theme = opts.theme && opts.theme !== "auto" ? new Raw(` data-theme="${opts.theme}"`) : "";
+  const cmdk = nav ? commandBar({ id: "cmdk", label: t(lang, "cmd_label"), placeholder: t(lang, opts.canSearchOrders ? "cmd_ph" : "cmd_ph_pages"), commands,
+    searchAction: opts.canSearchOrders ? "/orders" : "/catalog", searchName: "q", hint: t(lang, opts.canSearchOrders ? "cmd_hint" : "cmd_hint_pages") }) : "";
+  const doc = html`<!doctype html><html lang="${lang}" dir="${dirOf(lang)}"${theme}><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="${THEME_COLOR}">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Alo King">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preload" href="/fonts/${lang === "ar" ? "plex-arabic-400" : "plex-latin-400"}.woff2" as="font" type="font/woff2" crossorigin>
 <title>${opts.title} · ${t(lang, "app_name")}</title><link rel="stylesheet" href="/console.css"></head>
-<body><a class="skip" href="#main">${t(lang, "skip")}</a>${banner}<header class="top"><strong>${t(lang, "app_name")}</strong>${who}</header>
-<div class="shell">${aside}<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${bottom}<script src="/shell.js" defer></script></body></html>`;
+<body><a class="skip" href="#main">${t(lang, "skip")}</a>${banner}<header class="top"><a class="ak-logo" href="/">${crown({ tone: "on-ink" })}<strong>${t(lang, "app_name")}</strong></a>${tools}${who}</header>
+<div class="shell">${aside}<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
   return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 }
+
+/** The browser's own chrome (the status bar of the installed app): the brand's ink, in both themes. From tokens.css. */
+export const THEME_COLOR = UI_TOKENS.ink;

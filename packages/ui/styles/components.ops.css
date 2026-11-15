@@ -1,0 +1,99 @@
+/* Operations components: KPI tile, timer chip, bar against a limit, data table, drawer, command bar, bell, case row, live board.
+   The console's sheet includes them; the website loads them on its gallery page only. */
+
+@layer components {
+  /* ---------- KPI tile: the value, what it is compared with, a trend line ---------- */
+  .ak-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--ak-space-3); margin: var(--ak-space-3) 0; padding: 0; list-style: none; }
+  .ak-kpi { display: flex; flex-direction: column; gap: 2px; background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); padding: var(--ak-space-3) var(--ak-space-4); box-shadow: var(--ak-shadow-1); min-inline-size: 0; }
+  .ak-kpi .label { font-size: var(--ak-text-sm); color: var(--ak-muted); }
+  .ak-kpi .value { font-size: var(--ak-text-2xl); font-weight: var(--ak-weight-strong); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .ak-kpi .cmp { font-size: var(--ak-text-xs); color: var(--ak-muted); display: flex; flex-wrap: wrap; gap: 0 var(--ak-space-2); }
+  .ak-kpi .cmp .ak-icon { inline-size: 1em; block-size: 1em; }
+  .ak-kpi .up { color: var(--ak-ok); }
+  .ak-kpi .down { color: var(--ak-danger); }
+  .ak-kpi .ak-spark { margin-block-start: var(--ak-space-1); }
+  .ak-kpi--alert { border-color: var(--ak-danger); }
+  .ak-kpi--alert .value { color: var(--ak-danger); }
+  .ak-spark { display: block; inline-size: 100%; block-size: 28px; color: var(--ak-accent); }
+  .ak-spark polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .ak-spark circle { fill: currentColor; }
+  /* ---------- timer chip: green, amber, red against a promise ---------- */
+  .ak-timer { display: inline-flex; align-items: center; gap: var(--ak-space-1); padding: 1px var(--ak-space-2); border-radius: var(--ak-radius-full); font-size: var(--ak-text-xs); font-weight: var(--ak-weight-strong); line-height: 1.6; font-variant-numeric: tabular-nums; white-space: nowrap; background: var(--ak-ok-bg); color: var(--ak-ok); }
+  .ak-timer--warn { background: var(--ak-warn-bg); color: var(--ak-warn); }
+  .ak-timer--late { background: var(--ak-danger); color: var(--ak-on-status); }
+  .ak-timer--idle { background: var(--ak-surface-2); color: var(--ak-muted); }
+  /* ---------- a bar against a limit (a rider's cash against the caps) ---------- */
+  .ak-bar { display: block; inline-size: 100%; block-size: 14px; }
+  .ak-bar .track { fill: var(--ak-surface-2); }
+  .ak-bar .fill { fill: var(--ak-ok); }
+  .ak-bar--warn .fill { fill: var(--ak-warn); }
+  .ak-bar--danger .fill { fill: var(--ak-danger); }
+  .ak-bar .mark { stroke: var(--ak-text); stroke-width: 2; }
+  .ak-bar .mark--soft { stroke-dasharray: 2 2; }
+  /* ---------- data table: sorted, filtered and paged by the address ---------- */
+  .ak-table-wrap { overflow-x: auto; border: 1px solid var(--ak-line); border-radius: var(--ak-radius); background: var(--ak-surface); box-shadow: var(--ak-shadow-1); }
+  .ak-table { inline-size: 100%; border-collapse: collapse; font-size: var(--ak-text-sm); }
+  .ak-table th, .ak-table td { padding: var(--ak-space-2) var(--ak-space-3); text-align: start; vertical-align: middle; border: 0; border-block-end: 1px solid var(--ak-line); background: transparent; white-space: nowrap; }
+  .ak-table td.wrap { white-space: normal; min-inline-size: 12rem; }
+  .ak-table thead th { background: var(--ak-surface-2); color: var(--ak-text-2); font-weight: var(--ak-weight-strong); position: sticky; inset-block-start: 0; }
+  .ak-table thead th a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 2px; min-block-size: 28px; }
+  .ak-table thead th[aria-sort] a { color: var(--ak-accent); }
+  .ak-table tbody tr:last-child td { border-block-end: 0; }
+  .ak-table tbody tr:hover td { background: var(--ak-surface-2); }
+  .ak-table tr[aria-selected="true"] td { background: var(--ak-accent-soft); }
+  .ak-table td.num, .ak-table th.num { text-align: end; font-variant-numeric: tabular-nums; }
+  .ak-table-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-3); flex-wrap: wrap; padding: var(--ak-space-2) 0; font-size: var(--ak-text-sm); color: var(--ak-muted); }
+  .ak-filters { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: end; margin: var(--ak-space-3) 0; }
+  .ak-filters .ak-field { flex: 1 1 9rem; min-inline-size: 0; }
+  .ak-filters .ak-field--grow { flex: 3 1 14rem; }
+  /* ---------- drawer (beside the list on a wide screen, over it on a phone) and dialog ---------- */
+  .ak-drawer { position: fixed; inset-block: 0; inset-inline-end: 0; inline-size: min(100%, 520px); background: var(--ak-surface); border-inline-start: 1px solid var(--ak-line); box-shadow: var(--ak-shadow-2); z-index: 30; overflow-y: auto; padding: var(--ak-space-4); padding-block-end: calc(var(--ak-space-6) + env(safe-area-inset-bottom, 0px)); }
+  .ak-drawer-scrim { position: fixed; inset: 0; background: var(--ak-scrim); z-index: 29; }
+  .ak-drawer > header { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-3); position: sticky; inset-block-start: calc(-1 * var(--ak-space-4)); background: var(--ak-surface); padding-block: var(--ak-space-3); margin-block-start: calc(-1 * var(--ak-space-4)); border-block-end: 1px solid var(--ak-line); z-index: 1; }
+  .ak-drawer > header h2 { margin: 0; font-size: var(--ak-text-xl); }
+  /* ---------- command bar ---------- */
+  .ak-cmdk { border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); background: var(--ak-surface); color: var(--ak-text); box-shadow: var(--ak-shadow-2); padding: 0; inline-size: min(94vw, 36rem); margin-block-start: 10vh; max-block-size: 70vh; overflow: hidden; }
+  .ak-cmdk::backdrop { background: var(--ak-scrim); }
+  .ak-cmdk form { display: flex; align-items: center; gap: var(--ak-space-2); padding: var(--ak-space-3); border-block-end: 1px solid var(--ak-line); }
+  .ak-cmdk input { flex: 1; min-inline-size: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: var(--ak-text-lg); min-block-size: var(--ak-tap); outline: none; }
+  .ak-cmdk ul { list-style: none; margin: 0; padding: var(--ak-space-2); overflow-y: auto; max-block-size: 52vh; }
+  .ak-cmdk li a { display: flex; align-items: center; gap: var(--ak-space-3); min-block-size: var(--ak-tap); padding: 0 var(--ak-space-3); border-radius: var(--ak-radius-sm); color: var(--ak-text); text-decoration: none; }
+  .ak-cmdk li a:hover, .ak-cmdk li a:focus-visible, .ak-cmdk li[aria-selected="true"] a { background: var(--ak-accent-soft); }
+  .ak-cmdk li small { color: var(--ak-muted); margin-inline-start: auto; }
+  .ak-cmdk .hint { padding: var(--ak-space-2) var(--ak-space-4); border-block-start: 1px solid var(--ak-line); color: var(--ak-muted); font-size: var(--ak-text-xs); }
+  /* ---------- bell: the same items the push alerts carry ---------- */
+  .ak-bell { position: relative; }
+  .ak-bell > summary { list-style: none; display: inline-flex; align-items: center; justify-content: center; position: relative; min-block-size: var(--ak-tap); min-inline-size: var(--ak-tap); border-radius: var(--ak-radius); cursor: pointer; color: inherit; border: 0; background: transparent; padding: 0; }
+  .ak-bell > summary::-webkit-details-marker { display: none; }
+  .ak-bell > summary .ak-count { position: absolute; inset-block-start: 4px; inset-inline-end: 2px; }
+  .ak-bell .panel { position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + 6px); inline-size: min(88vw, 22rem); background: var(--ak-surface); color: var(--ak-text); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); box-shadow: var(--ak-shadow-2); padding: var(--ak-space-2); z-index: 20; }
+  .ak-bell .panel ul { list-style: none; margin: 0; padding: 0; }
+  .ak-bell .panel li a { display: block; padding: var(--ak-space-2) var(--ak-space-3); border-radius: var(--ak-radius-sm); color: var(--ak-text); text-decoration: none; }
+  .ak-bell .panel li a:hover { background: var(--ak-surface-2); }
+  .ak-bell .panel li small { display: block; color: var(--ak-muted); }
+  .ak-bell .panel .all { display: block; padding: var(--ak-space-2) var(--ak-space-3); border-block-start: 1px solid var(--ak-line); margin-block-start: var(--ak-space-1); font-size: var(--ak-text-sm); }
+  /* ---------- case row (the Inbox) and chat bubbles ---------- */
+  .ak-cases { list-style: none; margin: var(--ak-space-3) 0; padding: 0; display: flex; flex-direction: column; gap: var(--ak-space-2); }
+  .ak-case { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--ak-space-2) var(--ak-space-3); padding: var(--ak-space-3); background: var(--ak-surface); border: 1px solid var(--ak-line); border-inline-start: 4px solid var(--ak-warn); border-radius: var(--ak-radius); color: inherit; text-decoration: none; box-shadow: var(--ak-shadow-1); }
+  .ak-case:hover { background: var(--ak-surface-2); }
+  .ak-case--late { border-inline-start-color: var(--ak-danger); }
+  .ak-case--claimed { border-inline-start-color: var(--ak-ok); }
+  .ak-case .what { min-inline-size: 0; }
+  .ak-case .what strong { display: block; }
+  .ak-case .last { display: block; color: var(--ak-muted); font-size: var(--ak-text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ak-case .tags { display: flex; flex-wrap: wrap; gap: var(--ak-space-1); margin-block-start: 2px; }
+  .ak-chat { list-style: none; margin: var(--ak-space-3) 0; padding: 0; display: flex; flex-direction: column; gap: var(--ak-space-2); }
+  .ak-chat li { max-inline-size: 85%; padding: var(--ak-space-2) var(--ak-space-3); border-radius: var(--ak-radius); background: var(--ak-surface-2); align-self: flex-start; overflow-wrap: anywhere; }
+  .ak-chat li.us { align-self: flex-end; background: var(--ak-accent-soft); }
+  .ak-chat time { display: block; font-size: var(--ak-text-xs); color: var(--ak-muted); }
+  /* ---------- the live board: open orders in columns by status ---------- */
+  .ak-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(15rem, 1fr); gap: var(--ak-space-3); overflow-x: auto; padding-block-end: var(--ak-space-2); margin: var(--ak-space-3) 0; }
+  .ak-board > section { background: var(--ak-surface-2); border-radius: var(--ak-radius); padding: var(--ak-space-2); min-inline-size: 0; }
+  .ak-board h3 { display: flex; justify-content: space-between; align-items: center; margin: var(--ak-space-1) var(--ak-space-2) var(--ak-space-2); font-size: var(--ak-text-sm); color: var(--ak-text-2); }
+  .ak-board ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ak-space-2); }
+  .ak-board li { background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-sm); padding: var(--ak-space-2) var(--ak-space-3); }
+  .ak-board li.late { border-color: var(--ak-danger); }
+  .ak-board li .row { display: flex; justify-content: space-between; align-items: center; gap: var(--ak-space-2); }
+  .ak-board li .sub { display: block; color: var(--ak-muted); font-size: var(--ak-text-xs); }
+  .ak-board .none { color: var(--ak-muted); font-size: var(--ak-text-sm); padding: var(--ak-space-2); }
+}

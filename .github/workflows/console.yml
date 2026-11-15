@@ -73,7 +73,7 @@ jobs:
           deploy=true; why="no readable parent: deploy"
           if git rev-parse --verify -q HEAD^1 >/dev/null; then
             git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/files.txt"
-            if grep -Eq '^(apps/console/|packages/(wa|core)/|package(-lock)?\.json$|tsconfig\.json$|\.github/workflows/console\.yml$)' "$RUNNER_TEMP/files.txt"; then why="console paths changed"
+            if grep -Eq '^(apps/console/|packages/(wa|core|ui)/|package(-lock)?\.json$|tsconfig\.json$|\.github/workflows/console\.yml$)' "$RUNNER_TEMP/files.txt"; then why="console paths changed"
             else deploy=false; why="no console path changed"; fi
           fi
           echo "deploy=$deploy" >> "$GITHUB_OUTPUT"

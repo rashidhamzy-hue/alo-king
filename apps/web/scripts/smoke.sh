@@ -21,8 +21,8 @@ case "$sent" in "sent "*"flushed=true") echo "- Sentry: check-in accepted ($sent
 
 cat_path=$(grep -oE 'href="/c/[a-z0-9_]+"' "$tmp/home.html" | head -1 | sed 's/href="//; s/"$//')
 [ "$(get -o "$tmp/cat.html" -w '%{http_code}' "$url$cat_path")" = 200 ] || fail "category $cat_path did not answer 200"
-grep -q 'class="card"' "$tmp/cat.html" || fail "category $cat_path lists no item"
-echo "- $cat_path: 200, $(grep -o 'class="card"' "$tmp/cat.html" | wc -l | tr -d ' ') items"
+grep -q 'class="ak-product' "$tmp/cat.html" || fail "category $cat_path lists no item"
+echo "- $cat_path: 200, $(grep -o 'class="ak-product' "$tmp/cat.html" | wc -l | tr -d ' ') items"
 sku=$(grep -oE 'href="/p/[A-Za-z0-9_-]+"' "$tmp/cat.html" | head -1 | sed 's/href="//; s/"$//')
 [ "$(get -o "$tmp/prod.html" -w '%{http_code}' "$url$sku")" = 200 ] || fail "product $sku did not answer 200"
 grep -qi 'not verified' "$tmp/prod.html" || grep -qiE 'declared|certified|calculated' "$tmp/prod.html" || fail "product page shows no fact status"
@@ -37,10 +37,15 @@ a=$(list labne); b=$(list "لبنة"); c=$(list labneh)
 [ "$a" = "$b" ] && [ "$a" = "$c" ] || fail "labne, لبنة and labneh find different products: [$a] [$b] [$c]"
 echo "- labne, لبنة and labneh find the same products: $a"
 
+# The page, its stylesheet, its scripts and the fonts it loads (DS1: the fonts are this site's own files and count).
+bytes=$(wc -c < "$tmp/cat.html")
+for f in $(grep -oE '(href|src)="/(_astro/[^"]+\.(css|woff2)|[a-z-]+\.js)"' "$tmp/cat.html" | sed -E 's/^(href|src)="//; s/"$//' | sort -u); do bytes=$(( bytes + $(get "$url$f" | wc -c) )); done
 css=$(grep -oE 'href="/_astro/[^"]+\.css"' "$tmp/cat.html" | head -1 | sed 's/href="//; s/"$//')
-bytes=$(( $(wc -c < "$tmp/cat.html") + $(get "$url$css" | wc -c) ))
-[ "$bytes" -lt 102400 ] || fail "a category page weighs $bytes bytes before pictures (limit 102400)"
-echo "- category page weighs $bytes bytes before pictures"
+for f in $(get "$url$css" | grep -oE '/_astro/[^)"]+\.woff2' | sort -u); do fonts=$(( ${fonts:-0} + $(get "$url$f" | wc -c) )); done
+[ "$bytes" -lt 102400 ] || fail "a category page weighs $bytes bytes before pictures and fonts (limit 102400)"
+echo "- category page weighs $bytes bytes before pictures (HTML, stylesheet, scripts); its four font files add ${fonts:-0} bytes, loaded once and kept"
+[ "$(get -o /dev/null -w '%{http_code}' "$url/gallery")" = 200 ] || fail "the gallery is not served on staging"
+echo "- gallery: 200 (staging only)"
 [ "$(get -o /dev/null -w '%{http_code}' "$url/manifest.webmanifest")" = 200 ] || fail "no manifest"
 [ "$(get -o /dev/null -w '%{http_code}' "$url/sw.js")" = 200 ] || fail "no service worker"
 echo "- manifest and service worker served"

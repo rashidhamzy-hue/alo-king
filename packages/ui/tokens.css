@@ -1,0 +1,141 @@
+/* Alo King design tokens: the ONE file that holds every colour, font, radius, shadow and the logo reference.
+   A change of brand is an edit here, then `node packages/ui/scripts/build.mjs` (the console's sheet and icons are generated; the
+   website reads this file at its own build). Decision: docs/strategy/05-console-website-design-handoff.md, section C.
+
+   Brand: the crown's ink and gold. Green appears only for "available" and "done" (--ak-ok). Gold is never small text on paper:
+   --ak-gold-deep is the gold that may be read on paper.
+
+   Contrast (WCAG AA, measured by packages/ui/test/tokens.test.ts; a failing pair fails CI):
+     section C gave gold-deep #8A6A12, which is 4.37:1 on the tinted surface; it is #7A5C0C here (5.4:1), the same family.
+     The dark theme's ok, warn and danger are lighter members of the same families, because the light ones cannot be read on ink.
+
+   Themes: light is the default; dark follows the system, and `data-theme="light"` or `data-theme="dark"` on <html> overrides it
+   (the console's own switch). Both blocks below must list the same tokens: the test checks it. */
+
+:root {
+  /* ---- the brand, as decided (reference values; pages use the role tokens below) ---- */
+  --ak-ink: #0E0F12;
+  --ak-ink-soft: #2A2D34;
+  --ak-paper: #FAF8F3;
+  --ak-gold: #C9A227;
+  --ak-gold-deep: #7A5C0C;
+
+  /* ---- roles, light ---- */
+  --ak-bg: #FAF8F3;            /* the page */
+  --ak-surface: #FFFFFF;       /* cards, tables, inputs */
+  --ak-surface-2: #F2EEE4;     /* a tint: table heads, hovered rows, tiles */
+  --ak-text: #0E0F12;
+  --ak-text-2: #2A2D34;        /* secondary text */
+  --ak-muted: #5C5F66;         /* tertiary text: times, hints */
+  --ak-line: #E3DDCF;          /* hairlines between things (decoration) */
+  --ak-line-strong: #8A8371;   /* the edge of a control: 3:1 against the page */
+  --ak-primary: #0E0F12;       /* primary buttons */
+  --ak-on-primary: #FAF8F3;
+  --ak-accent: #7A5C0C;        /* gold that must be read: links, active marks, focus */
+  --ak-accent-soft: #F6EED3;   /* behind an active item */
+  --ak-crown: #C9A227;         /* the crown itself, always on ink */
+  --ak-crown-tile: #0E0F12;    /* the tile the crown sits on */
+  --ak-ok: #14663B;            /* available, done, the ledger check */
+  --ak-ok-bg: #E3F1E7;
+  --ak-warn: #9A4D00;          /* timers past amber */
+  --ak-warn-bg: #FBEBD3;
+  --ak-danger: #A8231B;        /* late, failed, destructive */
+  --ak-danger-bg: #FBE4E1;
+  --ak-on-status: #FFFFFF;     /* text on a filled ok or danger button */
+  --ak-scrim: rgb(14 15 18 / 0.5);
+
+  /* ---- type: one family for both scripts; prices keep Western digits and $ in every language ---- */
+  --ak-font: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --ak-font-ar: "IBM Plex Sans Arabic", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --ak-text-xs: 0.75rem;
+  --ak-text-sm: 0.875rem;
+  --ak-text-md: 1rem;
+  --ak-text-lg: 1.125rem;
+  --ak-text-xl: 1.375rem;
+  --ak-text-2xl: 1.75rem;
+  --ak-text-3xl: 2.25rem;
+  --ak-leading: 1.5;
+  --ak-leading-ar: 1.7;         /* Arabic needs more room between lines */
+  --ak-weight: 400;
+  --ak-weight-strong: 600;
+
+  /* ---- space, shape, depth, motion ---- */
+  --ak-space-1: 4px;
+  --ak-space-2: 8px;
+  --ak-space-3: 12px;
+  --ak-space-4: 16px;
+  --ak-space-5: 24px;
+  --ak-space-6: 32px;
+  --ak-space-7: 48px;
+  --ak-radius-sm: 6px;
+  --ak-radius: 10px;
+  --ak-radius-lg: 16px;
+  --ak-radius-full: 999px;
+  --ak-shadow-1: 0 1px 2px rgb(14 15 18 / 0.06), 0 1px 1px rgb(14 15 18 / 0.04);
+  --ak-shadow-2: 0 8px 24px rgb(14 15 18 / 0.12), 0 2px 6px rgb(14 15 18 / 0.06);
+  --ak-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ak-fast: 120ms;
+  --ak-tap: 44px;               /* no control is smaller */
+
+  /* ---- the logo: packages/ui/crown.svg (drawn in --ak-crown on --ak-crown-tile) ---- */
+  --ak-logo: "crown";
+  color-scheme: light;
+}
+
+/* ---- roles, dark: ink is the page, paper is the text ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ak-bg: #0E0F12;
+    --ak-surface: #17191E;
+    --ak-surface-2: #1F2228;
+    --ak-text: #FAF8F3;
+    --ak-text-2: #D9D6CE;
+    --ak-muted: #A9ABB3;
+    --ak-line: #2A2D34;
+    --ak-line-strong: #767B86;
+    --ak-primary: #C9A227;
+    --ak-on-primary: #0E0F12;
+    --ak-accent: #E0BC4A;
+    --ak-accent-soft: #2B2511;
+    --ak-crown: #C9A227;
+    --ak-crown-tile: #17191E;
+    --ak-ok: #5FCB8F;
+    --ak-ok-bg: #13281C;
+    --ak-warn: #F0A44B;
+    --ak-warn-bg: #2B1E0C;
+    --ak-danger: #FF8A80;
+    --ak-danger-bg: #2E1513;
+    --ak-on-status: #0E0F12;
+    --ak-scrim: rgb(0 0 0 / 0.6);
+    --ak-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --ak-shadow-2: 0 8px 24px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ak-bg: #0E0F12;
+  --ak-surface: #17191E;
+  --ak-surface-2: #1F2228;
+  --ak-text: #FAF8F3;
+  --ak-text-2: #D9D6CE;
+  --ak-muted: #A9ABB3;
+  --ak-line: #2A2D34;
+  --ak-line-strong: #767B86;
+  --ak-primary: #C9A227;
+  --ak-on-primary: #0E0F12;
+  --ak-accent: #E0BC4A;
+  --ak-accent-soft: #2B2511;
+  --ak-crown: #C9A227;
+  --ak-crown-tile: #17191E;
+  --ak-ok: #5FCB8F;
+  --ak-ok-bg: #13281C;
+  --ak-warn: #F0A44B;
+  --ak-warn-bg: #2B1E0C;
+  --ak-danger: #FF8A80;
+  --ak-danger-bg: #2E1513;
+  --ak-on-status: #0E0F12;
+  --ak-scrim: rgb(0 0 0 / 0.6);
+  --ak-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ak-shadow-2: 0 8px 24px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}

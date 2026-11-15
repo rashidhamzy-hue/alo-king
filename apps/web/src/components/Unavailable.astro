@@ -1,8 +1,9 @@
 ---
+import Button from "@ak/ui-astro/Button.astro";
 import { t, type Lang } from "../lib/i18n";
 interface Props { lang: Lang; notFound?: boolean }
 const { lang, notFound = false } = Astro.props;
 ---
 <h1>{notFound ? t(lang, "not_found") : t(lang, "unavailable")}</h1>
 <p>{notFound ? t(lang, "not_found_text") : t(lang, "unavailable_text")}</p>
-<p><a class="btn" href="/">{t(lang, "back_home")}</a></p>
+<p><Button label={t(lang, "back_home")} href="/" variant="primary" /></p>

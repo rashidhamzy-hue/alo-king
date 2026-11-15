@@ -11,12 +11,13 @@ import { DbError, isMissingFunction } from "./db";
 import type { StaffAuth } from "./auth";
 import { AuthUnavailable, MIN_PASSWORD } from "./auth";
 import type { Media } from "./media";
-import { CSS, form, html, page, type FormCtx, type Raw } from "./html";
+import { CSS, THEMES, form, html, page, type FormCtx, type Raw, type Theme } from "./html";
 import {
   FLASH_COOKIE, SESSION_COOKIE, SESSION_SECONDS, SETPW_COOKIE, clearCookie, hmac, randomToken, readCookie, same, seal, setCookie, unseal,
 } from "./session";
 import { LANGS, LANG_COOKIE, type Lang } from "./i18n";
-import { buildNav, computeBadges } from "./nav";
+import { buildNav, computeBadges, computeBell, type BellData } from "./nav";
+import { LEADS } from "./roles";
 import { staticRoute } from "./pwa";
 
 import { STAFF_ROLES, type Role } from "./roles";
@@ -48,6 +49,8 @@ export interface Ctx {
   form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string } | null; f: FormCtx;
   /** The staff member's language (cookie), and what is waiting per page address (computed on a page view, empty on a post). */
   lang: Lang; badges: Record<string, number>;
+  /** The appearance this person chose (a cookie), and the bell's items (the open high-priority exceptions; computed on a page view). */
+  theme: Theme; bell: BellData;
 }
 export type Handler = (c: Ctx) => Promise<Response>;
 export interface Route { method: "GET" | "POST"; path: string; roles: readonly Role[]; handler: Handler }
@@ -57,7 +60,8 @@ export interface Section { nav: { href: string; label: string; roles: readonly R
 /** `translated`: the body's words follow `c.lang` (Today, Orders, the hubs). Pages built before D5 are English and are marked as such in an Arabic shell. */
 export function render(c: Ctx, title: string, body: Raw | Raw[], opts: { translated?: boolean } = {}): Response {
   const nav = buildNav(c.sections, c.staff.role, c.lang, c.url.pathname.replace(/\/+$/, "") || "/", c.badges);
-  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body }), c.deps);
+  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body,
+    theme: c.theme, bell: LEADS.includes(c.staff.role) ? c.bell : null, canSearchOrders: LEADS.includes(c.staff.role) }), c.deps);
 }
 
 export function redirect(to: string, cookies: string[] = []): Response {
@@ -257,7 +261,7 @@ function withHeaders(res: Response, deps: Deps): Response {
   const h = new Headers(res.headers);
   let img = "'self'";
   try { img += " " + new URL(deps.supabaseUrl).origin; } catch { /* no supabase url in tests */ }
-  h.set("content-security-policy", `default-src 'none'; img-src ${img}; style-src 'self'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
+  h.set("content-security-policy", `default-src 'none'; img-src ${img}; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
   h.set("x-content-type-options", "nosniff");
   // Not "no-referrer": with it Chrome sends `Origin: null` on our own form posts, and the cross-site check below refused them.
   h.set("referrer-policy", "same-origin");
@@ -265,8 +269,16 @@ function withHeaders(res: Response, deps: Deps): Response {
   return new Response(res.body, { status: res.status, headers: h });
 }
 
-const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string } | null = null, lang: Lang = "en") =>
-  withHeaders(page({ title, body, flash, lang, translated: false, environment: deps.environment }), deps);
+const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string } | null = null, lang: Lang = "en", theme: Theme = "auto") =>
+  withHeaders(page({ title, body, flash, lang, translated: false, environment: deps.environment, theme }), deps);
+
+export const THEME_COOKIE = "ak_theme";
+function readTheme(req: Request): Theme {
+  const v = readCookie(req, THEME_COOKIE);
+  return (THEMES as readonly string[]).includes(v ?? "") ? (v as Theme) : "auto";
+}
+/** A path on this site only: never another host, never a protocol-relative address. */
+const safeNext = (next: string | null) => (next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/");
 
 function readLang(req: Request): Lang {
   const v = readCookie(req, LANG_COOKIE);
@@ -339,8 +351,16 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
   if (path === "/lang" && method === "GET") {
     const to = url.searchParams.get("to");
     const next = url.searchParams.get("next") ?? "/";
-    const h = new Headers({ location: next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/" });
+    const h = new Headers({ location: safeNext(next) });
     if (to && (LANGS as readonly string[]).includes(to)) h.append("set-cookie", setCookie(LANG_COOKIE, to, 365 * 86400));
+    return new Response(null, { status: 303, headers: h });
+  }
+  // The appearance (light, dark, or as the phone says): a cookie as well, so the page arrives in the right colours with no script.
+  const theme = readTheme(req);
+  if (path === "/theme" && method === "GET") {
+    const to = url.searchParams.get("to");
+    const h = new Headers({ location: safeNext(url.searchParams.get("next")) });
+    if (to && (THEMES as readonly string[]).includes(to)) h.append("set-cookie", setCookie(THEME_COOKIE, to, 365 * 86400));
     return new Response(null, { status: 303, headers: h });
   }
 
@@ -393,8 +413,10 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (r.method !== method) continue;
     const params = match(r.path, path);
     if (!params) continue;
-    const badges = method === "GET" ? await computeBadges(deps, staff.role).catch(() => ({} as Record<string, number>)) : {};
-    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, lang, badges, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
+    const [badges, bell] = method === "GET"
+      ? await Promise.all([computeBadges(deps, staff.role).catch(() => ({} as Record<string, number>)), computeBell(deps, staff.role, lang, now)])
+      : [{} as Record<string, number>, { count: 0, items: [] } as BellData];
+    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, lang, badges, theme, bell, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
     if (!r.roles.includes(staff.role)) {
       const denied = render(ctx, "Not for your role", html`<p>Your role (${staff.role.replace("_", " ")}) cannot open this page.</p>`);
       return new Response(denied.body, { status: 403, headers: denied.headers });

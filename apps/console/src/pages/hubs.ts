@@ -18,19 +18,26 @@ function links(g: NavGroup | undefined, lang: Lang): Raw {
 const groupOf = (c: Ctx, id: string) => buildNav(c.sections, c.staff.role, c.lang, c.url.pathname, c.badges).groups.find((g) => g.id === id);
 
 const approve = async (c: Ctx) => render(c, t(c.lang, "nav_approve"), html`<p class="muted">${t(c.lang, "hub_approve_intro")}</p>${links(groupOf(c, "approve"), c.lang)}`, { translated: true });
-const stock = async (c: Ctx) => render(c, t(c.lang, "g_stock"), html`<p class="muted">${t(c.lang, "hub_stock_intro")}</p>${links(groupOf(c, "stock"), c.lang)}`, { translated: true });
+const stock = async (c: Ctx) => render(c, t(c.lang, "nav_stock"), html`<p class="muted">${t(c.lang, "hub_stock_intro")}</p>${links(groupOf(c, "stock"), c.lang)}`, { translated: true });
 
 async function more(c: Ctx) {
   const L = c.lang;
   const push = LEADS.includes(c.staff.role) ? pushBox(c) : html`<p class="muted">${t(L, "push_leads_only")}</p>`;
+  // Every group that has no place of its own in the bottom bar is listed here, so a phone reaches every page in two taps.
+  const nav = buildNav(c.sections, c.staff.role, L, c.url.pathname, c.badges);
+  const inBar = new Set(nav.bottom.map((b) => b.href));
+  const here = nav.groups.filter((g) => !["today", "inbox", "orders"].includes(g.id) && !(g.hubHref && inBar.has(g.hubHref)));
+  const theme = (to: "auto" | "light" | "dark", key: "theme_auto" | "theme_light" | "theme_dark") => html`<a href="/theme?to=${to}&amp;next=/more"${c.theme === to ? html` aria-current="true"` : ""}>${t(L, key)}</a>`;
   return render(c, t(L, "nav_more"), html`<p class="muted">${t(L, "hub_more_intro")}</p>
-<h2>${t(L, "g_run")}</h2>${links(groupOf(c, "run"), L)}
-${groupOf(c, "other") ? html`<h2>${t(L, "g_other")}</h2>${links(groupOf(c, "other"), L)}` : ""}
+${here.map((g) => html`<h2>${g.heading}</h2>${links(g, L)}`)}
 <h2>${t(L, "language")}</h2>
 <p class="chips"><a href="/lang?to=en&amp;next=/more"${L === "en" ? html` aria-current="true"` : ""}>${t("en", "lang_en")}</a><a href="/lang?to=ar&amp;next=/more"${L === "ar" ? html` aria-current="true"` : ""}>${t("ar", "lang_ar")}</a></p>
 <p class="muted">${t(L, "lang_note")}</p>
+<h2>${t(L, "theme_h")}</h2>
+<p class="chips">${theme("auto", "theme_auto")}${theme("light", "theme_light")}${theme("dark", "theme_dark")}</p>
 <h2>${t(L, "push_h")}</h2>${push}
-<h2>${t(L, "install_h")}</h2><p><a class="btn" href="/install">${t(L, "install_link")}</a></p>`, { translated: true });
+<h2>${t(L, "install_h")}</h2><p><a class="btn" href="/install">${t(L, "install_link")}</a></p>
+${c.deps.environment === "production" ? "" : html`<p><a class="btn" href="/gallery">${t(L, "gallery_link")}</a></p>`}`, { translated: true });
 }
 
 function pushBox(c: Ctx): Raw {

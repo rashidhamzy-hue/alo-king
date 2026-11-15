@@ -1,0 +1,28 @@
+/* Shop components: the product card and the cart bar. The website's sheet includes them; the console loads them for its gallery. */
+
+@layer components {
+  /* ---------- product card ---------- */
+  .ak-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.25rem, 1fr)); gap: var(--ak-space-3); list-style: none; margin: 0; padding: 0; }
+  .ak-product { position: relative; display: flex; flex-direction: column; block-size: 100%; background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); overflow: hidden; box-shadow: var(--ak-shadow-1); }
+  .ak-product .cover { display: flex; flex-direction: column; flex: 1; color: inherit; text-decoration: none; }
+  .ak-product .pic, .ak-product .ph { aspect-ratio: 1; inline-size: 100%; object-fit: contain; background: #FFFFFF; display: block; }
+  .ak-product .ph { display: grid; place-items: center; background: var(--ak-surface-2); color: var(--ak-line-strong); }
+  .ak-product .ph .ak-icon { inline-size: 2.25rem; block-size: 2.25rem; stroke-width: 1.5; }
+  .ak-product .body { display: flex; flex-direction: column; gap: 2px; flex: 1; padding: var(--ak-space-3); padding-block-end: var(--ak-space-2); }
+  .ak-product .name { font-weight: var(--ak-weight-strong); font-size: var(--ak-text-sm); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ak-product .body .ak-badge { align-self: flex-start; margin-block-start: 2px; }
+  .ak-product .meta { font-size: var(--ak-text-xs); color: var(--ak-muted); }
+  .ak-product .foot { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-2); padding: 0 var(--ak-space-3) var(--ak-space-3); }
+  .ak-product .price { font-size: var(--ak-text-lg); font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; }
+  .ak-product .add { min-inline-size: var(--ak-tap); min-block-size: var(--ak-tap); border-radius: var(--ak-radius-full); padding: 0; }
+  .ak-product--out .pic { opacity: 0.55; }
+  .ak-price { font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; }
+  .ak-price--big { font-size: var(--ak-text-2xl); }
+  bdi { unicode-bidi: isolate; }
+
+  /* ---------- cart bar (the shell WEB2 fills): the total, the fee, progress to the minimum ---------- */
+  .ak-cartbar { display: flex; align-items: center; gap: var(--ak-space-3); padding: var(--ak-space-2) var(--ak-space-3); background: var(--ak-ink); color: var(--ak-paper); border-radius: var(--ak-radius-lg); box-shadow: var(--ak-shadow-2); }
+  .ak-cartbar .sum { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; line-height: 1.3; }
+  .ak-cartbar .sum small { color: #C9C6BD; font-size: var(--ak-text-xs); }
+  .ak-cartbar progress { inline-size: 100%; block-size: 4px; accent-color: var(--ak-gold); margin-block-start: 4px; }
+}

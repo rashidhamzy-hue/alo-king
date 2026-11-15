@@ -1,0 +1,6 @@
+---
+// The cart bar (the shell session WEB2 fills): the total, the fee, progress to the minimum, one button.
+import { cartBar } from "../src/components";
+type Props = Parameters<typeof cartBar>[0];
+---
+<Fragment set:html={cartBar(Astro.props).s} />

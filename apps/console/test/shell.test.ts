@@ -3,6 +3,7 @@
 // role; the app is installable; the service worker may store the shell and nothing else; the names page's keys do what they say.
 import { beforeAll, describe, expect, it } from "vitest";
 import { CSS, TAP_PX } from "../src/style";
+import { UI_TOKENS } from "../src/ui.generated";
 import { SHELL_ASSETS, SHELL_JS, swSource } from "../src/pwa";
 import { rig, type Rig } from "./kit";
 
@@ -77,13 +78,13 @@ describe("the shell", () => {
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
     const bottom = /<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(page)![0];
-    expect([...bottom.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/orders", "/approve", "/stock", "/more"]);
+    expect([...bottom.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/orders", "/inbox", "/approve", "/more"]);       // DS1: the five places of strategy 05, section A
     expect(bottom).toMatch(/href="\/approve"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);           // 282 names wait: capped at 99+
     expect(page).toContain('<aside class="sidebar"');                                                       // the wide-screen list is in the same page
     const picker = await r.staff("picker", "Pia"); const p = r.browser(); await p.signIn(picker);
     const pp = (await p.get("/")).text;
     expect([...(/<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(pp)![0]).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/approve", "/stock", "/more"]);
-    expect(pp).not.toContain('href="/orders"'); expect(pp).not.toContain('href="/names"');
+    expect(pp).not.toContain('href="/orders"'); expect(pp).not.toContain('href="/names"'); expect(pp).not.toContain('href="/inbox"');
     expect((await p.get("/orders")).status).toBe(403);
     const hub = (await b.get("/approve")).text;
     expect(hub).toContain('<a href="/names">'); expect(hub).toMatch(/href="\/names"><span>Names<\/span> <span class="badge">99\+/);
@@ -96,7 +97,7 @@ describe("installable", () => {
     const m = await anon.get("/manifest.webmanifest");
     expect(m.status).toBe(200); expect(m.headers.get("content-type")).toContain("manifest+json");
     const man = JSON.parse(m.text);
-    expect(man).toMatchObject({ display: "standalone", scope: "/", start_url: "/?source=pwa", theme_color: "#0f3d5e" });
+    expect(man).toMatchObject({ display: "standalone", scope: "/", start_url: "/?source=pwa", theme_color: UI_TOKENS.ink, background_color: UI_TOKENS.paper });   // DS1: the brand's ink and paper, from tokens.css
     expect(man.icons.map((i: any) => `${i.sizes}:${i.purpose}`).sort()).toEqual(["192x192:any", "192x192:maskable", "512x512:any", "512x512:maskable"]);
     for (const i of man.icons) { const res = await anon.get(i.src); expect(res.status, i.src).toBe(200); expect(res.headers.get("content-type")).toBe("image/png"); }
     const apple = await (await import("../src/app")).handle(new Request("https://console.test/icons/apple-touch-icon.png"), r.deps, []);

@@ -1,0 +1,6 @@
+---
+import { badge, type IconName, type Tone } from "../src/components";
+interface Props { label: string; tone?: Tone; icon?: IconName }
+const { label, tone, icon } = Astro.props;
+---
+<Fragment set:html={badge(label, tone, icon).s} />

@@ -20,7 +20,8 @@ describe("Today", () => {
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
     expect(page).toContain("Needs you now (3)"); expect(page).not.toContain("All quiet");
-    const at = (s: string) => page.indexOf(s);
+    const list = page.slice(page.indexOf("<main"));                                               // DS1: the bell in the header names the high-priority ones too
+    const at = (s: string) => list.indexOf(s);
     expect(at("A shelf count is needed")).toBeLessThan(at("Allergen complaint"));                // oldest first
     expect(page).toMatch(/Allergen complaint<\/strong> <span class="tag high">high priority<\/span>/);
     expect(page).not.toMatch(/A shelf count is needed<\/strong> <span class="tag high"/);
