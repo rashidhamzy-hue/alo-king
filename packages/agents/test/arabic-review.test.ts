@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import { ar } from "@ak/agents/messages";
 
 const doc = readFileSync(fileURLToPath(new URL("../../../docs/ARABIC_REVIEW.md", import.meta.url)), "utf8");
-const cell = (t: string) => t.replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+// Markdown table cell: backslash first, then the pipe, then line breaks (as docs/ARABIC_REVIEW.md is written).
+const cell = (t: string) => t.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
 
 describe("docs/ARABIC_REVIEW.md lists every HO1 Arabic line", () => {
   const s = ar.support;
