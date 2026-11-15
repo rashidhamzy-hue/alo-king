@@ -22,6 +22,23 @@ export const OWNER: Record<string, string> = {
   judge_rating_or_health_word: "message design", judge_dead_end: "hand-off", judge_repeated_question: "ordering lane", judge_unnatural_dialect: "message design",
 };
 
+/** The hand-off reasons code writes are codes; the model's own (handoff_human) are free text, grouped here by what they are about. */
+export function handoffGroup(reason: string): string {
+  const head = reason.split(":")[0]!.trim();
+  if (/^(agent_did_not_finish|model_turn_cap|model_capacity|plan_handoff|delivery_problem)$/.test(head)) return head;
+  if (/^(agent_error|button_error|window_error|substitution_error)$/.test(head)) return `code error: ${head}`;
+  const r = reason.toLowerCase();
+  if (/refund|rembours|money back|مصاري|ترجع/.test(r)) return "model: refund asked";
+  if (/halal|allerg|vegan|gluten|ingredient|egg|sesame|food fact|kitchen|merchant/.test(r)) return "model: food fact not on record";
+  if (/cancel/.test(r)) return "model: cancel (no button or already confirmed)";
+  if (/minimum/.test(r)) return "model: below the minimum order";
+  if (/complain|late|spoiled|damaged|not good|was bad|upset|terrible/.test(r)) return "model: complaint";
+  if (/person|human|team|shakhs|real|bot|فريق|شخص/.test(r)) return "model: asked for a person";
+  return "model: other";
+}
+/** One line per cause for conversations that ended in an error (a request id or a date in the message does not split a cause). */
+export const errorCause = (e: string | null): string => (e ?? "unknown").split("\n")[0]!.replace(/"request_id":"[^"]+"/, "").replace(/req_\w+/g, "").slice(0, 220);
+
 const pct = (a: number, b: number) => (b ? `${((100 * a) / b).toFixed(1)}%` : "-");
 const usd = (n: number) => `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
 export function quantile(xs: number[], q: number): number {
@@ -32,7 +49,7 @@ export function quantile(xs: number[], q: number): number {
 }
 const PHONE = /\+?\d[\d\s-]{7,}\d/g;
 /** No phone number reaches the report, whatever a message carried. */
-export const scrub = (t: string) => t.replace(PHONE, (m) => (m.replace(/\D/g, "").length >= 8 ? "[number]" : m));
+export const scrub = (t: string) => t.replace(PHONE, (m) => (m.replace(/\D/g, "").length >= 8 && !/^\d{4}-\d{2}-\d{2}$/.test(m) ? "[number]" : m));
 
 export function classes(rs: ConversationResult[]): ClassRow[] {
   const rows = new Map<string, ClassRow>();
@@ -83,12 +100,16 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   const modelTurns = turns.filter((t) => t.modelCalls > 0);
   const handed = first.filter((r) => (r.facts?.handoffs.length ?? 0) > 0);
   const reasons = new Map<string, number>();
-  for (const r of handed) for (const h of new Set(r.facts!.handoffs.map((x) => x.replace(/:.*$/, "")))) reasons.set(h, (reasons.get(h) ?? 0) + 1);
+  for (const r of handed) for (const h of new Set(r.facts!.handoffs.map(handoffGroup))) reasons.set(h, (reasons.get(h) ?? 0) + 1);
   const silenced = first.filter((r) => r.failures.some((f) => f.code === "silence_after_handoff"));
   const silentMsgs = first.reduce((s, r) => s + r.failures.filter((f) => f.code === "silence_after_handoff").length, 0);
   const alerted = handed.filter((r) => (r.facts?.exceptions.agent_handoff ?? 0) > 0).length;
   const costs = first.map((r) => r.usd.total);
   const repeats = all.filter((r) => r.attempt > 0);
+  const errors = new Map<string, number>();
+  for (const r of all.filter((x) => x.status === "error")) errors.set(errorCause(r.error), (errors.get(errorCause(r.error)) ?? 0) + 1);
+  const keyLimit = all.find((r) => /usage limits/.test(r.error ?? ""));
+  const stopped = summary.stoppedBy ?? (keyLimit ? `the API key's own usage limit (HTTP 400: ${errorCause(keyLimit.error).replace(/^.*"message":"([^"]+)".*$/, "$1")})` : "nothing (every planned conversation ran)");
 
   const L: string[] = [];
   L.push(`# Simulated customers: failure report, ${inp.date}`, "");
@@ -105,9 +126,10 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
     ["customer turns", turns.length], ["spend, total", usd(summary.spent)],
     ["spend: Concierge / customer / judge", `${usd(summary.byRole.concierge.usd)} / ${usd(summary.byRole.customer.usd)} / ${usd(summary.byRole.judge.usd)}`],
     ["model calls", summary.calls],
-    ["calibration (first 20)", summary.calibration ? `${usd(summary.calibration.usdPerConversation)} a conversation, projected ${usd(summary.calibration.projectedTotal)} for all` : "-"],
-    ["stopped by", summary.stoppedBy ?? "nothing (every planned conversation ran)"],
+    [`calibration (first ${summary.calibration?.conversations ?? 0})`, summary.calibration ? `${usd(summary.calibration.usdPerConversation)} a conversation, projected ${usd(summary.calibration.projectedTotal)} for all` : "-"],
+    ["stopped by", stopped],
   ]), "");
+  if (errors.size) L.push(table(["conversations that ended in an error (all attempts), by cause", "count"], [...errors].sort((a, b) => b[1] - a[1]).map(([k, v]) => [scrub(k.replace(/\|/g, "/")), v])), "");
   L.push("A conversation **passes** when code found no hard failure on any turn and the judge found the goal reached with no wrong product, no invented fact, no rating or health word and no dead end.", "");
   if (summary.adjustments.length || summary.featuresDropped.length) {
     L.push("What the run changed in its own copy (never on staging):", "", ...summary.adjustments.map((a) => `- ${scrub(a)}`), ...summary.featuresDropped.map((f) => `- request feature dropped after the API refused it: ${f}`), "");
@@ -131,6 +153,7 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
     ["customers left in silence after a hand-off", `${silenced.length} (${pct(silenced.length, handed.length)} of hand-offs)`],
     ["follow-up messages that got no reply", silentMsgs],
   ]), "");
+  L.push("Codes are written by code; \"model:\" reasons are the Concierge's own hand-off (handoff_human), grouped by what its free text is about.", "");
   L.push(table(["hand-off reason", "conversations", "share of all"], [...reasons].sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, pct(v, first.length)])), "");
   L.push("No person answers in a simulation, so every message after a hand-off meets the gateway's `human` outcome: it is stored and nothing is sent. That silence is what the customer sees today until a person replies.", "");
   L.push("## Time per turn", "");
@@ -144,7 +167,10 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
     ["Concierge only, per conversation (mean)", usd(first.reduce((s, r) => s + r.usd.concierge, 0) / (first.length || 1))],
     ["total spend (every call, repeats included)", usd(summary.spent)],
   ]), "", "Every call is priced from its usage and the model_prices rows (0092, 0102), as agent_run_costs prices a turn.", "");
-  if (repeats.length) {
+  const judgedRepeats = repeats.filter((r) => r.status === "judged");
+  if (repeats.length && !judgedRepeats.length) {
+    L.push("## How often a failure repeats", "", `Not measured: ${repeats.length} repeat attempts of ${new Set(repeats.map((r) => r.id)).size} failing seeds were started and none could run (${[...new Set(repeats.map((r) => errorCause(r.error)))].map(scrub).join("; ").slice(0, 300)}).`, "");
+  } else if (repeats.length) {
     const seeds = [...new Set(repeats.map((r) => r.id))];
     const again = seeds.map((id) => { const xs = repeats.filter((r) => r.id === id && r.status === "judged"); return { id, runs: xs.length, failed: xs.filter((r) => !r.passed).length }; });
     const stable = again.filter((x) => x.runs && x.failed === x.runs).length, flaky = again.filter((x) => x.failed > 0 && x.failed < x.runs).length, never = again.filter((x) => x.runs && x.failed === 0).length;

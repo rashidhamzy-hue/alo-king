@@ -1,0 +1,81 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where the judge found judge_rating_or_health_word. Failing on purpose: not fixed by SIM1. Owner: message design. Invented customers, invented numbers.",
+ "severity": 2,
+ "owner": "message design",
+ "cases": [
+  {
+   "id": "sim-037",
+   "seed": 10036,
+   "category": "vague_items",
+   "variant": "brand_only",
+   "lang": "mixed",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) Bonjour, marhaba  (2) baddi Private please  (3) men 3andkon, merci",
+    "Marhaba, baddi Private bas, le produit des dames, you know. Shu 3andkon menhom?",
+    "[taps \"Normal 10 pcs\"]",
+    "Ah bon? Ma fi chi tene baddi, c'est juste hayda. Chu l minimum, w kif fiyyi kammel?",
+    "Ya3ni quel est le minimum exactement? Combien il me manque, please?",
+    "[taps \"Voir le catalogue\"]",
+    "Mmm ok, donc 2 paquets de Private Normal 10 pieces, hek bikaffe? Sinon dis-moi chu l minimum.",
+    "Ok alors ajoutez-moi 1 kilo de tomates et une ربطة خبز, merci",
+    "Le Wooden Bakery Pita White Bread Big 800G, merci",
+    "Ya3tik l 3afye, w chou l minimum bel dabt? Ma fi 3endi bezyede, ana bass baddi ysir 3endi bel Moukhtara",
+    "Ok, ajoutez 2 kilos de pommes de terre w 1 litre de lait, merci",
+    "Ana bel Moukhtara, merci"
+   ],
+   "shop": [
+    [
+     "أهلين! شو بدك تطلب؟"
+    ],
+    [
+     "أي نوع بدك؟\nPrivate Feminine Pads Extra Thin Night 7 Pieces\n$1.36\nPrivate Feminine Pads Extra Thin Normal 10 Pieces\n$1.35 [Night 7 pcs | Normal 10 pcs]"
+    ],
+    [
+     "Your order is below our minimum, so what else would you like to add?\nPrivate Feminine Pads Extra Thin Normal 10 Pieces\n$1.35"
+    ],
+    [
+     "Votre commande n'a pas encore atteint le minimum. Bdik tzid chi ta2 mn l catalogue? [Voir le catalogue]"
+    ],
+    [
+     "Le minimum n'est pas encore atteint. Voulez-vous ajouter d'autres produits ? [Voir le catalogue]"
+    ],
+    [
+     "Le catalogue en images n'est pas disponible pour le moment. Dites-moi ce que vous voulez ajouter à votre commande, et je vérifierai les disponibilités et les prix pour vous."
+    ],
+    [
+     "Non, pas encore : votre commande n'a pas atteint le minimum, même avec 2 paquets. Dites-moi quels autres produits vous voulez ajouter, et je vérifierai le total pour vous."
+    ],
+    [
+     "Tomates bien notées (1 kg). Pour le pain, lequel voulez-vous ?\nWooden Bakery Pita White Medium 400G\n$0.62\nAl Forno Pita White Bread Big 800G\n$1.01\nWooden Bakery Pita White Bread Big 800G\n$1.01\nPain D'or Arabic Bread 900G (7 Loaves)\n$1.01"
+    ],
+    [
+     "تمام، زدت خبز Wooden Bakery 800G. الطلبية لسا تحت الحد الأدنى، شو بدك تضيف كمان؟"
+    ],
+    [
+     "أهلاً، المختارة بتوصلنا. الطلبية لسا تحت الحد الأدنى للتوصيل، ضيف شي كمان وبنكمل."
+    ],
+    [
+     "Bien noté : 2 kg de pommes de terre et 1 litre de lait. Dans quel village êtes-vous ?"
+    ],
+    [
+     "Merci ! Pour le lait 1 litre, lequel voulez-vous ?\nCandia Uht Lait Entier 1L\n$1.73\nNadec Uht Milk Full Fat 1L\n$1.02\nNadec Uht Milk Low Fat 1L\n$1.25 [Candia entier 1L | Nadec entier 1L | Nadec écrémé 1L]"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Never stated the minimum amount despite 4 customer requests",
+     "Said 'Tomates bien notées', which reads as a rating",
+     "Asked village after customer had said Moukhtara; later asked again",
+     "Replies in formal French or Arabic that did not match the customer's Arabizi mix",
+     "No order card by turn limit; the customer was dragged through many turns"
+    ],
+    "summary": "The shop offered the right choices for Private pads, but then looped on an unstated minimum and never produced a confirmable card within 12 turns."
+   },
+   "expect": "no judge_rating_or_health_word"
+  }
+ ]
+}

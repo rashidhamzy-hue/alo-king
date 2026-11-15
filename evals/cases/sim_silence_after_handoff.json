@@ -1,0 +1,834 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where a code check found silence_after_handoff. Failing on purpose: not fixed by SIM1. Owner: hand-off. Invented customers, invented numbers.",
+ "severity": 3,
+ "owner": "hand-off",
+ "cases": [
+  {
+   "id": "sim-005",
+   "seed": 10004,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مساء الخير  (2) بدي إرجع المصاري تبع اللحمة المفرومة، وصلت من يومين وما كانت منيحة  (3) الله يخليكن",
+    "يعطيكن العافية، بتقدروا تخبروني أيمتى رح يتصل فيي حدا؟",
+    "لو سمحتوا، بدي جواب بخصوص المصاري تبع اللحمة، مرسي كتير"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-011",
+   "seed": 10010,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي احكي مع شخص حقيقي مش بوت لو سمحت، عندي سؤال عن طلبية",
+    "تمام، أيمتى بتقريب بيجاوبني حدا؟",
+    "هيي بعدك حدا؟ بدي جاوب بسرعة لانو مستعجل"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-018",
+   "seed": 10017,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 7ada men el shop yekellimne 3an talab (order) please, mesh bot",
+    "merci, emta ba3rif yjewebne?",
+    "marhaba, fi 7ada? emta bi jawbouni please?"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-019",
+   "seed": 10018,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Hi, I want to talk to a real person please, not a bot. I have a question about an order",
+    "Ok thanks, when will someone answer me?",
+    "Hello? Is anyone there? It's for my elderly neighbour's order"
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-039",
+   "seed": 10038,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مرحبا كيفكن  (2) عيونك  (3) بدي إرجع الملفوف تبع آخر طلبية، إجا من يومين وما كان منيح",
+    "بدي ارجع مصرياتي عالملفوف لو سمحت",
+    "ممكن تردولي جواب على الطلب؟ merci"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-060",
+   "seed": 10059,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الطلبية يلي وصلتني من 3 ايام، علبة الكوتون باد (Fluff'n White) وصلت تالفة",
+    "ok بس بدي جواب اليوم لو بتقدر",
+    "هاي؟ حدا هون؟ بدي بدّل العلبة او استرجع حقها"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-084",
+   "seed": 10083,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hey your last delivery so late it was ridiculous you guys are useless honestly anyway i m hungry i want something to eat send me something quick\"]",
+    "Contact me for what? I'm on a break, I just want food, don't waste my time again",
+    "Hello?? Still nothing. Pathetic service, my break is almost over"
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-086",
+   "seed": 10085,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مرحبا، كيفكن؟  (2) الطلبية يلي وصلتني من تلات ايام، الجبنة العكاوي البلدي كانت خربانة ومش منيحة  (3) بدي حدا يحكيني بالموضوع لو سمحتوا",
+    "يعطيكن العافية، ممكن حدا يردلي جواب اليوم لو سمحتوا؟",
+    "مرحبا مرة تانية، لسا ما حدا ردّ عليّ. بتقدروا تخبروني شو رح يصير بالجبنة الخربانة؟ مرسي كتير"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
+     "أهلين، آسفين كتير إنو الجبنة وصلتك خربانة. حوّلتلك على حدا من فريقنا ليحكيك بالموضوع."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-092",
+   "seed": 10091,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, j'ai reçu ma commande il y a deux jours mais l'huile de tournesol Plein Soleil 5L était abîmée, elle avait un mauvais goût. Qu'est-ce qu'on peut faire svp ?",
+    "Merci beaucoup. J'attends votre réponse svp, l'huile est vraiment inutilisable.",
+    "Bonjour, est-ce que quelqu'un a pu voir mon message ? Je voudrais juste un remplacement ou un remboursement, merci."
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-096",
+   "seed": 10095,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "mixed",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, 3endi mochkle bel commande taba3 mbere7: le ketchup Dolly's 900G kan 5arban, il est abîmé. Merci",
+    "Merci, bas please baddi jewab quand vous pouvez, l'ketchup mish sale7 li akl",
+    "Bonjour encore, ba3ed fi hada yjaweb 3al ketchup? Merci bshekel kbir"
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-127",
+   "seed": 10126,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "fr",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"bonjour j ai un problúme avec ma derniúre commande la viande hachée de boeuf que vousm avez euh livrée il y a deux jours était abßmée elle sentait mauvais je voudrais en parler avec quelqu un s il vous plaßt\"]",
+    "Merci, j'attends votre réponse pour la viande hachée svp",
+    "Bonjour, une réponse pour la viande hachée abßmée svp ? Merci"
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-128",
+   "seed": 10127,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الطلبية يلي وصلت من يومين، علبة اللبن كاندية ١ كيلو كانت خربانة، طالعة ريحتها حامضة. الطلب كان لجارتي العجوز",
+    "يعطيكن العافية، بس بدي حدا يرد علي اليوم لو سمحتو",
+    "ألو؟ في حدا؟ بدي جواب عن موضوع اللبن لو سمحتو"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-131",
+   "seed": 10130,
+   "category": "person",
+   "variant": "refund",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, je voudrais être remboursée pour les couches Oui Oui taille 6 (32 pièces) de ma dernière commande, livrée il y a deux jours. Merci beaucoup.",
+    "D'accord, merci. J'attends votre réponse pour le remboursement des couches, s'il vous plaît.",
+    "Bonjour, avez-vous pu regarder ma demande de remboursement pour les couches ? Merci d'avance."
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-168",
+   "seed": 10167,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بالطلبية الأخيرة اللي وصلتني من يومين، التورا بيكا كابتشينو ما كانت منيحة. بدي استرجع حقها لو سمحت",
+    "يعطيكن العافية، بتقدروا تخبروني أيمتى رح يجاوبوني؟",
+    "مرحبا، لسا بانتظار جواب بخصوص الاسترجاع، مرسي"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
+     "آسفين إنو الطلبية ما كانت منيحة. وصلتني رسالتك وعم حوّلها لمسؤول عنّا يتواصل معك بأقرب وقت بخصوص الاسترجاع."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-173",
+   "seed": 10172,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا بدي رجع المصاري تبع بامبرز اوي اوي مقاس خمسه تمانيه وتلاتين قطعه من اخر طلبيه اللي وصلتني مبارح\"]",
+    "لو سمحت، بدي جواب بخصوص المصاري تبع البامبرز",
+    "مرحبا، في حدا يجاوبني بخصوص استرجاع المصاري؟"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-176",
+   "seed": 10175,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Good morning, I have a question about my order. Could I please speak with a real person, not a machine?",
+    "Thank you dear. Do you know approximately when someone will answer me?",
+    "Hello? I am still waiting, please let me know when someone can talk to me. Thank you."
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-183",
+   "seed": 10182,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "(1) يا زلمي المرة الماضية وصلت الطلبية متأخرة ساعتين  (2) خدمتكن زبالة بجد، شو هالقرف",
+    "ولو شو هالبطء كمان؟ يلا عطيني شي ناكله، بدي بيتزا هلق وبلا تأخير هالمرة",
+    "ولا حدا عم يرد؟ ما بتفرقو عن بعض، كلكن نايمين؟ بدي بيتزا يا جماعة"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-190",
+   "seed": 10189,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي رجّع مصاري الأومو جل غسيل ٢.٥ ليتر اللي وصلني مبارح، جارتي العجوز ما بدها ياه",
+    "يعطيكن العافية، ممكن تجاوبوني اليوم لو سمحتوا؟",
+    "مرحبا؟ لسا ناطرة جواب بخصوص رجعة المصاري لو سمحتوا"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-205",
+   "seed": 10204,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "(1) ya 3ayb el shame, el delivery el marra l fetet t2akharit sa3tein w ma 7ada 3ata jawab  (2) shu hal service el zero hayda, ma btfahmo shi",
+    "yalla w2ila, baddi shi akel hallaq, shu fi 3andkon? khabbirouni la ykuno kamen mt2akhrin",
+    "hello?? fi 7ada hon wala el shop nayem? jewe3an w ma fi jawab, shu hal ihmal"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-214",
+   "seed": 10213,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي احكي مع شخص حقيقي مش بوت، عندي سؤال عن طلبية",
+    "تمام، أيمتى بتقريب رح يردّ عليي حدا؟",
+    "لسا ما حدا ردّ، بتعرفوا كم بدو يطوّل؟"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-222",
+   "seed": 10221,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الحليب نادك قليل الدسم لتر اللي وصلني من يومين كان خربان",
+    "لو سمحت، بدي حدا يرد علي بخصوص الحليب",
+    "مرحبا، في حدا هون؟ منتظرة جواب بخصوص الحليب الخربان، يعطيكم العافية"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-224",
+   "seed": 10223,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 7ade men el shop 7a2i2i (mesh bot) la so2al 3an talab",
+    "emta ra7 yjawebni? ana bel shughol w 3am e7ki bel break",
+    "halla2 fi 7ada? break taba3i 3am yikhlas"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-231",
+   "seed": 10230,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الطلبية يلي وصلتني من تلات ايام، خبز الحليب بان دور كان خربان، عمرو فايت",
+    "يعطيكن العافية، بدي جواب لو سمحتو، هيدا للجيرانة العجوز",
+    "مرحبا، في حدا يرد عليي؟ بدي حل للخبز الخربان لو سمحتو"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-236",
+   "seed": 10235,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Hello, can I talk to a real person please? I have a question about my order",
+    "Ok thank you, when will someone answer me?",
+    "Hello? Is anyone there? I need to know about my order please"
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  },
+  {
+   "id": "sim-250",
+   "seed": 10249,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hellogood evening excuse me like i have a question about my order and and i would like to speak to a real person please not a machine thank you very much\"]",
+    "Thank you habibi. Do you know approximately when someone will answer me please?",
+    "Hello, is someone there please? I am still waiting, thank you for your patience."
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 2,
+     "detail": "outcome human"
+    },
+    {
+     "turn": 3,
+     "detail": "outcome human"
+    }
+   ],
+   "expect": "no silence_after_handoff"
+  }
+ ]
+}
