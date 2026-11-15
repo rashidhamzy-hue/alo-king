@@ -51,4 +51,31 @@ describe("Product pictures", () => {
     expect((await b.get("/pictures")).status).toBe(403);
     await expect(r.db.rpc("review_product_image", { p_image: img, p_by: picker.partyId, p_decision: "approve" })).rejects.toThrow(/NOT_AUTHORISED/);
   });
+
+  it("lists the fastest sellers first, 20 at a time, and the next 20 follow when those are decided (PIX2)", async () => {
+    const r = await rig();
+    const prods = await r.db.all(`select id, name_en from products where is_active order by sku limit 25`);
+    // Rank 1 is the fastest seller. Propose in the opposite order, so the sort has to do the work; the last one has no stored rank.
+    const ids: string[] = [];
+    for (let k = 0; k < prods.length; k++) {
+      const id = await propose(r, prods[k].id, "open_food_facts");
+      await r.db.all(`update product_images set vision = $2::jsonb where id = $1 returning id`, [id, JSON.stringify(k === prods.length - 1 ? {} : { rank: prods.length - k })]);
+      ids.push(id);
+    }
+    const lead = await r.staff("ops_lead", "Maya");
+    const b = r.browser();
+    await b.signIn(lead);
+    const first = (await b.get("/pictures")).text;
+    expect(first).toContain("25 proposed, fastest sellers first. Page 1 of 2");
+    expect(first.match(/name="decision" value="approve"/g)?.length).toBe(20);
+    expect(first.indexOf(prods[23].name_en)).toBeLessThan(first.indexOf(prods[22].name_en));   // rank 2 before rank 3
+    expect(first).toMatch(/#2 \S+ <strong>/);                                // the stored rank is shown beside the name
+    expect(first).not.toContain(`/pictures/${ids[24]}`);                 // the unranked one is on page 2
+    const second = (await b.get("/pictures?page=2")).text;
+    expect(second).toContain(`/pictures/${ids[24]}`);
+    expect(second.match(/name="decision" value="approve"/g)?.length).toBe(5);
+    expect((await b.get("/pictures?page=99")).text).toContain("Page 2 of 2");
+    await b.post(`/pictures/${ids[23]}`, { decision: "reject" });         // rank 2 decided: it leaves the list
+    expect((await b.get("/pictures")).text).toContain("24 proposed");
+  });
 });

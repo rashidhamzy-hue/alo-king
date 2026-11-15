@@ -629,19 +629,20 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 2 | B1a ordering fixes from SIM1, part 1 (report fixes 1, 3, 4, 9, 10 and the two no-reply turns; minimum order $5, no small-order fee at launch) | Opus, high | HO1 merged | None | Merged (#77, #79, #80). sim-test on main after #80 (43736730998): minimum loops 66 to 0 and lost baskets 11 to 0 (met); wrong products 34 (target 8, not met: the planner's generic and size picks need a migration, a kept overnight basket's counts, reading cases); passed 35 to 48; no new failure class (`docs/HANDOFF.md`, B1a) |
 | 2 | B1b ordering fixes from SIM1, part 2 (report fixes 5, 6, 7, 8; a first order without a pin is accepted, marked for a rider call) | Opus, high | B1a merged | None | Done (#85, #87, 15 Nov); 150 simulated on main: address 1, language 0, message rules 2, off-topic 1: all targets met; see HANDOFF, B1b |
 | 2 | DS1 design system and flagship screens (converts the founder's brief to `docs/DESIGN_BRIEF.md` first) | Fable, high | OPS1 and HO1 merged; the crown picture and the brief attached | None | **Built 15 Nov** (`docs/HANDOFF.md`, DS1): `packages/ui`, both galleries, the console's shell, Today, Inbox and Orders, the website's four pages. No crown picture came: an original mark was drawn and waits for the founder's approval. Figures and data with no source are listed there for AN1, WEB2 and UX2 |
-| 2 | PIX pictures | Sonnet, medium | Nothing | None | Pipeline built and tested (public-page search hits, duplicate check, fastest-first, queue report); 20 of 291 candidates waiting and every other item has a named reason, because `BRAVE_SEARCH_API_KEY` is not set. Spend about USD 0.08. Founder actions in `docs/HANDOFF.md` (PIX) |
+| 2 | PIX pictures | Sonnet, medium | Nothing | None | Pipeline built and tested (public-page search hits, duplicate check, fastest-first, queue report); 20 of 291 candidates waiting and every other item has a named reason, because `BRAVE_SEARCH_API_KEY` is not set. Spend about USD 0.08. Founder actions in `docs/HANDOFF.md` (PIX) **PIX2 (15 Nov):** no search service; from-list mode and a fastest-first Pictures page built; 29 candidates wait, the 120-fastest target is not met (`docs/HANDOFF.md`, PIX2) |
 | 3 | CX1 customer pack | Opus, high | B1b merged | 0143 to 0146 | Not started |
 | 3 | D4b pick queue and rider jobs on the console | Sonnet, high | DS1 merged | 0147 to 0148 | **Built 16 Nov** (`docs/HANDOFF.md`, D4b): pick queue, rider jobs with "act for a rider", rider incidents; one order goes confirmed to closed on the console alone, with no staff-line message (`apps/console/test/d4b.test.ts`). Not proven on a phone or staging |
 | 4 | T1 friends' test set-up | Opus, medium | Gate A: CX1, D4b, DS1 merged; pictures approved; Arabic read (T1 checks the list and stops if one is missing) | 0134 | **Waits for gate A** |
-| 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | Not started |
-| 4 | UX2 every remaining console page | Sonnet, high | DS1, D4b merged | None | Not started |
+| 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | **Parked** (design pause, 15 Nov: the founder restarts design) |
+| 4 | UX2 every remaining console page | Sonnet, high | DS1, D4b merged | None | **Parked** (design pause, 15 Nov) |
+| 4 | FX1 product facts by kind (food, drink, household, personal care, baby, pet; AI proposes, console approves; no food facts on non-food; unconfirmed facts collapse to "ask us on WhatsApp"; the chat says "doesn't apply") | Opus, medium | The founder restarts design; CX1 merged | Next free number | **Parked** (design pause, 15 Nov) |
 | 5 | L1 event log, timeline, measured times, places | Opus, high | Gate A open | 0149 to 0152 | Not started |
 | 5 | WH1a warehouse basics | Opus, high | D4b merged | 0153, 0156, 0157, 0188, 0189 (0154 and 0155 are WEB1's) | Not started |
 | 5 | N2 nightly checks and learning | Sonnet, medium | COST1 merged | 0186 | Not started |
 | 6 | RD1 rider pack | Opus, high | L1 merged | 0160 to 0163 | Not started |
 | 6 | AN1 reports and the daily summary | Sonnet, high | L1, UX2 merged | 0164 to 0166 | Not started |
-| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | Not started |
-| 7 | PAY1 payment core and adapters | Opus, high | WEB2 merged | 0167 to 0171 | Not started |
+| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | **Parked** (design pause, 15 Nov) |
+| 7 | PAY1 payment core and adapters | Opus, high | CX1 merged (was WEB2; design pause, 15 Nov) | 0167 to 0171 | Not started |
 | 7 | RCPT1 receipts and lira display | Sonnet, medium | CX1 merged | 0172 to 0173 | Not started |
 | 7 | AUD1 audit of what the planning chat could not reach | Sonnet, high | Nothing | 0176 to 0177 | Not started |
 | 8 | SH1 Send Home | Opus, medium | PAY1 merged | 0174 to 0175 | Not started |
