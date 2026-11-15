@@ -189,8 +189,16 @@ tap's answer, the basket's age), `supabase/seed/*` and `scripts/ci/load-seeds.sh
 (nine new Arabic lines, **not read by a person yet**), the tests. No migration, gateway allowlist, price source or confirmation path changed.
 Not done here: the two carried ordering bugs (the size-only line; «بدي أغراض لمجدرة», a reading of off-topic that is B1b's fix 8).
 
-**Tested here (CI, no key):** every row above; `npm run typecheck` clean, `npm test` green. **Not proven yet:** the live reading of
-`change` (the language gate), the simulated customers on `main`, the seed step on staging, and WhatsApp itself.
+**Tested here (CI, no key):** every row above; `npm run typecheck` clean, `npm test` green.
+
+**The language gate holds** (`language-pack` on this branch): [run 43719075127](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43719075127),
+990 readings, **F1 0.907, wrong products 0**, the 0.13 demo right; the live cases [run 43719919354](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43719919354)
+**58 of 58**, the 9 basket-edit cases among them. The first gate run on B1a's first prompt (43718261533) read «مشيلي الطلب» (go ahead) as a
+cancel after the remove example «شيل الخبز», and gave one wrong product («كرتونة بيض هوا», the brand read as its own line); the example was
+changed to «ما بدي الخبز» and both came back right. Two live misses of the second run («عندي وجع راس، شو آخد دوا؟» unreadable once, a voice
+address read with a village) passed in the third; the off-topic eval now prints a reading's contract errors when one is unreadable.
+
+**Not proven yet:** the simulated customers on `main`, the seed step on staging, and WhatsApp itself.
 
 ### HO1: the never-stranded hand-off, 15 November 2026 (Opus 5.5)
 Hand-off lane, branch `claude/confident-albattani-a84wbj`, one pull request. Migrations 0135-0137 (0138 held, unused). Specification:
