@@ -65,3 +65,17 @@ describe("a product name with Arabic-Indic digits is shown with Latin digits (th
     expect(productName({ name: "Pepsi Diet 2.25L", name_ar: "بيبسي دايت ٢٫٢٥ ل" }, "ar")).toBe("بيبسي دايت 2.25 ل");
   });
 });
+
+import { formatOrderCard } from "@ak/agents/order-card";
+describe("the customer's words on the card show Latin digits (the second run on main: «٥٠٠ مل، ١٢ قنينة» on a line)", () => {
+  it("a line's modifiers and the address fold Arabic-Indic digits", () => {
+    const quote = { ok: true, issues: [], subtotal_usd: 6, delivery_fee_usd: 1, total_usd: 7, fx_rate_lbp: 89500, total_lbp: 627000, eta_minutes: 30,
+      pickup: false, village: "Baakline", village_ar: "بعقلين", village_id: null,
+      lines: [{ product_id: "p1", name: "Tannourine Mineral Water 500Ml X 12", name_ar: null, qty: 3, unit: "each", line_total_usd: 6, modifiers: ["٥٠٠ مل، ١٢ قنينة"] }] } as any;
+    const parts = formatOrderCard({ orderId: "99999999-8888-4777-8666-555555555555", shortCode: "AK-1038", quote, paymentMethod: "cod", lang: "ar",
+      address: { village_en: "Baakline", village_ar: "بعقلين", building: "بناية ٣", floor: "الطابق ٢" } });
+    const text = parts.map((p: any) => p.text?.body ?? p.interactive?.body?.text ?? "").join("\n");
+    expect(text).not.toMatch(/[٠-٩۰-۹]/u);
+    expect(text).toContain("500 مل، 12 قنينة");
+  });
+});
