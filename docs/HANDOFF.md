@@ -52,7 +52,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 15 November 2026"); the roadmap rows are the last section of `docs/BUILD_PLAN.md`; the rules every session follows and every prompt are in
 `docs/NEXT_SESSIONS.md`. Where these disagree with an older section of this file, they win.
 - **Gates.** **A**, the friends' test (Rashid and three friends on the US number): HO1, B1, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; simulated customers show zero silences after a hand-off. **B**, the shadow run (staff and family, cash only, 7 days, 100 orders): WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15%. **C**, the paid pilot: the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the +961 numbers; auto-reload on with a limit. Stop conditions: `docs/strategy/01-verdict-gates.md`.
-- **HO1 done** (below): the hand-off redesign is in code; the zero-silence run is the open item.
+- **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1, DS1, PIX, CX1, D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
 - **Not done by DOC1:** `docs/DESIGN_BRIEF.md`. The founder's brief (.docx) was not in the hand-over, so it was not converted and nothing was written in its place. DS1 reads it and waits for OPS1 and HO1 first, so no session is blocked yet. Founder action: attach the .docx to a new DOC1 follow-up (or any docs session) before DS1 starts.
@@ -128,7 +128,23 @@ spot-check tab for automatic credits is a section of the Inbox, not the approval
 simulated-customer run (below); WhatsApp and Kapso (the buttons and the 60-second requeue on the live Durable Object); a push reaching a
 phone; the Arabic read by a person; 0135-0137 on the staging database (applied only in the test database until the next deploy).
 
-**The simulated-customer run (sim-test, limit 150): RESULT_PLACEHOLDER**
+**The simulated-customer run: zero silences after a hand-off.** [`sim-test` run 43711132002](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43711132002),
+limit 150, HO1's code (3637be6; the two later commits only fix a test's escaping and merge `main`), `claude-haiku-5-5` as the Concierge,
+15 Nov 11:58-12:22 UTC, **$3.45** (the key's limit no longer refused calls; SIM1's follow-up ran just before). Dispatched on the branch so the result could land in this one pull request.
+
+| | SIM1 baseline (500, old code) | HO1 (first 150) |
+| --- | --- | --- |
+| conversations with a hand-off | 96 (19.2%) | 27 (18.0%): person 8, complaint 8, refund 6, order problem 5, payment 2 |
+| an ops alert raised for it | 94 | 27 (`support_case`) |
+| **customers left in silence after a hand-off** | **89** | **0** |
+| **follow-up messages with no reply** | **176** | **0** |
+| person / complaint / refund scenarios passed | 0 of 42 | 2 of 16 |
+| all conversations passed | 16.6% | 20.0% |
+
+What still fails in the person scenarios is the judge's "goal not reached" (no person ever answers in a simulation) and the ordering
+classes B1 owns. The one `no_reply` turn in the run (sim-103, a tap on a kept night order) had no hand-off: the class SIM1 already
+reported (sim-009, sim-014), for the ordering lane. The full report is the run's `sim-results` artifact.
+
 
 ### SIM1: simulated customers, 15 November 2026 (Opus 5.5)
 Evals lane, branch `claude/gallant-feynman-yhrzow`, pull requests #65 (tooling, merged) and the report's. No migration; no product file changed.
