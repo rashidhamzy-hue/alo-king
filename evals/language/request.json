@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run: 0133 reads «مختلطة» as a mixed word (run 43651509767: hz0815 wrong, live 39/41; its replay with the fix: F1 0.913, 0 wrong)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run: REPLY_RULE says to offer sorting by a fact instead of declining in the quality word (run 43654783093: F1 0.914, 0 wrong, demo right, live 39/41)." }

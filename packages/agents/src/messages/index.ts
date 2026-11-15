@@ -30,7 +30,9 @@ export const asLang = (lang?: string | null): Lang => (lang === "en" || lang ===
 // Run 43644483826: 40/41, the miss called extract_order and ended the turn without a reply: every turn ends with reply.
 // Run 43646819002: 40/41, «بدي أكل صيامي» answered «شو بدك تطلب من أكل صيامي؟» (3 of the last 5 runs): not even the customer's
 // own word; ask what to leave out (the case's "must", evals/cases/neutral_and_food_facts.json).
-export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. Never say which is better, best or healthier. Never write a diet, fasting, health or halal word (not even the customer's own) unless a tool returned it; for such a request ask what to leave out.";
+// Runs 43649220096, 43651509767, 43654783093: the first draft declined in the customer's words («ما بقدر أحدد الأحسن», "I can't
+// pick the healthiest"), which the guard refuses: say what to do instead (sort by a fact, invariant 14), not the word.
+export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. To a question about which is good, better or healthier, do not answer or repeat its words, not even to decline: offer to sort by price, delivery time or size, as buttons. Never write a diet, fasting, health or halal word (not even the customer's own) unless a tool returned it; for such a request ask what to leave out.";
 
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";

@@ -1197,7 +1197,8 @@ live check stays. `REPLY_RULE` stays in the ask-loop input only. Merge when CI i
 | 43646819002 | 6f632bc | gate run: `REPLY_RULE`: every turn ends with reply, also after `extract_order` | 0.913 | **0** | right | 40/41 (`siyami-first-time`: the customer's «أكل صيامي» echoed back, refused; 3 of the last 5 runs) |
 | 43649220096 | 35dcdef | gate run: `REPLY_RULE`: no diet word, not even the customer's own; ask what to leave out | 0.915 | **0** | right | 39/41 (`best-restaurant`: first draft «ما بقدر حكم على مطعم أحسن من غيره», a negated quality word, refused; `gluten-free-declared`: the ask call hit `max_tokens` before any tool) |
 | 43651509767 | c621677 (code as 35dcdef) | gate run, the same code again | 0.913 | **1 (hz0815)** | right | 39/41 (`best-restaurant`: a negated quality word again; "stay on the job" «شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة» judged off-topic) |
-| (next gate run, pending) | aa2073f+ | 0133: «مختلطة» (the model's Arabic for mkhalta) is a mixed word; cases `mx-mixed-read-as-mukhtalita`, `mx-arabic-mukhtalita` and the run's two readings in `zero-wrong.json` first | | | | |
+| 43654783093 | 4981071 | gate run: 0133 reads «مختلطة» as a mixed word (cases `mx-mixed-read-as-mukhtalita`, `mx-arabic-mukhtalita` and the two readings of 43651509767 in `zero-wrong.json` first) | 0.914 | **0** | right | 39/41 (`best-restaurant` and `healthiest`: the first draft declined in the customer's quality word, refused) |
+| (next gate run, pending) | next commit | `REPLY_RULE`: to a "which is better" question, offer to sort by a fact; do not repeat its words, not even to decline | | | | |
 
 **For the ordering lane (found here, not fixed: `concierge.ts` is outside M1's files):** in 2 of the last 4 live runs one ask call
 stopped at `max_tokens` (1024, `request()` in `concierge.ts`) with no text and no tool call, so the turn handed off with nothing sent
