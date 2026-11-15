@@ -20,7 +20,8 @@ export function reasonFor(attempt, rejected = 0) {
   const dupOf = [...new Set(ev.map((e) => e.duplicate_of).filter(Boolean))];
   const list = Object.entries(count).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} x${n}`).join(", ");
   switch (attempt.outcome) {
-    case "none_found": return { code: "none_found", text: `no source returned a candidate (${(attempt.sources_tried ?? []).join(", ") || "no source"} asked)` };
+    case "none_found": if (!(attempt.sources_tried ?? []).includes("web_search")) return { code: "search_off", text: `Open Food Facts had no picture (or the item has no barcode); the web search was not run: the repository secret BRAVE_SEARCH_API_KEY is not set` };
+      return { code: "none_found", text: `no source returned a candidate (${(attempt.sources_tried ?? []).join(", ") || "no source"} asked)` };
     case "none_passed": return { code: dupOf.length && Object.keys(count).every((k) => k === "duplicate" || k === "narrow") ? "duplicate" : "none_passed",
       text: `${attempt.seen} candidates looked at, none passed: ${list}${dupOf.length ? `; same picture as ${dupOf.join(", ")}` : ""}` };
     case "skipped_rejected": return { code: "rejected_before", text: "the only candidate is a picture a person rejected before" };

@@ -125,6 +125,13 @@ describe("the queue report names a reason for every item without a candidate", (
     expect(rep.rows[3]).toMatchObject({ sku: "AK-0004", reason_code: "duplicate" });
     expect(rep.rows[3].reason).toMatch(/same picture as AK-0001/);
   });
+  it("an item only Open Food Facts could be asked about says the search key is missing", () => {
+    const r = reasonFor({ outcome: "none_found", sources_tried: ["open_food_facts"], detail: {} });
+    expect(r.code).toBe("search_off");
+    expect(r.text).toMatch(/BRAVE_SEARCH_API_KEY/);
+    expect(reasonFor({ outcome: "none_found", sources_tried: [], detail: {} }).text).toMatch(/no barcode/);
+    expect(reasonFor({ outcome: "none_found", sources_tried: ["open_food_facts", "web_search"], detail: {} }).code).toBe("none_found");
+  });
   it("an item no run has looked at is reported as unfinished, so the run is not called done", () => {
     expect(rep.rows[5]).toMatchObject({ sku: "AK-0006", reason_code: "not_tried" });
     expect(rep.unexplained).toBe(1);
