@@ -575,6 +575,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const reading = await extractOrder(model, deps.modelName, input);
     add(reading.usage);
     intent = reading.intent;
+    // B1b (the run on main, 43751120408: «Eh, hayda», "Rje3 3al taleb"): a tap on a button the Concierge offered answers our own question,
+    // so it is never off-topic, whatever the reading says of its few words.
+    if (intent && intent.intent === "off_topic" && tapTitles.length && transcripts.length === 0 && texts.every((x) => tapTitles.includes(x)))
+      intent = { ...intent, intent: "question" };
     // M1: the reading names the customer's language when their own words have not (B1b: it never overrides them, language.ts).
     learnLang([...ownTexts, ...transcripts.map((t) => t.primary)], intent?.language);
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
