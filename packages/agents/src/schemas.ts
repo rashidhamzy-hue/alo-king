@@ -15,7 +15,7 @@ export const OrderLine = z.object({
   // B1a (SIM1 fix 4): a change to an item already in the basket or on the card is an explicit edit, never guessed by code.
   change: z.enum(["add", "set", "remove"]).nullable().default(null).catch(null)
     .describe("Only for an item already in the basket or on the order card: 'add' for more of it ('add 2 more Pepsi', 'zid wa7de', 'كمان تنين' -> qty is what is added), " +
-              "'set' for a new count ('make it 3', 'خليهن 3'), 'remove' to take it off ('bala khebez', 'شيل الخبز', 'no labneh'). Null for a new item"),
+              "'set' for a new count ('make it 3', 'خليهن 3'), 'remove' to take it off ('ma baddi el khebez', 'ما بدي الخبز', 'no labneh'). Null for a new item"),
 });
 
 export const OrderIntent = z.object({

@@ -1,13 +1,107 @@
 {
   "note": "Session B1a (SIM1 fix 4, docs/SIM_REPORT_2026-11-15.md): a change to what is already in the basket is read as an explicit edit on its line (`change`: add, set, remove), and the quantity of an add is what is added, never the new total. SIM1: «add 2 more» became 4 on a card that showed 3, «3 more Pepsi» left 3 in all, a declined item stayed on the card. Code applies the edit (packages/agents/src/basket.ts); the live run (evals/live) checks the model reads them so. Invented customers; the words follow SIM1's failing cases.",
   "cases": [
-    { "id": "add-two-more-ar", "texts": ["زيد تنين بيبسي كمان"], "basket": ["Pepsi Carbonated Drink 2.25L x2"], "change": "add", "qty": 2 },
-    { "id": "add-more-arabizi", "texts": ["zid 2 pepsi kamen please"], "basket": ["Pepsi Carbonated Drink 2.25L x2"], "change": "add", "qty": 2 },
-    { "id": "add-three-more-en", "texts": ["can you add 3 more pepsi"], "basket": ["Pepsi Carbonated Drink 330Ml x3"], "change": "add", "qty": 3 },
-    { "id": "set-qty-ar", "texts": ["خليهن تلاتة بدل تنين"], "basket": ["Wooden Bakery Pita White Bread Big 800G x2"], "change": "set", "qty": 3 },
-    { "id": "set-qty-fr", "texts": ["mettez-en 4 au lieu de 2 svp"], "basket": ["Président Butter Unsalted 200G x2"], "change": "set", "qty": 4 },
-    { "id": "remove-ar", "texts": ["شيل الخبز، ما بدي ياه"], "basket": ["Liban Lait Labneh Baladieh 900G x1", "Wooden Bakery Pita White Bread Big 800G x2"], "change": "remove" },
-    { "id": "remove-arabizi-sim122", "texts": ["La merci, ma baddi kit kat"], "basket": ["Kit Kat 4 Fingers 36.5G x1"], "change": "remove" },
-    { "id": "new-item-no-change", "texts": ["w baddi kamen kilo banadoura"], "basket": ["Liban Lait Labneh Baladieh 900G x1"], "change": null, "qty": 1 }
+    {
+      "id": "add-two-more-ar",
+      "texts": [
+        "زيد تنين بيبسي كمان"
+      ],
+      "basket": [
+        "Pepsi Carbonated Drink 2.25L x2"
+      ],
+      "change": "add",
+      "qty": 2
+    },
+    {
+      "id": "add-more-arabizi",
+      "texts": [
+        "zid 2 pepsi kamen please"
+      ],
+      "basket": [
+        "Pepsi Carbonated Drink 2.25L x2"
+      ],
+      "change": "add",
+      "qty": 2
+    },
+    {
+      "id": "add-three-more-en",
+      "texts": [
+        "can you add 3 more pepsi"
+      ],
+      "basket": [
+        "Pepsi Carbonated Drink 330Ml x3"
+      ],
+      "change": "add",
+      "qty": 3
+    },
+    {
+      "id": "set-qty-ar",
+      "texts": [
+        "خليهن تلاتة بدل تنين"
+      ],
+      "basket": [
+        "Wooden Bakery Pita White Bread Big 800G x2"
+      ],
+      "change": "set",
+      "qty": 3
+    },
+    {
+      "id": "set-qty-fr",
+      "texts": [
+        "mettez-en 4 au lieu de 2 svp"
+      ],
+      "basket": [
+        "Président Butter Unsalted 200G x2"
+      ],
+      "change": "set",
+      "qty": 4
+    },
+    {
+      "id": "remove-ar",
+      "texts": [
+        "ما بدي الخبز، بس اللبنة"
+      ],
+      "basket": [
+        "Liban Lait Labneh Baladieh 900G x1",
+        "Wooden Bakery Pita White Bread Big 800G x2"
+      ],
+      "change": "remove"
+    },
+    {
+      "id": "remove-arabizi-sim122",
+      "texts": [
+        "La merci, ma baddi kit kat"
+      ],
+      "basket": [
+        "Kit Kat 4 Fingers 36.5G x1"
+      ],
+      "change": "remove"
+    },
+    {
+      "id": "new-item-no-change",
+      "texts": [
+        "w baddi kamen kilo banadoura"
+      ],
+      "basket": [
+        "Liban Lait Labneh Baladieh 900G x1"
+      ],
+      "change": [
+        null,
+        "add"
+      ],
+      "qty": 1,
+      "why": "an item not in the basket: no change, or add (code adds a new product either way)"
+    },
+    {
+      "id": "go-ahead-is-not-a-change",
+      "texts": [
+        "مشيلي الطلب"
+      ],
+      "basket": [
+        "Liban Lait Labneh Baladieh 900G x1"
+      ],
+      "change": null,
+      "no_lines": true
+    }
   ]
 }

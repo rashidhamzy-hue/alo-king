@@ -131,11 +131,15 @@ export async function runGoAheadCase(client: ModelClient, model: string, c: GoAh
 // ---------- Basket edits (B1a, SIM1 fix 4) ----------
 // evals/cases/basket_edits.json: with a basket in hand, the reading marks a change to an item in it (`change` add, set or remove) and
 // an add's quantity is what is added. The first line of the reading is judged.
-export interface BasketEditCase { id: string; texts: string[]; basket: string[]; change: "add" | "set" | "remove" | null; qty?: number }
+type Change = "add" | "set" | "remove" | null;
+export interface BasketEditCase { id: string; texts: string[]; basket: string[]; change: Change | Change[]; qty?: number; no_lines?: boolean }
 export function judgeBasketEdit(c: BasketEditCase, intent: OrderIntent | null): { ok: boolean; why: string | null } {
   const l = intent?.lines[0] as (OrderIntent["lines"][number] & { change?: string | null }) | undefined;
+  if (c.no_lines) return intent && intent.lines.length === 0 && intent.intent !== "cancel" ? { ok: true, why: null }
+    : { ok: false, why: intent ? `read as ${intent.intent} with ${intent.lines.length} line(s)` : "unreadable" };
   if (!l) return { ok: false, why: intent ? `read as ${intent.intent} with no line` : "unreadable" };
-  if ((l.change ?? null) !== c.change) return { ok: false, why: `change ${l.change ?? null}, expected ${c.change}` };
+  const allowed = Array.isArray(c.change) ? c.change : [c.change];
+  if (!allowed.includes((l.change ?? null) as Change)) return { ok: false, why: `change ${l.change ?? null}, expected ${allowed.join(" or ")}` };
   if (c.qty !== undefined && Number(l.qty) !== c.qty) return { ok: false, why: `qty ${l.qty}, expected ${c.qty}` };
   return { ok: true, why: null };
 }
