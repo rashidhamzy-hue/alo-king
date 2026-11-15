@@ -35,6 +35,19 @@ describe("the staging deploy's Sentry proof (audit item 2)", () => {
     expect(res.status).toBe(404);
   });
 
+  it("OPS1: the console Worker answers the same staging-only proof with a check-in to its own monitor, never an error, and production has no route", async () => {
+    const before = { checkIns: calls.checkIns.length, exception: calls.exception, message: calls.message };
+    const worker = (await import("../../apps/console/src/worker")).default as unknown as { fetch: (r: Request, env: unknown, ctx: unknown) => Promise<Response> };
+    const res = await worker.fetch(new Request("https://c.test/__sentry-test"), { ENVIRONMENT: "staging", SENTRY_DSN: "https://k@o1.ingest.sentry.io/1" }, {});
+    expect(await res.text()).toMatch(/^sent \S+ flushed=true$/);
+    expect(calls.checkIns).toHaveLength(before.checkIns + 1);
+    expect(calls.checkIns.at(-1)!.checkIn).toMatchObject({ monitorSlug: "deploy-smoke-console-staging", status: "ok" });
+    expect(calls.exception).toBe(before.exception); expect(calls.message).toBe(before.message);
+    // not signed in, not staging: the console's ordinary answer, no proof
+    const prod = await worker.fetch(new Request("https://c.test/__sentry-test"), { ENVIRONMENT: "production", SENTRY_DSN: "https://k@o1.ingest.sentry.io/1", CONSOLE_SESSION_SECRET: "x".repeat(40), SUPABASE_URL: "https://p.test", SUPABASE_SERVICE_KEY: "k" }, {});
+    expect(await prod.text()).not.toMatch(/^sent /);
+  });
+
   it("the CI ingest check posts a check-in envelope, with no event item in it", () => {
     const script = fileURLToPath(new URL("../../scripts/ci/sentry-ingest-check.sh", import.meta.url));
     const out = execFileSync("bash", [script], { env: { ...process.env, SENTRY_CHECK_DRY_RUN: "1" }, cwd: fileURLToPath(new URL("../..", import.meta.url)) }).toString();

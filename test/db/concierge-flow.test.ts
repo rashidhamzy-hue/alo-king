@@ -665,6 +665,27 @@ describe("model capacity (1.15)", () => {
     expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain(ar.fixed.oneMoment);
   });
 
+  it("the provider refuses for an account reason (15 Nov: usage limit): no retries, a person takes over, and a high-priority model_account exception opens (OPS1)", async () => {
+    const t = direct([], 0);
+    const refusal = Object.assign(new Error(`400 {"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC."}}`), { status: 400, name: "BadRequestError" });
+    let calls = 0;
+    t.deps.model = { messages: { create: async () => { calls++; throw refusal; } } };
+    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
+    expect(r.outcome).toBe("agent_handoff");
+    expect(calls).toBe(1);                                              // a limit does not clear in twenty seconds: no retry, no "one moment"
+    expect(t.waits).toEqual([]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.handoff]);
+    const c = await t.customer();
+    expect(c.human_handoff).toBe(true);
+    expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "model_account:usage_limit" });
+    const e = await db.one(`select kind, ref, status, detail from ops_exceptions where kind = 'model_account'`);
+    expect(e).toMatchObject({ kind: "model_account", ref: "usage_limit", status: "open" });
+    expect(e.detail.message).toContain("regain access on 2026-12-01");
+    // SP2 still holds: a chat handed to a person is an open exception of its own
+    expect(await db.one(`select count(*)::int as n from ops_exceptions where kind = 'agent_handoff' and detail->>'conversation_id' = $1`, [c.conversation_id])).toEqual({ n: 1 });
+    expect(await db.one(`select count(*)::int as n from claim_alert_pushes() where kind = 'model_account'`)).toEqual({ n: 1 });
+  });
+
   it("a bad request is our bug, not capacity: no 'one moment', no retries", async () => {
     const t = direct([], 0);
     t.deps.model = { messages: { create: async () => { throw Object.assign(new Error("bad"), { status: 400, name: "BadRequestError" }); } } };

@@ -11,7 +11,8 @@ import { lineProblem, parseIdentityEvent, parsePreferenceEvent, parseStatusEvent
 import type { ModelClient } from "@ak/agents/concierge";
 import type { ConversationState } from "@ak/agents/concierge-tools";
 import Anthropic from "@anthropic-ai/sdk";
-import { runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
+import { accountReport, runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
+import { withAccountAlarm } from "@ak/agents/model-account";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
@@ -62,7 +63,13 @@ function depsFor(env: Env): TurnDeps {
   // maxRetries 0: turn.ts retries capacity failures itself and tells the customer "one moment" (B1, 1.15); the SDK's own
   // silent retries would only delay that.
   const model: ModelClient = env.TEST_DEPS?.model ?? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0, ...(env.ANTHROPIC_BASE_URL ? { baseURL: env.ANTHROPIC_BASE_URL } : {}) });
-  const deps: TurnDeps = { db: supa, model, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
+  // OPS1: every model call the Worker makes (a customer turn, the staff line, the cron's jobs) goes through the account alarm, so a
+  // usage limit, a spent balance or a bad key opens the high-priority model_account exception and one Sentry issue per reason.
+  const guarded = withAccountAlarm(model, async (reason, message) => {
+    await accountReport(supa)(reason, message);
+    Sentry.captureMessage(`model_account: ${reason}`, { level: "fatal", tags: { where: "model_account", reason }, extra: { message }, fingerprint: ["model_account", reason] });
+  });
+  const deps: TurnDeps = { db: supa, model: guarded, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);
   // 1.8 (B3's request, wired by B4): WhatsApp's typing indicator on the message being answered. Marks it read; sends nothing.
@@ -79,6 +86,14 @@ async function deliver(supa: SupabaseClient, env: Env, line: Line, event: string
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
+    // OPS1: what a free uptime check watches. 200 only while the Worker answers and the minute cron beat in the last five minutes.
+    // Says nothing about customers, numbers or settings.
+    if (req.method === "GET" && url.pathname === "/health") {
+      const r = await (env.TEST_DEPS?.db ?? db(env)).rpc("cron_age_seconds");
+      const age = r.error || r.data === null || r.data === undefined ? null : Number(r.data);
+      return new Response(JSON.stringify({ ok: age !== null && age <= 300, cron_age_s: age }), { status: age !== null && age <= 300 ? 200 : 503,
+        headers: { "content-type": "application/json", "cache-control": "no-store" } });
+    }
     if (req.method === "POST" && url.pathname === "/webhooks/kapso/project") return projectWebhook(req, env, ctx);
     if (req.method === "GET" && url.pathname === "/catalog/feed.csv") {
       const supa = env.TEST_DEPS?.db ?? db(env);           // the catalog feed Meta reads (1.21, K1)
@@ -123,6 +138,21 @@ export default {
 
   async queue(batch: MessageBatch<QueueMsg>, env: Env): Promise<void> {
     const supa = db(env);
+    // OPS1 (item 5): the dead-letter queue is where an inbound event lands after every retry failed. Each message there becomes (part of)
+    // one high-priority "dead_letter" exception, and is acked so the queue is empty again. The stored event is kept, unprocessed: the
+    // minute cron hands it over again. If the alarm cannot be raised the message is retried, never dropped.
+    if (batch.queue.endsWith("-dlq")) {
+      for (const msg of batch.messages) {
+        try {
+          const r = await supa.rpc("raise_dead_letter", { p_line: msg.body.line, p_event: msg.body.event });
+          if (r.error) throw new Error(`raise_dead_letter: ${r.error.message}`);
+          await Promise.resolve(supa.from("wa_inbound_events").update({ error: "dead letter: every retry failed" }).eq("idempotency_key", msg.body.key)).catch(() => undefined);
+          Sentry.captureMessage("dead_letter: an inbound event failed every retry", { level: "error", tags: { where: "dead_letter", line: msg.body.line }, fingerprint: ["dead_letter"] });
+          msg.ack();
+        } catch (err) { console.error(JSON.stringify({ level: "error", event: "dead_letter_alarm_failed", err: String(err).slice(0, 200) })); msg.retry(); }
+      }
+      return;
+    }
     for (const msg of batch.messages) {
       try {
         const { data, error } = await supa.from("wa_inbound_events").select("payload, processed_at").eq("idempotency_key", msg.body.key).single();
@@ -179,7 +209,8 @@ export default {
 
     // 5. open exception cases (failed turns and anything else the system gave up on) and goods not yet received back
     const due = await supa.rpc("ops_exceptions_due");
-    for (const x of (due.data as { id: string; kind: string; ref: string }[] | null) ?? []) await alertOps(deps, `🧯 حالة مفتوحة بحاجة لشخص: ${x.kind} (${x.ref.slice(0, 60)})`, `exc:${x.id}:${bucket}`);
+    for (const x of (due.data as ExceptionDue[] | null) ?? []) await alertOps(deps, exceptionAlertText(x), `exc:${x.id}:${x.kind === "model_account" ? Math.floor(Date.now() / 1_800_000) : bucket}`);
+    await step("model_account_ok", async () => { await supa.rpc("resolve_model_account"); });       // OPS1: over once a model run has worked again
     const back = await supa.rpc("returns_pending");
     for (const x of (back.data as { order_id: string; short_code: string }[] | null) ?? []) await alertOps(deps, `📦 أغراض الطلب #${x.short_code} لازم ترجع عالمركز وتنعدّ`, `return:${x.order_id}:${Math.floor(Date.now() / 1_800_000)}`);
 
@@ -279,8 +310,21 @@ async function raiseAlarm(deps: TurnDeps, kind: string, ref: string, detail: Rec
   await alertOps(deps, text, `alarm:${kind}:${ref}`);
 }
 
+interface ExceptionDue { id: string; kind: string; ref: string; detail?: Record<string, unknown> | null }
+const MODEL_ACCOUNT_WHY: Record<string, string> = { usage_limit: "وصلنا حدّ الاستخدام", billing: "الرصيد خلص", invalid_key: "المفتاح مرفوض أو ملغى" };
+
+/** The ops line's words for an open exception. The model account one is the one that must not read like the rest: nothing answers customers. */
+export function exceptionAlertText(x: ExceptionDue): string {
+  if (x.kind === "model_account") {
+    const said = typeof x.detail?.message === "string" ? ` «${x.detail.message.slice(0, 200)}»` : "";
+    return `🔑 مزوّد الذكاء الاصطناعي رفض الطلبات: ${MODEL_ACCOUNT_WHY[x.ref] ?? x.ref}. المساعد ما عم يردّ على الزباين، وكل محادثة عم تروح لشخص منكم.${said}`;
+  }
+  return `🧯 حالة مفتوحة بحاجة لشخص: ${x.kind} (${x.ref.slice(0, 60)})`;
+}
+
 const ALARM_TEXT: Record<string, (d: Record<string, unknown>) => string> = {
-  probe_stuck: (d) => `🧪 طلب التجربة #${d.order} واقف عند ${d.status} من ${d.minutes} دقيقة`,
+  probe_stuck: (d) => `🧪 طلب التجربة #${d.order} واقف عند ${d.status} من ${d.minutes} دقيقة`
+    + (d.riders_on_shift !== undefined ? ` (سائقين بالخدمة: ${d.riders_on_shift}، عندهم مجال للطلب: ${d.riders_with_room})` : ""),
   probe_silent: () => `🧪 طلب التجربة كل ساعة ما عم ينعمل. الكرون أو مسار الرسائل معطّل`,
   inbound_silent: (d) => `📭 ما وصلت ولا رسالة من الزباين من ساعات (آخر وحدة ${String(d.last).slice(0, 16)}). ممكن الويبهوك واقف`,
   cron_gap: (d) => `⏱ الكرون غاب ${d.gap_minutes} دقيقة ورجع`,
@@ -333,6 +377,10 @@ export async function probeTick(deps: TurnDeps, env: Env): Promise<void> {
     const msg: ProbeMessage | null = r.kind === "tap" ? { type: "tap", id: r.id, title: r.title } : pin ? { type: "location", lat: pin.lat, lng: pin.lng } : null;
     if (msg) await injectProbe(supa, env, p.line, p.wa_user_id, msg);
   }
+  // OPS1 (0140): the end of a rider's round. The probe riders collect cash on every order; without this their cash passed the soft cap
+  // (150) and the orders stopped at "confirmed" with no rider to offer (15 Nov). The SQL function acts only on probe parties.
+  const remit = await supa.rpc("probe_remit_cash");
+  if (remit.error) throw new Error(`probe_remit_cash: ${remit.error.message}`);
   const { data: due } = await supa.rpc("probe_due");
   const d = due as { wa_user_id: string; text: string } | null;
   if (d?.wa_user_id && d.text) await injectProbe(supa, env, "customer", d.wa_user_id, { type: "text", body: d.text });

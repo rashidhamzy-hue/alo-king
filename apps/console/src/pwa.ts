@@ -119,7 +119,7 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = {}; }
-  e.waitUntil(self.registration.showNotification(d.title || "Alo King", { body: d.body || "", tag: d.tag || "alo-king", data: { url: typeof d.url === "string" && d.url.startsWith("/") && !d.url.startsWith("//") ? d.url : "/" }, icon: "/icons/icon-192.png" }));
+  e.waitUntil(self.registration.showNotification(d.title || "Alo King", { body: d.body || "", tag: d.tag || "alo-king", renotify: !!d.urgent, requireInteraction: !!d.urgent, data: { url: typeof d.url === "string" && d.url.startsWith("/") && !d.url.startsWith("//") ? d.url : "/" }, icon: "/icons/icon-192.png" }));
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();

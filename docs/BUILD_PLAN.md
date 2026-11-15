@@ -625,7 +625,7 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 0 | BK0 free backups and restore check | Sonnet, medium | The founder's passphrase secret | None | Not started |
 | 1 | HO1 never-stranded hand-off | Opus, high | SIM1's report merged | 0135 to 0138 | Not started; waits for SIM1's report to be merged |
 | 1 | COST1 cost recorded, capped | Sonnet, medium | SIM1's report merged | 0139 | Not started; waits for SIM1's report to be merged |
-| 1 | OPS1 alerts that wake someone | Sonnet, high | Nothing | 0140 to 0142 | Not started |
+| 1 | OPS1 alerts that wake someone | Sonnet, high | Nothing | 0140 to 0142 | Built and tested (see HANDOFF, "OPS1"); founder actions listed there; live proofs are filled in after the first run on `main` |
 | 2 | B1 ordering fixes from SIM1 | Opus, high | HO1 merged | None | Not started |
 | 2 | DS1 design system and flagship screens | Fable, high | OPS1 and HO1 merged; the crown picture attached | None | Not started |
 | 2 | PIX pictures | Sonnet, medium | Nothing | None | Not started |

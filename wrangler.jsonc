@@ -8,7 +8,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ConversationDO"] }],
   "queues": {
     "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
-    "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }]
+    "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }, { "queue": "ak-inbound-dlq", "max_batch_size": 10, "max_batch_timeout": 0 }]
   },
   "triggers": { "crons": ["* * * * *"] },
   "vars": {
@@ -25,7 +25,7 @@
       "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
       "queues": {
         "producers": [{ "binding": "INBOUND", "queue": "ak-inbound-staging" }],
-        "consumers": [{ "queue": "ak-inbound-staging", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-staging-dlq" }]
+        "consumers": [{ "queue": "ak-inbound-staging", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-staging-dlq" }, { "queue": "ak-inbound-staging-dlq", "max_batch_size": 10, "max_batch_timeout": 0 }]
       },
       "triggers": { "crons": ["* * * * *"] },
       "vars": { "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5", "MODEL_SMART": "claude-sonnet-5-5", "BUFFER_SECONDS": "6", "ENVIRONMENT": "staging", "WABA_ID_CUSTOMER": "1086076707594153", "PROBE_MODE": "on", "SENTRY_DSN": "https://a8adb1e4ba4769f28df5e5dc24d7576f@o4512423714488320.ingest.de.sentry.io/4512423723728976" }
@@ -35,7 +35,7 @@
       "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
       "queues": {
         "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
-        "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }]
+        "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }, { "queue": "ak-inbound-dlq", "max_batch_size": 10, "max_batch_timeout": 0 }]
       },
       "triggers": { "crons": ["* * * * *"] },
       "vars": { "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5", "MODEL_SMART": "claude-sonnet-5-5", "BUFFER_SECONDS": "6", "ENVIRONMENT": "production" }

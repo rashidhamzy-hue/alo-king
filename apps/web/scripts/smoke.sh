@@ -15,6 +15,10 @@ echo "- home: 200, $(grep -o 'href="/c/' "$tmp/home.html" | wc -l | tr -d ' ') c
 if grep -E '<script' "$tmp/home.html" | grep -vqE '<script[^>]* src="'; then fail "home carries an inline script"; fi
 echo "- no inline script"
 
+# OPS1: the website reaches Sentry. A check-in to its own monitor (deploy-smoke-web-staging), never an error: no issue is opened.
+sent=$(get "$url/__sentry-test" || true)
+case "$sent" in "sent "*"flushed=true") echo "- Sentry: check-in accepted ($sent)" ;; *) fail "the website did not get a check-in to Sentry: $sent" ;; esac
+
 cat_path=$(grep -oE 'href="/c/[a-z0-9_]+"' "$tmp/home.html" | head -1 | sed 's/href="//; s/"$//')
 [ "$(get -o "$tmp/cat.html" -w '%{http_code}' "$url$cat_path")" = 200 ] || fail "category $cat_path did not answer 200"
 grep -q 'class="card"' "$tmp/cat.html" || fail "category $cat_path lists no item"

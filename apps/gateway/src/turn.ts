@@ -5,6 +5,7 @@ import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
 import { alertOps, handleSubstitutionButton, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
+import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
 import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
@@ -115,7 +116,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
-  const model = withCapacityFallback(deps.model, { ...deps.capacity, onFirstFailure: async () => {
+  // OPS1 (0140): inside the capacity wrapper, so the first thing to see a provider error is the one that knows an account refusal
+  // (usage limit, billing, key) from a bug of ours. It raises the high-priority model_account exception; a limit is not retried.
+  const model = withCapacityFallback(withAccountAlarm(deps.model, accountReport(db)), { ...deps.capacity, onFirstFailure: async () => {
     const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: T().fixed.oneMoment } },
                                 category: "service", dedupeKey: `${turnKey}:wait` });
     if (r.ok) sent.push(T().fixed.oneMoment);
@@ -455,6 +458,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   } catch (err) {
     // The outbox could not say whether a message is ours to send: nothing more may go out. The whole turn retries.
     if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+    if (err instanceof ModelAccountRefused) {
+      // The account, not the message: every turn will fail until a person acts. The exception is already open (and pushed); this chat
+      // goes to a person like any other, and the customer is told so. No retry, no "one moment".
+      await handoff(db, conv.conversation_id, `model_account:${err.reason}`);
+      await alertHandoff(`model_account:${err.reason}`);
+      await say(T().fixed.handoff);
+      await record("handoff", `model_account:${err.reason}`).then(() => undefined, () => undefined);
+      return { outcome: "agent_handoff", sent };
+    }
     if (err instanceof ModelUnavailable) {
       // The model stayed unavailable through every retry: a person takes over, and the customer is told so.
       await handoff(db, conv.conversation_id, "model_capacity");
@@ -474,6 +486,12 @@ async function call<T = unknown>(db: SupabaseClient, fn: string, args: Record<st
   if (error) throw new Error(`${fn}: ${error.message}`);
   return data as T;
 }
+/** What the account alarm does when the provider refuses: raise (or count on) the one open model_account exception for that reason. */
+export const accountReport = (db: SupabaseClient) => async (reason: "usage_limit" | "billing" | "invalid_key", message: string) => {
+  const r = await db.rpc("raise_model_account", { p_reason: reason, p_detail: { message } });
+  if (r.error) console.error("raise_model_account", r.error.message);
+};
+
 async function handoff(db: SupabaseClient, conversationId: string, reason: string) {
   await db.from("conversations").update({ human_handoff: true }).eq("id", conversationId);
   await db.from("handoffs").insert({ conversation_id: conversationId, reason });

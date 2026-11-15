@@ -14,7 +14,7 @@
       "name": "alo-king-web-staging",
       "workers_dev": true,
       "observability": { "enabled": true },
-      "vars": { "ENVIRONMENT": "staging" }
+      "vars": { "ENVIRONMENT": "staging", "SENTRY_DSN": "https://a8adb1e4ba4769f28df5e5dc24d7576f@o4512423714488320.ingest.de.sentry.io/4512423723728976" }
     }
   }
   // Secrets, per environment (set by web.yml, never in the repository): SUPABASE_URL, SUPABASE_ANON_KEY (the project's public API key,

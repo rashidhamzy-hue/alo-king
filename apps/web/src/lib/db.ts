@@ -4,7 +4,7 @@
 // session functions and the four catalog functions; the database refuses everything else.
 import { webCatalog, type RpcSource } from "@ak/commerce/index";
 
-export interface WebEnv { SUPABASE_URL?: string; SUPABASE_ANON_KEY?: string; WEB_CHANNEL_JWT?: string; PICTURE_TRANSFORMS?: string; PAGE_CACHE?: string }
+export interface WebEnv { ENVIRONMENT?: string; SENTRY_DSN?: string; SUPABASE_URL?: string; SUPABASE_ANON_KEY?: string; WEB_CHANNEL_JWT?: string; PICTURE_TRANSFORMS?: string; PAGE_CACHE?: string }
 
 export class NotConfigured extends Error { constructor() { super("web: SUPABASE_URL, SUPABASE_ANON_KEY and WEB_CHANNEL_JWT are not all set"); this.name = "NotConfigured"; } }
 

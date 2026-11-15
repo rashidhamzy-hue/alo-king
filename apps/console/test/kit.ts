@@ -56,6 +56,8 @@ export class FakeAuth implements StaffAuth {
   users = new Map<string, { password: string; user: AuthUser }>();
   tokens = new Map<string, AuthUser>();
   passwordsSet: { userId: string; password: string }[] = [];
+  invited: { email: string; partyId: string }[] = [];
+  existing = new Set<string>();
   down = false;
   add(email: string, password: string, partyId: string | null) {
     const user = { id: crypto.randomUUID(), email, partyId };
@@ -68,6 +70,11 @@ export class FakeAuth implements StaffAuth {
     return u && u.password === password ? u.user : null;
   }
   async userFromToken(t: string) { return this.tokens.get(t) ?? null; }
+  async inviteStaff(email: string, partyId: string) {
+    if (this.existing.has(email) || this.users.has(email)) return { created: false, mailed: false };
+    this.invited.push({ email, partyId });
+    return { created: true, mailed: true };
+  }
   async setPassword(userId: string, password: string) {
     this.passwordsSet.push({ userId, password });
     for (const u of this.users.values()) if (u.user.id === userId) u.password = password;

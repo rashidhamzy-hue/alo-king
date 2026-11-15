@@ -1,7 +1,8 @@
 // The hubs behind the bottom navigation (session D5): Approve, Stock and More list the pages of their group with a badge on each
 // that has something waiting; More also holds the language choice, the install guide and the alerts switch for this phone.
 // They link to existing pages and change nothing. The push routes only store or remove this browser's subscription (0158).
-import { audit, html, render, type Ctx, type Section } from "../app";
+import { act, audit, html, render, UserError, type Ctx, type Section } from "../app";
+import { form } from "../html";
 import type { Raw } from "../html";
 import { badgeText, buildNav, type NavGroup } from "../nav";
 import { t, type Lang } from "../i18n";
@@ -40,7 +41,9 @@ function pushBox(c: Ctx): Raw {
  data-msg-on="${t(L, "push_on")}" data-msg-removed="${t(L, "push_removed")}" data-msg-failed="${t(L, "push_denied")}">
 <p class="muted">${t(L, "push_intro")}</p>
 <p><button type="button" data-push-enable>${t(L, "push_enable")}</button> <button type="button" class="secondary" data-push-disable hidden>${t(L, "push_disable")}</button></p>
-<p role="status" data-push-status></p></div>`;
+<p role="status" data-push-status></p>
+${form(c.f, "/push/test", html`<button class="secondary">${t(L, "push_test")}</button>`)}
+<p class="muted">${t(L, "push_test_note")}</p></div>`;
 }
 
 async function install(c: Ctx) {
@@ -71,6 +74,17 @@ async function unsubscribe(c: Ctx) {
   return json(200, { ok: true });
 }
 
+/** OPS1: one test alert, to this staff member's own phones only, so an alert is proven to arrive before it is needed. */
+async function pushTest(c: Ctx) {
+  const L = c.lang;
+  return act(c, "push_test", {}, async () => {
+    const send = c.deps.pushTest;
+    if (!send || !c.deps.pushPublicKey) throw new UserError(t(L, "push_not_configured"));
+    const r = await send(c.staff.partyId);
+    return r.subscribers === 0 ? t(L, "push_test_none") : t(L, "push_test_sent", { n: r.sent });
+  }, "/more");
+}
+
 export const hubsSection: Section = {
   // No menu entry of its own: the bottom navigation links to these three.
   nav: { href: "/more", label: "More", roles: [] },
@@ -81,5 +95,6 @@ export const hubsSection: Section = {
     { method: "GET", path: "/install", roles: ALL, handler: install },
     { method: "POST", path: "/push/subscribe", roles: LEADS, handler: subscribe },
     { method: "POST", path: "/push/unsubscribe", roles: LEADS, handler: unsubscribe },
+    { method: "POST", path: "/push/test", roles: LEADS, handler: pushTest },
   ],
 };

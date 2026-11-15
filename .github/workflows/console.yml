@@ -110,6 +110,7 @@ jobs:
           # Staging numbers, as in deploy-staging.yml. Customer line: the Alo King test number. Ops line: the Kapso sandbox.
           PHONE_NUMBER_ID_CUSTOMER: "1378974041965966"
           PHONE_NUMBER_ID_OPS: "597907523413541"
+          CONSOLE_URL: ${{ steps.deploy.outputs.url }}
         run: |
           umask 077
           have=$(npx wrangler secret list --config "$CFG" --env staging --format json 2>/dev/null | jq -r '.[].name' || true)
@@ -122,6 +123,17 @@ jobs:
             export CONSOLE_SESSION_SECRET=$(openssl rand -base64 48)
             keys="$keys, CONSOLE_SESSION_SECRET"
             echo "- CONSOLE_SESSION_SECRET made (first deploy)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # OPS1: web push. The VAPID pair is made once and kept: a new pair would end every phone's alerts. Never printed (the summary lists
+          # names only). The contact is the console's own https address, so no person's email travels in a push header.
+          if ! grep -qx VAPID_PUBLIC_KEY <<<"$have" || ! grep -qx VAPID_PRIVATE_KEY <<<"$have"; then
+            eval "$(node apps/console/scripts/vapid-keys.mjs --env)"
+            keys="$keys, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY"
+            echo "- VAPID key pair made (first deploy): phones switch alerts on from Settings, More" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if ! grep -qx VAPID_SUBJECT <<<"$have"; then
+            export VAPID_SUBJECT="${CONSOLE_URL}"
+            keys="$keys, VAPID_SUBJECT"
           fi
           jq -n "env | {$keys}" > "$RUNNER_TEMP/secrets.json"
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --config "$CFG" --env staging 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'

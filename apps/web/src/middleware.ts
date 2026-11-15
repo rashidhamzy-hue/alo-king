@@ -5,6 +5,7 @@ import { env as workerEnv } from "cloudflare:workers";
 import { catalogFor, type WebEnv } from "./lib/db";
 import { negotiate } from "./lib/i18n";
 import { makeLimiter } from "./lib/rate";
+import { guarded, reportCheckIn } from "./lib/sentry";
 
 const searchLimit = makeLimiter(30, 60_000);
 const CACHEABLE = /^\/(?:$|c\/[^/]+$|p\/[^/]+$)/;
@@ -23,8 +24,18 @@ export function securityHeaders(h: Headers, env: WebEnv) {
 
 export async function onRequest(ctx: any, next: () => Promise<Response>): Promise<Response> {
   const env = ctx.locals.env ?? (workerEnv as unknown as WebEnv);
+  // OPS1: an error in any page is reported to Sentry (scrubbed, no visitor detail) and still fails as it did.
+  return guarded(env, "page", () => handle(ctx, next, env));
+}
+
+async function handle(ctx: any, next: () => Promise<Response>, env: WebEnv): Promise<Response> {
   const req: Request = ctx.request;
   const url = new URL(req.url);
+  // Staging only: lets the deploy prove the Worker reaches Sentry. A check-in to its own monitor, not an error: it opens no issue.
+  if (env.ENVIRONMENT === "staging" && url.pathname === "/__sentry-test" && req.method === "GET") {
+    const r = await reportCheckIn(env, "deploy-smoke-web-staging");
+    return new Response(`sent ${r.id} flushed=${r.ok}`, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+  }
   const lang = negotiate(req.headers.get("cookie"), req.headers.get("accept-language"));
   ctx.locals.env = env;
   ctx.locals.lang = lang;
