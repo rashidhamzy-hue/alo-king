@@ -28,8 +28,12 @@ on:
         description: Also items an earlier run finished with nothing (use after the search or the check changed)
         type: boolean
         default: false
+      from_list:
+        description: "From list (PIX2): download exactly the pictures in data/pictures/candidates.csv, run the same checks, queue the passes. No search, no Open Food Facts lookup."
+        type: boolean
+        default: false
       max_usd:
-        description: Dollar cap for the run's model calls (the picture check). The run stops starting new items when it passes it.
+        description: Dollar cap for the run's model calls (the picture check). The run stops starting new items when it passes it. Use 3 for a from-list run.
         type: string
         default: "2"
 permissions: { contents: read }
@@ -63,7 +67,9 @@ jobs:
         run: npx vitest run scripts/images test/db/product-images.test.ts
       - name: Which sources will run
         run: |
-          if [ -n "$BRAVE_SEARCH_API_KEY" ] && [ "${{ inputs.no_search }}" != "true" ]; then
+          if [ "${{ inputs.from_list }}" = "true" ]; then
+            echo "- sources: the list data/pictures/candidates.csv only (from_list ticked)" >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$BRAVE_SEARCH_API_KEY" ] && [ "${{ inputs.no_search }}" != "true" ]; then
             echo "- sources: Open Food Facts, brand sites, web image search (Brave)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- sources: Open Food Facts only (secret BRAVE_SEARCH_API_KEY missing, or no_search ticked)" >> "$GITHUB_STEP_SUMMARY"
@@ -74,6 +80,7 @@ jobs:
           FORCE: ${{ inputs.force }}
           NO_SEARCH: ${{ inputs.no_search }}
           RETRY_ALL: ${{ inputs.retry_all }}
+          FROM_LIST: ${{ inputs.from_list }}
         run: |
           export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)
           args=()
@@ -81,11 +88,14 @@ jobs:
           [ "$FORCE" = "true" ] && args+=(--force)
           [ "$NO_SEARCH" = "true" ] && args+=(--no-search)
           [ "$RETRY_ALL" = "true" ] && args+=(--retry-all)
+          [ "$FROM_LIST" = "true" ] && args+=(--from-list data/pictures/candidates.csv)
           node scripts/images/fetch-images.mjs "${args[@]}"
       - name: The pictures are private, and the intake list
         run: node scripts/images/prove-private.mjs
       - name: The queue report (a candidate or a named reason for every active item)
         if: always()
+        env:
+          FROM_LIST: ${{ inputs.from_list }}
         run: node scripts/images/report.mjs
       - uses: actions/upload-artifact@v4
         with: { name: photograph-at-intake, path: intake-list.json, retention-days: 30 }

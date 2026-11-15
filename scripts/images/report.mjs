@@ -104,7 +104,8 @@ async function main() {
     const md = markdown(rep).split("\n");
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.slice(0, 40).join("\n") + `\n\n(the full list: pictures-report.md in the run's artifact)\n`);
   }
-  if (rep.unexplained > 0) { console.error(`FAIL: ${rep.unexplained} items have neither a candidate nor a finished reason (not tried, or the last run failed)`); process.exit(1); }
+  if (rep.unexplained > 0 && process.env.FROM_LIST !== "true") {   // a from-list run only covers the listed items, so the rest are rightly "not tried"
+     console.error(`FAIL: ${rep.unexplained} items have neither a candidate nor a finished reason (not tried, or the last run failed)`); process.exit(1); }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(String(e.message ?? e)); process.exit(1); });
