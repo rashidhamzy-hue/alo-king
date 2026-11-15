@@ -73,7 +73,7 @@ Not done, and why:
 - **Only a live account can prove**: a real push reaching an iPhone and an Android phone after "Add to Home Screen"; the migrations on the staging database (0158-0159 are applied only in the test database); the installed app's look on a real phone; the Arabic reading.
 
 ### WEB1: the website, read side, 14-15 November 2026 (Sonnet 5.5); migrations 0154-0155; pull request #60
-**Staging address:** (filled in after the deploy from main; see "Live" at the end of this section).
+**Staging address: https://alo-king-web-staging.rashid-hamzy.workers.dev** (Worker `alo-king-web-staging`, deployed from main by `web.yml`, run 43682980472 on 15 November; see "Live" at the end of this section).
 Done:
 - **The Worker.** `apps/web/`: Astro **7.4.12** with `@astrojs/cloudflare` 14.4.8 (not Astro 6: its last release, 6.4.8, has eight published advisories fixed only in 7.x, and CI's osv-scanner reads the lockfile; the config surface the site uses is the same in both. To go back: `npm i -D -E astro@6.4.8 @astrojs/cloudflare@13.7.0` plus an osv ignore list). Server-rendered, one stylesheet, Arabic (right to left), English and French from one set of templates (`src/lib/i18n.ts`; cookie `lang`, else the browser's order, else Arabic). Pages: `/`, `/c/<category>`, `/p/<sku>`, `/search?q=`, `/privacy` and `/terms` (placeholders for the lawyer's text), `/lang`, `/offline`, 404 and a plain 503 "try again". Middleware (`src/middleware.ts`): language, 30 searches a minute per address (one isolate's memory only), a 60-second page cache keyed by language, security headers (no inline script, no framing).
 - **Reads as `web_channel`, through `packages/commerce`** (`webCatalog()`; `WEB_CHANNEL_FUNCTIONS` is now `WEB_SESSION_FUNCTIONS` plus `WEB_CATALOG_FUNCTIONS`, and the lists-equal test reads 0132 and 0155). Migration 0154: `web_catalog_home/category/product/search` (security definer, fixed path, no party, no token) and three helpers `web_catalog_*` cannot call; 0155 grants the four by name. `scripts/check_permissions.sh` lists them (13 website functions) and probes that the role still cannot read `products`, `product_images`, `product_facts`, `catalog_public_pictures`, `demand_signals` or call a helper.
@@ -83,7 +83,7 @@ Done:
 - **Deploy.** `.github/workflows/web.yml` runs after `deploy-staging` on this repository's main (so the migrations are there) and by hand; never for a pull request or a fork; `contents: read`; never reads the service key. It builds, deploys `alo-king-web-staging`, sets three Worker secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `WEB_CHANNEL_JWT`, a token with `role: web_channel`, valid two years, re-made on every deploy by `apps/web/scripts/token.sh`) and runs `apps/web/scripts/smoke.sh` against the live site. Tests that start servers live in `test/web/` and `test/ci/` (`tsconfig.json` has no Node types for `apps/`).
 - **Tests.** `test/db/web-catalog-web1.test.ts` (17), `test/web/pages-web1.test.ts` (25: the site is built and served by workerd over the real migrations, its database calls answered by a stand-in for PostgREST that runs each function as `web_channel` and refuses a request without the anon key and the token), `test/ci/web-web1.test.ts` (7), `apps/web/test/lib-web1.test.ts` (10), one case in `packages/commerce/test/client.test.ts`. `scripts/check_permissions.sh` passes on a scratch Postgres 16.
 
-**The token step, and the founder's clicks if it is needed.** `token.sh` reads the anon key from the Management API with `SUPABASE_ACCESS_TOKEN`, and the signing secret from the repository secret `SUPABASE_JWT_SECRET` if it exists, else from the Management API's PostgREST config. If neither gives it, the run stops at that step and writes these steps in its summary:
+**The token step (it worked without a founder click; the clicks below are the fallback if the Management API ever stops returning the secret).** `token.sh` reads the anon key from the Management API with `SUPABASE_ACCESS_TOKEN`, and the signing secret from the repository secret `SUPABASE_JWT_SECRET` if it exists, else from the Management API's PostgREST config. If neither gives it, the run stops at that step and writes these steps in its summary:
 1. Supabase dashboard, project `lhgkvvdckwbfpdsftzqp`, Project Settings, JWT Keys (older: API, JWT Settings), tab **Legacy JWT Secret**, **Reveal**, copy. Do not rotate it.
 2. GitHub, this repository, Settings, Secrets and variables, Actions, New repository secret: `SUPABASE_JWT_SECRET`, the secret.
 3. GitHub, Actions, **web**, Run workflow, branch `main`.
@@ -92,7 +92,15 @@ Not proven until the deploy has run (see "Live"): the token route and PostgREST 
 
 For others: **WEB2** reuses the middleware (`Astro.locals.lang`, `.env`, `.catalog()`); keep `/cart`, `/checkout`, `/o/`, `/orders`, `/account` out of `CACHEABLE` (`src/middleware.ts`) and `PAGE_PATH` (`public/sw.js`), and add its three wrappers to the three web_channel lists. **Founder:** a Cloudflare rate-limiting rule on `/search` and the cart routes; the domain; the lawyer's privacy and terms text.
 
-**Live.** (filled in after `web.yml` runs on main)
+**Live (15 November 2026).** Pull request #60 merged as `ac94d70`; the first `web` run (43681928002) was **skipped** because `web.yml` tested for `workflow_run.event == 'push'` while `deploy-staging`'s own run has event `workflow_run` (it is started by `ci`); pull request #62 (`cc85580`) fixed the condition and pinned it in `test/ci/web-web1.test.ts`. The next run, **43682980472** (head `cc85580`, 43 seconds), passed every step: build, deploy, the three Worker secrets, and the live check, which printed:
+- home: 200, 15 categories from the database; no inline script;
+- `/c/fruits_vegetables`: 200, 25 items; `/p/AK-0020`: 200, food facts carry a status;
+- an unknown category and an unknown product: 404;
+- **"labne", "لبنة" and "labneh" find the same products on staging: AK-0042, AK-0046, AK-0051**;
+- a category page weighs 13,818 bytes before pictures (HTML plus stylesheet, uncompressed);
+- manifest and service worker served.
+**The token step needed no founder click:** `token.sh` got the anon key and the JWT secret from the Management API (PostgREST config), made the `web_channel` token, and PostgREST accepted it (every page above is read as that role, so `authenticator` can switch to `web_channel` on staging). `SUPABASE_JWT_SECRET` as a repository secret is not needed. The deploy's secret step prints a harmless wrangler warning about naming no environment (the Worker is named by `--name`).
+Still not seen live: a picture on a page (no picture is approved and copied on staging yet), a fact with a verified value (none approved), the page cache (a `workers.dev` address stores nothing), the installed app on a real phone, and the Arabic and French wording read by a person.
 
 ### H1: repository hygiene, 14 November 2026 (Sonnet 5.5)
 Done: the repository is public (founder's choice, until the build is done), so personal data came out of the tree and the cleanup followed. No behaviour changed; no migration; no secrets.
@@ -260,7 +268,7 @@ Collected by H1 from every finished session record (`docs/history/HANDOFF_sessio
 - Known limit: the output guard has one known false positive («أحسن تبعتلنا الموقع» read as a quality word), and food-fact unlock is per attribute group, not per product. (session B2)
 - Found, not changed: `fold_text` (0003) has misaligned strings (ة to ي, ى to ا, ؤ to ه, ئ to و), so «قهوة» and «قهوه» fold apart; `catalog_tokens` works around it. (session B3)
 - WEB2 (`turn.ts`): a customer message containing `ALO-` goes to `claimLinkCode` before any model; "sign out" calls `revokeWebSessions`; `confirm_on_whatsapp` sends the card to WhatsApp; token-first wrappers `locate_pin`, `save_customer_pin`, `set_place_details`, `open_delivery_windows` (0156-0157), added to the grant lists. (session C4)
-- WEB1 (done in code, pull request #60): see "WEB1" above. Still open: the founder clicks above if `web.yml` stops at the token step; `pg_has_role('authenticator','web_channel','member')` on staging; a Cloudflare rate-limiting rule on `/search`. (session WEB1)
+- WEB1 (done and live on staging, pull requests #60 and #62): see "WEB1" above. Still open: a Cloudflare rate-limiting rule on `/search` and the cart routes; the domain; the lawyer's privacy and terms text; Arabic and French wording read by a person. (session WEB1)
 - Whoever next changes `turn.ts`'s catalog-cart path: mark those cards `channel = 'catalog'` (today `whatsapp`). (session C4)
 
 #### Lane C hub
