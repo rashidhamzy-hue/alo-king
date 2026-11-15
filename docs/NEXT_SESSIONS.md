@@ -29,9 +29,10 @@ Stop conditions: `docs/strategy/01-verdict-gates.md`.
 **Where the queue stands.** HO1 is done (15 November; `docs/HANDOFF.md`, HO1): the simulated customers show zero silences after a hand-off. B1 and DS1 may
 start on it. DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
 `BACKUP_PASSPHRASE`). SIM1's report is merged (`docs/SIM_REPORT_2026-11-15.md`).
-B1a is merged (#77, #79; a third pull request for the second run's findings; `docs/HANDOFF.md`, B1a): B1b may start. Left from B1a for
-whoever owns the planner: a generic word («ربطة خبز», «قنينة مي») is picked as one product, and sizes are mismatched, in `plan_order`;
-the fix needs a migration number. T1 waits for gate A. At most three sessions at once.
+B1a is merged (#77, #79, #80; `docs/HANDOFF.md`, B1a): B1b may start. Left from B1a: a generic word («ربطة خبز», «قنينة مي») is
+picked as one product and sizes are mismatched in `plan_order` (needs a migration number); a basket kept overnight can come back with
+other counts (`sendKept`); reading cases for B1b or the language pack: pack sizes ("32 pieces"), «بيضا» outside the address step, add
+versus set («3 kman», «مش ١ بس»). T1 waits for gate A. At most three sessions at once.
 
 **Coordinator decisions of 15 November, 13:30** (full text in `docs/DECISIONS.md`, "Coordinator decisions, 15 November 2026, 13:30"):
 B1 is split into **B1a** and **B1b**, run one after the other after HO1, and CX1 waits for B1b; the minimum order is $5 with no small-order fee
