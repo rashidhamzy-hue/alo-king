@@ -45,7 +45,7 @@ jobs:
           SAFE_RE='^(docs/|data/cost_model\.csv$|[^/]+\.md$)'
           # What the real-Postgres suites (test/pg) run or load, and what the permission check applies: SQL and the seeds, the suites,
           # the migration scripts, the Worker and the packages the Worker suite runs, the build files, and this workflow.
-          PG_RE='^(supabase/|test/pg/|apps/gateway/|packages/|wrangler\.jsonc$|scripts/check_permissions\.sh$|scripts/ci/load-seeds\.sh$|package(-lock)?\.json$|vitest\.config\.ts$|tsconfig\.json$|\.github/workflows/ci\.yml$)'
+          PG_RE='^(supabase/|test/pg/|apps/gateway/|packages/|wrangler\.jsonc$|scripts/check_permissions\.sh$|scripts/ci/load-seeds\.sh$|scripts/backup/|package(-lock)?\.json$|vitest\.config\.ts$|tsconfig\.json$|\.github/workflows/ci\.yml$)'
           code=true; pg=true; why="no readable base: everything runs"
           if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
             git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/files.txt"
