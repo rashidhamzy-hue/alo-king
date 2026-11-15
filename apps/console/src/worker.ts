@@ -8,6 +8,10 @@ import { supabaseMedia } from "./media";
 import { labelReader } from "./label";
 import { registry } from "./pages";
 import { sendDayClose } from "./pages/dayclose";
+import { pushConfigured, pushNewExceptions } from "./push";
+
+/** The cron that checks for new high-priority exceptions to push (wrangler.jsonc); the other cron is the day-close report. */
+export const PUSH_CRON = "*/2 * * * *";
 
 export interface Env {
   ENVIRONMENT: string;
@@ -21,6 +25,10 @@ export interface Env {
   /** Optional (5.15): the label reader. Without it, intake is typed by hand. */
   ANTHROPIC_API_KEY?: string;
   MODEL_FAST?: string;
+  /** Web push (D5): the VAPID key pair and a contact (`mailto:` or `https:`), as Worker secrets. Absent, push is off and nothing else changes. */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 }
 
 export function depsFor(env: Env): Deps {
@@ -36,6 +44,7 @@ export function depsFor(env: Env): Deps {
     environment: env.ENVIRONMENT || "development",
     supabaseUrl: env.SUPABASE_URL,
     now: () => new Date(),
+    ...(pushConfigured(env) ? { pushPublicKey: env.VAPID_PUBLIC_KEY! } : {}),
     ...(env.ANTHROPIC_API_KEY ? { readLabel: labelReader({ apiKey: env.ANTHROPIC_API_KEY, model: env.MODEL_FAST || "claude-haiku-5-5" }), labelModel: env.MODEL_FAST || "claude-haiku-5-5" } : {}),
   };
 }
@@ -51,7 +60,17 @@ export default {
     return handle(req, deps, registry);
   },
   // 3.11: the day-close report to the founder, nightly (the cron in wrangler.jsonc). One message per admin per day, keyed in the outbox.
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === PUSH_CRON) {
+      // D5: a phone alert for each new high-priority exception, once. An extra: the WhatsApp ops alert is not touched.
+      ctx.waitUntil((async () => {
+        try {
+          const run = await pushNewExceptions(depsFor(env).db, env, new Date());
+          if (run.claimed || run.failed || run.skipped === undefined) console.log(JSON.stringify({ level: "info", event: "push_run", ...run }));
+        } catch (e) { console.error(JSON.stringify({ level: "error", event: "push_run_failed", err: String(e).slice(0, 300) })); }
+      })());
+      return;
+    }
     ctx.waitUntil((async () => {
       try {
         const out = await sendDayClose(depsFor(env));

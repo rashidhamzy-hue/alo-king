@@ -1,10 +1,11 @@
 // Live eval: the real model on the neutrality and food-facts wording cases and the off-topic reading cases. Skipped unless asked for:
 //   ALO_LIVE_EVAL=1 ANTHROPIC_API_KEY=... MODEL=claude-haiku-5-5 npx vitest run evals/live
-// Prints one line per case. A case passes when the first reply the model tries gets through the output guard
-// (a refusal followed by a good rewording is reported, not failed). `must` / `must_not` are graded by a person from the report.
+// Prints one line per case. A case passes when the first reply the model tries gets through the output guard; the two-sentence
+// rule alone is judged on the reply that went out (founder decision, M1: wordingPasses in ../run.ts). `must` / `must_not` are
+// graded by a person from the report.
 import { describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
-import { runAddressCase, runGoAheadCase, runReadingCase, runWordingCase, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
+import { runAddressCase, runGoAheadCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
 import askByCode from "../cases/ask_by_code.json";
 import address from "../cases/address_readings.json";
 import neutral from "../cases/neutral_and_food_facts.json";
@@ -19,7 +20,8 @@ describe.skipIf(!live)("live: Concierge wording", () => {
   it.each(neutral.cases.map((c) => [c.id, c] as const))("%s", async (_id, c) => {
     const r = await runWordingCase(client!, model, c as WordingCase);
     console.log(JSON.stringify(r));
-    expect(r.attempts[0]?.refused ?? null, JSON.stringify(r.attempts)).toBeNull();
+    const v = wordingPasses(r, c as WordingCase);
+    expect(v.ok, `${v.why} ${JSON.stringify(r.attempts)}`).toBe(true);
   }, 60_000);
 });
 

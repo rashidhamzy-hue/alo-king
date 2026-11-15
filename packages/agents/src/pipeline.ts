@@ -5,10 +5,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
 import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
-import { CARD_TEXT, FIXED, formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
+import { formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
+import { messages, productName, villageName } from "./messages";
 import { cardInHand, cardWhen, pickWindow, readWhen, schedules, windowsFor, type When } from "./windows";
 import type { QuickIntent } from "./quick-intent";
-import { ANSWER, offerRepeat, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
+import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
 
 export interface PlanLine {
@@ -35,6 +36,9 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 }
 
 /** The customer's own words about where they are, kept verbatim for the rider. */
+/** Every fixed message in this conversation's language (M1). */
+const T = (ctx: ToolContext) => messages(ctx.state.lang);
+
 export function directionsOf(intent: OrderIntent): string | null {
   const a = intent.address;
   // A part that only names the village («عبعقلين», "3a b3aklin") is not an address: the rider still needs the house (B4: the
@@ -81,7 +85,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // Stay on the job (1.18): Meta bars general-purpose chatbots from the Business Platform. Homework, general questions and
   // long chat get one fixed, friendly line and an offer to help with an order. No second model call, nothing answered.
   if (intent.intent === "off_topic" && intent.lines.length === 0) {
-    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.offTopic } }, T(ctx).fixed.offTopic);
     return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
   }
   // W1: a time said with no new item ("بكرا الصبح", "can you bring it friday afternoon?") is for what is in hand: the card waiting
@@ -132,7 +136,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const r = await answerOutOfArea(ctx, String(away.village_ar ?? away.said ?? intent.address.village ?? ""));
     if (r.done) return r;
   }
-  const unavailable = notAvailableText(plan);
+  const unavailable = notAvailableText(plan, ctx.state.lang);
   if (plan.next === "not_available") {
     const r = await deliver(ctx, { type: "text", text: { body: unavailable! } }, unavailable!);
     return r.ok ? { done: true, path: "not_available" } : { done: false, plan };
@@ -144,7 +148,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // D1 (3.8): no price while today's rate waits for a person. Said once, by code; the basket is kept for when it is confirmed.
   if (plan.issues.some((i) => i.code === "fx_paused") && plan.lines.every((l) => l.status === "matched")) {
     if (plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
-    const r = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
+    const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.fxPaused } }, T(ctx).fixed.fxPaused);
     return r.ok ? { done: true, path: "fx_paused" } : { done: false, plan };
   }
   const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
@@ -172,9 +176,9 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // W1 ("the plan asks when"): only fresh goods are short now, and they are bought for the order: offer the windows.
   const short = plan.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock");
   if (!when && matched && plan.quote && !plan.pickup && short.length > 0 && short.every((i) => i.bought_to_order === true) && plan.issues.every(schedulable)) {
-    const names = plan.lines.filter((l) => short.some((i) => i.product_id === l.chosen?.product_id)).map((l) => l.chosen?.name_ar ?? l.chosen?.name ?? l.raw);
+    const names = plan.lines.filter((l) => short.some((i) => i.product_id === l.chosen?.product_id)).map((l) => (l.chosen ? productName(l.chosen, ctx.state.lang ?? "ar") : l.raw));
     const routed = await basketWhen(ctx, basketNow, terms, plan.quote, { any: true },
-                                    { before: unavailable ?? undefined, body: CARD_TEXT.freshForWindow(names), orNow: false });
+                                    { before: unavailable ?? undefined, body: T(ctx).windows.freshForWindow(names), orNow: false });
     if (routed.done) return routed;
   }
   if (intent.repeat_last) {
@@ -190,8 +194,8 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     if (basket.placeId) ctx.state.placeId = basket.placeId;
     const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: pickup });
     if (!quote.ok) return { done: false, plan: { ...plan, repeat: r } };
-    const missing = (r.missing ?? []).map((m) => m.name_ar ?? m.name);
-    const before = [unavailable, missing.length ? ANSWER.someMissing(missing) : null].filter(Boolean).join("\n") || undefined;
+    const missing = (r.missing ?? []).map((m) => productName(m, ctx.state.lang ?? "ar"));
+    const before = [unavailable, missing.length ? T(ctx).answer.someMissing(missing) : null].filter(Boolean).join("\n") || undefined;
     const routed = await sendBasket(ctx, basket, terms, quote, before);
     return routed.done ? routed : { done: false, plan: { ...plan, repeat: r } };
   }
@@ -216,7 +220,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     // W1 (C3's request 5): a window is the other answer after hours. Offered when there is one; the tap sends the basket for it.
     if (!plan.pickup) {
       const windows = await windowsFor(ctx, plan.village_id, !!plan.quote.bought_to_order, null);
-      if (windows.length) await deliver(ctx, formatWindowChoice(null, windows, { body: CARD_TEXT.orChoose }), `[windows] ${CARD_TEXT.orChoose}`);
+      if (windows.length) await deliver(ctx, formatWindowChoice(null, windows, { lang: ctx.state.lang, body: T(ctx).windows.orChoose }), `[windows] ${T(ctx).windows.orChoose}`);
     }
     return { done: true, path: "closed_kept" };
   }
@@ -280,7 +284,7 @@ export async function takeAddress(ctx: ToolContext, intent: OrderIntent, said: s
   if (ctx.state.awaiting === "pin" && !ctx.state.placeId) {
     // Still no pin: keep the words for the rider and ask for the pin again, the basket still waiting.
     ctx.state.directions = mergeDirections(ctx.state.directions, directionsOf(intent) ?? said.trim().slice(0, 300));
-    const r = await deliver(ctx, askLocation(FIXED.askPin), `[location request] ${FIXED.askPin}`);
+    const r = await deliver(ctx, askLocation(T(ctx).fixed.askPin), `[location request] ${T(ctx).fixed.askPin}`);
     return r.ok ? { done: true, path: "ask_pin_again" } : { done: false, plan: null };
   }
   const words = directionsOf(intent) ?? (said.trim().slice(0, 300) || null);
@@ -306,7 +310,7 @@ function mergeDirections(a: string | null | undefined, b: string | null | undefi
 export async function askPinVillage(ctx: ToolContext): Promise<boolean> {
   const pin = ctx.state.pinCheck;
   if (!pin || pin.status !== "unsure" || !pin.candidates.length) return false;
-  const r = await deliver(ctx, buttons(FIXED.askVillage, pin.candidates.map((c) => ({ id: pinVillageButtonId(c.village_id), title: c.name_ar ?? c.name_en }))),
+  const r = await deliver(ctx, buttons(T(ctx).fixed.askVillage, pin.candidates.map((c) => ({ id: pinVillageButtonId(c.village_id), title: villageName(ctx.state.lang ?? "ar", c.name_ar, c.name_en) }))),
                           `[village question] ${pin.candidates.map((c) => c.name_ar ?? c.name_en).join(" / ")}`);
   return r.ok;
 }
@@ -330,7 +334,7 @@ export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInp
     // The rider needs a pin. The card waits for it; nothing is asked of the model.
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     ctx.state.awaiting = "pin"; ctx.state.pending = terms;
-    const text = before ? `${before}\n${FIXED.askPin}` : FIXED.askPin;
+    const text = before ? `${before}\n${T(ctx).fixed.askPin}` : T(ctx).fixed.askPin;
     const r = await deliver(ctx, askLocation(text), `[location request] ${text}`);
     return r.ok ? { done: true, path: "ask_pin" } : { done: false };
   }
@@ -343,19 +347,20 @@ export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<
   if (kind === "status") return answerStatus(ctx);
   if (kind === "hours") return answerHours(ctx);
   if (kind === "greeting") return offerRepeat(ctx);
+  if (kind === "lira") return answerLira(ctx);
   if (kind === "small_talk") {
     // 1.18: chat about the assistant, nothing about an order. The one fixed line, no model (K1: read as a greeting live).
-    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.offTopic } }, T(ctx).fixed.offTopic);
     return r.ok ? { done: true, path: "off_topic" } : { done: false };
   }
   return repeatLast(ctx);
 }
 
 /** "X is not available yet", in the customer's own words for the shop. Neutral: no reason, no opinion, no promise. */
-export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null {
+export function notAvailableText(plan: Pick<Plan, "unavailable">, lang?: string | null): string | null {
   const said = [...new Set((plan.unavailable ?? []).map((u) => (u.source_hint ?? "").trim()).filter(Boolean))];
   if (!(plan.unavailable ?? []).length) return null;
-  return FIXED.notAvailable(said);
+  return messages(lang).fixed.notAvailable(said);
 }
 
 /**
@@ -375,21 +380,23 @@ export async function completePending(ctx: ToolContext): Promise<boolean> {
       // The pin is between villages, or near none we know. Ask; never guess, never take the text's village.
       if (pin?.status === "unsure" && pin.candidates.length) { ctx.state.awaiting = "village"; return askPinVillage(ctx); }
       ctx.state.awaiting = "pin";
-      const r = await deliver(ctx, askLocation(FIXED.pinOutside), `[location request] ${FIXED.pinOutside}`);
+      const r = await deliver(ctx, askLocation(T(ctx).fixed.pinOutside), `[location request] ${T(ctx).fixed.pinOutside}`);
       return r.ok;
     }
     if (pin?.served === false) {
       ctx.state.awaiting = null;
-      return (await answerOutOfArea(ctx, pin.villageAr ?? "")).done;
+      return (await answerOutOfArea(ctx, villageName(ctx.state.lang ?? "ar", pin.villageAr, pin.villageEn))).done;
     }
-    const note = pin?.saidAr && pin.villageAr ? FIXED.pinVillage(pin.villageAr, pin.saidAr) : undefined;
+    const lang = ctx.state.lang ?? "ar";
+    const here = villageName(lang, pin?.villageAr, pin?.villageEn);
+    const note = pin?.saidAr && here ? T(ctx).fixed.pinVillage(here, pin.saidAr) : undefined;
     if (ctx.state.directions)
       await rpc<boolean>(ctx.db, "set_place_details", { p_party: ctx.partyId, p_place: ctx.state.placeId, p_building: null, p_floor: null, p_directions: ctx.state.directions });
     if (!(await rpc<boolean>(ctx.db, "place_has_details", { p_place: ctx.state.placeId }))) {
       // The rider has a pin and nothing else: one question for the house and the floor. The card waits for the answer.
       ctx.state.awaiting = "address";
       if (pin) pin.saidAr = null;                                           // said once, in this question
-      const text = [note ?? FIXED.pinReceived, FIXED.askAddress(pin?.villageAr ?? "")].join("\n");
+      const text = [note ?? T(ctx).fixed.pinReceived(here), "", T(ctx).fixed.askAddress].join("\n");
       const r = await deliver(ctx, { type: "text", text: { body: text } }, text);
       return r.ok;
     }
@@ -424,14 +431,14 @@ export async function sendKept(ctx: ToolContext, opts: { pin?: boolean } = {}): 
   if (q.pickup) { ctx.state.awaiting = null; return (await issueCard(ctx, { lines: q.lines, villageId: null, placeId: null, pickup: true }, terms)).ok; }
   ctx.state.awaiting = "pin";
   if (ctx.state.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: ctx.state.placeId }))) return completePending(ctx);
-  const r = await deliver(ctx, askLocation(FIXED.askPin), `[location request] ${FIXED.askPin}`);
+  const r = await deliver(ctx, askLocation(T(ctx).fixed.askPin), `[location request] ${T(ctx).fixed.askPin}`);
   return r.ok;
 }
 
 async function handoff(ctx: ToolContext, reason: string) {
   await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
   await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason });
-  await deliver(ctx, { type: "text", text: { body: FIXED.handoff } }, FIXED.handoff);
+  await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
 }
 
 // ---------- W1: windows for the basket in hand ----------
@@ -445,7 +452,7 @@ async function offerBasketWindows(ctx: ToolContext, basket: Basket, terms: CardT
   if (basket.villageId) ctx.state.villageId = basket.villageId;
   ctx.state.pending = terms; ctx.state.slotId = null;
   if (ctx.state.awaiting !== "opening") ctx.state.awaiting = "window";     // a basket kept overnight stays kept until a tap
-  const r = await deliver(ctx, formatWindowChoice(null, windows, { body }), `[windows] ${body}`);
+  const r = await deliver(ctx, formatWindowChoice(null, windows, { lang: ctx.state.lang, body }), `[windows] ${body}`);
   return r.ok ? { done: true, path: "windows" } : { done: false };
 }
 
@@ -466,7 +473,7 @@ export async function basketWhen(ctx: ToolContext, basket: Basket, terms: CardTe
   if (p.kind === "list") return offerBasketWindows(ctx, basket, terms, quote, p.windows, [opts.before, opts.body ?? p.body].filter(Boolean).join("\n"));
   if (opts.orNow === false) return { done: false };
   ctx.state.slotId = null;
-  const before = [opts.before, CARD_TEXT.noneAtAll].filter(Boolean).join("\n");
+  const before = [opts.before, T(ctx).windows.noneAtAll].filter(Boolean).join("\n");
   const closed = quote.issues.find((i) => i.code === "closed");
   if (closed) return (await keepUntilOpen(ctx, { ...basket, quote }, terms, String(closed.opens ?? ""), { before })).ok ? { done: true, path: "closed_kept" } : { done: false };
   return sendBasket(ctx, basket, terms, quote, before);
@@ -476,7 +483,7 @@ export async function basketWhen(ctx: ToolContext, basket: Basket, terms: CardTe
 export async function basketWindowTap(ctx: ToolContext, slotId: string | null): Promise<Done> {
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
   if (!q || !terms) {
-    const r = await deliver(ctx, { type: "text", text: { body: FIXED.keptGone } }, FIXED.keptGone);
+    const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.keptGone } }, T(ctx).fixed.keptGone);
     return r.ok ? { done: true, path: "window_no_basket" } : { done: false };
   }
   const wasKept = ctx.state.awaiting === "opening";

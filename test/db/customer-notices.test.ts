@@ -1,4 +1,5 @@
 // Task 4.3 on the real schema: each utility template is wired to its event, through the real gateway and gate (0062).
+import { ar } from "@ak/agents/messages";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sendNotice } from "../../apps/gateway/src/index";
 import type { TurnDeps } from "../../apps/gateway/src/turn";
@@ -41,7 +42,7 @@ describe("customer notices", () => {
     await db.pg.query(`insert into order_events(order_id, from_status, to_status, actor) values ($1, 'awaiting_confirmation', 'cancelled', 'customer')`, [b.order]);
     await tick(); await tick();
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ type: "text", text: { body: `انلغى طلبك #${a.code}: ما تأكّد الطلب بالوقت المحدد. اكتبلنا إذا بعدك بدّك ياه.` } });
+    expect(sent[0]).toMatchObject({ type: "text", text: { body: ar.notice.orderCancelled(a.code, "ما تأكّد الطلب بالوقت المحدد") } });
     expect(await due()).toEqual([]);
   });
 
@@ -54,6 +55,9 @@ describe("customer notices", () => {
     await tick(); await tick();
     expect(sent).toHaveLength(0);
     expect((await db.one(`select outcome from customer_notices where key = $1`, [`notice:rider_at_door:${c.order}`])).outcome).toBe("refused:window_closed_use_template");
+    // M1 (coordinator): outside the window with no template that may be sent, the skip is recorded, never silent
+    expect(await db.one(`select trace->>'template' as t, trace->>'event' as e from agent_runs where trace->>'reason' = 'template_not_utility' and order_id = $1`, [c.order]))
+      .toEqual({ t: "ak_rider_at_door_v1", e: "rider_at_door" });
   });
 
   it("once approved, the template goes out, outside the window too, with the right name and parameters", async () => {
@@ -68,7 +72,7 @@ describe("customer notices", () => {
   });
 
   it("templates are seeded as submitted, transactional only, with the wording Meta was sent", async () => {
-    const t = await db.all(`select name, category, status, body from wa_templates where name like 'ak_%' and language = 'ar' order by name`);
+    const t = await db.all(`select name, category, status, body from wa_templates where name ~ '^ak_(order_cancelled|rider_at_door|payment_received)_v1$' and language = 'ar' order by name`);
     expect(t.map((x: any) => [x.name, x.category])).toEqual([["ak_order_cancelled_v1", "utility"], ["ak_payment_received_v1", "utility"], ["ak_rider_at_door_v1", "utility"]]);
     for (const x of t) expect(x.body).not.toMatch(/عرض|خصم|جديد|أفضل|مجان/);       // nothing promotional
   });

@@ -4,7 +4,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Sent } from "./flow-kit";
-import { CARD_TEXT, FIXED, formatWindowChoice, KEPT_BUTTON, windowButtonId, windowLabel, type DeliveryWindow } from "@ak/agents/order-card";
+import { formatWindowChoice, KEPT_BUTTON, windowButtonId, windowLabel, type DeliveryWindow } from "@ak/agents/order-card";
+import { ar } from "@ak/agents/messages";
 
 let db: TestDb; let VILLAGE: string;
 const ids: Record<string, string> = {};
@@ -60,7 +61,7 @@ describe("a customer picks a window by words (C3's request 1, the eval case «ب
     const morning = await slotOf(MORNING, 1);
     expect(outbound).toHaveLength(1);
     expect(isCard(outbound[0]!)).toBe(true);
-    expect(bodyOf(outbound[0]!)).toContain(`${CARD_TEXT.windowLine}: ${await label(morning)}`);
+    expect(bodyOf(outbound[0]!)).toContain(ar.card.window(await label(morning)));
     const o = await lastOrder(c.party_id);
     expect(o.delivery_slot_id).toBe(morning);
     await t.tap(confirmId(outbound[0]!), "تأكيد الطلب");
@@ -111,7 +112,7 @@ describe("a customer picks a window by tap (C3's request 2: interactive.list_rep
     expect((await db.one(`select slot_id from slot_holds where order_id = $1`, [o.id])).slot_id).toBe(evening);
     // Where is my order: the window, never minutes (C3's request 6).
     await t.text("وين طلبي");
-    expect(bodyOf(outbound.at(-1)!)).toBe(`طلبك ${o.short_code}: مأكّد، والتوصيل ${await label(evening)}.`);
+    expect(bodyOf(outbound.at(-1)!)).toBe(`✅ طلبك ${o.short_code}: مأكّد، والتوصيل ${await label(evening)}.`);
   }, 60_000);
 
   it("a full window is never offered; the slot that filled before the tap refuses and the others are offered (request 3)", async () => {
@@ -156,7 +157,7 @@ describe("after hours: a card can be made for a window (C3's request 5)", () => 
     const c = await pinned(db, t, VILLAGE);
     await t.text("بدي مي وخبز بكرا الصبح");
     expect(isCard(outbound[0]!)).toBe(true);
-    expect(bodyOf(outbound[0]!)).not.toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[0]!)).not.toBe(ar.fixed.closedKept("08:00"));
     const o = await lastOrder(c.party_id);
     expect(o.delivery_slot_id).toBe(await slotOf(MORNING, 1));
     const now = await db.rpc("request_delivery_window", { p_order: o.id, p_slot: null, p_party: c.party_id });
@@ -172,9 +173,9 @@ describe("after hours: a card can be made for a window (C3's request 5)", () => 
     const c = await pinned(db, t, VILLAGE);
     await t.text("قهوة نجار");
     expect(outbound).toHaveLength(2);
-    expect(bodyOf(outbound[0]!)).toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.closedKept("08:00"));
     expect(buttonIds(outbound[0]!)).toEqual([KEPT_BUTTON]);
-    expect(bodyOf(outbound[1]!)).toBe(CARD_TEXT.orChoose);
+    expect(bodyOf(outbound[1]!)).toBe(ar.windows.orChoose);
     const evening = await slotOf(EVENING, 1);
     expect(rowIds(outbound[1]!)).toContain(windowButtonId(evening, null));
     await pick(t, windowButtonId(evening, null));
@@ -231,7 +232,7 @@ describe("a change is a new card that replaces the order (C3's request 4)", () =
     await t.text("زيدلي ربطة خبز");
     const card = outbound.at(-1)!;
     expect(isCard(card)).toBe(true);
-    expect(bodyOf(card)).toContain(CARD_TEXT.replaces(o.short_code));
+    expect(bodyOf(card)).toContain(ar.card.replaces(o.short_code));
     expect(bodyOf(card)).toContain(await label(o.delivery_slot_id));
     const n = await lastOrder(c.party_id);
     expect(n.replaces_order_id).toBe(o.id);
@@ -252,7 +253,7 @@ describe("a change is a new card that replaces the order (C3's request 4)", () =
     const card = outbound.at(-1)!;
     const evening = await slotOf(EVENING, 1);
     expect(bodyOf(card)).toContain(await label(evening));
-    expect(bodyOf(card)).toContain(CARD_TEXT.replaces(o.short_code));
+    expect(bodyOf(card)).toContain(ar.card.replaces(o.short_code));
     await t.tap(confirmId(card), "تأكيد الطلب");
     const n = await lastOrder(c.party_id);
     expect(n.delivery_slot_id).toBe(evening);
@@ -299,7 +300,7 @@ describe("no windows entered yet (staging today)", () => {
       const t = flow(db, [read(order([WATER]))]);
       const c = await pinned(db, t, VILLAGE);
       await t.text("كرتونة مي بكرا الصبح");
-      expect(bodyOf(outbound[0]!)).toBe(CARD_TEXT.noneAtAll);
+      expect(bodyOf(outbound[0]!)).toBe(ar.windows.noneAtAll);
       expect(isCard(outbound[1]!)).toBe(true);
       expect((await lastOrder(c.party_id)).delivery_slot_id).toBeNull();
     } finally {

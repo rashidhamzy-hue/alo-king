@@ -13,7 +13,6 @@ are built and tested. Nothing has run against a live WhatsApp, Supabase or Cloud
 | `docs/HANDOFF.md` | Business rules and status: built and tested, built but untested, needs a live account |
 | `docs/BUILD_PLAN.md` | The one current roadmap: Phases 0-7 to a paid grocery pilot, Phase 8 restaurants |
 | `docs/COST_MODEL.md` | Cost assumptions and results |
-| `TEST_REPORT.txt` | Captured test run for this tree |
 | `docs/history/` | Superseded material. Not current. |
 
 ## Layout
@@ -49,7 +48,7 @@ Deploy (`wrangler deploy`) is Phase 0 of the build plan.
 - `docs/TOOLS.md`: which developer tools and open-source libraries are used, deferred or rejected.
 - `.github/workflows/ci.yml`: typecheck, tests, permission check, secret scan, dependency scan.
 - `supabase/migrations/0012_pilot_locks.sql`: marketing locked off; outbox lease always has a value.
-- `data/prospects/`: the founder's Chouf business list, original and cleaned. Research only; see its README.
+- The founder's Chouf business list (original, cleaned, shortlist) is not in the repository: it holds business phone numbers and ratings, so it lives in the private `media` bucket under `research/prospects/` (research only; its README travels with it).
 
 ## New here?
 Open `START_HERE.md`.

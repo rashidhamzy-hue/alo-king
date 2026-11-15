@@ -1,5 +1,6 @@
 // Session B2 (ordering): 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18, on the real schema.
 // Only the model (scripted) and Kapso's HTTP endpoint (a recorder) are replaced.
+import { ar } from "@ak/agents/messages";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatOrderCard, orderButtonId, type Quote } from "@ak/agents/order-card";
 import type { TestDb } from "./harness";
@@ -34,8 +35,8 @@ describe("the card shows what is owed and asks for prepayment (1.4)", () => {
     expect(outbound).toHaveLength(1);
     const body = cardBody(outbound[0]!);
     expect(body).toContain("مستحق من طلب سابق ما قدرنا نسلّمو: $1.50");
-    expect(body).toContain("المجموع الفرعي: $7.24"); expect(body).toContain("التوصيل (بعقلين): $1.00");
-    expect(body).toContain("الإجمالي: $9.74");                      // 7.24 + 1.00 + 1.50
+    expect(body).toContain("التوصيل (بعقلين): $1.00");
+    expect(body).toContain("*المجموع: $9.74*");                     // 7.24 + 1.00 + 1.50
     expect(body).toContain("الدفع: تحويل Whish");
     expect(body).toContain("بينّدفع سلف");                          // asked before the tap, not after
     const order = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
@@ -66,9 +67,9 @@ describe("the card shows what is owed and asks for prepayment (1.4)", () => {
   it("no dues, no extra line and no prepayment request", () => {
     const quote: Quote = { ok: true, issues: [], subtotal_usd: 7.5, delivery_fee_usd: 1, total_usd: 8.5, fx_rate_lbp: 89500, total_lbp: 761000,
       eta_minutes: 20, pickup: false, village: "Baakline", village_ar: "بعقلين", village_id: null, lines: [] };
-    const body = (formatOrderCard({ orderId: "x", shortCode: "AK-1", quote, paymentMethod: "cod", changeForUsd: 20 }) as any).interactive.body.text as string;
-    expect(body).not.toContain("مستحق"); expect(body).not.toContain("سلف"); expect(body).toContain("فراطة لـ $20.00");
-    const owed = (formatOrderCard({ orderId: "x", shortCode: "AK-1", quote: { ...quote, dues_usd: 3, total_usd: 11.5 }, paymentMethod: "omt" }) as any).interactive.body.text as string;
+    const body = (formatOrderCard({ orderId: "x", shortCode: "AK-1", quote, paymentMethod: "cod", changeForUsd: 20 })[0] as any).interactive.body.text as string;
+    expect(body).not.toContain("مستحق"); expect(body).not.toContain("سلف"); expect(body).toContain(`${ar.card.changeFor}\n$20.00`);
+    const owed = (formatOrderCard({ orderId: "x", shortCode: "AK-1", quote: { ...quote, dues_usd: 3, total_usd: 11.5 }, paymentMethod: "omt" })[0] as any).interactive.body.text as string;
     expect(owed).toContain("$3.00"); expect(owed).toContain("تحويل OMT"); expect(owed).toContain("سلف");
   });
 });
@@ -200,7 +201,7 @@ describe("payment screenshots (1.6)", () => {
     const t = flow(db, []);
     const c = await awaitingTransfer(t);
     await t.say(image("https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1"));
-    expect(outbound.map((o) => o.body.text?.body)).toEqual(["ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟"]);
+    expect(outbound.map((o) => o.body.text?.body)).toEqual([ar.payment.proofResend]);
     expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId])).toEqual({ n: 0 });
   });
 
@@ -210,7 +211,7 @@ describe("payment screenshots (1.6)", () => {
       const t = flow(db, []);
       const c = await awaitingTransfer(t);
       await t.say(image(url));
-      expect(outbound.map((o) => o.body.text?.body), url).toEqual(["ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟"]);
+      expect(outbound.map((o) => o.body.text?.body), url).toEqual([ar.payment.proofResend]);
       expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId]), url).toEqual({ n: 0 });
     }
   });
@@ -367,8 +368,8 @@ describe("small-order fee and first-order cash cap (1.16)", () => {
     const c = await pinned(db, t, ids.BAAKLINE);
     await t.text("بدي علبتين لبنة ليبان ليه");
     const body = cardBody(outbound[0]!);
-    expect(body).toContain("المجموع الفرعي: $6.00"); expect(body).toContain("التوصيل (بعقلين): $1.00");
-    expect(body).toContain("رسم الطلبات الصغيرة: $0.50"); expect(body).toContain("الإجمالي: $7.50");
+    expect(body).toContain("$6.00"); expect(body).toContain("التوصيل (بعقلين): $1.00");
+    expect(body).toContain("رسم الطلبات الصغيرة: $0.50"); expect(body).toContain("*المجموع: $7.50*");
     const o = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
     expect(Number(o.small_order_fee_usd)).toBe(0.5); expect(Number(o.delivery_fee_usd)).toBe(1); expect(Number(o.total_usd)).toBe(7.5);
 
@@ -407,7 +408,7 @@ describe("small-order fee and first-order cash cap (1.16)", () => {
     const c = await pinned(db, t, ids.BAAKLINE);
     await t.text("بدي علبتين لبنة ليبان ليه وربطتين خبز");
     const body = cardBody(outbound[0]!);
-    expect(body).toContain("الدفع: تحويل Whish"); expect(body).toContain("أول طلب كاش لحدّ $5.00");
+    expect(body).toContain("الدفع: تحويل Whish"); expect(body).toContain("أول طلب كاش لحدّ:\n$5.00");
     expect((await db.one(`select payment_method from orders where customer_id = $1`, [c.party_id])).payment_method).toBe("whish");
 
     await db.pg.query(`update orders set status = 'delivered' where customer_id = $1`, [c.party_id]);
@@ -430,7 +431,7 @@ describe("stay on the job (1.18)", () => {
     await t.customer();
     await t.text("ساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟");
     expect(t.seen).toHaveLength(1);
-    expect(outbound.map((o) => o.body.text.body)).toEqual(["أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك. شو بتحب تطلب؟"]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.offTopic]);
   });
 
   it("an order inside a chatty message is still an order", async () => {

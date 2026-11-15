@@ -14,7 +14,7 @@ describe("directionsOf: the floor once", () => {
     expect(note).not.toContain("طابق الطابق");
   });
   it("a floor alone, without verbatim, keeps its own words", () => {
-    expect(directionsOf(intent({ building: "بيت شادي", floor: "الطابق التاني" }))).toBe("بيت شادي | الطابق التاني");
+    expect(directionsOf(intent({ building: "بيت الاختبار", floor: "الطابق التاني" }))).toBe("بيت الاختبار | الطابق التاني");
     expect(directionsOf(intent({ floor: "2nd floor" }))).toBe("2nd floor");
     expect(directionsOf(intent({ floor: "tabe2 el tene" }))).toBe("tabe2 el tene");
   });

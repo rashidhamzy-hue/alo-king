@@ -23,7 +23,7 @@ async function page(c: Ctx) {
   return render(c, "Merchants", html`
 <h2>Menu imports to check (${imports.length})</h2>
 <p class="muted">Compare every line with the menu. Applying it sets these prices as the merchant's offers and switches off anything not on it. Lines read with low confidence are skipped by the database.</p>
-${imports.length === 0 ? html`<p class="muted">None waiting.</p>` : imports.map((m, i) => html`<div class="pair"><div style="flex:1">
+${imports.length === 0 ? html`<p class="muted">None waiting.</p>` : imports.map((m, i) => html`<div class="pair"><div>
 <p><strong>${name(m.source_id)}</strong> · read ${when(m.created_at)}${menuLinks[i] ? html` · <a href="${menuLinks[i]}" target="_blank" rel="noopener">the menu as received</a>` : ""}</p>
 <table><tr><th>Section</th><th>Item</th><th>Price</th><th>Confidence</th></tr>
 ${(m.extracted?.items ?? []).map((it) => html`<tr class="${(it.confidence ?? 1) < 0.6 ? "late" : ""}"><td>${it.section ?? ""}</td><td>${it.name_en ?? ""} ${it.name_ar ? html`<span class="muted">${it.name_ar}</span>` : ""}</td>

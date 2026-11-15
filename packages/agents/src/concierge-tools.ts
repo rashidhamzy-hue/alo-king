@@ -4,12 +4,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
 import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
-import { buttonReplyText, CARD_TEXT, FIXED, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type DeliveryWindow, type Quote } from "./order-card";
+import { buttonReplyText, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type CardAddress, type CardInput, type DeliveryWindow, type Quote } from "./order-card";
+import { messages, productName, type Lang } from "./messages";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 import { catalogMessages } from "./catalog-messages";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
+  /** M1: the language of our fixed messages in this conversation: from the reading, or the words of a turn code answers alone. */
+  lang?: Lang;
   villageId?: string | null;
   placeId?: string | null;
   directions?: string | null;          // the customer's own words about where they are
@@ -35,7 +38,7 @@ export interface ConversationState {
   replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
 }
 export interface PinCheck {
-  status: "located" | "unsure" | "outside"; villageAr: string | null; served: boolean | null;
+  status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
   /** The village the conversation had before the pin (usually from the text), when the pin put it somewhere else. */
   saidAr: string | null;
   candidates: { village_id: string; name_ar: string | null; name_en: string }[];
@@ -62,6 +65,8 @@ export interface ToolContext {
 }
 
 const MAX_SENDS_PER_TURN = 2;
+/** Every fixed message in this conversation's language (M1). */
+const T = (ctx: ToolContext) => messages(ctx.state.lang);
 
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await db.rpc(fn, args);
@@ -174,7 +179,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     async handoff_human({ reason }) {
       await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
       await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason });
-      await deliver(ctx, { type: "text", text: { body: FIXED.handoff } }, FIXED.handoff);
+      await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
       return { ok: true };
     },
   };
@@ -202,15 +207,15 @@ export function guardAttribute(code: string, kind: string): string {
   return "nutrition";                                  // ingredients and nutrition panels
 }
 
-const money = (n: number) => `$${Number(n).toFixed(2)}`;
 const MAX_PRICED = 6;
 /** One line per product, priced by quote_order (one unit, at the hub): the only way a price appears in a Concierge reply. */
 async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   const ids = [...new Set(productIds)].slice(0, MAX_PRICED);
-  const q = await rpc<{ lines: { name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(
+  const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(
     ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true });
   if (q.lines.length === 0) return { ok: false, error: "price_of_unknown_products" };
-  return { ok: true, text: q.lines.map((l) => `• ${l.name_ar ?? l.name} — ${money(l.unit_price_usd)}${l.ok ? "" : " (مش متوفّر هلّق)"}`).join("\n") };
+  const lang = ctx.state.lang ?? "ar";
+  return { ok: true, text: q.lines.map((l) => T(ctx).fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok)).join("\n") };
 }
 
 export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" | "window" } | { ok: false; error: string; issues?: unknown };
@@ -233,7 +238,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     if (basket.placeId) ctx.state.placeId = basket.placeId;
     ctx.state.awaiting = "phone"; ctx.state.pending = terms;
-    const text = opts.before ? `${opts.before}\n${FIXED.askPhone}` : FIXED.askPhone;
+    const text = opts.before ? `${opts.before}\n${T(ctx).fixed.askPhone}` : T(ctx).fixed.askPhone;
     const asked = await deliver(ctx, { type: "text", text: { body: text } }, text);
     return asked.ok ? { ok: true, waiting_for: "phone" } : asked;
   }
@@ -248,7 +253,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   if (!created.created && created.quote.issues.some((i) => i.code === "fx_paused")) {
     // D1 (3.8): quoting is paused until a person confirms today's rate. The basket waits; the customer is told once.
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
-    const told = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
+    const told = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.fxPaused } }, T(ctx).fixed.fxPaused);
     return told.ok ? { ok: false, error: "fx_paused" } : told;
   }
   const closed = created.created ? undefined : created.quote.issues.find((i) => i.code === "closed");
@@ -265,8 +270,8 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     if (basket.placeId) ctx.state.placeId = basket.placeId;
     ctx.state.pending = terms; ctx.state.slotId = null; ctx.state.awaiting = "window";
     const windows = await rpc<DeliveryWindow[]>(ctx.db, "open_delivery_windows", { p_village: basket.villageId, p_fresh: !!created.quote.bought_to_order });
-    const body = [opts.before, CARD_TEXT.windowGone].filter(Boolean).join("\n");
-    const offered = await deliver(ctx, formatWindowChoice(null, windows, { body }), `[windows] ${body}`);
+    const body = [opts.before, T(ctx).windows.gone].filter(Boolean).join("\n");
+    const offered = await deliver(ctx, formatWindowChoice(null, windows, { lang: ctx.state.lang, body }), `[windows] ${body}`);
     return offered.ok ? { ok: true, waiting_for: "window" } : offered;
   }
   if (!created.created) {
@@ -305,23 +310,18 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
         // A change to an order already paid by transfer goes to a person (C3's decision); so does a change to pickup.
         await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
         await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason: `${basket.pickup ? "change_to_pickup" : "change_paid_order"}: ${link.short_code ?? old.shortCode}` });
-        const told = await deliver(ctx, { type: "text", text: { body: FIXED.handoff } }, FIXED.handoff);
+        const told = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
         return told.ok ? { ok: false, error: "change_paid" } : told;
       }
-      const text = buttonReplyText({ status: "too_late", short_code: link.short_code ?? old.shortCode, changed: false, window: link.window ?? null });
+      const text = buttonReplyText({ status: "too_late", short_code: link.short_code ?? old.shortCode, changed: false, window: link.window ?? null }, {}, ctx.state.lang);
       const told = await deliver(ctx, { type: "text", text: { body: text } }, text, old.orderId);
       return told.ok ? { ok: false, error: link.reason ?? "change_refused" } : told;
     }
     replaces = link.replaces ?? old.shortCode;
     window = link.window ?? window;
   }
-  if (opts.before) {
-    const pre = await deliver(ctx, { type: "text", text: { body: opts.before } }, opts.before, created.order_id);
-    if (!pre.ok) return pre;
-  }
-  const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
-                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null, window, replaces });
-  const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
+  const sent = await sendCard(ctx, { orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
+                                      paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null, window, replaces }, opts.before);
   if (!sent.ok) return sent;
   // A card went out: any order kept overnight is taken up or replaced (audit item 4). Never stops the turn.
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
@@ -329,6 +329,26 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
   ctx.state.slotId = null;
   return { ok: true, order_code: created.short_code! };
+}
+
+/**
+ * M1: the card in the conversation's language, with the order's address (order_address, 0120), sent as one message or two (a long
+ * basket's lines first). A product shown without an approved Arabic name is recorded in name_gaps (record_name_gaps, 0120); that
+ * record never stops the card.
+ */
+export async function sendCard(ctx: ToolContext, input: Omit<CardInput, "lang" | "address">, before?: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const lang = ctx.state.lang ?? "ar";
+  const address = input.quote.pickup ? null : await rpc<CardAddress | null>(ctx.db, "order_address", { p_order: input.orderId }).catch(() => null);
+  const gaps = new Set<string>();
+  const parts = formatOrderCard({ ...input, lang, address }, { before, gaps });
+  for (let i = 0; i < parts.length; i++) {
+    const last = i === parts.length - 1;
+    const summary = last ? `[order card ${input.shortCode}] total $${input.quote.total_usd}` : (parts[i] as { text: { body: string } }).text.body;
+    const r = await deliver(ctx, parts[i]!, summary, input.orderId);
+    if (!r.ok) return r;
+  }
+  if (gaps.size) await ctx.db.rpc("record_name_gaps", { p_products: [...gaps], p_lang: lang, p_where: "order_card" }).then(() => undefined, () => undefined);
+  return { ok: true };
 }
 
 /**
@@ -344,9 +364,9 @@ export async function keepUntilOpen(ctx: ToolContext, basket: { lines: QuoteLine
   ctx.state.pending = terms; ctx.state.awaiting = "opening";
   // Audit item 4: who has a kept order, so the cron can offer it once when we open. A failure here never stops the reply.
   await ctx.db.rpc("keep_order", { p_party: ctx.partyId, p_conversation: ctx.conversationId, p_opens: opens }).then(() => undefined, () => undefined);
-  const said = opts.pin ? FIXED.closedKeptPin(opens) : FIXED.closedKept(opens);
+  const said = opts.pin ? T(ctx).fixed.closedKeptPin(opens) : T(ctx).fixed.closedKept(opens);
   const text = opts.before ? `${opts.before}\n${said}` : said;
-  return deliver(ctx, buttonMsg(text, [{ id: KEPT_BUTTON, title: FIXED.keptButton }]), `[kept until open] ${text}`);
+  return deliver(ctx, buttonMsg(text, [{ id: KEPT_BUTTON, title: T(ctx).fixed.keptButton }]), `[kept until open] ${text}`);
 }
 
 const RESTRICTION_MARK = "⚠️ قيود الزبون";

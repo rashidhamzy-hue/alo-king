@@ -5,7 +5,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, read, recordKapso, use, type Sent } from "./flow-kit";
-import { FIXED, KEPT_BUTTON } from "@ak/agents/order-card";
+import { KEPT_BUTTON } from "@ak/agents/order-card";
+import { ar } from "@ak/agents/messages";
 import { offerKeptOrders } from "@ak/agents/cron";
 
 let db: TestDb;
@@ -48,19 +49,19 @@ describe("an order sent after closing time (K1, B4's leftover)", () => {
     await t.text(MESSAGE);
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(1);
-    expect(bodyOf(outbound[0]!)).toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.closedKept("08:00"));
     expect(buttonIds(outbound[0]!)).toEqual([KEPT_BUTTON]);
 
     // 2. A pin anyway, at night: saved, answered by code with the hours, never with a greeting. No model call.
     await t.say({ type: "location", location: PIN });
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(2);
-    expect(bodyOf(outbound[1]!)).toBe(FIXED.closedKeptPin("08:00"));
+    expect(bodyOf(outbound[1]!)).toBe(ar.fixed.closedKeptPin("08:00"));
     expect(bodyOf(outbound[1]!)).not.toMatch(GREETING);
 
     // 3. A tap while still closed: the same answer, the basket still kept.
     await t.tap(`${KEPT_BUTTON}`, "ابعت طلبي");
-    expect(bodyOf(outbound[2]!)).toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[2]!)).toBe(ar.fixed.closedKept("08:00"));
 
     // 4. We open. The tap continues where the pin left off: house and floor for a new place, then the card with all three items.
     await hours(OPEN);
@@ -81,13 +82,13 @@ describe("an order sent after closing time (K1, B4's leftover)", () => {
     const outbound = recordKapso();
     const t = flow(db, [read(READING), read(ADDRESS)]);
     await t.text(MESSAGE);                                                   // open: the code's pin request
-    expect(bodyOf(outbound[0]!)).toBe(FIXED.askPin);
+    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.askPin);
     await t.say({ type: "location", location: PIN });
     expect(bodyOf(outbound[1]!)).toContain("كرمال السائق");
     await hours(CLOSED);                                                     // 23:00 passes while they type the house
     await t.text("بيت الاختبار، الطابق الأول");
     expect(outbound).toHaveLength(3);
-    expect(bodyOf(outbound[2]!)).toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[2]!)).toBe(ar.fixed.closedKept("08:00"));
     expect(buttonIds(outbound[2]!)).toEqual([KEPT_BUTTON]);
     await hours(OPEN);
     await t.tap(KEPT_BUTTON, "ابعت طلبي");
@@ -102,12 +103,12 @@ describe("an order sent after closing time (K1, B4's leftover)", () => {
                         [use("ask_location_pin", { text: "منكمّل بكرا الصبح. ابعتلنا موقعك" })], [use("reply", { text: "أهلا! شو بتحب تطلب؟" })]]);
     await t.text(MESSAGE + " عبعقلين");
     expect(t.seen).toHaveLength(1);
-    expect(bodyOf(outbound[0]!)).toBe(FIXED.closedKept("08:00"));
+    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.closedKept("08:00"));
     await t.say({ type: "location", location: PIN });
     expect(t.seen).toHaveLength(1);
     const last = bodyOf(outbound.at(-1)!);
     expect(last).not.toMatch(GREETING);
-    expect(last).toBe(FIXED.closedKeptPin("08:00"));
+    expect(last).toBe(ar.fixed.closedKeptPin("08:00"));
   }, 60_000);
   it("audit item 4: when we open, the kept order is offered once with its button, inside the 24-hour window", async () => {
     const outbound = recordKapso();
@@ -120,7 +121,7 @@ describe("an order sent after closing time (K1, B4's leftover)", () => {
     expect(await offer()).toBe(0);                                         // still closed: nothing goes out
     await hours(OPEN);
     expect(await offer()).toBe(1);
-    expect(bodyOf(outbound.at(-1)!)).toBe(FIXED.keptOpen);
+    expect(bodyOf(outbound.at(-1)!)).toBe(ar.fixed.keptOpen);
     expect(buttonIds(outbound.at(-1)!)).toEqual([KEPT_BUTTON]);
     expect(await offer()).toBe(0);                                         // once
     // The tap carries on as before: the pin, then the house, then the card. Taken, the kept order is cleared.

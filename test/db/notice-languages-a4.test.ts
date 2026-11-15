@@ -2,6 +2,7 @@
 // French. 0093 adds English and French versions (submitted to Meta through Kapso, their own names, same wording rules) and
 // picks the language from how the customer last wrote (the Concierge's reading, agent_runs.trace.intent.language).
 // Arabic, Lebanese Arabic, Arabizi and mixed stay Arabic. The words that fill the template are in the same language.
+import { fr } from "@ak/agents/messages";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sendNotice } from "../../apps/gateway/src/index";
 import type { TurnDeps } from "../../apps/gateway/src/turn";
@@ -47,7 +48,7 @@ beforeAll(async () => {
 describe("notices in the customer's language (audit item 8)", () => {
   it("English and French versions of the three templates exist, utility, with the same variables as the Arabic ones", async () => {
     const t = await db.all<{ name: string; language: string; category: string; variables: string[]; body: string }>(
-      `select name, language, category, variables, body from wa_templates where name like 'ak\\_%' order by name`);
+      `select name, language, category, variables, body from wa_templates where name ~ '^ak_(order_cancelled|rider_at_door|payment_received)(_en|_fr)?_v1$' order by name`);
     expect(t.map((x) => `${x.name}:${x.language}`)).toEqual([
       "ak_order_cancelled_en_v1:en", "ak_order_cancelled_fr_v1:fr", "ak_order_cancelled_v1:ar",
       "ak_payment_received_en_v1:en", "ak_payment_received_fr_v1:fr", "ak_payment_received_v1:ar",
@@ -99,7 +100,7 @@ describe("notices in the customer's language (audit item 8)", () => {
     await db.pg.query(`update payments set confirmed_at = null, status = 'pending' where order_id = $1`, [c.order]);
     await db.pg.query(`insert into order_events(order_id, from_status, to_status, actor, reason) values ($1, 'delivered', 'cancelled', 'system', 'timeout:awaiting_payment')`, [c.order]);
     await tick();
-    expect(sent[0]).toMatchObject({ type: "text", text: { body: `Votre commande #${c.code} a été annulée : le paiement n'est pas arrivé à temps. Écrivez-nous si vous la voulez toujours.` } });
+    expect(sent[0]).toMatchObject({ type: "text", text: { body: fr.notice.orderCancelled(c.code, "le paiement n'est pas arrivé à temps") } });
   });
 
   it("an approved English cancellation template carries the English reason", async () => {

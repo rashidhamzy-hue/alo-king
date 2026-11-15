@@ -6,7 +6,7 @@
     "message": {
       "context": {
         "id": "wamid.TESTC639E5ABDD54",
-        "from": "12036602328"
+        "from": "96170000099"
       },
       "from": "96170000001",
       "from_parent_user_id": null,
@@ -22,15 +22,15 @@
         "has_media": false,
         "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
         "contact_name": "Test Person 1",
-        "content": "Lat: 33.96170000004, Long: 35.96170000007",
+        "content": "Lat: 33.6493, Long: 35.6463",
         "message_type_data": {
-          "latitude": 33.645401000977,
-          "longitude": 35.643432617188
+          "latitude": 33.6493,
+          "longitude": 35.6463
         }
       },
       "location": {
-        "latitude": 33.645401000977,
-        "longitude": 35.643432617188
+        "latitude": 33.6493,
+        "longitude": 35.6463
       },
       "timestamp": "1792747775",
       "type": "location",
