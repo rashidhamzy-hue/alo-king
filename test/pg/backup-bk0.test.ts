@@ -113,12 +113,19 @@ run("backup and restore, end to end", () => {
     expect(info.meta.migrations).toBe(107);
     expect(info.meta.tables).toBeGreaterThan(50);
     expect(info.meta.pg_major).toBeGreaterThanOrEqual(15);
-    // It is an OpenPGP symmetric-key message: gpg itself says so, and neither a table name nor a ledger memo is readable in it.
+    // It is an OpenPGP symmetric-key message: it starts with a gpg packet header (tag 3, symmetric-key session key packet, old or new
+    // format) and gpg itself says AES-256. Then the plaintext manifest, taken out with the passphrase, must not appear in it: a whole
+    // JSON document and a long table path cannot occur in random bytes by chance (a 3-byte needle could, which made this test flaky).
+    const raw = readFileSync(bundle);
+    expect([0x8c, 0xc3]).toContain(raw[0]);
     const packets = spawnSync("gpg", ["--list-packets", bundle], { encoding: "utf8" });
     expect(packets.stdout + packets.stderr).toMatch(/symkey enc packet: version 4, cipher 9/);   // cipher 9 is AES-256
-    const raw = readFileSync(bundle);
-    expect(raw.includes(Buffer.from("ledger_entries"))).toBe(false);
-    expect(raw.includes(Buffer.from("bk0"))).toBe(false);
+    const opened = node("restore.mjs", ["decrypt", "--in", bundle, "--out", join(tmp, "opened")], { BACKUP_PASSPHRASE: PASS });
+    expect(opened.status, opened.stderr).toBe(0);
+    const manifest = readFileSync(join(tmp, "opened", "manifest.json"));
+    expect(manifest.length).toBeGreaterThan(1000);
+    expect(raw.includes(manifest)).toBe(false);
+    expect(raw.includes(Buffer.from('"public.ledger_entries"'))).toBe(false);
     expect(readdirSync(join(tmp, "out"))).toEqual(["bundle.tar.gpg"]);                              // no plaintext left behind
   });
 
