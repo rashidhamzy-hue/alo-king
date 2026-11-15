@@ -18,6 +18,7 @@ export function parseCap(value: unknown, fallback: number): number;
 export class CostMeter {
   constructor(opts: { workflow: string; runId: string; capUsd: number; prices: PriceRow[]; prior?: number; webSearchUsd?: number; enforce?: boolean; step?: string; day?: string; log?: (s: string) => void });
   prior: number; workflow: string; runId: string; capUsd: number; step: string; spent: number; calls: number; refused: number; stoppedAtCap: boolean; finished: boolean; conn?: Conn; readonly capReached: boolean;
+  capStop(): boolean;
   refusal(model: string | null): Error | null;
   add(model: string, usage: Usage, step?: string): number;
   addLine(line: Partial<CostLine> & { model: string }): void;

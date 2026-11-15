@@ -41,7 +41,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     const usage = { input: 0, output: 0 };
 
     const runs = await poolMap(cases.flatMap((c) => Array.from({ length: repeat }, (_, k) => ({ c, k }))), 8, async ({ c, k }) => {
-      if (meter.capReached) return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got: [] as Got[], score: scoreCase(c.items, []), next: null, errors: "cost cap reached: not run", rejected: null, lines: [] as any[] };
+      if (meter.capStop()) return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got: [] as Got[], score: scoreCase(c.items, []), next: null, errors: "cost cap reached: not run", rejected: null, lines: [] as any[] };
       const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} }).catch((e) => ({ intent: null, errors: String(e), usage: { input: 0, output: 0 } }));
       usage.input += r.usage.input; usage.output += r.usage.output;
       let lines: any[] = []; let next: string | null = null;
@@ -66,7 +66,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     };
     const all = totals(runs.map((r) => r.score));
     const card0013 = runs.filter((r) => r.id === "h0013").map((r) => r.score.tp === 3 && r.score.wrong.length === 0);
-    const report = { label, model, repeat, at: new Date().toISOString(), usage, stopped_at_cap: meter.capReached, all, by_kind: by((r) => r.kind), by_lang: by((r) => r.lang),
+    const report = { label, model, repeat, at: new Date().toISOString(), usage, stopped_at_cap: meter.stoppedAtCap, all, by_kind: by((r) => r.kind), by_lang: by((r) => r.lang),
       demo_0013_right: card0013, wrong: runs.filter((r) => r.score.wrong.length).map(({ id, text, expected, got, lines }) => ({ id, text, expected, got, lines })),
       missed: runs.filter((r) => r.score.missed.length).map(({ id, text, score, lines, errors, rejected }) => ({ id, text, missed: score.missed, lines, errors, rejected })),
       // every reading, so replay.test.ts can run the same readings through a changed planner without the model
@@ -80,6 +80,6 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     console.log(md);
     if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, md + "\n");
     expect(runs.length).toBeGreaterThan(0);
-    expect(meter.capReached, "the run stopped at its cost cap: its scores are incomplete").toBe(false);
+    expect(meter.stoppedAtCap, "the run stopped at its cost cap: its scores are incomplete").toBe(false);
   }, 3_600_000);
 });

@@ -85,6 +85,8 @@ export class CostMeter {
   }
   /** True once the total has reached the cap: a loop over items stops starting new ones. */
   get capReached() { return this.enforce && Number.isFinite(this.capUsd) && this.prior + this.spent >= this.capUsd; }
+  /** For a loop over items: true (and the run is marked as stopped at its cap) when the cap is reached, so no new item is started. */
+  capStop() { if (!this.capReached) return false; this.stoppedAtCap = true; this.refused++; return true; }
   /** Null when a call to `model` may go ahead; otherwise the error that refuses it. */
   refusal(model) {
     if (this.capReached) { this.stoppedAtCap = true; this.refused++; return new CostCapReached(this.prior + this.spent, this.capUsd); }
