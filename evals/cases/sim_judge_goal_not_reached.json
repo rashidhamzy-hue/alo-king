@@ -1,0 +1,851 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where the judge found judge_goal_not_reached. Failing on purpose: not fixed by SIM1. Owner: ordering lane. Invented customers, invented numbers.",
+ "severity": 2.76,
+ "owner": "ordering lane",
+ "cases": [
+  {
+   "id": "sim-051",
+   "seed": 10050,
+   "category": "plain_order",
+   "variant": "one_item",
+   "lang": "ar",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا كيفك بدي طلب توصيل ايه ع غريفة بدي ثنتين ثوم لو سمحت\"]"
+   ],
+   "shop": [
+    [
+     "غريفة مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "no order card was produced",
+     "customer left with no next step after the refusal",
+     "no alternative or human hand-off offered",
+     "no acknowledgment of the greeting or the garlic request"
+    ],
+    "summary": "The shop replied that Gharifeh is not yet served and stopped, so the customer got no card and no way forward. The refusal may be policy-correct, but nothing was offered next (a notify option, a human, or a different address)."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-073",
+   "seed": 10072,
+   "category": "same_as_last",
+   "variant": "same_as_last",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مرحبا  (2) بدي نفس الطلبية يلي المرة الماضية لو سمحت",
+    "بس أنا طلبت من خمس أيام، آخر طلبية. ما بتطلعلك؟"
+   ],
+   "shop": [
+    [
+     "ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟"
+    ],
+    [
+     "ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "said no previous completed order found though customer had one 5 days ago",
+     "repeated the identical reply after the customer pushed back",
+     "no hand-off or alternative offered",
+     "customer stranded with no way to reorder"
+    ],
+    "summary": "The shop failed to find the customer's prior order, repeated the same canned reply when challenged, offered no human hand-off, and no order card was ever produced."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-005",
+   "seed": 10004,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مساء الخير  (2) بدي إرجع المصاري تبع اللحمة المفرومة، وصلت من يومين وما كانت منيحة  (3) الله يخليكن",
+    "يعطيكن العافية، بتقدروا تخبروني أيمتى رح يتصل فيي حدا؟",
+    "لو سمحتوا، بدي جواب بخصوص المصاري تبع اللحمة، مرسي كتير"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "customer's question about when someone will call went unanswered",
+     "no clear next step or timeframe given",
+     "customer stranded after hand-off"
+    ],
+    "summary": "The shop handed off to a person with a single brief message, then stayed completely silent on both follow-ups, leaving the older customer without any answer about her refund."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-011",
+   "seed": 10010,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي احكي مع شخص حقيقي مش بوت لو سمحت، عندي سؤال عن طلبية",
+    "تمام، أيمتى بتقريب بيجاوبني حدا؟",
+    "هيي بعدك حدا؟ بدي جاوب بسرعة لانو مستعجل"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on turn 2",
+     "silence after hand-off on turn 3",
+     "customer not told when someone will answer",
+     "urgent customer left with no acknowledgement"
+    ],
+    "summary": "The shop said someone would reach out and the hand-off was recorded, but both follow-up messages asking when got no reply, leaving an urgent customer in silence."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-018",
+   "seed": 10017,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 7ada men el shop yekellimne 3an talab (order) please, mesh bot",
+    "merci, emta ba3rif yjewebne?",
+    "marhaba, fi 7ada? emta bi jawbouni please?"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no timing or next-step info given",
+     "replied in Arabic script to an Arabizi customer",
+     "customer left unanswered twice"
+    ],
+    "summary": "The hand-off was logged and the first reply said someone would contact the customer, but both follow-up messages asking when got no reply at all, leaving the customer stranded in silence."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-019",
+   "seed": 10018,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Hi, I want to talk to a real person please, not a bot. I have a question about an order",
+    "Ok thanks, when will someone answer me?",
+    "Hello? Is anyone there? It's for my elderly neighbour's order"
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on turn 2",
+     "silence after hand-off on turn 3",
+     "no timeframe or next-step explanation given",
+     "customer left unanswered while asking about elderly neighbour's order"
+    ],
+    "summary": "The shop logged a hand-off and said someone would contact the customer, but then sent nothing to two follow-up messages, leaving the customer stranded with no information on when anyone would answer."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-039",
+   "seed": 10038,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مرحبا كيفكن  (2) عيونك  (3) بدي إرجع الملفوف تبع آخر طلبية، إجا من يومين وما كان منيح",
+    "بدي ارجع مصرياتي عالملفوف لو سمحت",
+    "ممكن تردولي جواب على الطلب؟ merci"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no clear explanation of refund process or timing",
+     "customer left waiting with no acknowledgement of follow-ups"
+    ],
+    "summary": "The shop handed off with a single generic line, then said nothing to the customer's two follow-up messages, leaving the refund request stranded."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-044",
+   "seed": 10043,
+   "category": "out_of_stock",
+   "variant": "alone",
+   "lang": "fr",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"bonjour je voudrais un pot de confiture de fraise el rashidi el mizan le trois cent quarante grammes s il vous plaît\"]",
+    "Merci, mais ce n'est pas de la confiture. Vous n'avez pas une autre confiture de fraise ?",
+    "Ok, merci quand même. Je laisse tomber alors."
+   ],
+   "shop": [
+    [
+     "Désolé, la confiture de fraise El Rashidi El Mizan 340g est en rupture de stock. Voulez-vous une de ces alternatives ?\nNutella Spread Chocolate Hazelnut 350G\n$3.53\nNutella Spread Chocolate Hazelnut 750G\n$7.00\nAl Arabiya Tahina 400G\n$1.98 [Nutella 350g | Nutella 750g | Tahina Al Arabiya]"
+    ],
+    [
+     "Désolé, la seule confiture de fraise que nous avons est El Rashidi El Mizan, actuellement en rupture de stock. Voici les alternatives disponibles :\nNutella Spread Chocolate Hazelnut 750G\n$7.00\nNutella Spread Chocolate Hazelnut 350G\n$3.53\nAl Arabiya Tahina 400G\n$1.98"
+    ],
+    [
+     "D'accord, aucun problème, la commande est annulée. Merci quand même, et n'hésitez pas à nous écrire quand vous voulez commander sur Alo King."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "alternatives offered (Nutella, tahina) are not jam, irrelevant to the request",
+     "claimed the only strawberry jam in stock is El Rashidi, an unsupported catalogue assertion",
+     "re-offered same irrelevant alternatives after the customer objected",
+     "no card was produced, customer left with nothing",
+     "message lines exceed the length rule"
+    ],
+    "summary": "The product was out of stock and the shop offered only non-jam alternatives twice, so the customer gave up with no order card; the shop was honest about the stockout but its alternatives were poor and a catalogue claim was unsupported."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-060",
+   "seed": 10059,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الطلبية يلي وصلتني من 3 ايام، علبة الكوتون باد (Fluff'n White) وصلت تالفة",
+    "ok بس بدي جواب اليوم لو بتقدر",
+    "هاي؟ حدا هون؟ بدي بدّل العلبة او استرجع حقها"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "customer given no timeline or acknowledgement of follow-ups",
+     "exchange/refund request never addressed"
+    ],
+    "summary": "The shop handed off the damaged-product complaint with one brief line, then ignored both follow-up messages, leaving the customer stranded without knowing what happens next."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-084",
+   "seed": 10083,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hey your last delivery so late it was ridiculous you guys are useless honestly anyway i m hungry i want something to eat send me something quick\"]",
+    "Contact me for what? I'm on a break, I just want food, don't waste my time again",
+    "Hello?? Still nothing. Pathetic service, my break is almost over"
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "handed off instead of just helping with the food request",
+     "silence after hand-off on turns 2 and 3",
+     "no order help or way forward offered",
+     "hand-off promise with nobody answering"
+    ],
+    "summary": "The shop escalated to a human at the first rude message, then went silent for two further customer messages, leaving a hungry customer with no order and no way forward."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-086",
+   "seed": 10085,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) مرحبا، كيفكن؟  (2) الطلبية يلي وصلتني من تلات ايام، الجبنة العكاوي البلدي كانت خربانة ومش منيحة  (3) بدي حدا يحكيني بالموضوع لو سمحتوا",
+    "يعطيكن العافية، ممكن حدا يردلي جواب اليوم لو سمحتوا؟",
+    "مرحبا مرة تانية، لسا ما حدا ردّ عليّ. بتقدروا تخبروني شو رح يصير بالجبنة الخربانة؟ مرسي كتير"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
+     "أهلين، آسفين كتير إنو الجبنة وصلتك خربانة. حوّلتلك على حدا من فريقنا ليحكيك بالموضوع."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "customer not told what happens next for the spoiled cheese",
+     "no timeframe or acknowledgement of follow-ups"
+    ],
+    "summary": "The shop handed off the spoiled-cheese complaint to a person in the first reply, but the two follow-up messages got no answer at all, leaving the older customer stranded without any next step."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-092",
+   "seed": 10091,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, j'ai reçu ma commande il y a deux jours mais l'huile de tournesol Plein Soleil 5L était abîmée, elle avait un mauvais goût. Qu'est-ce qu'on peut faire svp ?",
+    "Merci beaucoup. J'attends votre réponse svp, l'huile est vraiment inutilisable.",
+    "Bonjour, est-ce que quelqu'un a pu voir mon message ? Je voudrais juste un remplacement ou un remboursement, merci."
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on turn 2",
+     "silence after hand-off on turn 3",
+     "customer not told what happens next or when",
+     "no acknowledgement of refund/replacement request"
+    ],
+    "summary": "The hand-off was recorded, but the shop answered nothing to two follow-up messages, leaving the older customer stranded with a spoiled product and no clear next step."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-096",
+   "seed": 10095,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "mixed",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, 3endi mochkle bel commande taba3 mbere7: le ketchup Dolly's 900G kan 5arban, il est abîmé. Merci",
+    "Merci, bas please baddi jewab quand vous pouvez, l'ketchup mish sale7 li akl",
+    "Bonjour encore, ba3ed fi hada yjaweb 3al ketchup? Merci bshekel kbir"
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no clear next step or timeframe given beyond 'rapidement'",
+     "customer left unanswered twice after a complaint"
+    ],
+    "summary": "The complaint was handed off to a person, but both follow-up messages got no reply at all, leaving the older customer stranded with no clear next step."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-127",
+   "seed": 10126,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "fr",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"bonjour j ai un problúme avec ma derniúre commande la viande hachée de boeuf que vousm avez euh livrée il y a deux jours était abßmée elle sentait mauvais je voudrais en parler avec quelqu un s il vous plaßt\"]",
+    "Merci, j'attends votre réponse pour la viande hachée svp",
+    "Bonjour, une réponse pour la viande hachée abßmée svp ? Merci"
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no timeframe or next-step detail given",
+     "customer left waiting with no acknowledgement"
+    ],
+    "summary": "The shop handed off the spoiled-meat complaint with one brief line, then ignored both follow-up messages, leaving the customer in silence."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-128",
+   "seed": 10127,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، الطلبية يلي وصلت من يومين، علبة اللبن كاندية ١ كيلو كانت خربانة، طالعة ريحتها حامضة. الطلب كان لجارتي العجوز",
+    "يعطيكن العافية، بس بدي حدا يرد علي اليوم لو سمحتو",
+    "ألو؟ في حدا؟ بدي جواب عن موضوع اللبن لو سمحتو"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no acknowledgement or timeframe for urgent complaint",
+     "no empathy or detail on what happens next (refund/replacement)"
+    ],
+    "summary": "The shop handed off the spoiled-yogurt complaint with one brief line, then ignored both follow-up messages, leaving the customer stranded with no reply or timeline."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-131",
+   "seed": 10130,
+   "category": "person",
+   "variant": "refund",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, je voudrais être remboursée pour les couches Oui Oui taille 6 (32 pièces) de ma dernière commande, livrée il y a deux jours. Merci beaucoup.",
+    "D'accord, merci. J'attends votre réponse pour le remboursement des couches, s'il vous plaît.",
+    "Bonjour, avez-vous pu regarder ma demande de remboursement pour les couches ? Merci d'avance."
+   ],
+   "shop": [
+    [
+     "Une personne de notre équipe va vous contacter rapidement."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "no reply to customer turn 2 after hand-off",
+     "no reply to customer turn 3 after hand-off",
+     "no clear explanation of next steps or timeframe",
+     "hand-off message gave no acknowledgement of the refund request"
+    ],
+    "summary": "The handoff to a person was logged, but the two follow-up messages from the customer were met with total silence, leaving her with no clear next step."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-134",
+   "seed": 10133,
+   "category": "address",
+   "variant": "pin_outside",
+   "lang": "fr",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"bonjour je veux un paquet de fromage mozzarella filata râpé s il vous plaît unseul\"]",
+    "Ah ok, et le minimum c'est combien? Je veux juste ce fromage",
+    "Je veux seulement le fromage, merci. Tant pis alors, c'est pas grave"
+   ],
+   "shop": [
+    [
+     "Il manque encore des produits pour le minimum de livraison.\nFilata Shredded Mozzarella Cheese\n$1.38 [Voir le catalogue]"
+    ],
+    [
+     "Le minimum n'est pas encore atteint avec le fromage seul. Quels autres produits voulez-vous ajouter ?"
+    ],
+    [
+     "Pas de souci, la commande est annulée. Si vous voulez ajouter d'autres produits plus tard, écrivez-moi simplement."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Customer never asked for or sent the location pin; the scenario's address/outside-delivery-area path was never reached",
+     "Minimum delivery amount never stated when customer asked 'c'est combien?'",
+     "Success condition (plainly says it does not deliver there yet) not met",
+     "Order was lost without offering a way forward or a human"
+    ],
+    "summary": "The conversation stalled on the delivery minimum before any address or pin was requested, so the customer gave up and the shop never said it cannot deliver to Gharifeh; the customer's direct question about the minimum amount also went unanswered."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-168",
+   "seed": 10167,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بالطلبية الأخيرة اللي وصلتني من يومين، التورا بيكا كابتشينو ما كانت منيحة. بدي استرجع حقها لو سمحت",
+    "يعطيكن العافية، بتقدروا تخبروني أيمتى رح يجاوبوني؟",
+    "مرحبا، لسا بانتظار جواب بخصوص الاسترجاع، مرسي"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
+     "آسفين إنو الطلبية ما كانت منيحة. وصلتني رسالتك وعم حوّلها لمسؤول عنّا يتواصل معك بأقرب وقت بخصوص الاسترجاع."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "customer's question about when they'll get an answer was ignored",
+     "no clear next step or timeframe given",
+     "two messages sent as one reply, the first a stiff duplicate"
+    ],
+    "summary": "The hand-off was recorded, but the shop then stayed silent on both follow-ups, leaving the customer stranded with no answer about timing."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-169",
+   "seed": 10168,
+   "category": "out_of_stock",
+   "variant": "alone",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، يعطيكن العافية. بدي لو سمحتو مايونيز Plein Soleil العلبة 250 غرام، واحدة بس",
+    "يا ابني الكاتشب مش هيدا يلي بدي ياه، أنا بدي مايونيز. في عندكن نوع تاني من المايونيز؟",
+    "لا يا ابني مرسي، مش عاوزة كاتشب. خلص خليها هلق، يعطيك العافية"
+   ],
+   "shop": [
+    [
+     "للأسف مايونيز Plein Soleil مش متوفر هلق. بتحب تاخد بديل؟\nDolly's Tomato Ketchup 330G\n$0.88\nDolly's Ketchup 900G\n$2.78 [Dolly's Ketchup 330G | Dolly's Ketchup 900G]"
+    ],
+    [
+     "حقك، المايونيز الوحيد عنا هو Plein Soleil وهو خلص هلق. بتحب تاخد شي تاني؟ [خليني بالكاتشب | شو عندكن؟]"
+    ],
+    [
+     "تمام، ما في كاتشب وألغينا الطلب. إذا بدك شي تاني، ابعتلي وبخدمك."
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "offered ketchup as an alternative to mayonnaise (not a similar product)",
+     "customer did not end with a card, but drop was acceptable given no real alternative"
+    ],
+    "summary": "The shop correctly said the mayonnaise was unavailable and never carded it, but the only alternatives were ketchups, so the customer declined and ended without an order, which is an acceptable outcome."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-173",
+   "seed": 10172,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا بدي رجع المصاري تبع بامبرز اوي اوي مقاس خمسه تمانيه وتلاتين قطعه من اخر طلبيه اللي وصلتني مبارح\"]",
+    "لو سمحت، بدي جواب بخصوص المصاري تبع البامبرز",
+    "مرحبا، في حدا يجاوبني بخصوص استرجاع المصاري؟"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no timeframe or next-step detail beyond one generic line",
+     "customer left with no one answering"
+    ],
+    "summary": "The shop handed off the refund request with a single generic line, then ignored both follow-up messages, leaving the customer stranded with no answer."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-175",
+   "seed": 10174,
+   "category": "not_sold",
+   "variant": "medicine",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba habibi kif halkon baddi 3elbe paracetamol la 2eza eh fi 3andkon please\"]",
+    "Ya3ne ma fi? Fina nitlob menkon yjibouha aw ma btejibo adwiye?",
+    "Tayyib habibi, mashkour w yslamo. Ma fi problem, merci 3ala wa2tkon, Allah ye3tikon el 3afye."
+   ],
+   "shop": [
+    [
+     "ما لقيت بارacetamol عنا هلق. بدك تجرب شي تاني أو تبعتلي اسم ثاني؟ [شو عندكن؟ | لا شكرا]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "الله يسلمك، أهلين فيك بأي وقت. إذا بدك تطلب من ألو كينغ، بس ابعتلي شو بدك."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "never plainly says it does not sell medicine",
+     "first reply garbled ('بارacetamol', mixed script) and implies it might be found later",
+     "replied in Arabic script to an Arabizi customer, stiff and formal",
+     "second reply deflects instead of answering whether it sells medicine",
+     "did not clearly offer something it sells"
+    ],
+    "summary": "The shop never clearly said it does not sell medicine; it gave a garbled, vague non-answer and a deflection, though it invented nothing and did not offer to phone an order in."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-176",
+   "seed": 10175,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Good morning, I have a question about my order. Could I please speak with a real person, not a machine?",
+    "Thank you dear. Do you know approximately when someone will answer me?",
+    "Hello? I am still waiting, please let me know when someone can talk to me. Thank you."
+   ],
+   "shop": [
+    [
+     "Someone from our team will contact you shortly."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no timeframe or next-step explanation given",
+     "vague 'shortly' promise with no acknowledgement of follow-ups"
+    ],
+    "summary": "The hand-off was logged and the first reply said someone would contact the customer, but both follow-up messages got no response, leaving an older customer waiting in silence with no information about timing."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-183",
+   "seed": 10182,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "(1) يا زلمي المرة الماضية وصلت الطلبية متأخرة ساعتين  (2) خدمتكن زبالة بجد، شو هالقرف",
+    "ولو شو هالبطء كمان؟ يلا عطيني شي ناكله، بدي بيتزا هلق وبلا تأخير هالمرة",
+    "ولا حدا عم يرد؟ ما بتفرقو عن بعض، كلكن نايمين؟ بدي بيتزا يا جماعة"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "handed off to a human on the first message instead of staying on the job",
+     "silence on customer turns 2 and 3 after the hand-off",
+     "customer's explicit pizza request never answered",
+     "no order card or ordering help at all",
+     "customer left unheard and more frustrated"
+    ],
+    "summary": "The shop handed off after the first insult, then went silent while the customer twice asked for pizza, so the customer was stranded with no help and no order."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-190",
+   "seed": 10189,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي رجّع مصاري الأومو جل غسيل ٢.٥ ليتر اللي وصلني مبارح، جارتي العجوز ما بدها ياه",
+    "يعطيكن العافية، ممكن تجاوبوني اليوم لو سمحتوا؟",
+    "مرحبا؟ لسا ناطرة جواب بخصوص رجعة المصاري لو سمحتوا"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on turn 2",
+     "silence after hand-off on turn 3",
+     "no stated next step or timeframe beyond a vague promise",
+     "customer left waiting with no acknowledgment"
+    ],
+    "summary": "The hand-off was logged, but the customer got one vague line and then complete silence on two follow-ups, leaving her stranded on a refund request."
+   },
+   "expect": "no judge_goal_not_reached"
+  },
+  {
+   "id": "sim-205",
+   "seed": 10204,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "(1) ya 3ayb el shame, el delivery el marra l fetet t2akharit sa3tein w ma 7ada 3ata jawab  (2) shu hal service el zero hayda, ma btfahmo shi",
+    "yalla w2ila, baddi shi akel hallaq, shu fi 3andkon? khabbirouni la ykuno kamen mt2akhrin",
+    "hello?? fi 7ada hon wala el shop nayem? jewe3an w ma fi jawab, shu hal ihmal"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "handed off on turn 1 instead of staying on the job and offering to help order",
+     "reply was formal Arabic script, not Arabizi",
+     "no reply to turn 2 (customer asked what food is available)",
+     "no reply to turn 3 (customer asked if anyone is there)",
+     "hand-off promised a person but nobody answered; customer left hungry and stranded"
+    ],
+    "summary": "The shop handed off after the customer's insults and then went silent for the next two messages, so the hungry customer got no menu, no card and no answer."
+   },
+   "expect": "no judge_goal_not_reached"
+  }
+ ]
+}

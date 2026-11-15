@@ -1,0 +1,117 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where a code check found no_reply. Failing on purpose: not fixed by SIM1. Owner: ordering lane. Invented customers, invented numbers.",
+ "severity": 3,
+ "owner": "ordering lane",
+ "cases": [
+  {
+   "id": "sim-009",
+   "seed": 10008,
+   "category": "night",
+   "variant": "kept_order",
+   "lang": "mixed",
+   "voice": false,
+   "burst": true,
+   "clock": "night",
+   "customer": [
+    "(1) Bonsoir, excusez-moi de vous écrire si tard  (2) Please baddi yogurt Dairy Khoury Greek Apricot Low Fat 175G, wahde  (3) w kamen Tannour El Asser Oat Bread Large 5 Loaves, ça va?",
+    "Ah d'accord merci. Est-ce que vous pouvez garder ma commande lil sob7 please? Le livraison à Gharifeh.",
+    "[sends a location pin: home]",
+    "Merci beaucoup, très gentil. Je vous écris demain matin inchallah, bonne nuit",
+    "[taps \"Demain 08:00-10:00\"]",
+    "Bonjour, je suis là. Baddi kamen n3ref: ma commande est bien gardée?",
+    "[taps \"Envoyer ma commande\"]",
+    "Ah bon? Quel est le minimum svp? Je veux seulement les 2 produits, c'est pour une personne âgée.",
+    "[taps \"Garder ces 2 produit\"]"
+   ],
+   "shop": [
+    [
+     "Nous ouvrons à 08:00, à partir de demain matin."
+    ],
+    [
+     "Gharifeh est desservi. Envoyez votre position pour que je garde la commande."
+    ],
+    [
+     "🌙 Nous sommes fermés et ouvrons à 08:00.\n\nNous avons gardé votre commande ✅\nÀ l'ouverture, appuyez sur « Envoyer ma commande » et nous continuerons ici. [Envoyer ma commande]"
+    ],
+    [
+     "Quand la voulez-vous ? Voici les créneaux où nous pouvons livrer : [Demain 08:00-10:00 | Demain 09:00-11:00 | Demain 11:00-13:00]"
+    ],
+    [],
+    [
+     "Vous n'avez pas de commande en cours. Que voulez-vous commander ?"
+    ],
+    [
+     "Votre commande est gardée, mais elle est en dessous du minimum de commande, il manque encore un montant. Ajoutez des produits pour pouvoir l'envoyer. [Ajouter des produits | Annuler la commande]"
+    ],
+    [
+     "Le minimum de commande n'est pas encore atteint avec ces 2 produits. Voulez-vous ajouter d'autres produits pour pouvoir l'envoyer ? [Voir le catalogue | Garder ces 2 produit]"
+    ],
+    [
+     "Je ne peux pas envoyer la commande avec ces 2 produits seuls, le minimum n'est pas atteint. Voulez-vous ajouter d'autres produits, ou annuler la commande ? [Ajouter des produits | Annuler]"
+    ]
+   ],
+   "found": [
+    {
+     "turn": 5,
+     "detail": "outcome buttons"
+    }
+   ],
+   "expect": "no no_reply"
+  },
+  {
+   "id": "sim-014",
+   "seed": 10013,
+   "category": "night",
+   "variant": "kept_order",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "night",
+   "customer": [
+    "مساء الخير، بدي لو سمحت علبة عصير كانديا فواكه حمرا زغيرة وقنينة خل أبيض يمامة ليتر، وبدي ياهن عالبيت بعين قني",
+    "[sends a location pin: home]",
+    "[taps \"عين قني\"]",
+    "تمام، مرسي. بكرا الصبح بكبس عليه",
+    "[taps \"بكرا 08:00-10:00\"]",
+    "مرسي كتير، بكرا الصبح منحكي",
+    "صباح الخير، لو سمحت ابعتلي طلبي يلي حكينا عنو مبارح بالليل",
+    "لا مرسي ما بدي زيد شي، بدي بس الغرضين يلي طلبتن. ما فيك تبعتن هيك؟",
+    "شو هو الحد الأدنى بالزبط؟ وقديش ناقصني؟"
+   ],
+   "shop": [
+    [
+     "ابعتلي موقعك عالخريطة لنكمل طلبك."
+    ],
+    [
+     "📍 الموقع يلي بعتّو بين كذا ضيعة. وين بالزبط؟ [عين قني | المختارة | عماطور]"
+    ],
+    [
+     "🌙 مسكّرين هلّق، منفتح الساعة 08:00.\n\nطلبك محفوظ ✅\nبس نفتح اكبس «ابعت طلبي» ومنكمّل من هون. [ابعت طلبي]"
+    ],
+    [
+     "أيمتى بدك ياه؟ هيدي الأوقات يلي فينا نوصّل فيها: [بكرا 08:00-10:00 | بكرا 09:00-11:00 | بكرا 11:00-13:00]"
+    ],
+    [],
+    [
+     "على الرحب والسعة. طلبك لسا تحت الحد الأدنى للتوصيل، فإذا بدك تضيف شي قبل بكرا، أنا هون."
+    ],
+    [
+     "صباح النور، طلبك تحت الحد الأدنى. بدك تضيف شي؟ [أضيف أغراض | شو عندكن؟]"
+    ],
+    [
+     "مع الأسف ما فيني ابعت الطلب هيك، لأنو تحت الحد الأدنى للتوصيل. بدك تضيف شي، أو نلغي الطلب؟ [أضيف شي | إلغاء الطلب]"
+    ],
+    [
+     "طلبك لسا تحت الحد الأدنى للتوصيل، وما بقدر أحكيلك الأرقام هون. بدك أوريك المنتجات تضيف شي، ولا نلغي الطلب؟ [أوريني المنتجات | ألغي الطلب]"
+    ]
+   ],
+   "found": [
+    {
+     "turn": 5,
+     "detail": "outcome buttons"
+    }
+   ],
+   "expect": "no no_reply"
+  }
+ ]
+}

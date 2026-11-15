@@ -1,0 +1,1294 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where the judge found judge_wrong_product. Failing on purpose: not fixed by SIM1. Owner: ordering lane. Invented customers, invented numbers.",
+ "severity": 2.81,
+ "owner": "ordering lane",
+ "cases": [
+  {
+   "id": "sim-122",
+   "seed": 10121,
+   "category": "food_facts",
+   "variant": "allergy",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi es2al abel ma 2 otlob el kit kat arba3 asabe3 sitte w talatin ela noss gram fiya gluten because ebné 3ando 7assasiye mn el gluten\"]",
+    "[taps \"Ma bade kit kat\"]",
+    "La merci, ma baddi kit kat. Ma fi ta2kid enno gluten free, fa ma badde"
+   ],
+   "shop": [
+    [
+     "Ma 3anna ma3lumat mo2akkade 3an el gluten bel Kit Kat 4 Fingers 36.5g, fa ma fi nekdar n2ekked innon mnee2 la ebnak. Mnit2ked men el label 2abel ma tetlob, aw tneen min 3and ghayra 3ande ma3lumat? [Es2al el ma7al | Ma bade kit kat]",
+     "سجّلنا «gluten» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟ [إيه، تذكّرها | بس هالمرة]"
+    ],
+    [
+     "Kit Kat 4 Fingers, 3ashan ya5od el talab lal minimum zid ashya tanyeh.\nKit Kat 4 Fingers 36.5G\n$0.63"
+    ],
+    [
+     "Tamam, ma rah nDeef el Kit Kat. Fi shi tenye bdak yetlob?",
+     "سجّلنا «gluten free» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟ [إيه، تذكّرها | بس هالمرة]"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Kit Kat card shown after customer chose 'Ma bade kit kat'",
+     "Garbled card text with minimum-order wording nobody asked for",
+     "Arabic-script 'remember allergy' prompts to an Arabizi customer, twice, and 'gluten free' saved as a preference",
+     "Wrong-language/stiff reply and over-long first message flagged",
+     "Customer tapped no and still got an order card"
+    ],
+    "summary": "The shop correctly said it did not know the gluten status and never called Kit Kat safe, but after the customer declined it still put the Kit Kat on a card, and it mixed in Arabic-script prompts for an Arabizi customer.​"
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-097",
+   "seed": 10096,
+   "category": "not_sold",
+   "variant": "restaurant",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi pizza kbire men l pizzeria law sama7t",
+    "ma fi tjibouna aya7al? 3am bshteri la jeriti l kbire w baddi yeha bi ay tari2a",
+    "la la, ma baddi jarra. ana 2ult pizza kbire, 2abl shway. ma fi tjibouna yeha aya7al? iza ma fi, ma fi mushkle merci",
+    "ok ma fi mushkle, merci ya3tik l 3afye"
+   ],
+   "shop": [
+    [
+     "pizzeria مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق."
+    ],
+    [
+     "ma fhimit 'jeriti l kbire' bi dakkat. Bidak jarra mi kbire?\nAqua Family 10L\n$0.72\nTannourine Mineral Water Gallon 6L\n$1.29 [Aqua Family 10L | Tannourine 6L | shi tani]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "misread 'jeriti' as jerrycan and showed water product card nobody asked for",
+     "never clearly answered the 'can you get it anyway' follow-up",
+     "replied in Arabic script to Arabizi customer, stiff phrasing",
+     "same canned redirect repeated twice, including after the customer's polite goodbye",
+     "no offer of help with something it actually sells, as the success line requires"
+    ],
+    "summary": "The shop correctly said the pizzeria is not available, but then misread the follow-up as a water jug request and sent an unrequested product card, answered the polite close with a repeated canned line, and used stiff Arabic script for an Arabizi customer."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-119",
+   "seed": 10118,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, talab 2a5er 3tene (2 ayem) kenet 3elbet Lipton Yellow Label tea 25 bags 5arbane, mnasra",
+    "la ana ma baddi talab jdid, baddi 2e3mol shakwa: 3elbet el Lipton eli wasalet kenet 5arbane. shu fiyon ta7el hal mawdou3?",
+    "merci, fiyon t2oulo yjawebni ta2rib? baddi a3raf shu rah ysir bel 3elbe el 5arbane",
+    "hello, fi hada yjawebni 3ala shakwet el Lipton tea? merci"
+   ],
+   "shop": [
+    [
+     "Talabak 2a2al men el minimum. Fi ta zido shi tani?\nLipton Yellow Label Black Tea 25 Bags\n$0.73"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "misread complaint as new order, showed unwanted product card",
+     "hand-off message in formal Arabic script, not Arabizi",
+     "silence after hand-off on turns 3 and 4",
+     "customer never told what happens next",
+     "no timeframe or acknowledgment of damaged item"
+    ],
+    "summary": "The shop first mistook the complaint for a reorder and showed an uninvited product card; the hand-off was logged, but the two follow-up messages got no reply, leaving the customer stranded with no clear next step."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-217",
+   "seed": 10216,
+   "category": "out_of_stock",
+   "variant": "alone",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi tnayn spartan toilet cleaner flash wa7ad litre ta3 el 2anninet ktir\"]",
+    "Germex floor detergent? 2a ana baddi toilet cleaner, mish floor. Fi toilet cleaner tene?",
+    "[taps \"Show cleaning items\"]",
+    "Baddi toilet cleaner bas. Eza ma fi, khalas skip, merci."
+   ],
+   "shop": [
+    [
+     "Spartan Flash 1L is out of stock. Want Germex Floor Detergent 1L instead?\nGermex Floor Detergent 1L\n$2.25 [Germex instead | Skip Spartan]"
+    ],
+    [
+     "Spartan Toilet Cleaner Flash 1L is the only toilet cleaner we have, and it is out of stock right now. Do you want the Germex floor detergent instead, or should I show you our cleaning products? [Germex floor 1L | Show cleaning items]"
+    ],
+    [
+     "The catalog is not ready right now. Which cleaning product do you need?"
+    ],
+    [
+     "تمام، ما في toilet cleaner متوفر هلق. merci!"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Offered a floor detergent as a substitute for a toilet cleaner (not a real alternative)",
+     "Replies in English to an Arabizi customer, then Arabic script",
+     "'Catalog is not ready' with no way forward after tapping Show cleaning items",
+     "Customer ended with no order card and no human hand-off",
+     "Second reply too long and re-offered the same Germex item"
+    ],
+    "summary": "The shop correctly said Spartan Flash was out of stock and never carded it, but offered an unsuitable floor detergent, hit a catalog failure, spoke in the wrong language, and the customer left with no order."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-311",
+   "seed": 10310,
+   "category": "food_facts",
+   "variant": "halal",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، عندكن ناجتس فودي كريسبي شيكن 500غ؟ وهالال؟",
+    "أنا طلبت ناجتس مش سترips، وبدي أتأكد إنو حلال قبل. فيك تسأل التاجر؟",
+    "يعني ما فيك تأكدلي إنو حلال؟ بدي تأكيد قبل ما إطلب",
+    "[taps \"لا، شكراً\"]"
+   ],
+   "shop": [
+    [
+     "لقيت Foody's Frozen Crispy Chicken Strips 500G متوفر. ما عندي معلومات موثقة عن هالشي لهالمنتج، ممكن تتأكد من الغلاف أو نسأل التاجر.\nFoody's Frozen Crispy Chicken Strips 500G\n$5.02 [بدي هاد المنتج | لا، شكراً]"
+    ],
+    [
+     "ما عندي معلومات موثقة عن الحلال لهالناجتس، فبحيث تتأكد من الغلاف. شو بدك أطلب؟\nFoody's Frozen Crispy Chicken Nuggets 500G\n$2.65\nTanmia Frozen Chicken Nuggets 520G\n$2.69 [Foody's Nuggets 500G | Tanmia Nuggets 520G | ما بدي هلق]"
+    ],
+    [
+     "ما عندي معلومات موثقة عن الحلال لهالناجتس. [كمّل الطلب | لا، شكراً]"
+    ],
+    [
+     "تمام، ابعتلي وقت بدك تطلب. شكراً إنك تواصلت مع Alo King."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "turn 1 showed Strips card instead of the Nuggets the customer asked for",
+     "offered to ask the merchant in turn 1 but never did or explained it could not",
+     "stiff, mixed phrasing: 'فبحيث تتأكد', 'هالشي' without naming halal",
+     "same 'no documented info' line repeated three times with no handoff or next step",
+     "line 1 of turn 1 over the 131-character limit"
+    ],
+    "summary": "The shop never invented a halal claim and honestly said it had no record, but it first offered the wrong product (Strips), gave stiff wording, and left the customer with only 'check the packaging' and no further help."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-380",
+   "seed": 10379,
+   "category": "person",
+   "variant": "refund",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Marhaba, baddi est3 released el masari la Take N Bake Frozen Pizza Vegetarian Small 350G men talabeyte lli weslet mbere7",
+    "la2, ma baddi shi jdid. baddi esterjaa3 masari la pizza Take N Bake Vegetarian 350G lli weslatne mbere7, kenet mish metla3a kif lezim",
+    "yslamo, bas baddi jewebe 3al refund la pizza lli 3am 2ulla 3anha, $2.21",
+    "marhaba, fi hada yjewebni 3al refund la pizza? merci"
+   ],
+   "shop": [
+    [
+     "Baddak tzid shi ba3d la talabak lal minimum?\nTake N Bake Frozen Pizza Vegetarian Small 350G\n$2.21"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Turn 1 reply was an unrelated add-more/minimum prompt with the pizza at $2.21, as if a new order",
+     "Hand-off message was in formal Arabic script, not arabizi",
+     "Customer was not told what happens next (no timeframe, no refund explanation)",
+     "Total silence after hand-off on both follow-ups",
+     "Customer left with no way forward or answer"
+    ],
+    "summary": "The shop misread a refund request as a new order, then handed off with a stiff Arabic-script line and went silent on both follow-ups, stranding the customer."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-422",
+   "seed": 10421,
+   "category": "edit_after_card",
+   "variant": "swap_item",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hi i want to order please uh two wellplus liquid soap sea breeze the five hundred ml one and three domo bicarbonate the eighty five gram delivery to my home in gharifeh\"]",
+    "[sends a location pin: home]",
+    "Ok. Please replace the Wellplus soap with Plein Soleil White Tuna Oil 185G X3. Building is the white building, second floor, name Sim",
+    "[taps \"Confirm order\"]"
+   ],
+   "shop": [
+    [
+     "Your order is below our minimum, so please add more items. Then share your location pin for Gharifeh."
+    ],
+    [
+     "Thanks, we have your location in Gharifeh. Your order is still below our minimum, so please add more items, and send the building, floor and recipient name for delivery."
+    ],
+    [
+     "🛒 *Your order AK-1182*\n\n3 × Plein Soleil White Tuna Oil 185G X3\n$12.81\n3 × Domo Bicarbonate 85G\n$1.05\n\nDelivery (Gharifeh): $1.50\n*Total: $15.36*\nor 1,375,000 LBP\n\n📍 Gharifeh\nArrives in about 30 minutes\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "✅ Order AK-1182 confirmed\nWe're preparing it now."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Final order has 3 x Plein Soleil tuna oil; the customer ordered 2 x Wellplus soap and only wanted it swapped for the tuna oil (quantity should be 2)",
+     "Quantity changed from 2 to 3 without the customer asking",
+     "Card arrived with the swap already applied, so the customer never saw a card with the original basket to edit as the scenario intended",
+     "Told the customer the order was below minimum twice, with no minimum amount stated",
+     "Turn 2 reply over the line length limit (hard failure flagged)"
+    ],
+    "summary": "The customer asked to swap the soap for the tuna oil, but the card and the confirmed order show 3 tuna oil instead of 2, so the customer confirmed a wrong quantity and total ($15.36)."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-424",
+   "seed": 10423,
+   "category": "person",
+   "variant": "refund",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، كيفك؟ شو الأخبار؟",
+    "يعطيك العافية. بدي إرجع صابونة Dove Original Beauty Cream Bar 90G من آخر طلب إجاني من 3 أيام، بدي مصرياتي ترجع",
+    "لا لا، ما بدي أطلب شي جديد. بدي رجّع الصابونة اللي إجتني من 3 أيام وبدي مصرياتي. مين بيقدر يساعدني؟",
+    "تمام، مرسي. بس بدي جواب بخصوص المصاري للصابونة",
+    "لو سمحت، في حدا يردلي؟ بدي إرجع المصاري للصابونة"
+   ],
+   "shop": [
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "صابونة Dove متوفرة. الطلب أقل من الحد الأدنى للتوصيل، شو بدك تضيف عليها؟\nDove Original Beauty Cream Bar 90G\n$1.17"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Treated refund request as a new order and offered the Dove soap for purchase",
+     "Hand-off created but both follow-up messages got silence",
+     "Customer never told what happens next or when",
+     "No acknowledgement of the refund request until turn 3"
+    ],
+    "summary": "The shop misread the refund as an order, then handed off to a person, but the two follow-up messages were met with silence, leaving the customer stranded with no clear next step."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-020",
+   "seed": 10019,
+   "category": "out_of_stock",
+   "variant": "in_basket",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, je voudrais commander un pot de confiture El Rashidi El Mizan à la fraise 340g et un fromage Aflora Kashkaval de vache, svp.",
+    "Merci beaucoup, mais je ne veux pas de tahini ni de Nutella, c'est de la confiture que je cherche. Avez-vous une autre confiture à la fraise ? Sinon je prends seulement le fromage Kashkaval, svp.",
+    "[taps \"Garder le fromage\"]",
+    "[taps \"Fromage seul\"]",
+    "Ah, je comprends. Quel est le minimum de commande, s'il vous plaît ? Je ne veux pas autre chose que le fromage et la confiture, donc si ce n'est pas possible tant pis.",
+    "[taps \"Annuler\"]"
+   ],
+   "shop": [
+    [
+     "La confiture fraise 340g est en rupture. Voulez-vous une alternative ?\nAl Arabiya Tahina 400G\n$1.98\nNutella Spread Chocolate Hazelnut 750G\n$7.00\nNutella Spread Chocolate Hazelnut 350G\n$3.53 [Tahina Al Arabiya 40 | Nutella 750g | Nutella 350g]"
+    ],
+    [
+     "La confiture fraise est en rupture et c'est la seule disponible. Voulez-vous ajouter d'autres produits au fromage ? [Voir le catalogue | Garder le fromage | Parler à un humain]"
+    ],
+    [
+     "D'accord, le fromage Kashkaval reste dans votre commande. Voulez-vous ajouter d'autres produits ?\nAflora Kashkaval Cow Cheese\n$1.70 [Ajouter des produits | Fromage seul]"
+    ],
+    [
+     "Le fromage seul n'atteint pas le minimum de commande. Voulez-vous ajouter des produits ? [Voir le catalogue | Garder le fromage]"
+    ],
+    [
+     "Le fromage Kashkaval seul n'atteint pas le minimum de commande, et la confiture fraise est en rupture. Voulez-vous ajouter d'autres produits au fromage, ou annuler la commande ? [Ajouter des produits | Annuler]"
+    ],
+    [
+     "D'accord, la commande est annulée."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "offered tahini and Nutella as 'alternatives' to strawberry jam",
+     "never stated the minimum order amount when asked",
+     "repeated the add-products question after the customer declined",
+     "no order card ever produced",
+     "did not offer a human handoff at the end"
+    ],
+    "summary": "The jam was correctly reported out of stock, but the shop offered irrelevant alternatives (tahini, Nutella), never answered the minimum-order question, kept pushing add-ons, and the customer ended up cancelling with no order."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-158",
+   "seed": 10157,
+   "category": "vague_items",
+   "variant": "size_missing",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي لبنة بلدية من ليبان ليه",
+    "لا بس هيدي، بدي ياها بس. شو لازم اعمل هلق؟",
+    "[taps \"بدي ضيف شي\"]",
+    "ما بدي ضيف شي، عطيني حبتين من اللبنة بدل وحدة",
+    "[sends a location pin: home]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "اللبنة البلدية متوفرة. الطلب أقل من الحد الأدنى للتوصيل، بدك تضيف شي تاني؟\nLiban Lait Labneh Baladieh 450G\n$3.00"
+    ],
+    [
+     "الطلب تحت الحد الأدنى للتوصيل. بدك تضيف شي تاني؟ [شوف الكتالوج | بدي ضيف شي]"
+    ],
+    [
+     "تمام، شو بدك تضيف على الطلب؟ إذا بدك تشوف المنتجات المتوفرة، قلي وبعتلك الكتالوج."
+    ],
+    [
+     "تمام، حبتين لبنة. لوين التوصيل؟\nLiban Lait Labneh Baladieh 450G\n$3.00"
+    ],
+    [
+     "🛒 *طلبك AK-1068*\n\n2 × Liban Lait Labneh Baladieh 450G\n$6.00\n\nالتوصيل (بشتفين): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $8.00*\nأو 716,000 ل.ل\n\n📍 بشتفين\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1068\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "never asked which size; silently put the 450G on the card",
+     "customer's intended product was the 900G, never offered as a choice",
+     "repeated the below-minimum question after the customer said no",
+     "customer had to work around the minimum by doubling the quantity"
+    ],
+    "summary": "The shop skipped the size clarification and picked the 450G itself, so the customer confirmed an order with a size they were never offered, after being asked twice to add more."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-287",
+   "seed": 10286,
+   "category": "vague_items",
+   "variant": "brand_only",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، كيفك؟ بدي بيتزا Take N Bake لو سمحت",
+    "لا، بدي بيتزا Take N Bake نباتية إذا في",
+    "شو الحد الأدنى للطلب؟ وكيف بتوصلوا ع المختارة؟",
+    "تمام، بس شو الحد الأدنى للطلب؟ بدي بس هالبيتزا",
+    "ما بدي شي تاني، بس هالبيتزا. كم لازم يكون الطلب؟",
+    "يعني ما فيكن توصلولي بيتزا وحدها؟ طيب خلص، بفكر وبرجع. يعطيك العافية"
+   ],
+   "shop": [
+    [
+     "أهلين! في حد أدنى للطلب، فبدك تضيف شي كمان؟\nTake N Bake Frozen Pizza Pepperoni Small 350G\n$1.73"
+    ],
+    [
+     "تمام، لقيتلك بيتزا Take N Bake الصغيرة. بدك تضيف شي كمان للحد الأدنى؟\nTake N Bake Frozen Pizza Vegetarian Small 350G\n$2.21"
+    ],
+    [
+     "✅ إيه منوصّل على المختارة.\n🛵 التوصيل: $1.50\nوبياخد عادةً حوالي 30 دقيقة."
+    ],
+    [
+     "طلبك الحالي لسا تحت الحد الأدنى. بدك تضيف شي كمان على البيتزا؟ [أضيف شي | شو عندكن؟]"
+    ],
+    [
+     "الطلب لحالو تحت الحد الأدنى للتوصيل، فما بقدر أوصّلو هيك. بتحب تضيف شي صغير، ولا تستلمها بنفسك؟ [بضيف شي | بستلمها بنفسي]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Put a Pepperoni pizza on the list at turn 1 without asking which Take N Bake product",
+     "Never stated the actual minimum order amount despite being asked three times",
+     "Repeated 'add something else?' after customer said they want only the pizza",
+     "No order card ever produced",
+     "Final reply was off-topic and ignored the customer's goodbye"
+    ],
+    "summary": "The shop showed a pepperoni pizza unasked and never offered choices, then repeatedly pushed add-ons without ever stating the minimum, so the customer left with no card and no order."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-365",
+   "seed": 10364,
+   "category": "address",
+   "variant": "no_pin",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba kif haletkon baddi talab men 3andkon please baddi wahde dove original beauty cream bar tis3in gram w tnayn wooden emmmbakery pita white medium arba3 mit gram\"]",
+    "[taps \"Ah, 2 pita\"]",
+    "3al Warhaniyeh, bi 7ay l kenise, l binaye l bayda, l tabe2 l tene",
+    "mesh fene b3at location, el location 3a telefone ma3tel. 3tiytak l 3enwen: Warhaniyeh, 7ay l kenise, l binaye l bayda, tabe2 tene",
+    "ma fine ib3at pin wallah, l location msakkar 3a telefoni. Warhaniyeh, 7ay l kenise, l binaye l bayda, tabe2 tene. fina nkamel hek?",
+    "shu fi tari2a gheir l pin? ana bil Warhaniyeh 7ay l kenise, byeje l driver 3ala tul, ma fi 8ala6"
+   ],
+   "shop": [
+    [
+     "Bade ya pita Wooden Bakery 2?\nDove Original Beauty Cream Bar 90G\n$1.17\nWooden Bakery Pita White Medium 400G\n$0.62 [Ah, 2 pita | La, ghayrha]"
+    ],
+    [
+     "تمام، 2 بيتا من Wooden Bakery. لوين التوصيل؟"
+    ],
+    [
+     "تمام، وصلني العنوان. ابعتلي الموقع عالخريطة من فضلك."
+    ],
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Customer repeatedly said they cannot send a pin; shop kept demanding a pin",
+     "Address given in words was never accepted; no card ever sent",
+     "Dove soap shown in the first card but never confirmed or carried forward",
+     "Replies were in formal Arabic script to an Arabizi speaker, with a stock message repeated 3 times",
+     "Said 'order ready' but no order card was produced"
+    ],
+    "summary": "The customer gave a full address in words four times but the shop looped on a pin request, never produced an order card, and stranded the customer with no order."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-353",
+   "seed": 10352,
+   "category": "night",
+   "variant": "kept_order",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "night",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba mesel l khayr baddi tlete 2it3at jebne edam block men plein soleil w wa7de mortadella al mouna bel zeytoun la 2ana bi ain qani yslamo\"]",
+    "Marhaba, shu ya3ni lal minimum? Kam lazem yekoun l talab? W l jebne Edam shu sar fiya, ma 3am ye2tiro? Baddi tlete 2it3a menha.",
+    "Tamem merci. Ana baddi tlete 2it3at edam w wa7de mortadella, hayda kel shi. Eza msakker halla2 w 3am teb2a talabeh la bokra, ma fi mashkle, khalleh ma3kon w ba3den ba3tella.",
+    "[taps \"اليوم 08:00-10:00\"]",
+    "[sends a location pin: home]",
+    "L bineye bayda, 2a3tabe tenye. Yslamo",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "Mortadella Al Mouna bel zeytoun mawjoudeh. Lal minimum lazem t zid shi, w hala2 Alo King msakker, bnefta 8:00.\nAl Mouna Mortadella Beef With Olives\n$0.73 [Zid el mortadella | La2, khalas]"
+    ],
+    [
+     "Jebne Edam (Plein Soleil) mawjoudeh, w sa3r 2it3a hayda: \"‏3 2it3\" bi. Lal minimum lazem tzid shi ta3 kmiyyeh tanye, w Alo King msakker halla2, bnefta 8:00.\nجبنة أيدام بلوك\n$1.63"
+    ],
+    [
+     "ما في وقت فاضي للتوصيل متل ما طلبت.\nهيدي الأوقات يلي فينا نوصّل فيها: [اليوم 04:00-06:00 | اليوم 08:00-10:00 | اليوم 09:00-11:00 | اليوم 11:00-13:00 | اليوم 12:00-14:00 | اليوم 16:00-18:00]"
+    ],
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ وصلنا موقعك: عين قني\n\nكرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق"
+    ],
+    [
+     "🛒 *طلبك AK-1005*\n\n3 × جبنة أيدام\n$4.29\n1 × Al Mouna Mortadella Beef With Olives\n$0.73\n\nالتوصيل (عين قني): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $7.02*\nأو 628,000 ل.ل\n\n📍 عين قني\nالتوصيل: اليوم 08:00-10:00\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1005\nالتوصيل اليوم 14:00-16:00."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Order contains Hamra Edam Analogue Cheese instead of the requested Plein Soleil Edam",
+     "Confirmed delivery slot 14:00-16:00 differs from the 08:00-10:00 slot on the card",
+     "Shop never clearly said it was closed and keeping the basket; it offered same-night slots",
+     "Customer 3's night-keep request was ignored and slots included 04:00-06:00 at 2am",
+     "Garbled, stiff Arabizi replies with a mixed-script 3 2it3 fragment and a wrong minimum message"
+    ],
+    "summary": "The customer asked for Plein Soleil Edam, but the DB shows Hamra Edam Analogue was ordered and the confirmation changed the delivery window; the shop also never cleanly kept the basket overnight."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-102",
+   "seed": 10101,
+   "category": "edit_after_card",
+   "variant": "change_qty",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي ٢ لبن ليبان ليه ١ كيلو، و٣ حمص ماميغز كيتشن ٢٧٠ غ، و٢ معجون بندورة يمامة ٦٦٠ غ",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "بدي بدل كمية اللبن ليبان ليه لـ ٤ بدل ٢",
+    "لا استنى، وين راح الحمص والمعجون؟ لازم يكون ٤ لبن و٣ حمص و٢ معجون",
+    "غلط! شو هيدا معجون سنان؟ أنا بدي ٤ لبن ليبان ليه ١ كيلو، ٣ حمص ماميغز، و٢ معجون بندورة يمامة ٦٦٠ غ. ما بدي كولغيت",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ وصلنا موقعك: كفرفاقود\n\nكرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق"
+    ],
+    [
+     "🛒 *طلبك AK-1028*\n\n2 × Liban Lait Laban 1Kg (طلب 2 كيلو)\n$4.14\n3 × Mamig's Kitchen Hommos Ready 270G\n$4.68\n2 × Yamama Tomato Paste 660G\n$3.28\n\nالتوصيل (كفرفاقود): $1.50\n*المجموع: $13.60*\nأو 1,217,000 ل.ل\n\n📍 كفرفاقود، البناية البيضا، التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "🛒 *طلبك AK-1029*\n\n4 × Liban Lait Laban 1Kg (طلب 4 كيلو)\n$8.28\n\nالتوصيل (كفرفاقود): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $10.28*\nأو 920,000 ل.ل\n\n📍 كفرفاقود، البناية البيضا، التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "🛒 *طلبك AK-1031*\n\n3 × Mamig's Kitchen Hommos Ready 270G\n$4.68\n2 × Colgate Toothpaste Triple Action 125Ml\n$2.66\n\nالتوصيل (كفرفاقود): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $9.34*\nأو 836,000 ل.ل\n\n📍 كفرفاقود، البناية البيضا، التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "🛒 *طلبك AK-1032*\n\n4 × Liban Lait Laban 1Kg\n$8.28\n3 × Mamig's Kitchen Hommos Ready 270G\n$4.68\n2 × Yamama Tomato Paste 660G\n$3.28\n\nالتوصيل (كفرفاقود): $1.50\n*المجموع: $17.74*\nأو 1,588,000 ل.ل\n\n📍 كفرفاقود، البناية البيضا، التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1032\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "quantity change dropped hommos and tomato paste from the card",
+     "a Colgate toothpaste the customer never asked for appeared on a card",
+     "customer needed two extra corrections to get the right basket",
+     "small-order fee shown on wrong intermediate cards"
+    ],
+    "summary": "The final confirmed order AK-1032 matched the customer's corrected basket with the right total, but the first edit lost two items and the next card added an uninvited toothpaste, so the customer had to correct twice."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-309",
+   "seed": 10308,
+   "category": "window",
+   "variant": "tomorrow_morning",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hi i want two kilos of gold medal flour i mean two packs of the one kilo and two picon simply the eight portions hundred twelve grams deliver to my home in kahlouniyeh tomorrow morning please\"]",
+    "[sends a location pin: home]",
+    "Name Sim, white building, second floor. What else can I add to reach the minimum? 2 more Picon Simply",
+    "[taps \"Cash on delivery\"]",
+    "I want it tomorrow morning, not in 30 minutes. Can you schedule it?",
+    "[taps \"Tomorrow 09:00-11:00\"]",
+    "[taps \"Confirm order\"]"
+   ],
+   "shop": [
+    [
+     "Your order is just under our minimum, so please add a few more items to reach it. To deliver to Kahlouniyeh, please share your location pin, and tell me the building, floor and the name of the person receiving the order."
+    ],
+    [
+     "Got your location in Kahlouniyeh, thanks. Your order is still under our minimum, so please add a few more items, and send the building, floor and the name of the person receiving it."
+    ],
+    [
+     "Added 2 more Picon Simply, so you're now above the minimum. How would you like to pay? [Cash on delivery | Whish | OMT]"
+    ],
+    [
+     "🛒 *Your order AK-1121*\n\n2 × Gold Medal Flour 1Kg\n$3.58\n4 × Picon Simply 8 Portions 112G\n$2.44\n\nDelivery (Kahlouniyeh): $1.50\nSmall-order fee: $0.50\n*Total: $8.02*\nor 718,000 LBP\n\n📍 Kahlouniyeh\nArrives in about 30 minutes\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "When would you like it? These are the times we can deliver: [Tomorrow 09:00-11:00 | Tomorrow 10:00-12:00]"
+    ],
+    [
+     "🛒 *Your order AK-1121*\n\n2 × Gold Medal Flour 1Kg\n$3.58\n4 × Picon Simply 8 Portions 112G\n$2.44\n\nDelivery (Kahlouniyeh): $1.50\nSmall-order fee: $0.50\n*Total: $8.02*\nor 718,000 LBP\n\n📍 Kahlouniyeh\nDelivery: Tomorrow 09:00-11:00\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "✅ Order AK-1121 confirmed\nDelivery Tomorrow 09:00-11:00."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Order ended with 4 Picon instead of the 2 requested: the shop took the customer's ambiguous 'What else can I add... 2 more Picon Simply' as an add-on, so the order total differs from the original ask",
+     "Customer asked what else could be added to reach the minimum, but the shop gave no suggestions or catalogue options",
+     "Location and address details asked again on turn 2 after the shop had already asked and the customer was about to provide them (minor repetition of the minimum message)",
+     "Customer asked for tomorrow morning in the first message but the first card showed 'in about 30 minutes', so the customer had to ask again for scheduling",
+     "Hard-failure flag: first lines over the length limit on turns 1 and 2"
+    ],
+    "summary": "The order was confirmed with the tomorrow 09:00-11:00 window the customer chose, but it contained 4 Picon instead of the original 2 (the customer's own ambiguous 'add 2 more' drove this), the shop ignored the requested time on the first card, and the early messages were long and repetitive."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-327",
+   "seed": 10326,
+   "category": "vague_items",
+   "variant": "size_missing",
+   "lang": "fr",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) Bonjour  (2) Je veux du labneh Liban Lait  (3) stp",
+    "Beiteddine, pres de la place du village",
+    "[sends a location pin: home]",
+    "L'immeuble blanc, 2eme etage",
+    "Ah ok, je veux 2 labneh alors",
+    "[taps \"900G\"]",
+    "[taps \"Confirmer\"]"
+   ],
+   "shop": [
+    [
+     "Labneh Liban Lait 450g noté. Dites-moi votre village et un repère pour la livraison.\nLiban Lait Labneh Baladieh 450G\n$3.00"
+    ],
+    [
+     "Beiteddine est bien desservi. Envoyez-moi votre position avec le bouton ci-dessous."
+    ],
+    [
+     "✅ Nous avons reçu votre position : Beiteddine\n\nPour le livreur, il nous faut juste :\n🏠 le nom de l'immeuble ou un repère proche\n🔢 l'étage"
+    ],
+    [
+     "Merci, c'est noté : L'immeuble blanc, 2ème étage, Beiteddine. Votre commande est en dessous du minimum de livraison, ajoutez encore des produits pour continuer. [Voir le catalogue]"
+    ],
+    [
+     "Quel format de labneh Liban Lait voulez-vous, 2 pièces ?\nLiban Lait Labneh Baladieh 450G\n$3.00\nLiban Lait Labneh Baladieh 900G\n$5.00 [450G | 900G]"
+    ],
+    [
+     "🛒 *Votre commande AK-1132*\n\n2 × Liban Lait Labneh Baladieh 900G\n$10.00\n\nLivraison (Beiteddine) : $1.50\n*Total : $11.50*\nou 1,029,000 LBP\n\n📍 Beiteddine, L'immeuble blanc, 2eme etage\nArrivée dans environ 30 minutes\n💵 Paiement : espèces à la livraison\n\nEn confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation. [Confirmer | Modifier | Annuler]"
+    ],
+    [
+     "✅ Commande AK-1132 confirmée\nNous la préparons maintenant."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "At turn 1 the shop picked the 450g size on its own instead of asking which size",
+     "Showed a product line/price as noted before the customer chose a size",
+     "Turn 4 message exceeded the line-length rule (160 chars)",
+     "Quantity question repeats '2 pièces' awkwardly"
+    ],
+    "summary": "The shop first assumed the 450g labneh without asking, then later offered the size choice, and the customer ended with the right 900G card and confirmed it, but the early auto-pick was a lapse."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-406",
+   "seed": 10405,
+   "category": "night",
+   "variant": "kept_order",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "night",
+   "customer": [
+    "hi, can I get 3 Tanmia Mortadelle Beef with Olives and 2 Dolsi Chips Cheezy Wizz 80g please",
+    "what's the minimum? and what if I add more items, can you keep the order till morning?",
+    "ok how much is the minimum? I'll add something",
+    "you didn't tell me the minimum amount. How much do I need to reach?",
+    "ok add 2 more Dolsi Chips Cheezy Wizz 80g, so 4 total",
+    "[sends a location pin: home]",
+    "the white building, second floor",
+    "[taps \"Confirm order\"]"
+   ],
+   "shop": [
+    [
+     "Your order is below our minimum, so please add more items. We're closed right now and open from 08:00 to 23:00."
+    ],
+    [
+     "Your order is below our minimum, so please add more items. I can't hold it until morning; we open at 08:00."
+    ],
+    [
+     "Your order is still below our minimum, so please add more items. We open at 08:00."
+    ],
+    [
+     "Your order is still below our minimum, and I can't state the amount here. Add more items and I'll check the total for you."
+    ],
+    [
+     "Please share your delivery pin."
+    ],
+    [
+     "✅ We got your location: Aatrine\n\nFor the rider, we just need:\n🏠 the building name or nearest landmark\n🔢 the floor"
+    ],
+    [
+     "🛒 *Your order AK-1015*\n\n3 × Tanmia Mortadelle Beef Aux Olives\n$2.22\n4 × Dolsi Chips Cheezy Wizz 80G\n$3.52\n\nDelivery (Aatrine): $1.50\nSmall-order fee: $0.50\n*Total: $7.74*\nor 693,000 LBP\n\n📍 Aatrine, the white building, second floor\nArrives in about 30 minutes\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "✅ Order AK-1015 confirmed\nWe're preparing it now."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Chips quantity changed from 2 to 4 and charged: the customer's 'add 2 more' was taken as 4 total",
+     "Said it cannot hold the order until morning, while the basket was in fact kept and carried into the morning",
+     "Never stated the minimum amount, and said it 'can't state the amount' (nonsensical dead end)",
+     "Called the order below the minimum when the basket already met the minimum, then asked for more items for several turns",
+     "Hard failure: message rules (line length) at turn 4"
+    ],
+    "summary": "The shop forced the customer to add items by repeatedly claiming a minimum it would not state, wrongly told them it couldn't hold the order, and the final confirmed order contains 4 chips instead of the original 2."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-213",
+   "seed": 10212,
+   "category": "vague_items",
+   "variant": "generic_word",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي قهوة مطحونة لو سمحت",
+    "يعطيك العافية، شو الحد الأدنى للتوصيل؟ وبدي ياه لكفرحيم",
+    "تمام، بس شو الحد الأدنى للطلب؟ ما بدي شي تاني غير القهوة، فيك تبعتلي ياها هيك؟",
+    "[taps \"قهوة تانية\"]",
+    "[taps \"أيوا، مرتين\"]",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "أهلين! طلبك أقل من الحد الأدنى للتوصيل، بدك تضيف أشي تاني؟\nNajjar Cafe Classic Normal 180G\n$3.25"
+    ],
+    [
+     "✅ إيه منوصّل على كفرحيم.\n🛵 التوصيل: $1.50\nوبياخد عادةً حوالي 30 دقيقة."
+    ],
+    [
+     "الحد الأدنى للتوصيل أعلى من سعر القهوة لحالها، فما بقدر ابعتها وحدها. بدك تضيف شي تاني للطلب؟ [شو عندكن؟ | قهوة تانية]"
+    ],
+    [
+     "تمام، يعني بدك قهوة نجار مرتين؟ [أيوا، مرتين | لا، وحدة بس]"
+    ],
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ وصلنا موقعك: كفرحيم\n\nكرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق"
+    ],
+    [
+     "🛒 *طلبك AK-1084*\n\n2 × Najjar Cafe Classic Normal 180G\n$6.50\n\nالتوصيل (كفرحيم): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $8.50*\nأو 761,000 ل.ل\n\n📍 كفرحيم، البناية البيضا، الطابق التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1084\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Shop picked Najjar Cafe for the customer without asking which one or offering choices",
+     "Customer ended with 2 coffees ordered though they wanted one; the shop read 'another coffee' as a second Najjar",
+     "Never gave the minimum delivery amount, so the customer's question went unanswered",
+     "The customer never chose a product, and quantity 2 was not what they asked for",
+     "Customer asked for the minimum order twice before getting an unclear answer"
+    ],
+    "summary": "The shop silently put a specific coffee on the order from a vague request, then doubled the quantity, so the customer confirmed 2 coffees instead of choosing one product and quantity."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-357",
+   "seed": 10356,
+   "category": "plain_order",
+   "variant": "one_item",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، كيفك؟ شو الأخبار؟",
+    "بدي 3 قناني سفن أب 2.25 ليتر لو سمحت",
+    "كم الحد الأدنى؟ وشو بتنصحني ضيف؟",
+    "[taps \"وريني الكتالوج\"]",
+    "ماشي، ضيفلي كمان 3 قناني سفن أب 2.25 ليتر، يعني 6 كلهن",
+    "[sends a location pin: home]",
+    "[taps \"كاش عند التسليم\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "تمام، الطلب أقل من الحد الأدنى للتوصيل، فضيف شي تاني عليه؟"
+    ],
+    [
+     "الطلب الحالي تحت الحد الأدنى للتوصيل، فينك تضيف شي تاني عليه. ما بقدر إنصحك بمنتج معين، بس بقدر وريك الكتالوج مع الصور وتختار إنت شو بدك. [وريني الكتالوج]"
+    ],
+    [
+     "الكتالوج مش جاهز هلق، بس اكتبلي شو بدك تضيف على الطلب وأنا بشوفلك إذا متوفر وبحسبلك."
+    ],
+    [
+     "تمام، صار 6 قناني. لوين التوصيل؟"
+    ],
+    [
+     "تمام، التوصيل لبتلون متوفر. كيف بدك تدفع؟\n7Up Carbonated Soft Drink 2.25L\n$1.65 [كاش عند التسليم | Whish | OMT]"
+    ],
+    [
+     "🛒 *طلبك AK-1145*\n\n6 × 7Up Carbonated Soft Drink 2.25L\n$9.90\n\nالتوصيل (بتلون): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $11.90*\nأو 1,065,000 ل.ل\n\n📍 بتلون\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1145\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Order card has 6 bottles instead of the 3 the customer wanted",
+     "Customer misled into doubling the quantity to satisfy a minimum the shop never stated",
+     "Customer asked the minimum amount twice and never got a number",
+     "Offered a catalogue button, then said the catalogue is not ready",
+     "Repeated the below-minimum message without answering"
+    ],
+    "summary": "The customer wanted 3 bottles of 7Up, but the shop pushed the order below an unstated minimum and ended up confirming 6 bottles, double the intended quantity, so the goal was not met."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-057",
+   "seed": 10056,
+   "category": "edit_after_card",
+   "variant": "swap_item",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonsoir, je veux 1 Kiri Cream Cheese 12 portions 200g et 1 crème fouettée President UHT 35.1% 20ml svp",
+    "[taps \"Oui, cette crème\"]",
+    "Je veux remplacer le Kiri par Abu Rashed Indian Basmati Rice 4Kg svp",
+    "[sends a location pin: home]",
+    "L'immeuble blanc, deuxième étage",
+    "Attendez, il manque la crème President, je veux le riz Abu Rashed ET la crème fouettée svp",
+    "[taps \"Président fouettée\"]",
+    "[taps \"Cash à la livraison\"]",
+    "[taps \"Confirmer\"]"
+   ],
+   "shop": [
+    [
+     "Merci ! Est-ce bien cette crème ?\nPresident Uht Whipping Cream 35.1% Fat 20Mml\n$1.14\nKiri Cream Cheese 12 Portions 200G\n$2.97 [Oui, cette crème | Non, autre crème]"
+    ],
+    [
+     "Il manque encore quelques articles pour le minimum. Voulez-vous en ajouter ? [Ajouter des articles | Retrait sur place]"
+    ],
+    [
+     "✅ Votre commande est prête.\n📍 Envoyez-nous votre position avec le bouton ci-dessous\net nous vous enverrons le bon de commande."
+    ],
+    [
+     "✅ Nous avons reçu votre position : Maasser Beiteddine\n\nPour le livreur, il nous faut juste :\n🏠 le nom de l'immeuble ou un repère proche\n🔢 l'étage"
+    ],
+    [
+     "🛒 *Votre commande AK-1013*\n\n1 × Abu Rashed Indian Basmati Rice 4Kg\n$8.67\n\nLivraison (Maasser Beiteddine) : $1.50\nFrais petite commande : $0.50\n*Total : $10.67*\nou 955,000 LBP\n\n📍 Maasser Beiteddine, L'immeuble blanc, deuxième étage\nArrivée dans environ 30 minutes\n💵 Paiement : espèces à la livraison\n\nEn confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation. [Confirmer | Modifier | Annuler]"
+    ],
+    [
+     "Je note le riz Abu Rashed 4Kg. Pour la crème fouettée, est-ce la President (whipping cream) ou la Puck (cooking cream) ?\nAbu Rashed Indian Basmati Rice 4Kg\n$8.67\nPresident Uht Whipping Cream 35.1% Fat 20Mml\n$1.14\nPuck Cooking Cream 500Ml\n$3.34 [Président fouettée | Puck cooking | Pas de crème]"
+    ],
+    [
+     "Parfait, la crème President Whipping Cream est ajoutée avec le riz Abu Rashed 4Kg. Comment souhaitez-vous payer ?\nAbu Rashed Indian Basmati Rice 4Kg\n$8.67\nPresident Uht Whipping Cream 35.1% Fat 20Mml\n$1.14 [Cash à la livraison | Whish | OMT]"
+    ],
+    [
+     "🛒 *Votre commande AK-1015*\n\n1 × Abu Rashed Indian Basmati Rice 4Kg\n$8.67\n1 × President Uht Whipping Cream 35.1% Fat 20Mml\n$1.14\n\nLivraison (Maasser Beiteddine) : $1.50\nFrais petite commande : $0.50\n*Total : $11.81*\nou 1,057,000 LBP\n\n📍 Maasser Beiteddine, L'immeuble blanc, deuxième étage\nArrivée dans environ 30 minutes\n💵 Paiement : espèces à la livraison\n\nEn confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation. [Confirmer | Modifier | Annuler]"
+    ],
+    [
+     "✅ Commande AK-1015 confirmée\nNous la préparons maintenant."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "First card AK-1013 dropped the President cream that the customer had chosen",
+     "Customer had to re-add the cream after the swap",
+     "Asked president vs puck again after the customer already confirmed the President",
+     "Pre-card question about location/payment flow inserted before the replacement was handled",
+     "Kiri swap handled by silently removing instead of confirming the basket"
+    ],
+    "summary": "The final order AK-1015 correctly held rice plus President cream at $11.81 and the customer confirmed by tap, but the first card wrongly lost the cream and the customer had to repeat the request."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-130",
+   "seed": 10129,
+   "category": "edit_after_card",
+   "variant": "add_item",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "salam, baddi 1 kilo bedinjen w 1 foody's crispy chicken strips 500g, merci",
+    "[sends a location pin: home]",
+    "3ala esm Sim, el binaye el bayda, el tabi2 el tene",
+    "[taps \"Cash 3 el tawsil\"]",
+    "[taps \"لا، تمام\"]",
+    "wait 2abl ma confirm, zid 1 Nescafe Instant Coffee Gold Pouch 100g",
+    "[taps \"Eh, ḍifa\"]",
+    "[taps \"أكد الطلب\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "شو القرية والمعلم لتوصيل الطلب؟\nباذنجان\n$0.51\nFoody's Frozen Crispy Chicken Strips 500G\n$5.02"
+    ],
+    [
+     "وصلتني اللوكيشن، شكراً. شو المعلم أو البناية والطابق، وعلى اسم مين؟"
+    ],
+    [
+     "Tamam, wselet el tafsil: el binaye el bayda, el tabi2 el tene, 3ala esm Sim. Kif bdak tdfa3? [Cash 3 el tawsil | Whish | OMT]"
+    ],
+    [
+     "تمام، الدفع cash عند التوصيل. بدك تضيف شي ملاحظة لعند السواق؟ [لا، تمام]"
+    ],
+    [
+     "🛒 *طلبك AK-1050*\n\n1 × باذنجان\n$0.51\n1 × Foody's Frozen Crispy Chicken Strips 500G\n$5.02\n\nالتوصيل (غريفة): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $7.53*\nأو 674,000 ل.ل\n\n📍 غريفة\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "Lqeet Nescafe Instant Coffee Gold 100g, mt2ker bel se3er. Bedde ḍifa 1 ala talab AK-1050 abl ma tekkad?\nNescafe Instant Coffee Gold Pouch 100G\n$4.37 [Eh, ḍifa | La, khalas]"
+    ],
+    [
+     "تمام، ضفت Nescafe Instant Coffee Gold 100g على الطلب AK-1050. بدك تكمل وتأكد الطلب؟ [أكد الطلب | لا، إلغاء الإضافة]"
+    ],
+    [
+     "تمام، اضغط تأكيد على بطاقة الطلب AK-1050 اللي فوق لتثبيته."
+    ],
+    [
+     "✅ تأكد طلبك AK-1050\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "Nescafe was claimed added to AK-1050 but the confirmed order lacks it",
+     "No new corrected card with updated total was sent after the add",
+     "Customer confirmed the old card with total $7.53 and no coffee",
+     "Replies mostly in Arabic script or stiff dialect, not Arabizi like the customer",
+     "Asked for 1 kilo eggplant but only 1 unit was ordered, never clarified"
+    ],
+    "summary": "The shop said it added the Nescafe, but no corrected card was issued and the customer confirmed the old card, so the order lacks the coffee while the customer believes it was added."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-356",
+   "seed": 10355,
+   "category": "not_sold",
+   "variant": "alcohol",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي ٦ بيرة (سيكس باك) لو سمحت",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "لا هيدا مش بيرة! هيدا كريما طبخ. بدي سيكس باك بيرة",
+    "[taps \"إي، عدّل\"]",
+    "ورجيني ورقة الطلب أول، شو السعر والمنتج؟",
+    "يعني ما عندكن بيرة؟ فيكن تجيبوها هيك هيك؟",
+    "[taps \"لا، شكراً\"]",
+    "تمام، مرسي، يعطيكن العافية"
+   ],
+   "shop": [
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "✅ وصلنا موقعك: بشتفين\n\nكرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق"
+    ],
+    [
+     "🛒 *طلبك AK-1143*\n\n6 × Puck Cooking Cream 500Ml\n$20.04\n\nالتوصيل (بشتفين): $1.50\n*المجموع: $21.54*\nأو 1,928,000 ل.ل\n\n📍 بشتفين، البناية البيضا، الطابق التاني\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "آسف على الغلط. بدك نعدّل الطلب لسيكس باك بيرة؟ [إي، عدّل | لا]"
+    ],
+    [
+     "تمام، عدّلنا الطلب لسيكس باك بيرة بدل الكريما. بدك تأكد الطلب؟ [تأكيد | إلغاء]"
+    ],
+    [
+     "ما لقيت سيكس باك بيرة بالكتالوج، والنتيجة الوحيدة كانت كريما طبخ، فما رح أعرض ورقة طلب بيرة. بدك أوريك قسم المشروبات تختار منه؟ [وريني المشروبات | خليها كريما طبخ]"
+    ],
+    [
+     "ما لقيت بيرة بالكتالوج لهلق. بدك أوريك قسم المشروبات تشوف شو متوفر؟ [أيوا، وريني المشروبا | لا، شكراً]"
+    ],
+    [
+     "تمام، ولا يهمك. إذا بدك تطلب شي تاني، ابعتلنا وقتما بدك."
+    ],
+    [
+     "الله يعطيك العافية! إذا بدك تطلب شي تاني، ابعتلنا وقتما بدك."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Order card for 6 x cooking cream sent in response to a beer request",
+     "First reply said 'طلبك جاهز' before any product was found",
+     "Never said plainly that it does not sell alcohol; only 'not found in catalogue' and offered the drinks section",
+     "Wrongly said it had adjusted the order to a beer six-pack, then contradicted itself",
+     "Order AK-1143 left awaiting confirmation with the unwanted cream"
+    ],
+    "summary": "The shop mapped a beer request to cooking cream, collected a location and sent a cream order card, then muddled through a false edit confirmation before admitting it found no beer; it never stated clearly that it does not sell alcohol, though the customer ended politely without confirming."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-389",
+   "seed": 10388,
+   "category": "vague_items",
+   "variant": "generic_word",
+   "lang": "en",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "hey, how are you? i need trash bags please",
+    "ah ok, i'm in Baakline. what's the minimum order?",
+    "[taps \"Show catalog\"]",
+    "ok can u add 2 more of the same trash bags then? and what's the minimum",
+    "what's the minimum amount? how much do i need to reach",
+    "ok add 10 more trash bags then, so 13 total",
+    "[taps \"Cash on delivery\"]",
+    "[sends a location pin: home]",
+    "[taps \"Confirm order\"]"
+   ],
+   "shop": [
+    [
+     "Vimax Trash Bags Medium Black (30 pieces) is in stock. Your order is below our minimum, so please add more items, and tell me your village for delivery.\nVimax Trash Bags Medium Black 30 Pieces\n$1.20"
+    ],
+    [
+     "We deliver to Baakline. Your basket is below the minimum, so add more items. [Show catalog]"
+    ],
+    [
+     "The catalog isn't ready to browse yet. Tell me what you need in words, and I'll check it for you."
+    ],
+    [
+     "Sure, 3 trash bags. Your basket is still below our minimum, so what else would you like to add?"
+    ],
+    [
+     "The minimum order for Baakline is not reached yet. Your 3 trash bags are below it, so tell me what else you'd like to add and I'll check the new total."
+    ],
+    [
+     "Your basket now has 13 trash bags. How would you like to pay? [Cash on delivery | Whish | OMT]"
+    ],
+    [
+     "Cash on delivery noted. Please share your delivery location pin to continue."
+    ],
+    [
+     "🛒 *Your order AK-1167*\n\n13 × Vimax Trash Bags Medium Black 30 Pieces\n$15.60\n\nDelivery (Baakline): $1.00\n*Total: $16.60*\nor 1,486,000 LBP\n\n📍 Baakline\nArrives in about 20 minutes\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "✅ Order AK-1167 confirmed\nWe're preparing it now."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Put a specific product on the basket at turn 1 without asking which trash bags",
+     "Never offered choices for the vague generic word",
+     "Never stated the actual minimum order amount despite being asked three times",
+     "Catalog button led to a not-ready message"
+    ],
+    "summary": "The shop skipped the which-one question and auto-picked Vimax trash bags, never gave the minimum amount, but the customer still confirmed a correct-looking order card, so the scenario's no-uninvited-product success condition was not met."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-449",
+   "seed": 10448,
+   "category": "window",
+   "variant": "named_day",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Marhaba, kifkon? shu el akhbar, ca va?",
+    "Yslamo! baddi President Uht Whipping Cream 35.1% 20Mml w Deroni Sugar 5Kg, wa7de men kel wa7de. Bas baddon yousal yom el sabet, mesh halla2",
+    "[sends a location pin: home]",
+    "La merci, bas hayda l talab la7alo. Ma fi minimum la hal mante2a? Baddo yousal sabet.",
+    "Aaah ok. Shu el minimum bel dabet? W eza zedet shi sghir, bte2dro twasloh sabet?",
+    "[taps \"Zid ashyaa\"]",
+    "Zid 2 kis chips Lay's w 1 kilo roz. Fi?",
+    "[taps \"إيه، كمّل\"]",
+    "Tamem, w yom el sabet sar? Wen el order card?"
+   ],
+   "shop": [
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "وين بدك نوصّل الطلب؟"
+    ],
+    [
+     "وصلنا موقعك، بنوصّل لدير دوريت. الطلب أقل من الحد الأدنى، بدك تضيف أغراض؟ [أضيف أغراض | شو عندكن؟]"
+    ],
+    [
+     "Fi hadd adna la talabak bi hal mante2a, w talabak ba3d 2a2al minnon. Bi2dar tzid shi ashyaa 3a talabak?"
+    ],
+    [
+     "طلبك لسا أقل من الحد الأدنى، وما عندي وقت توصيل مضمون ليوم السبت. بدك تزيد شي صغير لتوصل الطلب؟ [Zid ashyaa | Ba3d ma fi]"
+    ],
+    [
+     "تمام، شو بدك تزيد؟ اكتبلي الأغراض وكمياتها، أو بعتلك الكتالوج لتختار منه. [بعتلي الكتالوج]"
+    ],
+    [
+     "تمام، ضفت 2 كيس شيبس Lay's و1 كيلو رز. بدك تكمل الطلب هيك؟ [إيه، كمّل | زيد أغراض]"
+    ],
+    [
+     "تمام، عم جهّز الطلب مع الشيبس والرز."
+    ],
+    [
+     "ما عندك طلب مفتوح هلّق. شو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "No order card ever arrived; the order was lost at the end",
+     "Added chips and rice the customer did not choose; the shop 'added' items it never confirmed from the catalogue",
+     "Asked for the delivery location again after the customer had said it was home in Deir Dourit",
+     "Contradicted itself about the minimum, with no figure given and no Saturday window offered",
+     "Replied in Arabic script to an Arabizi customer, and the replies were stiff"
+    ],
+    "summary": "The customer never got an order card or a Saturday delivery window; the shop pushed extra items, claimed to be preparing the order, then said no open order existed, leaving the customer stranded."
+   },
+   "expect": "no judge_wrong_product"
+  },
+  {
+   "id": "sim-059",
+   "seed": 10058,
+   "category": "edit_after_card",
+   "variant": "remove_item",
+   "lang": "ar",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا بدي صابونه دوڤ اوريجينال اممم بيوتي كريم بار تسعين غرام وعلبتين شاي ليبتون يلو ليبل خمسه وعشرين كيس وبدي ياهن ديليفري عبيت\"]",
+    "[taps \"نفس الصابونة\"]",
+    "أنا طلبت علبتين شاي ليبتون، وبيت الدين",
+    "[taps \"ليبتون 25 كيس\"]",
+    "[sends a location pin: home]",
+    "ما بدي ضيف شي، علبتين الشاي والصابونة بس. ابعتلي الكرت",
+    "كم الحد الأدنى؟ وشو بدي ضيف؟ خلصني بسرعة أنا بالاستراحة",
+    "[taps \"أبعتلي الكتالوج\"]",
+    "طيب ضيفلي علبة ليبتون 100 كيس كمان وخلصنا",
+    "كم ناقصني للحد الأدنى؟ قلي رقم وخلصنا"
+   ],
+   "shop": [
+    [
+     "تمام، بيوتي كريم بار هي نفس صابونة الدوڤ ولا وحدة تانية؟\nLipton Yellow Label Black Tea 25 Bags\n$0.73 [نفس الصابونة | وحدة تانية]"
+    ],
+    [
+     "تمام، صابونة دوڤ بيوتي كريم بار ٩٠ غرام. الطلب هلق تحت الحد الأدنى، ضيف عليه شي (مثلاً علبتين شاي ليبتون)، وشو القرية والمعلم عشان نوصّلك؟\nDove Original Beauty Cream Bar 90G\n$1.17"
+    ],
+    [
+     "أي علبة ليبتون بدك؟ والصنف التاني ما لقيته عنّا، شو بدك تضيف مكانه؟\nLipton Yellow Label Black Tea 25 Bags\n$0.73\nLipton Yellow Label Tea 100 Teabags\n$2.37 [ليبتون 25 كيس | ليبتون 100 كيس]"
+    ],
+    [
+     "تمام، ليبتون 25 كيس. شو القرية والمعلم عشان نوصّلك؟"
+    ],
+    [
+     "تمام، استلمنا العنوان. الطلب تحت الحد الأدنى، شو بدك تضيف عليه؟"
+    ],
+    [
+     "ما بقدر ابعت الكرت هلق، لأنّ الطلب لسا تحت الحد الأدنى للتوصيل. شو بدك تضيف عليه لنكمّل؟"
+    ],
+    [
+     "الطلب لسا تحت الحد الأدنى للتوصيل. شو بدك تضيف عليه؟ [أبعتلي الكتالوج]"
+    ],
+    [
+     "الكتالوج مش جاهز هلق. شو بدك تطلب؟"
+    ],
+    [
+     "تمام، سجّلت علبة ليبتون 100 كيس. الطلب لسا تحت الحد الأدنى للتوصيل، شو بدك تضيف عليه؟"
+    ],
+    [
+     "الطلب لسا تحت الحد الأدنى للتوصيل. شو بدك تضيف عليه؟"
+    ]
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "no order card ever arrived",
+     "never stated the minimum order amount or shortfall when asked twice",
+     "added a Lipton 100 teabags item the customer did not choose in the basket",
+     "repeated the same 'what do you want to add' question in a loop",
+     "catalogue button offered but catalogue not ready; ignored the quantity of 2 teas"
+    ],
+    "summary": "The customer never got an order card: the assistant looped on 'below minimum' without ever giving the minimum or shortfall, and the basket drifted with an extra 100-teabag Lipton and unclear quantities, leaving the customer stranded."
+   },
+   "expect": "no judge_wrong_product"
+  }
+ ]
+}
