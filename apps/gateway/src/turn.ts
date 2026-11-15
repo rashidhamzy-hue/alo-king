@@ -5,6 +5,7 @@ import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
 import { alertOps, handleSubstitutionButton, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
+import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
 import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
@@ -134,7 +135,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
-  const model = withCapacityFallback(deps.model, { ...deps.capacity, onFirstFailure: async () => {
+  // OPS1 (0140): inside the capacity wrapper, so the first thing to see a provider error is the one that knows an account refusal
+  // (usage limit, billing, key) from a bug of ours. It raises the high-priority model_account exception; a limit is not retried.
+  const model = withCapacityFallback(withAccountAlarm(deps.model, accountReport(db)), { ...deps.capacity, onFirstFailure: async () => {
     const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: T().fixed.oneMoment } },
                                 category: "service", dedupeKey: `${turnKey}:wait` });
     if (r.ok) sent.push(T().fixed.oneMoment);
@@ -544,18 +547,22 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
     // HO1: a technical failure is not a hand-off. Nothing sent yet: the turn is queued again once, a minute later. The second
     // failure gets the fixed technical line (Browse, Talk to a person) and an ops exception; the chat stays with the bot.
+    // OPS1: a refusal for an account reason (usage limit, billing, key) is the same kind of failure, but a limit does not clear in a minute,
+    // so it is not retried: the customer gets the technical line at once. The high-priority model_account exception is already open
+    // (the model wrapper raised it); the technical exception below carries which reason it was, so each chat that met it is findable.
+    const account = err instanceof ModelAccountRefused ? err : null;
     const capacity = err instanceof ModelUnavailable;
     const cause = capacity ? String((err as ModelUnavailable).cause) : String(err);
-    if (ctx.sent.count === 0 && state.technicalRetry !== turnKey) {
+    if (!account && ctx.sent.count === 0 && state.technicalRetry !== turnKey) {
       state.technicalRetry = turnKey;
       throw new RetryTurnLater(TECHNICAL_RETRY_MS, err);
     }
     state.technicalRetry = null;
     await db.rpc("raise_ops_exception", { p_kind: "technical", p_ref: turnKey,
-      p_detail: { conversation_id: conv.conversation_id, where: capacity ? "model_capacity" : "agent_error", error: cause.slice(0, 300) } });
+      p_detail: { conversation_id: conv.conversation_id, where: account ? `model_account:${account.reason}` : capacity ? "model_capacity" : "agent_error", error: cause.slice(0, 300) } });
     if (ctx.sent.count === 0 && (await sendRaw(supportMessage(state.lang, "technical"))).ok) sent.push(T().support.technical);
     sent.push(...ctx.sent.texts.splice(0));
-    await record("technical", capacity ? "model_capacity" : "agent_error").then(() => undefined, () => undefined);
+    await record("technical", account ? `model_account:${account.reason}` : capacity ? "model_capacity" : "agent_error").then(() => undefined, () => undefined);
     return { outcome: "technical", sent };
   }
 }
@@ -565,6 +572,11 @@ async function call<T = unknown>(db: SupabaseClient, fn: string, args: Record<st
   if (error) throw new Error(`${fn}: ${error.message}`);
   return data as T;
 }
+/** What the account alarm does when the provider refuses: raise (or count on) the one open model_account exception for that reason. */
+export const accountReport = (db: SupabaseClient) => async (reason: "usage_limit" | "billing" | "invalid_key", message: string) => {
+  const r = await db.rpc("raise_model_account", { p_reason: reason, p_detail: { message } });
+  if (r.error) console.error("raise_model_account", r.error.message);
+};
 
 
 /** SHA-256 of an outbound message, first 16 hex characters. Same message, same hash, in every attempt of a turn. */

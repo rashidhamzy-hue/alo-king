@@ -10,6 +10,9 @@ expect() { local what=$1 want=$2 got=$3; echo "$what -> $got (want $want)"; [ "$
 
 for i in $(seq 1 12); do code=$(curl -sS -o /dev/null -w '%{http_code}' "$u/health" || true); [ "$code" = "200" ] && break; sleep 5; done
 expect "GET /health" 200 "$code"
+# OPS1: the console reaches Sentry. A check-in to its own monitor (deploy-smoke-console-staging), never an error: no issue is opened.
+sent=$(curl -sS "$u/__sentry-test" || true); echo "Sentry proof -> $sent (want: sent <id> flushed=true)"
+case "$sent" in "sent "*"flushed=true") ;; *) echo "FAIL: the console did not get a check-in to Sentry"; exit 1 ;; esac
 expect "GET / signed out" "303 $u/sign-in" "$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "$u/")"
 expect "GET /sign-in" 200 "$(curl -sS -o /dev/null -w '%{http_code}' "$u/sign-in")"
 expect "cross-site POST" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -d 'email=a&password=b' "$u/sign-in")"

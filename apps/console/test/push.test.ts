@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { alertFor, encryptPayload, fromB64u, isPushEndpoint, pushNewExceptions, vapidHeader, type PushEnv } from "../src/push";
+import { alertFor, encryptPayload, fromB64u, isPushEndpoint, pushNewExceptions, pushTestAlert, vapidHeader, type PushEnv } from "../src/push";
 import { PUSH_CRON } from "../src/worker";
 import { rig, type Rig } from "./kit";
 
@@ -173,6 +173,44 @@ describe("push: the alert", () => {
     await raise("rider_off", "rider-1:1", {});
     const third = capture(); expect(await pushNewExceptions(r.deps.db, keys, new Date(), third.f)).toMatchObject({ claimed: 1, sent: 2 });
     expect(Number((await r.db.one(`select count(*) as n from exception_pushes`)).n)).toBe(2);
+  });
+
+  it("OPS1: an account refusal from the model provider is pushed at once, says which, and is repeated no more often than every 30 minutes while it is open", async () => {
+    await reset();
+    const m = await lead(); const s1 = await subscriber(); await subscribe(m.b, s1);
+    await r.db.rpc("raise_model_account", { p_reason: "usage_limit", p_detail: { message: "You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC." } });
+    const first = capture();
+    expect(await pushNewExceptions(r.deps.db, keys, new Date(), first.f)).toMatchObject({ claimed: 1, sent: 1 });
+    const p = JSON.parse(await s1.open(first.sent[0]!.body));
+    expect(p).toMatchObject({ body: "The AI provider refused calls: usage limit", url: "/exceptions", urgent: true });
+    expect(await pushNewExceptions(r.deps.db, keys, new Date(), capture().f)).toMatchObject({ claimed: 0 });           // the next run: nothing
+    await r.db.pg.query(`update exception_pushes set last_pushed_at = now() - interval '29 minutes'`);
+    expect(await pushNewExceptions(r.deps.db, keys, new Date(), capture().f)).toMatchObject({ claimed: 0 });
+    await r.db.pg.query(`update exception_pushes set last_pushed_at = now() - interval '31 minutes'`);
+    const again = capture();
+    expect(await pushNewExceptions(r.deps.db, keys, new Date(), again.f)).toMatchObject({ claimed: 1, sent: 1 });
+    expect(JSON.parse(await s1.open(again.sent[0]!.body)).tag).toBe(p.tag);                                           // same tag: it replaces the old one and buzzes
+    // acknowledged by a person: quiet
+    await r.db.pg.exec(`update exception_pushes set last_pushed_at = now() - interval '90 minutes'; update ops_exceptions set status = 'acknowledged' where kind = 'model_account'`);
+    expect(await pushNewExceptions(r.deps.db, keys, new Date(), capture().f)).toMatchObject({ claimed: 0 });
+  });
+
+  it("OPS1: the test alert goes to the caller's own phones only, claims no exception, and a dead phone is dropped", async () => {
+    await reset();
+    const mine = await lead(); const other = await lead();
+    const s1 = await subscriber(), s2 = await subscriber(), theirs = await subscriber();
+    await subscribe(mine.b, s1); await subscribe(mine.b, s2); await subscribe(other.b, theirs);
+    await raise("allergen_complaint", "case-9", {});                    // an open exception: the test alert must not claim it
+    const cap = capture();
+    const out = await pushTestAlert(r.deps.db, keys, mine.partyId, new Date(), cap.f);
+    expect(out).toEqual({ subscribers: 2, sent: 2 });
+    expect(cap.sent.map((x) => x.url).sort()).toEqual([s1.endpoint, s2.endpoint].sort());
+    expect(JSON.parse(await s1.open(cap.sent.find((x) => x.url === s1.endpoint)!.body))).toMatchObject({ body: expect.stringContaining("test alert"), url: "/more" });
+    expect(Number((await r.db.one(`select count(*) as n from exception_pushes`)).n)).toBe(0);
+    const gone = capture(410);
+    expect(await pushTestAlert(r.deps.db, keys, mine.partyId, new Date(), gone.f)).toEqual({ subscribers: 2, sent: 0 });
+    expect(Number((await r.db.one(`select count(*) as n from push_subscriptions where party_id = $1`, [mine.partyId])).n)).toBe(0);   // both endpoints answered "gone"
+    expect(await pushTestAlert(r.deps.db, {}, mine.partyId, new Date(), cap.f)).toEqual({ subscribers: 0, sent: 0 });                  // no keys: nothing sent
   });
 
   it("leaves the WhatsApp ops alert exactly as it was: the exception is still due its message after the push", async () => {

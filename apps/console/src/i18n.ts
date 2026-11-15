@@ -53,6 +53,10 @@ const D = {
   push_on: { en: "Alerts are on for this phone.", ar: "التنبيهات مفعّلة على هذا الهاتف." },
   push_denied: { en: "This browser blocked alerts. Allow them in the browser's site settings, then try again.", ar: "حجب المتصفح التنبيهات. اسمح بها من إعدادات الموقع في المتصفح ثم حاول مرة أخرى." },
   push_unsupported: { en: "This browser cannot show alerts here. On iPhone, add the console to the Home Screen first.", ar: "هذا المتصفح لا يعرض التنبيهات هنا. على آيفون أضف اللوحة إلى الشاشة الرئيسية أولاً." },
+  push_test: { en: "Send me a test alert", ar: "أرسل لي تنبيهاً تجريبياً" },
+  push_test_note: { en: "Sends one alert to your phones that have alerts switched on, so you know it works before it matters.", ar: "يرسل تنبيهاً واحداً إلى هواتفك المفعّلة، لتتأكد أنه يعمل قبل أن تحتاجه." },
+  push_test_sent: { en: "Test alert sent to {n} phone(s). If nothing shows, check the phone's notification settings.", ar: "أُرسل تنبيه تجريبي إلى {n} هاتف. إن لم يظهر شيء فتحقق من إعدادات الإشعارات في الهاتف." },
+  push_test_none: { en: "You have no phone with alerts switched on yet. Switch them on above, on the phone itself, then try again.", ar: "ليس لديك هاتف مفعّل للتنبيهات بعد. فعّلها أعلاه من الهاتف نفسه ثم أعد المحاولة." },
   push_not_configured: { en: "Alerts are not set up on the server yet (the VAPID keys are missing).", ar: "لم تُهيّأ التنبيهات على الخادم بعد (مفاتيح VAPID غير موجودة)." },
   push_leads_only: { en: "Alerts are for the ops lead and the admin.", ar: "التنبيهات لمسؤول العمليات والمدير." },
   push_saved: { en: "Alerts are on for this phone.", ar: "تم تفعيل التنبيهات على هذا الهاتف." },
@@ -114,7 +118,7 @@ export const NAV_AR: Record<string, string> = {
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
   "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المركز", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات",
-  "/riders": "المناديب والنقد", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم",
+  "/riders": "المناديب والنقد", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل",
 };
 
 /** Inline pair for a short string that belongs to one page (a table heading, a status word). The long, shared ones are in the dictionary above. */

@@ -38,6 +38,8 @@ export interface Deps {
   labelModel?: string;
   /** The VAPID public key (a Worker secret's public half) when web push is set up; absent, the alerts switch says so. */
   pushPublicKey?: string;
+  /** OPS1: one test alert to this staff member's own phones. Present when web push is set up. */
+  pushTest?: (partyId: string) => Promise<{ subscribers: number; sent: number }>;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
@@ -108,6 +110,9 @@ export function explain(e: unknown): string {
       [/^NOT_ENOUGH_CASH hub_cash/, "The drawer does not hold that much by the books. Count it, and check what came in today."],
       [/^NOT_ENOUGH_CASH bank/, "The bank does not hold that much by the books."],
       [/^NAME_REQUIRED/, "Write the name."],
+      [/^CANNOT_CHANGE_SELF/, "You cannot change or block your own account. Ask another admin."],
+      [/^UNKNOWN_ROLE/, "Pick admin, ops lead or picker."],
+      [/^NOT_STAFF/, "That person is not a staff member."],
       [/^EXPIRY_REQUIRED (.*) is/, "Chilled, frozen and fresh goods need their expiry date."],
       [/^COST_REQUIRED/, "Type the unit cost of every line."],
       [/^UNKNOWN_CATEGORY/, "Pick a category from the list."],
@@ -350,7 +355,7 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
 
   // ----- signed-out routes -----
   if (path === "/sign-in" && method === "GET") return signInPage(deps, url.searchParams.get("e") === "1", lang);
-  if (path === "/sign-in" && method === "POST") return signIn(deps, form);
+  if (path === "/sign-in" && method === "POST") return signIn(deps, form, req.headers.get("cf-connecting-ip"));
   if (path === "/auth/callback" && method === "GET") {
     return plain(deps, "Signing in", html`<p id="msg">One moment…</p><form id="cb" method="post" action="/auth/callback">
 <input type="hidden" name="access_token"><input type="hidden" name="type"><noscript>This page needs JavaScript to read the link.</noscript></form>
@@ -422,10 +427,28 @@ function signInPage(deps: Deps, failed: boolean, lang: Lang = "en"): Response {
   failed ? { err: "Email or password is wrong, or this account has no console access." } : null, lang);
 }
 
-async function signIn(deps: Deps, form: Record<string, string>): Promise<Response> {
+/** 0141: failures are counted per email and per address, as keyed hashes (nothing readable is stored). A database without 0141 yet is not throttled. */
+async function throttleKeys(deps: Deps, email: string, ip: string | null): Promise<string[]> {
+  const hex = async (label: string, v: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(await hmac(deps.secret, `${label}:${v}`))))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return [`e:${await hex("signin-email", email)}`, ...(ip ? [`i:${await hex("signin-ip", ip.slice(0, 64))}`] : [])];
+}
+
+async function signIn(deps: Deps, form: Record<string, string>, ip: string | null = null): Promise<Response> {
   const email = (form.email ?? "").trim().toLowerCase().slice(0, 200);
   const password = (form.password ?? "").slice(0, 200);
   if (!email || !password) return redirect("/sign-in?e=1");
+  const keys = await throttleKeys(deps, email, ip);
+  try {
+    const gate = await deps.db.rpc<{ allowed: boolean; retry_after_s?: number } | null>("signin_allowed", { p_keys: keys });
+    if (gate && gate.allowed === false) {
+      const wait = Math.max(1, Math.ceil(Number(gate.retry_after_s ?? 900) / 60));
+      const res = plain(deps, "Sign in", html`<p>Too many wrong tries. Wait about ${wait} minutes and try again.</p>`);
+      return new Response(res.body, { status: 429, headers: (() => { const h = new Headers(res.headers); h.set("retry-after", String(gate.retry_after_s ?? 900)); return h; })() });
+    }
+  } catch (e) {
+    if (!isMissingFunction(e)) return plain(deps, "Sign in", html`<p>Sign-in is not answering right now. Try again in a minute.</p>`);   // fail closed: if we cannot count, we do not let tries through
+  }
+  const failed = () => deps.db.rpc("signin_failed", { p_keys: keys }).catch((e) => { if (!isMissingFunction(e)) console.error(JSON.stringify({ level: "error", event: "signin_throttle_write_failed", err: String(e).slice(0, 200) })); });
   let user;
   try { user = await deps.auth.signIn(email, password); }
   catch (e) {
@@ -434,9 +457,11 @@ async function signIn(deps: Deps, form: Record<string, string>): Promise<Respons
   }
   const staff = user?.partyId ? await loadStaff(deps, user.partyId, user.id, "x") : null;
   if (!user || !staff) {
+    await failed();
     await auditQuietly(deps, null, { action: "sign_in", phase: "event", ok: false, error: user ? "not_staff" : "bad_credentials" });
     return redirect("/sign-in?e=1");
   }
+  await deps.db.rpc("signin_ok", { p_key: keys[0] }).catch(() => undefined);
   await auditQuietly(deps, staff, { action: "sign_in", phase: "event", ok: true });
   return redirect("/", [await newSession(deps, { id: user.id, partyId: staff.partyId })]);
 }
