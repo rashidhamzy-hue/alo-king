@@ -22,6 +22,31 @@
   .ak-timer--warn { background: var(--ak-warn-bg); color: var(--ak-warn); }
   .ak-timer--late { background: var(--ak-danger); color: var(--ak-on-status); }
   .ak-timer--idle { background: var(--ak-surface-2); color: var(--ak-muted); }
+  /* ---------- a list of rows that each carry their own buttons (pick lines, a rider's stops) ---------- */
+  .ak-rows { list-style: none; margin: var(--ak-space-3) 0; padding: 0; display: grid; gap: var(--ak-space-2); }
+  .ak-rows > li { display: grid; gap: var(--ak-space-2); background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); padding: var(--ak-space-3) var(--ak-space-4); scroll-margin-block-start: calc(var(--top-h, 56px) + var(--ak-space-3)); }
+  .ak-rows > li[data-state="done"] { background: var(--ak-ok-bg); border-color: transparent; }
+  .ak-rows > li[data-state="missing"] { background: var(--ak-warn-bg); border-color: transparent; }
+  .ak-rows > li[data-state="late"] { border-color: var(--ak-danger); }
+  .ak-rows .head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ak-space-3); flex-wrap: wrap; }
+  .ak-rows .head strong { font-size: var(--ak-text-md); }
+  .ak-rows .qty { font-variant-numeric: tabular-nums; font-weight: var(--ak-weight-strong); }
+  .ak-rows .tags { display: flex; flex-wrap: wrap; gap: var(--ak-space-1); }
+  .ak-rows form { margin: 0; }
+  .ak-check { display: flex; align-items: flex-start; gap: var(--ak-space-2); min-block-size: var(--tap); }
+  .ak-check span { padding-block: var(--ak-space-3); }
+  .ak-check input[type=checkbox] { appearance: none; flex: none; display: grid; place-content: center; inline-size: 1.75rem; block-size: 1.75rem; margin: 0.5rem; border: 2px solid var(--ak-line-strong); border-radius: 6px; background: var(--ak-surface); }
+  .ak-check input[type=checkbox]:checked { background: var(--ak-primary); border-color: var(--ak-primary); }
+  .ak-check input[type=checkbox]:checked::after { content: "\2713"; color: var(--ak-on-primary); font-weight: 700; line-height: 1; }
+  .ak-check input[type=checkbox]:focus-visible { outline: 3px solid var(--ak-accent); outline-offset: 2px; }
+  .ak-money-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); gap: var(--ak-space-2); }
+  .ak-money-fields > * { min-inline-size: 0; }
+  .ak-money-fields label { display: grid; gap: 2px; font-size: var(--ak-text-sm); color: var(--ak-muted); }
+  .ak-money-fields input { inline-size: 100%; }
+  /* cards one under another on a phone, side by side from a tablet up */
+  .ak-cards { display: grid; gap: var(--ak-space-3); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 900px) { .ak-cards { grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr)); align-items: start; } }
+  .ak-cards > .ak-card { margin: 0; min-inline-size: 0; }
   /* ---------- a bar against a limit (a rider's cash against the caps) ---------- */
   .ak-bar { display: block; inline-size: 100%; block-size: 14px; }
   .ak-bar .track { fill: var(--ak-surface-2); }
