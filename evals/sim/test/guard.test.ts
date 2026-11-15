@@ -105,7 +105,7 @@ describe("a whole run sends nothing and writes nothing to staging", () => {
     expect(s.results.filter((r) => r.status === "error")).toEqual([]);
     expect(guard.staging.length).toBeGreaterThan(0);
     expect(guard.staging.every((r) => r.method === "GET")).toBe(true);
-    expect(up.seen.every((r) => r.method === "GET" && r.url.startsWith(STAGING))).toBe(true);     // nothing else got past the guard
+    expect(up.seen.every((r) => r.method === "GET" && new URL(r.url).origin === STAGING)).toBe(true);     // nothing else got past the guard
     expect(up.seen.length).toBe(guard.staging.length);                                           // and staging only while copying
     expect(guard.refused).toEqual([]);
     expect(guard.kapso.length).toBeGreaterThan(0);                                               // what would have gone out, recorded
