@@ -23,6 +23,7 @@ const D = {
   nav_stock: { en: "Stock", ar: "المخزون" },
   nav_more: { en: "More", ar: "المزيد" },
   nav_inbox: { en: "Inbox", ar: "الوارد" },
+  nav_pick: { en: "Pick", ar: "التجهيز" },
   g_money: { en: "Money", ar: "المال" },
   g_settings: { en: "Settings", ar: "الإعدادات" },
   // command bar, bell, theme
@@ -139,7 +140,7 @@ export const NAV_AR: Record<string, string> = {
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
   "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المركز", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
-  "/riders": "المناديب والنقد", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل",
+  "/riders": "المناديب والنقد", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل",
 };
 
 /** Inline pair for a short string that belongs to one page (a table heading, a status word). The long, shared ones are in the dictionary above. */

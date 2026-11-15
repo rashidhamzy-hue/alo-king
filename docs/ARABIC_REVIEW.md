@@ -104,3 +104,6 @@ is not listed here.
 | `filter_none` | لا شيء يطابق هذه التصفية. | Nothing matches these filters. | |
 | `unit_each` | بالقطعة | each | |
 | `live_hint` | تظهر النتائج أثناء الكتابة. | Results appear as you type. | |
+
+## D4b, the pick queue, rider jobs and rider incidents (console, written by a model)
+The pages choose a line with `pick(lang, English, Arabic)` in `apps/console/src/pages/pick.ts`, `riderjobs.ts` and `riderincidents.ts` (about 120 short lines: buttons, warnings, the refusals' explanations), and the packing steps are in the `packing_checklist` setting (migration 0147): «المنتجات المبرّدة والمجمّدة والطازجة في الحقيبة الباردة.», «البيض والخبز في الأعلى ولا شيء ثقيل فوقهما.», «ملصق الكيس عليه رمز الطلب واسم القرية.» The customer messages are the existing ones (`messages/`). A reader should check: the picker's words (التقاط، ناقص، تجهيز), the rider words (مندوب), and that the long warnings read as an instruction to a person at work.
