@@ -3,6 +3,10 @@
 # Open Food Facts always runs. Brand-site and web image search run only when the repository secret BRAVE_SEARCH_API_KEY exists
 # (docs/DECISIONS.md "Product picture search"). Pictures land in the private `media` bucket as `proposed`: a person approves
 # them on the console page (3.18). Nothing here makes a picture visible to a customer.
+# Session PIX: search hits are filed as public-page pictures (founder decision, docs/DECISIONS.md), the fastest sellers go first, a picture
+# another item already has is refused before the paid check, and the last step writes the queue report (a candidate or a named reason
+# for every active item; artifact `pictures-report`). Spend: the model's cap is `max_usd`; the search is about USD 0.005 a request and is
+# counted in the run summary (it is not a model call, so the meter does not see it).
 # Secrets used (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, BRAVE_SEARCH_API_KEY (optional).
 name: images
 on:
@@ -18,6 +22,10 @@ on:
         default: false
       no_search:
         description: Open Food Facts only, even if the search secret exists
+        type: boolean
+        default: false
+      retry_all:
+        description: Also items an earlier run finished with nothing (use after the search or the check changed)
         type: boolean
         default: false
       max_usd:
@@ -65,14 +73,22 @@ jobs:
           LIMIT: ${{ inputs.limit }}
           FORCE: ${{ inputs.force }}
           NO_SEARCH: ${{ inputs.no_search }}
+          RETRY_ALL: ${{ inputs.retry_all }}
         run: |
           export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)
           args=()
           [[ "$LIMIT" =~ ^[0-9]+$ ]] && args+=(--limit "$LIMIT")
           [ "$FORCE" = "true" ] && args+=(--force)
           [ "$NO_SEARCH" = "true" ] && args+=(--no-search)
+          [ "$RETRY_ALL" = "true" ] && args+=(--retry-all)
           node scripts/images/fetch-images.mjs "${args[@]}"
       - name: The pictures are private, and the intake list
         run: node scripts/images/prove-private.mjs
+      - name: The queue report (a candidate or a named reason for every active item)
+        if: always()
+        run: node scripts/images/report.mjs
       - uses: actions/upload-artifact@v4
         with: { name: photograph-at-intake, path: intake-list.json, retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: pictures-report, path: "pictures-report.*\npictures-run.json", retention-days: 30, if-no-files-found: ignore }

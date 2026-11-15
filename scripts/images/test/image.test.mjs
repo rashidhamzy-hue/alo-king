@@ -22,9 +22,9 @@ describe.skipIf(!sharp)("image processing", () => {
     expect(out.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect((await sharp(out.data).metadata()).format).toBe("jpeg");
   });
-  it("a picture under 1200 px is not enlarged", async () => {
+  it("one canonical size: a picture of 800 to 1199 px is brought to 1200 on its longest side, keeping its shape", async () => {
     const out = await shrink(await noisy(900, 1000), sharp);
-    expect([out.width, out.height]).toEqual([900, 1000]);
+    expect([out.width, out.height]).toEqual([1080, 1200]);
     expect(out.bytes).toBeLessThan(MAX_BYTES);
   });
   it("transparency goes onto white", async () => {

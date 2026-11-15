@@ -12,7 +12,7 @@ const sites = JSON.parse(readFileSync(new URL("../brand-sites.json", import.meta
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 describe("licence rules (5.17 step 4)", () => {
-  it("the source decides the licence; a search result (unknown) never reaches customers, a research file's public page may (founder decision, 14 Nov)", () => {
+  it("the source decides the licence; a hit with no page address (unknown) never reaches customers, a public page may (founder decision, 14 Nov)", () => {
     expect(LICENCE_FOR).toEqual({ open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" });
     expect(["cc_by_sa", "brand_own", "own_photo", "public_page"].every(customerUsable)).toBe(true);
     expect(customerUsable("unknown")).toBe(false);
@@ -21,14 +21,17 @@ describe("licence rules (5.17 step 4)", () => {
   it("a search hit is the brand's own only when page and picture are both on the brand's listed host", () => {
     const own = { pageUrl: "https://www.nutella.com/lb/en/products/x", imageUrl: "https://www.nutella.com/img/x.jpg" };
     expect(classifyHit(own, "Nutella", sites)).toBe("brand_site");
-    expect(classifyHit({ pageUrl: own.pageUrl, imageUrl: "https://cdn.shop.example/x.jpg" }, "Nutella", sites)).toBe("web_search");
-    expect(classifyHit({ pageUrl: "https://shop.example/nutella", imageUrl: "https://www.nutella.com/img/x.jpg" }, "Nutella", sites)).toBe("web_search");
-    expect(classifyHit({ pageUrl: "https://nutella.com.evil.test/p", imageUrl: "https://nutella.com.evil.test/i.jpg" }, "Nutella", sites)).toBe("web_search");
-    expect(classifyHit({ pageUrl: "https://notnutella.com/p", imageUrl: "https://notnutella.com/i.jpg" }, "Nutella", sites)).toBe("web_search");
+    expect(classifyHit({ pageUrl: own.pageUrl, imageUrl: "https://cdn.shop.example/x.jpg" }, "Nutella", sites)).toBe("public_page");
+    expect(classifyHit({ pageUrl: "https://shop.example/nutella", imageUrl: "https://www.nutella.com/img/x.jpg" }, "Nutella", sites)).toBe("public_page");
+    expect(classifyHit({ pageUrl: "https://nutella.com.evil.test/p", imageUrl: "https://nutella.com.evil.test/i.jpg" }, "Nutella", sites)).toBe("public_page");
+    expect(classifyHit({ pageUrl: "https://notnutella.com/p", imageUrl: "https://notnutella.com/i.jpg" }, "Nutella", sites)).toBe("public_page");
     // A listed site for another brand does not count.
-    expect(classifyHit(own, "Pepsi", sites)).toBe("web_search");
-    // An unlisted brand is always unknown.
-    expect(classifyHit({ pageUrl: "https://libanlait.com/p", imageUrl: "https://libanlait.com/i.jpg" }, "Liban Lait", sites)).toBe("web_search");
+    expect(classifyHit(own, "Pepsi", sites)).toBe("public_page");
+    // An unlisted brand's own site is just a public page: the page address is stored, so it can be withdrawn.
+    expect(classifyHit({ pageUrl: "https://libanlait.com/p", imageUrl: "https://libanlait.com/i.jpg" }, "Liban Lait", sites)).toBe("public_page");
+    // No https page address: licence unknown, never shown to a customer.
+    expect(classifyHit({ pageUrl: null, imageUrl: "https://shop.example/x.jpg" }, "Nutella", sites)).toBe("web_search");
+    expect(classifyHit({ pageUrl: "http://shop.example/p", imageUrl: "https://shop.example/x.jpg" }, "Nutella", sites)).toBe("web_search");
   });
   it("local and private-label items have no brand site", () => {
     expect(brandDomains("Local (unbranded)", { "local (unbranded)": ["x.com"] })).toEqual([]);
@@ -75,9 +78,9 @@ describe("Open Food Facts (step 2)", () => {
 
 describe("search (step 2)", () => {
   it("queries by brand and name, and restricts a brand-site query to the site", () => {
-    expect(queryFor({ brand: "Nutella", name_en: "Nutella Hazelnut Spread 350G" })).toBe("Nutella Hazelnut Spread 350G product");
-    expect(queryFor({ brand: "Liban Lait", name_en: "Laban 1Kg" })).toBe("Liban Lait Laban 1Kg product");
-    expect(queryFor({ brand: "Local (unbranded)", name_en: "Potato" })).toBe("Potato product");
+    expect(queryFor({ brand: "Nutella", name_en: "Nutella Hazelnut Spread 350G" })).toBe("Nutella Hazelnut Spread 350G pack shot");
+    expect(queryFor({ brand: "Liban Lait", name_en: "Laban 1Kg" })).toBe("Liban Lait Laban 1Kg pack shot");
+    expect(queryFor({ brand: "Local (unbranded)", name_en: "Potato" })).toBe("Potato white background");
     expect(queryFor({ brand: "Nutella", name_en: "Nutella 350G" }, "nutella.com")).toBe("site:nutella.com Nutella 350G product");
   });
   it("reads Brave image results and drops non-https pictures", () => {
@@ -94,14 +97,38 @@ describe("search (step 2)", () => {
     expect(seen.u).not.toContain("SECRET-KEY");
     expect(seen.u).toContain("api.search.brave.com/res/v1/images/search");
   });
-  it("classifies every hit: only a brand's own host is not unknown", async () => {
+  it("classifies every hit: a brand's own host is brand_site, any other page is public_page", async () => {
     const f = async () => json({ results: [
       { url: "https://www.nutella.com/p", properties: { url: "https://www.nutella.com/i.jpg" } },
       { url: "https://shop.test/p", properties: { url: "https://shop.test/i.jpg" } }] });
     const item = { brand: "Nutella", name_en: "Nutella 350G" };
-    expect((await openCandidates(item, "k", sites, { fetchImpl: f })).map((c) => c.sourceKind)).toEqual(["brand_site", "web_search"]);
-    expect((await brandCandidates(item, "k", sites, { fetchImpl: f })).map((c) => c.sourceKind)).toEqual(["brand_site", "web_search"]);
+    expect((await openCandidates(item, "k", sites, { fetchImpl: f })).map((c) => c.sourceKind)).toEqual(["brand_site", "public_page"]);
+    expect((await brandCandidates(item, "k", sites, { fetchImpl: f })).map((c) => c.sourceKind)).toEqual(["brand_site", "public_page"]);
     expect(await brandCandidates({ brand: "Liban Lait", name_en: "x" }, "k", sites, { fetchImpl: f })).toEqual([]);
+  });
+});
+
+describe("search hits that are not worth a paid check (PIX)", () => {
+  it("drops stock-photo and picture-sharing hosts, narrow pictures and non-https addresses before anything is downloaded", () => {
+    const hit = (page, img, w = 1000) => ({ url: page, properties: { url: img, width: w } });
+    const out = parseBrave({ results: [
+      hit("https://shop.test/p", "https://shop.test/a.jpg"),
+      hit("https://www.shutterstock.com/x", "https://image.shutterstock.com/x.jpg"),
+      hit("https://www.pinterest.com/pin/1", "https://i.pinimg.com/x.jpg"),
+      hit("https://shop.test/q", "https://cdn.shop.test/b.jpg", 640),
+      hit("https://shop.test/r", "http://cdn.shop.test/c.jpg"),
+      hit("https://shop.test/s", "https://cdn.shop.test/d.jpg", undefined)] });
+    expect(out.map((h) => h.imageUrl)).toEqual(["https://shop.test/a.jpg", "https://cdn.shop.test/d.jpg"]);
+  });
+  it("packed items are searched as a pack shot, loose ones on white", () => {
+    expect(queryFor({ brand: "Nutella", name_en: "Nutella 350G" })).toBe("Nutella 350G pack shot");
+    expect(queryFor({ brand: "Local (unbranded)", name_en: "Potato" })).toBe("Potato white background");
+    expect(queryFor({ brand: "Nutella", name_en: "Nutella 350G" }, "nutella.com")).toBe("site:nutella.com Nutella 350G product");
+  });
+  it("counts each request it makes", async () => {
+    let n = 0;
+    await braveImages("x", "k", { fetchImpl: async () => json({ results: [] }), onRequest: () => n++ });
+    expect(n).toBe(1);
   });
 });
 

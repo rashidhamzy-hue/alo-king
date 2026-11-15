@@ -1,7 +1,8 @@
 // Licence rules, build plan 5.17 step 4. The source decides the licence, and migration 0050 enforces the same pairing in SQL.
 //   Open Food Facts  -> cc_by_sa, attribution kept
 //   brand's own site -> brand_own  (page AND picture on the brand's listed host)
-//   a search result  -> unknown    (guides the intake photo; never shown to customers)
+//   a search result  -> public_page when it comes with the https page it was found on (founder decision of 14 Nov 2026, "any
+//                       public page"; session PIX applies it to search hits), else unknown (a guide for the intake photo only)
 //   a research file's picture, with its page -> public_page (founder decision of 14 Nov 2026; migration 0070; research-pictures.mjs)
 export const LICENCE_FOR = { open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" };
 export const CUSTOMER_LICENCES = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page"]);
@@ -23,9 +24,13 @@ export function brandDomains(brand, sites) {
   return [];
 }
 
-/** A search hit is the brand's own only when the page and the picture are both on a listed host of that brand. */
+/**
+ * A search hit is the brand's own only when the page and the picture are both on a listed host of that brand. Any other hit
+ * is a public page picture when it names its page (the page address is stored with it, so it can be withdrawn at once);
+ * without a page address it is licence unknown and stays off the customer side.
+ */
 export function classifyHit({ pageUrl, imageUrl }, brand, sites) {
   const ph = hostOf(pageUrl); const ih = hostOf(imageUrl);
-  const ok = brandDomains(brand, sites).some((d) => onDomain(ph, d) && onDomain(ih, d));
-  return ok ? "brand_site" : "web_search";
+  if (brandDomains(brand, sites).some((d) => onDomain(ph, d) && onDomain(ih, d))) return "brand_site";
+  return /^https:\/\//.test(pageUrl ?? "") && /^https:\/\//.test(imageUrl ?? "") ? "public_page" : "web_search";
 }
