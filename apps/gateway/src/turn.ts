@@ -8,7 +8,7 @@ import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@a
 import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, planReading, sendKept, takeAddress,
+import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
          waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
@@ -126,7 +126,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // B1a: a basket nobody touched for BASKET_KEEP_MS is let go (one kept overnight for the opening stays until it is taken up); a basket
   // in hand counts from the customer's last message.
   if (state.lastQuote && state.awaiting !== "opening" && state.basketAt && Date.now() - state.basketAt > BASKET_KEEP_MS) {
-    state.lastQuote = null; state.pending = null; state.awaiting = null; state.slotId = null; state.basketAt = null;
+    state.lastQuote = null; state.pending = null; state.awaiting = null; state.slotId = null; state.basketAt = null; state.editing = null;
   }
   if (state.lastQuote) state.basketAt = Date.now();
   // G1-19 (SP1): a message's key is the turn plus what it says, not its place in the turn. A retried turn whose model words or
@@ -248,7 +248,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (r.status === "change_open") state.replacing = { orderId: btn.orderId, shortCode: r.short_code, slotId: r.window?.slot_id ?? null, since: Date.now() };
           // Finding a rider must never turn a confirmed order into an error message. If it fails here, the cron retries every minute.
           if (r.changed && r.status === "confirmed") await deps.onOrderConfirmed?.(btn.orderId).catch(() => undefined);
-          if (r.status === "draft") state.lastQuote = null;
+          // B1a: "edit" on a card waiting for the tap sends it back to a draft. Its lines stay in hand as the basket being changed, so
+          // the next words edit it and "where is my order?" brings it back as a card (the second B1a run: sim-079, sim-146 heard
+          // «no open order», and the model claimed changes it never made). A draft from a full window keeps its own path (W1).
+          if (r.status === "draft") { state.lastQuote = null; if (btn.action === "edit") await holdDraft(ctx, btn.orderId).catch(() => undefined); }
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
           if (String(err).includes("OUT_OF_STOCK")) await say(T().fixed.outOfStock, btn.orderId);

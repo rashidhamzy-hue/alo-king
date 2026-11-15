@@ -19,7 +19,8 @@ export interface SendRequest {
   dedupeKey: string;
   /** Set by the tools that send text the model wrote. The gateway checks it again (B2's 1.5 and 1.10 guard, second lock).
    *  approvedFacts: food-fact attributes a tool returned an approved record for in this turn. */
-  authored?: { by: "model"; approvedFacts?: string[] };
+  /** The tool results behind the words (B1a): a search ran this turn, the basket was changed this turn. */
+  authored?: { by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean };
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -47,7 +48,8 @@ export function preflight(req: SendRequest): string | null {
   if (req.category === "marketing" && PILOT_MARKETING_LOCK) return "marketing_locked_pilot";
   if (req.authored?.by === "model") {
     const m = req.msg as { text?: { body?: string }; interactive?: { body?: { text?: string } } };
-    const v = checkModelText(m.text?.body ?? m.interactive?.body?.text ?? "", { approvedFacts: new Set(req.authored.approvedFacts ?? []) });
+    const v = checkModelText(m.text?.body ?? m.interactive?.body?.text ?? "", { approvedFacts: new Set(req.authored.approvedFacts ?? []),
+      catalogueSearched: !!req.authored.catalogueSearched, basketChanged: !!req.authored.basketChanged });
     if (v) return `model_text_${v.code}`;
   }
   if (typeof req.dedupeKey !== "string" || req.dedupeKey.length < 3) return "missing_dedupe_key";   // every send goes through the outbox claim

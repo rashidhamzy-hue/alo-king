@@ -42,6 +42,8 @@ export interface ConversationState {
   replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
   /** HO1: the turn key that was already queued again once after a technical failure (the second failure gets the fixed line). */
   technicalRetry?: string | null;
+  /** B1a: the card the customer tapped "edit" on (now a draft): its lines are lastQuote, and the next card replaces it. */
+  editing?: { orderId: string; shortCode: string } | null;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
@@ -62,7 +64,7 @@ export interface ToolContext {
   state: ConversationState;
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
   /** authored: set on text the model wrote, so the gateway checks it again (A2's second lock for 1.5 and 1.10). */
-  send: (msg: Outbound, opts?: { orderId?: string; authored?: { by: "model"; approvedFacts?: string[] } }) => Promise<SendResult>;
+  send: (msg: Outbound, opts?: { orderId?: string; authored?: { by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean } }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
   /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
   approvedFacts?: Set<string>;
@@ -74,6 +76,8 @@ export interface ToolContext {
   searched?: boolean;
   /** B1a: the conversation's open cases (HO1), so "where is my order?" with no order and no basket recalls the open request. */
   openCaseIds?: string[];
+  /** B1a: quote_order or a card changed the basket this turn, so the model may say it changed (the guard's change_claim). */
+  basketChanged?: boolean;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -88,7 +92,7 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 
 export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string, byModel = false): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.sent.count >= MAX_SENDS_PER_TURN) return { ok: false, error: "message_budget_reached_for_this_turn" };
-  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: { by: "model" as const, approvedFacts: [...(ctx.approvedFacts ?? [])] } } : {}) });
+  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: { by: "model" as const, approvedFacts: [...(ctx.approvedFacts ?? [])], catalogueSearched: !!ctx.searched, basketChanged: !!ctx.basketChanged } } : {}) });
   if (!r.ok) return { ok: false, error: `not_sent:${r.refused}` };
   ctx.sent.count++; ctx.sent.texts.push(summary);
   return { ok: true };
@@ -126,6 +130,18 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       // B1a (SIM1 fixes 3 and 4): the model changes the basket by explicit edits, never by replacing it. Each line sets that
       // product's quantity (added when new); `remove` takes products off; a line not named stays. A substitute the last quote
       // listed for a line that ran out takes that line's place. The whole basket is priced and kept.
+      // A card waiting for the tap, with no basket being built, is the basket the edits apply to (the second B1a run, sim-079:
+      // a size changed on a card would otherwise have become a basket of that one line).
+      if (!ctx.state.lastQuote?.lines.length) {
+        const { heldBasket } = await import("./pipeline");
+        const card = await heldBasket(ctx).catch(() => null);
+        if (card?.draft) {
+          ctx.state.lastQuote = { lines: card.lines, villageId: card.villageId, pickup: card.pickup, quote: card.quote ?? ({ ok: false, issues: [], lines: [] } as unknown as Quote) };
+          if (card.placeId) ctx.state.placeId = card.placeId;
+          if (card.villageId) ctx.state.villageId = card.villageId;
+          ctx.state.pending ??= card.terms;
+        }
+      }
       const held = ctx.state.lastQuote;
       const substituteOf = new Map<string, string>();
       for (const i of held?.quote.issues ?? []) {
@@ -142,6 +158,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket, p_village: villageId, p_pickup: !!pickup });
       ctx.state.lastQuote = { lines: basket, villageId, pickup: !!pickup, quote };
       ctx.state.basketAt = Date.now();
+      ctx.basketChanged = true;
       return { ...quote, basket_note: "These lines are the customer's whole basket now. send_confirmation sends exactly this basket." };
     },
 
@@ -227,7 +244,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
  */
 export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
   let v: Violation | null = null;
-  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts, catalogueSearched: !!ctx.searched }); if (v) break; }
+  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts, catalogueSearched: !!ctx.searched, basketChanged: !!ctx.basketChanged }); if (v) break; }
   if (!v) return null;
   await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
                                            trace: { code: v.code, match: v.match.slice(0, 60) } });
@@ -370,7 +387,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
   // The directions went onto the order (and the place); they are not carried into the next order.
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
-  ctx.state.slotId = null;
+  ctx.state.slotId = null; ctx.state.editing = null; ctx.basketChanged = true;
   return { ok: true, order_code: created.short_code! };
 }
 

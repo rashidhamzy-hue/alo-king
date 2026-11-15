@@ -53,8 +53,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 `docs/NEXT_SESSIONS.md`. Where these disagree with an older section of this file, they win.
 - **Gates.** **A**, the friends' test (Rashid and three friends on the US number): HO1, B1a, B1b, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; simulated customers show zero silences after a hand-off. **B**, the shadow run (staff and family, cash only, 7 days, 100 orders): WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15%. **C**, the paid pilot: the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the +961 numbers; auto-reload on with a limit. Stop conditions: `docs/strategy/01-verdict-gates.md`.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
-- **B1a built** (below): the basket kept while it is built, the minimum said by code ($5, no small-order fee; the seed changed as decision 2 of 13:30 asks), edits by add / set / remove, a refused cancel answered, catalogue claims only from tools. B1b (fixes 5 to 8) follows once B1a is merged.
-- **B1a done in code** (below): the basket kept while it is built, the minimum said by code (5 USD, no small-order fee), edits by add / set / remove, a refused cancel answered. B1b (hand-off wording and language) is not started.
+- **B1a merged, targets partly met** (below): minimum-order loops 66 to 0 on simulated customers; lost baskets and wrong products not yet at target (the planner picks one product for a generic word, a SQL change B1a has no migration for). B1b (hand-off wording and language) is not started.
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
 - **Not done by DOC1:** `docs/DESIGN_BRIEF.md`. The founder's brief (.docx) was not in the hand-over, so it was not converted and nothing was written in its place. DS1 reads it and waits for OPS1 and HO1 first, so no session is blocked yet. Decided 15 Nov 13:30: DS1 converts it first, from its attachment. Founder action: attach the .docx (and the crown picture) to DS1.
@@ -167,31 +166,6 @@ A copy older than 36 hours raises ops exception `backup_stale`; a failed check r
 
 ### B1a: basket integrity, 15 November 2026 (Opus 5.5)
 Ordering lane, branch `claude/beautiful-archimedes-d93rkb`, one pull request. No migration. SIM1's fixes 1, 3, 4, 9 and 10 and its two
-no-reply turns (`docs/SIM_REPORT_2026-11-15.md`), each from a failing case of `evals/cases/sim_*.json` written as a flow test first
-(`test/db/basket-b1a.test.ts`, 18 tests). Hand-off code and language detection are untouched (B1b).
-
-| Fix | What B1a built | Tested by |
-| --- | --- | --- |
-| 1, minimum order | Founder decision of 15 Nov: **5 USD minimum, no small-order fee** (`docs/DECISIONS.md` row 14). A complete basket under the minimum gets one fixed message by code: the minimum, the basket and the gap, each from `quote_order`'s `below_minimum` issue, with two buttons: Browse and Cancel order (a "+n item" button was removed in the follow-up, below). The basket is kept (`awaiting = "minimum"`); items said next are added to it; "what is the minimum?" is answered by code (the gap, or the setting with no basket). Said before the pin, the address or the window; `issueCard` and `sendBasket` check it too, so the Concierge's `send_confirmation` and a tap can never fall silent on it. The output guard refuses the model's own words about the minimum (`minimum_by_code`). Seeds: `proposed_pilot_settings.sql` sets no fee; `minimum_order_2026_11_15.sql` applies the decision **once** per database (`scripts/ci/load-seeds.sh` step 4, its own marker), so staging gets it on the next deploy and the console owns it after | `basket-b1a` (sim-208, sim-024, sim-009), `test/pg/load-seeds-a5.test.ts` (real Postgres), `messages.rules` |
-| 3, basket kept | The basket in hand is `state.lastQuote` (or the card waiting on the tap, read back with `basket_from_order`). Lines already matched are kept when another line needs a question, so the answer adds to them. "Where is my order?" with a basket and no order placed answers with the basket so far and its next step (pin, house, number, window, minimum or the card), never "no open order"; no "same as last time" offer over a basket. A basket untouched for 6 hours is let go (one kept overnight stays) | `basket-b1a` (sim-009, sim-024, items said early) |
-| 4, only what was picked | A reading line has a new optional `change` (add, set, remove; `schemas.ts`, prompt). Code applies edits to the basket (`packages/agents/src/basket.ts`): add adds ("add 2 more" is +2), set re-counts, remove takes off; a line with no `change` adds a new item and re-counts one already there (a restated order never doubles). An edit names a product in the basket: the planner's choice, its one candidate in the basket, a name match, or the catalogue search for the words. A substitute the quote listed replaces the line that ran out. The Concierge's `quote_order` now sets lines and keeps the rest (`remove` for taking off), never replaces the basket. A new card after a change to a card says what changed (`+ 2 × …`, `− …`, `… 2 → 4`); the old card is withdrawn as before | `basket-b1a` (sim-215, sim-122, sim-020), unit cases of the edits; `evals/cases/basket_edits.json` (8 live reading cases) |
-| 9, refused cancel | Cancel tapped on an order the database will not cancel (being prepared, on its way): the fixed line "it is being prepared, a person will call you" and a case of kind `order_problem` (`cancel_refused: AK-…`), whose `support_case` exception alerts ops. Never the error line with a "try again" that fails the same way | `basket-b1a` (sim-112, sim-215) |
-| 10, catalogue claims | `show_catalog` that cannot show the WhatsApp catalog answers with the fixed line "tell me what you need" by code (an unknown category still goes back to the model). The guard refuses "the catalogue is not ready" always, and "the only one" / "no other" unless `search_catalog` ran this turn (`catalogue_claim`) | `basket-b1a` |
-| No-reply turns | A window tapped for a basket that cannot go (under the minimum, an item gone overnight) always gets an answer: the minimum, what ran out, or the fixed question with buttons (`explainNotSent`) | `basket-b1a` (sim-009, sim-014) |
-
-The simulator report gains "Basket integrity (B1a measures)" (`evals/sim/basket-measures.ts`): minimum-order loops (the minimum said in two
-or more turns, at least once without an amount), lost baskets («no open order» after the first turn) and wrong products (the judge),
-against SIM1's counts on the same definitions: **first 150 scenarios 66, 11 and 40**; all 463 judged first attempts 227, 40 and 143.
-
-Files outside `packages/agents/src/` and `evals/`, and why: `apps/gateway/src/turn.ts` (the new buttons, the refused cancel, the window
-tap's answer, the basket's age), `supabase/seed/*` and `scripts/ci/load-seeds.sh` (the settings, as asked), `docs/ARABIC_REVIEW.md`
-(the nine new Arabic lines, **not read by a person yet**), the tests. No migration, gateway allowlist, price source or confirmation path changed.
-
-**Tested here (CI, no key):** every row above. **Not proven yet:** the live reading of `change` (the language gate run below), the
-simulated customers on `main` (below), the seed step on staging (applies on the first deploy after merge), and WhatsApp itself.
-
-### B1a: basket integrity, 15 November 2026 (Opus 5.5)
-Ordering lane, branch `claude/beautiful-archimedes-d93rkb`, one pull request. No migration. SIM1's fixes 1, 3, 4, 9 and 10 and its two
 no-reply turns (`docs/SIM_REPORT_2026-11-15.md`), each from a failing case of `evals/cases/sim_*.json` written as a flow test
 (`test/db/basket-b1a.test.ts`, 18 tests). Hand-off code and language detection are untouched (B1b).
 
@@ -249,7 +223,35 @@ No failure class appeared that SIM1 did not have. Why two targets were missed, r
 customer names what to add); a line whose words are part of the address just given is the address, never an item; a stated restriction
 or an unclear line goes to the loop before the minimum is said; "where is my order?" with no order, no basket and a request open gets
 the request's reminder. Three flow tests, each failing on the first B1a code (`test/db/basket-b1a.test.ts`, "what the B1a run on main
-showed"). **Not proven yet:** sim-test on `main` after this follow-up; WhatsApp itself.
+showed"). Merged as #79.
+
+**The second run on `main`** ([sim-test 43730014902](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43730014902), limit 150,
+budget USD 4, spent **$3.49**; main at cbc9d8b): minimum-order loops **0**, lost baskets **3**, wrong products (judge) **54**, passed 41;
+no new failure class. Read one by one (all 54 transcripts): **17 were the customer's own additions** (padding to the minimum: "add 2
+more", «زيدلي»), which the judge counted against the scenario's first wish; 3 had no wrong product; **34 were the shop's**:
+- the planner picked one product for a generic word («ربطة خبز», «قنينة مي», «توم جاهز», a brand alone): 9;
+- a wrong match or size (Tannourine 6 L for 2 L × 6, UHT milk for laban): 7; an item nobody asked for (cooking cream after "beer",
+  a question's example added): 5;
+- add read as set or set as add («٣ بيبسي ... مش ١ بس» gave 4; «it says 9 ... 9 total is fine» gave 17): 7;
+- the model said it changed the order when no tool had (sim-079, sim-146, sim-052): 3 as the main cause, and in 7 more as a second fault;
+- an item dropped: 2; an ordinal («ربطة خبز تالتة» gave +3): 1.
+
+The 3 lost baskets: twice "edit" on a card sent it back to a draft, and the next "where is my card?" found no order (sim-079, sim-146);
+once the model said "your card is on its way" with no basket at all (sim-082).
+
+**B1a second follow-up** (third pull request): "edit" on a card keeps its lines as the basket being changed (`holdDraft`), so the next
+words edit it and "where is my order?" brings it back as a card; "where is my order?" with a card waiting for the tap gets its status line
+and the card again; the Concierge's `quote_order` on a card waiting for the tap edits that card's basket instead of starting one; the guard refuses
+"I changed / updated / «عدّلنا» / «ثواني وبحدّث»" unless `quote_order` or a card changed the basket this turn (`change_claim`); an
+ordinal from three on («تالتة», "third", «رابعة») makes that count in all; the gateway's second check of model words now receives the
+turn's tool results (a search, a change), which it did not, so "the only one we have" after a real search was refused at the gateway.
+The judge's rubric for a wrong product now says what the customer added themselves is what they asked for (`evals/sim/judge.ts`), so
+runs from here are not directly comparable with SIM1's 40 on that line; the report says so. Five flow and unit tests, each failing on
+#79's code ("what the second B1a run on main showed").
+
+**Not done in B1a, and why:** a generic word picked as one product, and wrong sizes, are the planner's choice in SQL (`plan_order`);
+changing it needs a migration, and B1a has none reserved. Add-versus-set phrasings beyond the ordinal («مش ١ بس», "so 9 total") are
+reading cases for the language pack. **Not proven yet:** sim-test on `main` after the second follow-up; WhatsApp itself.
 
 ### HO1: the never-stranded hand-off, 15 November 2026 (Opus 5.5)
 Hand-off lane, branch `claude/confident-albattani-a84wbj`, one pull request. Migrations 0135-0137 (0138 held, unused). Specification:

@@ -197,6 +197,16 @@ describe("fix 4: the basket changes only by what the customer picked (sim-215, s
     expect(applyEdits(L, editsFromPlan({ ...said, intent: "add_to_order" }, plan, L).edits).lines[0]!.qty).toBe(4);
   });
 
+  it("«a third one» makes three in all (sim-051: «زيدلي ربطة خبز تالتة كمان» gave 5 pita); «another» still adds one", () => {
+    const L = [{ product_id: "a", qty: 2 }];
+    const plan = (q: number) => ({ lines: [{ idx: 0, status: "matched", qty: q, chosen: { product_id: "a" }, candidates: null }], quote_lines: [{ product_id: "a", qty: q }] });
+    const said = (raw: string, qty: number) => ({ intent: "add_to_order", lines: [{ raw, query: "خبز", qty, change: "add" }] }) as any;
+    expect(applyEdits(L, editsFromPlan(said("زيدلي ربطة خبز تالتة كمان", 3), plan(3), L).edits).lines[0]!.qty).toBe(3);
+    expect(applyEdits(L, editsFromPlan(said("zidli rabta talte", 3), plan(3), L).edits).lines[0]!.qty).toBe(3);
+    expect(applyEdits(L, editsFromPlan(said("زيدلي ربطة تانية", 1), plan(1), L).edits).lines[0]!.qty).toBe(3);
+    expect(applyEdits(L, editsFromPlan(said("زيدلي ٣ ربطات كمان", 3), plan(3), L).edits).lines[0]!.qty).toBe(5);
+  });
+
   it("the gap is the minimum less the basket, to the cent", () => {
     expect(minimumGap({ issues: [{ code: "below_minimum", minimum_usd: 5, subtotal_usd: 3.2 }] })).toEqual({ min: 5, now: 3.2, gap: 1.8 });
   });
@@ -234,6 +244,58 @@ describe("what the B1a run on main showed (sim-test 43722643280)", () => {
     await t.text("وين طلبي؟");
     expect(NO_OPEN).not.toContain(bodyOf(outbound.at(-1)!));
     expect(bodyOf(outbound.at(-1)!)).toBe(ar.support.reminder);
+  });
+});
+
+describe("what the second B1a run on main showed (sim-test 43730014902)", () => {
+  it("«where is my order?» while a card waits on the tap: the card again, never «no open order» (sim-079, sim-146)", async () => {
+    const t = flow(db, [read(order([LABNEH])), read({ intent: "status", lines: [] })]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي لبنة");
+    expect(outbound.filter(isCard)).toHaveLength(1);
+    await t.text("وين طلبي؟");
+    expect(NO_OPEN).not.toContain(bodyOf(outbound.at(-1)!));
+    expect(outbound.filter(isCard)).toHaveLength(2);
+  });
+
+  it("«edit» on the card keeps its basket: «where is my order?» brings it back as a card, and a change said next edits it (sim-079)", async () => {
+    const t = flow(db, [read(order([LABNEH, BREAD(2)])),                                  // «وين طلبي؟» is read by code (quick intent)
+                        read(order([line("خلّي الخبز تلاتة", "خبز", 3, { change: "set" })], "change_order", null))]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي لبنة وربطتين خبز");
+    const first = await db.one(`select id from orders where customer_id = $1`, [c.party_id]);
+    await t.tap(orderButtonId("edit", first.id));
+    expect((await db.one(`select status from orders where id = $1`, [first.id])).status).toBe("draft");
+    await t.text("وين طلبي؟");
+    expect(NO_OPEN).not.toContain(bodyOf(outbound.at(-1)!));
+    expect(outbound.filter(isCard)).toHaveLength(2);
+    await t.tap(orderButtonId("edit", (await db.one(`select id from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id])).id));
+    await t.text("خلّي الخبز تلاتة");
+    const o = await db.one(`select id from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id]);
+    const items = await db.all(`select product_id, qty from order_items where order_id = $1`, [o.id]);
+    expect(Object.fromEntries(items.map((i: any) => [i.product_id, Number(i.qty)]))).toEqual({ [ids.LABNEH]: 1, [ids.BREAD]: 3 });
+    expect(outbound.map(bodyOf).join("\n")).toContain("2 → 3");
+  });
+
+  it("the model says it changed the order without a tool: refused; it must change it through quote_order (sim-079, sim-146)", () => {
+    for (const said of ["تمام، عدّلنا معجون البندورة لـ يمامة 660 غرام.", "تمام، خلّينا الحفاضات أربعة. ثواني وبحدّث الطلب.",
+                        "I've updated your order to 2 Dove.", "J'ai modifié votre commande.", "tamam, 3addalt el talab"]) {
+      expect(checkModelText(said)?.code, said).toBe("change_claim");
+      expect(checkModelText(said, { basketChanged: true })).toBeNull();
+    }
+    expect(checkModelText("تمام، سجلت: البناية البيضا، الطابق تنين.")).toBeNull();
+  });
+
+  it("quote_order on a card waiting for the tap edits that card's basket: the rest of the card stays (sim-079)", async () => {
+    const t = flow(db, [read(order([LABNEH, BREAD(2)])), read({ intent: "question", lines: [] }),
+                        [use("quote_order", { lines: [{ product_id: ids.BREAD, qty: 3 }] })], [use("send_confirmation", {})]]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي لبنة وربطتين خبز");
+    expect(outbound.filter(isCard)).toHaveLength(1);
+    await t.text("خلّي الخبز تلاتة");
+    const o = await db.one(`select id from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id]);
+    const items = await db.all(`select product_id, qty from order_items where order_id = $1`, [o.id]);
+    expect(Object.fromEntries(items.map((i: any) => [i.product_id, Number(i.qty)]))).toEqual({ [ids.LABNEH]: 1, [ids.BREAD]: 3 });
   });
 });
 

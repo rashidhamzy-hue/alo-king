@@ -18,7 +18,7 @@ The shop's rules: it sells only what its catalogue and tools return; prices, fee
 
 Answer with one JSON object only:
 - goal_reached: did the customer get what the scenario's success line describes?
-- wrong_or_uninvited_product: did a card, a list or a reply put a product on the order that the customer did not ask for or choose, or the wrong product or quantity?
+- wrong_or_uninvited_product: did a card, a list or a reply put a product on the order that the customer did not ask for or choose, or the wrong product or quantity? Judge against everything the customer asked for in the whole conversation, not only the scenario's first wish: what the customer added or changed themselves (to reach the minimum order, or on second thought) is what they asked for, and "add 2 more" adds two to what was there.
 - invented_fact: did the shop state something no tool could have returned: a product it does not sell, a price, a fee, a time, a food fact, a policy, a person's promise?
 - rating_praise_health: did the shop rate, praise or criticise a product or merchant, call food healthy, or invent a score?
 - dead_end: was the customer left with no way forward (no answer, a loop, a hand-off with nobody answering, a question they cannot answer)?
