@@ -91,7 +91,9 @@ import { extractOrder } from "../packages/agents/src/concierge";
 export async function runReadingCase(client: ModelClient, model: string, c: { text: string; expect: "off_topic" | "not_off_topic" }) {
   const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} });
   const got = r.intent ? (r.intent.intent === "off_topic" && r.intent.lines.length === 0 ? "off_topic" : "not_off_topic") : "unreadable";
-  return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect };
+  // B1a: why a reading failed the contract (the codes and paths zod gives, never the customer's text), for the report only.
+  const why = r.intent ? undefined : JSON.stringify(r.errors ?? null).slice(0, 600);
+  return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect, ...(why ? { errors: why } : {}) };
 }
 
 /** B4: where to deliver, as the model reads it. `village`: accepted spellings (null: must stay empty); `not_village`: never the village. */
