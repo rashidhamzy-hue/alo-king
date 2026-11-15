@@ -93,7 +93,7 @@ async function main(meter) {
   console.log(`run ${runId}: ${items.length} items to look up in Open Food Facts (one request every 4 s, about ${Math.ceil(items.length * 4 / 60)} min)`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
-    if (fatal || meter.capReached) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
+    if (fatal || meter.capStop()) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
     try {
       const r = await processItem(item, d);
       console.log(`${item.sku} ${r.outcome}${r.proposed !== undefined ? ` (${(r.attributes ?? []).join(",")})` : ""}${r.error ? ` ${r.error}` : ""}`);
