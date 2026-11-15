@@ -41,6 +41,7 @@ describe("Approve all shown", () => {
     const shown = shownSkus(page); const f = formOf(page);
     const before = await Promise.all(shown.map(nameOf));
     const after16 = await nameOf("AK-0016");                                  // the sixteenth is on the next page, not on this screen
+    await r.db.pg.exec(`update search_word_jobs set status = 'done'`);
     const res = await b.post("/names/batch/approve", { items: f.items, sig: f.sig, back_status: "proposed", back_q: "", back_page: 1 });
     expect(flashOf(res.text)).toContain("Approve all shown: approved 15 of 15.");
     for (const sku of shown) expect(await status(sku), sku).toBe("approved");
@@ -48,8 +49,10 @@ describe("Approve all shown", () => {
     expect(Number((await r.db.one(`select count(*) as n from product_name_proposals where status = 'approved'`)).n)).toBe(15);
     const decidedBy = await r.db.all(`select distinct decided_by from product_name_proposals where status = 'approved'`);
     expect(decidedBy).toEqual([{ decided_by: lead.partyId }]);
-    // approving still queues the search words again for every name that changed, as a single approval does
-    expect(Number((await r.db.one(`select count(*) as n from search_word_jobs where status = 'pending' and reason = 'changed'`)).n)).toBeGreaterThan(0);
+    // approving queues the search words again for every name that changed, as a single approval does (and for none that did not)
+    const nowNames = await Promise.all(shown.map(nameOf));
+    const changed = nowNames.filter((n, k) => n.name_en !== before[k]!.name_en || n.name_ar !== before[k]!.name_ar).length;
+    expect(Number((await r.db.one(`select count(*) as n from search_word_jobs where status = 'pending' and reason = 'changed' and sku = any($1::text[])`, [shown])).n)).toBe(changed);
     const log: any[] = (await r.actions()).filter((a: any) => a.party_id === lead.partyId);
     const each = log.filter((a: any) => a.action === "name_approve" && a.phase === "done" && a.ok);
     expect(each).toHaveLength(15);
