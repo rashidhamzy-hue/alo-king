@@ -1,0 +1,132 @@
+{
+ "about": "SP2: a customer turn must never end with nothing sent and the chat handed to a person. Found by M1 (5 live cases over language-pack runs 43642090610, 43644483826, 43649220096, 43657020370) and once on staging (14 Nov 08:13 Beirut, an address-only message: agent_runs concierge outcome handoff, handoffs reason agent_did_not_finish). Two causes in packages/agents/src/concierge.ts: a model call stops at max_tokens before any tool, or the model calls extract_order and ends the turn. `scripted`: the model's steps as recorded (stop reason, tools, free text), replayed through runAskLoop by evals/test/no-reply.test.ts; `expect` is the tool that must reach the customer, or `handoff` for a model that never answers (fail closed). `live`: the same situations as customer messages, run on the real model by evals/live (zero turns may end with nothing sent). Every name and address here is invented.",
+ "scripted": [
+  {
+   "id": "capped-before-any-tool",
+   "cause": "max_tokens",
+   "about": "sponsored-fails-restriction (43642090610) and gluten-free-declared (43649220096): {stop: max_tokens, tools: [], text: null}",
+   "customer": "gluten free chicken sandwich please",
+   "reading": null,
+   "steps": [
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "I have no verified gluten information for that sandwich. Should I ask the restaurant?" } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "capped-mid-tool-call",
+   "cause": "max_tokens",
+   "about": "the cap falls inside a tool call: the cut call is never run, the step is asked again",
+   "customer": "عندي حساسية سمسم، بدي شاورما",
+   "reading": null,
+   "steps": [
+    { "stop": "max_tokens", "tools": [{ "name": "reply", "input": {} }], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "ما عندي معلومة عن السمسم بالشاورما، لازم المطبخ يأكّد قبل ما نقبل الطلب." } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "capped-twice",
+   "cause": "max_tokens",
+   "about": "the retry stops at the cap too: the third call must be the reply itself",
+   "customer": "fi sesame bel ka3ak?",
+   "reading": null,
+   "steps": [
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "Ma 3ande ma3lume mwasa2a 3an el sesame bel ka3ak." } }] }
+   ],
+   "expect": "reply",
+   "forced_reply_by_call": 3
+  },
+  {
+   "id": "extract-order-then-silence",
+   "cause": "extract_order",
+   "about": "infer-religion (43644483826), gluten-free-declared and sesame-allergy (43657020370): extract_order, then free text outside a tool and end_turn",
+   "customer": "عندي حساسية سمسم، بدي شاورما",
+   "reading": null,
+   "steps": [
+    { "stop": "tool_use", "tools": [{ "name": "extract_order", "input": { "intent": { "intent": "order", "language": "ar_lb", "lines": [] } } }] },
+    { "stop": "end_turn", "tools": [], "text": "I'll reply once I've checked the catalog." },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "سجّلت حساسية السمسم. لازم المطبخ يأكّد قبل ما نقبل الطلب." } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "extract-order-then-nothing",
+   "cause": "extract_order",
+   "about": "extract_order, then end_turn with no text and no tool",
+   "customer": "is the chicken halal?",
+   "reading": null,
+   "steps": [
+    { "stop": "tool_use", "tools": [{ "name": "extract_order", "input": { "intent": { "intent": "question", "language": "en", "lines": [] } } }] },
+    { "stop": "end_turn", "tools": [], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "I have no verified information on that. Which shop do you mean?" } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "address-only-no-basket",
+   "cause": "max_tokens",
+   "about": "the staging turn of 14 Nov, with an invented address: an order reading with no lines, only where to deliver, and no basket waiting",
+   "customer": "عبعقلين، حد الصيدلية الزرقا، بيت أبو فادي، طابق تاني",
+   "reading": { "intent": "order", "language": "ar_lb", "lines": [], "address": { "village": "عبعقلين", "landmark": "حد الصيدلية الزرقا", "verbatim": "بيت أبو فادي", "floor": "تاني" } },
+   "steps": [
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "وصل العنوان. شو بتحب تطلب؟" } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "order-capped-then-pin",
+   "cause": "max_tokens",
+   "about": "an order whose question is where: the retry may ask for the pin instead of a text reply",
+   "customer": "baddi 2 labneh w rabtet khebez",
+   "reading": { "intent": "order", "language": "arabizi", "lines": [{ "raw": "2 labneh", "query": "labneh", "qty": 2 }, { "raw": "rabtet khebez", "query": "khebez", "qty": 1 }] },
+   "steps": [
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "tool_use", "tools": [{ "name": "ask_location_pin", "input": { "text": "Wen badak yeh? B3atle el location." } }] }
+   ],
+   "expect": "ask_location_pin"
+  },
+  {
+   "id": "extract-order-then-search-then-reply",
+   "cause": "extract_order",
+   "about": "after extract_order the model still works normally: a search, then the question",
+   "customer": "baddi zet zaytoun",
+   "reading": null,
+   "steps": [
+    { "stop": "tool_use", "tools": [{ "name": "extract_order", "input": { "intent": { "intent": "order", "language": "arabizi", "lines": [] } } }] },
+    { "stop": "tool_use", "tools": [{ "name": "search_catalog", "input": { "query": "zet zaytoun" } }] },
+    { "stop": "tool_use", "tools": [{ "name": "reply", "input": { "text": "Aya 7ajem badak?", "buttons": [{ "id": "a", "title": "1 litre" }, { "id": "b", "title": "2 litres" }] } }] }
+   ],
+   "expect": "reply"
+  },
+  {
+   "id": "never-answers",
+   "cause": "both",
+   "about": "a model that never calls a tool that reaches the customer: the last step is forced to reply; if even that fails, a person takes it (fail closed, alerted)",
+   "customer": "lal yom shu fi?",
+   "reading": null,
+   "steps": [
+    { "stop": "end_turn", "tools": [], "text": "Let me think." },
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "end_turn", "tools": [], "text": "Checking." },
+    { "stop": "end_turn", "tools": [], "text": null },
+    { "stop": "max_tokens", "tools": [], "text": null },
+    { "stop": "end_turn", "tools": [], "text": "Still checking." }
+   ],
+   "expect": "handoff"
+  }
+ ],
+ "live": [
+  { "id": "live-address-only", "texts": ["عبعقلين، حد الصيدلية الزرقا، بيت أبو فادي، طابق تاني"] },
+  { "id": "live-address-only-arabizi", "texts": ["ana bi b3aklin, 7ad el forn, beit Rima Haddad, tabe2 l tene"] },
+  { "id": "live-order-ambiguous", "texts": ["baddi 2 labneh w rabtet khebez"] },
+  { "id": "live-order-with-address", "texts": ["بدي كيلو بندورة وربطة خبز، عبعقلين حد الملعب، بيت أبو سامي"] },
+  { "id": "live-question-allergy", "texts": ["عندي حساسية سمسم، شو فيني آخد؟"] },
+  { "id": "live-question-gluten", "texts": ["gluten free bread please"] },
+  { "id": "live-question-area", "texts": ["btousalo 3a deir el 2amar?"] },
+  { "id": "live-question-french", "texts": ["Vous avez du lait sans lactose ?"] }
+ ]
+}

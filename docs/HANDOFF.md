@@ -53,6 +53,42 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 - **Tests:** `npx tsc --noEmit` clean; `npx vitest run` 1,202 passed and 43 live-only skipped on 14 November (local, before H1's last edits; CI runs the suite on every pull request). `TEST_REPORT.txt` is gone: CI is the record.
 - **Everything live is staging only.** Nothing has run with real customers, real money or the two +961 numbers.
 
+### SP2: no-reply turns, 15 November 2026 (Opus 5.5)
+Ordering lane, branch `claude/tender-clarke-zfo77t`, PR rashidhamzy-hue/alo-king#63. No migration (0200-0201 held, unused).
+**The bug** (M1's finding; once on staging, 14 Nov 08:13 Beirut, an address-only message with no basket): a turn of the open-question loop
+ended with nothing the customer could act on and the chat went to a person (`handoffs.reason = agent_did_not_finish`). Two causes in
+`concierge.ts`: an ask call stopped at `max_tokens` (1024) before any tool; or the model called `extract_order`, was told "already
+recorded", and ended the turn with free text («I'll reply once I've checked the catalog») or nothing.
+
+| Item | What SP2 built | Tested by |
+| --- | --- | --- |
+| Eval cases first | `evals/cases/no_reply.json`: 9 recorded step sequences (stop reason, tools, free text) of both causes, replayed through the real ask loop, and 8 live messages (an address with no basket, orders, allergy, gluten, area and French questions). Invented names and addresses only. 15 of the 17 new tests failed on the loop before the fix | `evals/test/no-reply.test.ts` (13), `test/db/no-reply-sp2.test.ts` (4) |
+| The cap | Ask calls get `max_tokens` 4096 (`ASK_MAX_TOKENS`; only produced tokens are billed). A response cut at the cap is dropped and never run (a cut tool call is half written; `capped-mid-tool-call`) and the step is asked again | `capped-before-any-tool`, `capped-mid-tool-call`, `capped-twice`, `address-only-no-basket`, `order-capped-then-pin` |
+| `extract_order` then silence | Answered «already recorded, in `reading` (null: use the customer's words); do not call it again; answer the customer now». A step with no tool call is answered `ANSWER_NOW` (only a tool reaches the customer; reply, or the pin, card or catalog; a handoff only if you truly cannot help) | `extract-order-then-silence`, `extract-order-then-nothing`, `extract-order-then-search-then-reply` |
+| Stalls | A step that reached nobody (cut, no tool, or only `extract_order`) is a stall. After one, the next call runs at effort low; after two, and on the loop's last step whatever came before, the call is forced to `reply` (`tool_choice` tool, as the reading already is on Haiku 5.5). Normal steps are never forced | `capped-twice`, `never-answers` |
+| A handoff when the model truly cannot answer | Still fail closed: after six steps, `handoff_human("agent_did_not_finish")`, which sends the fixed handoff message. `runAskLoop` now returns `outcome: "handoff"` with the reason also when the model calls `handoff_human` itself (it returned `ok` before) | `never-answers`; `no-reply-sp2` (model's own handoff) |
+| Ops alerted, console shows it | `turn.ts` raises an `agent_handoff` ops exception (ref the turn key; detail the conversation and reason) for every Concierge handoff: the loop's, the model's own, the planner's (`plan_handoff`). The minute cron (`ops_exceptions_due`, `index.ts`) alerts the ops line; the console's exceptions page lists it beside the handed-off chat. Before SP2 a handoff wrote the row and set `human_handoff`, but nothing alerted ops | `no-reply-sp2`: the exception, its reason, and `ops_exceptions_due()` returning it |
+
+**Gate** (language-pack "after" + "live" on the PR's code, `claude-haiku-5-5`, 990 cases, repeat 1; live is 41 + the 8 SP2 cases):
+| Run | Code | item F1 | wrong products | demo | live | no-reply turns |
+| --- | --- | --- | --- | --- | --- | --- |
+| 43682755490 | 3163a76 | 0.916 | 0 | right | 49/49 | 0 |
+| 43682808248 | 3163a76 | 0.913 | 0 | right | 48/49 (see below) | 0 |
+| 43683508108 | 3163a76 | 0.911 | 0 | right | 49/49 | 0 |
+
+Three gate runs in a row: zero no-reply turns, F1 at least 0.90, zero wrong products, the demo right, and every live case judged on
+the reply sent passed. The one live miss (run 43682808248) is "stay on the job" «شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة» read as
+off-topic: the forced reading call (prompt, schema, tools unchanged by SP2), never the ask loop; lane B item (b) below, failing in 3 of
+M1's last 4 runs on main's own prompt. Not a no-reply turn: that customer gets the fixed off-topic line. Left for the lane that owns the
+reading prompt. None of the 8 new live cases stalled visibly; run 1 shows 10 `extract_order` calls in the ask loop, each followed by a
+reply.
+
+Files outside the row: `docs/BUILD_PLAN.md` (the SP2 row), `evals/run.ts` and `evals/live/concierge.live.test.ts` (the runners). No prompt, schema,
+price source, gateway allowlist or money function changed. Locally, after merging main (WEB1): `npm run typecheck` clean; `npm test` 1,402 passed, 51 skipped (live-only), 0 failed.
+
+Only a live account can prove: after merge and deploy, one typed order on the staging customer line gets its card (see below), and an
+`agent_handoff` alert reaching the ops line (the cron path is the one every other exception already uses).
+
 ### D5: console cockpit, 15 November 2026 (Sonnet 5.5)
 Done (C8 approved: the full redesign, every form as built; every existing page test passes unchanged except one guard, below):
 - **Shell.** One stylesheet with tokens (`apps/console/src/style.ts`), bottom navigation on phones (Today, Orders, Approve, Stock, More) and a sidebar from 900 px, a badge on each place with something waiting (capped at 99+), logical CSS so Arabic mirrors, every control at least 44 px. Arabic and English by a `lang` cookie (`/lang?to=ar&next=/path`); the new pages and the shell are translated, the 24 older pages stay English and are marked `lang="en" dir="ltr"` inside an Arabic shell. CSP gained `connect-src`, `manifest-src` and `worker-src` (all `'self'`); no inline script or style anywhere (five `style="flex:1"` attributes the CSP was already blocking were removed).
@@ -262,7 +298,7 @@ Collected by H1 from every finished session record (`docs/history/HANDOFF_sessio
 #### Lane B ordering / agents
 
 - **Lane B (open; found by M1's gate run 43675197868, main's code):** (a) a size-only reading line becomes a product: g0752 «baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85» read as «zet Lina» / «3abbed shams» / «l 2annine l z8ire», and the planner (`plan_order_core_0078`, unchanged by M1) matched the third line to AK-0121 (7Up 330 ml); add the reading to `evals/language/zero-wrong.json` when fixing. (b) The reading judges «شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة» off-topic in 3 of the last 4 language-pack runs (`evals/cases/off_topic`, live "stay on the job"). (session M1)
-- **SP2 (open; found by M1, a bug on main; coordinator, 15 Nov): the ask loop can end a turn with no reply**, which hands the customer to a person with nothing sent. Two causes in `packages/agents/src/concierge.ts`: a step stops at `max_tokens` (1024, `request()`) with no text and no tool call; or the model calls `extract_order`, `runAskLoop` answers «the reading for this turn is already recorded; it is in `reading`» (while `reading` can be null), and the model ends the turn, sometimes writing «I'll reply once I've checked the catalog» outside a tool. Seen in 5 live cases over 4 language-pack runs (43642090610, 43644483826, 43649220096, 43657020370; `evals/live` `steps` trace). Likely fix: answer `extract_order` in the ask loop with "answer now through reply", and retry once (or raise the cap) when a step stops at `max_tokens` with no tool call. Recorded case: `sesame-allergy-no-reply` in `evals/cases/live_wording_attempts.json`. (session M1)
+- **SP2 (fixed in #63, see "SP2: no-reply turns" above; found by M1, coordinator 15 Nov): the ask loop could end a turn with no reply**, which hands the customer to a person with nothing sent. Two causes in `packages/agents/src/concierge.ts`: a step stops at `max_tokens` (1024, `request()`) with no text and no tool call; or the model calls `extract_order`, `runAskLoop` answers «the reading for this turn is already recorded; it is in `reading`» (while `reading` can be null), and the model ends the turn, sometimes writing «I'll reply once I've checked the catalog» outside a tool. Seen in 5 live cases over 4 language-pack runs (43642090610, 43644483826, 43649220096, 43657020370; `evals/live` `steps` trace). Likely fix: answer `extract_order` in the ask loop with "answer now through reply", and retry once (or raise the cap) when a step stops at `max_tokens` with no tool call. Recorded case: `sesame-allergy-no-reply` in `evals/cases/live_wording_attempts.json`. (session M1)
 - Pound total on the order card and receipt should be a setting, not hard-coded either way, pending lawyer item 4; not built. (session R4)
 - Known limit: the deterministic card path does not check restrictions against food facts; a stated restriction only travels on order notes. Case `sponsored-fails-restriction` needs 1.11 and 8.12. (session B2)
 - Known limit: the output guard has one known false positive («أحسن تبعتلنا الموقع» read as a quality word), and food-fact unlock is per attribute group, not per product. (session B2)

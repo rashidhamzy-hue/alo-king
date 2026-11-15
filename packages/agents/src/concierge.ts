@@ -158,39 +158,73 @@ export function parseLooseJson(text: string): unknown {
 }
 
 /**
+ * The ask loop's output cap (SP2). At 1024 a call that thought for long stopped at max_tokens before any tool, and the turn
+ * went to a person with nothing sent (M1's gate runs; staging, 14 Nov). Only the tokens produced are billed.
+ */
+export const ASK_MAX_TOKENS = 4096;
+/** Said to the model when a step reached nobody: free text, or nothing (SP2). Only a tool call reaches the customer. */
+export const ANSWER_NOW = "Nothing has reached the customer: only a tool call does, never free text. Answer now with reply: one short answer, " +
+  "or one clear question (with buttons when they help). Use ask_location_pin, send_confirmation or show_catalog instead when that is the answer, " +
+  "and handoff_human only if you truly cannot help.";
+/** extract_order is offered in the ask loop only so both calls share one cached tool list; the reading is already done. */
+const EXTRACT_ANSWER = { ok: true, note: "The reading is already recorded, in `reading` (null when it could not be read: then use the customer's own " +
+  "words in `texts`). Do not call extract_order again. Answer the customer now with reply, or another tool that ends the turn." };
+
+/**
  * The tool loop. It runs only when plan_order answered "ask": something is ambiguous, missing or unavailable and a
  * question has to be worded. The model can search, quote, ask and propose a card; the database still decides what is true.
+ *
+ * SP2: every turn ends with something the customer receives, or with a person told and alerted. A step "stalls" when it reaches
+ * nobody: cut at max_tokens (its content is dropped and never run: a cut tool call is half written), free text or nothing with
+ * no tool call, or only extract_order. After the first stall the next call thinks less (effort low); after the second, and on
+ * the last step whatever happened before, the call is forced to `reply`. A handoff then means the model truly could not answer.
  */
-export async function runAskLoop(client: ModelClient, model: string, input: AskInput, tools: ConciergeTools) {
+export async function runAskLoop(client: ModelClient, model: string, input: AskInput, tools: ConciergeTools):
+    Promise<{ outcome: "ok" | "handoff"; reason?: string; usage: Usage }> {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: JSON.stringify(input) }];
   const timings: CallTiming[] = [];
   let usage: Usage = usageOf(timings);
+  let stalls = 0;
 
   for (let step = 0; step < MAX_STEPS; step++) {
-    const { res, call: timing } = await timedCall(client, request(model, messages), "ask");
+    const forceReply = stalls >= 2 || step === MAX_STEPS - 1;
+    const extra: Partial<Anthropic.MessageCreateParamsNonStreaming> = { max_tokens: ASK_MAX_TOKENS,
+      ...(stalls > 0 || forceReply ? { output_config: { effort: "low" as const } } : {}),
+      ...(forceReply ? { tool_choice: { type: "tool" as const, name: "reply" } } : {}) };
+    const { res, call: timing } = await timedCall(client, request(model, messages, extra), "ask");
     timings.push(timing); usage = usageOf(timings);
+    // Cut at the cap: nothing in it is run (a tool call may be half written). Ask the same step again, thinking less.
+    if (res.stop_reason === "max_tokens") { stalls++; continue; }
     const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-    if (calls.length === 0) break;                  // free text is never sent to the customer: only tools speak
-    messages.push({ role: "assistant", content: res.content });
+    messages.push({ role: "assistant", content: res.content.length ? res.content : [{ type: "text", text: "(no answer)" }] });
+    if (calls.length === 0) {
+      // Free text is never sent to the customer: only tools speak. Say so, and ask again.
+      stalls++;
+      messages.push({ role: "user", content: ANSWER_NOW });
+      continue;
+    }
 
     const results: Anthropic.ToolResultBlockParam[] = [];
-    let done = false;
+    let done: { handoff?: string } | null = null;
     for (const call of calls) {
       let out: unknown;
       if (call.name === "extract_order") {
-        out = { ok: true, note: "the reading for this turn is already recorded; it is in `reading`" };
+        out = EXTRACT_ANSWER;
       } else {
         const fn = (tools as unknown as Record<string, (a: unknown) => Promise<unknown>>)[call.name];
         try { out = fn ? await fn(call.input) : { ok: false, error: "unknown_tool" }; }
         catch (err) { out = { ok: false, error: String(err instanceof Error ? err.message : err) }; }
         // A terminal tool ends the turn only if it actually reached the customer.
-        if (TERMINAL.has(call.name) && (out as { ok?: boolean } | null)?.ok !== false) done = true;
+        if (TERMINAL.has(call.name) && (out as { ok?: boolean } | null)?.ok !== false) {
+          done = call.name === "handoff_human" ? { handoff: String((call.input as { reason?: unknown } | null)?.reason ?? "model_handoff").slice(0, 200) } : (done ?? {});
+        }
       }
       results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(out) });
     }
     messages.push({ role: "user", content: results });
-    if (done) return { outcome: "ok" as const, usage };
+    if (done) return done.handoff ? { outcome: "handoff", reason: done.handoff, usage } : { outcome: "ok", usage };
+    if (calls.every((c) => c.name === "extract_order")) stalls++;        // a step spent on the reading that is already done
   }
-  await tools.handoff_human({ reason: "agent_did_not_finish" });   // fail closed, to a person
-  return { outcome: "handoff" as const, usage };
+  await tools.handoff_human({ reason: "agent_did_not_finish" });   // fail closed, to a person (turn.ts alerts ops)
+  return { outcome: "handoff", reason: "agent_did_not_finish", usage };
 }
