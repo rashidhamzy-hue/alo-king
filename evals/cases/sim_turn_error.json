@@ -1,0 +1,123 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where a code check found turn_error. Failing on purpose: not fixed by SIM1. Owner: ordering lane. Invented customers, invented numbers.",
+ "severity": 3,
+ "owner": "ordering lane",
+ "cases": [
+  {
+   "id": "sim-112",
+   "seed": 10111,
+   "category": "cancel",
+   "variant": "during_picking",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hi i want one nutella like the seven hundred and fifty gram jar delivered delivered to deir baba please\"]",
+    "[sends a location pin: home]",
+    "The white building, second floor",
+    "[taps \"Confirm order\"]",
+    "Sorry, please cancel the order, I changed my mind",
+    "[taps \"Cancel\"]",
+    "Hello? I need to cancel my order AK-1033, please confirm it's cancelled",
+    "Please answer, I'm on a break and need this order cancelled"
+   ],
+   "shop": [
+    [
+     "✅ Your order is ready.\n📍 Send us your location with the button below\nand we'll send your order card."
+    ],
+    [
+     "✅ We got your location: Deir Baba\n\nFor the rider, we just need:\n🏠 the building name or nearest landmark\n🔢 the floor"
+    ],
+    [
+     "🛒 *Your order AK-1033*\n\n1 × Nutella Spread Chocolate Hazelnut 750G\n$7.00\n\nDelivery (Deir Baba): $1.50\nSmall-order fee: $0.50\n*Total: $9.00*\nor 806,000 LBP\n\n📍 Deir Baba, The white building, second floor\nArrives in about 30 minutes\n💵 Payment: cash on delivery\n\nBy confirming, you agree that we send updates about your orders in this chat. [Confirm order | Edit | Cancel]"
+    ],
+    [
+     "✅ Order AK-1033 confirmed\nWe're preparing it now."
+    ],
+    [
+     "No problem. Please tap Cancel on order card AK-1033 above."
+    ],
+    [
+     "Something went wrong on our side.\nSomeone from the team will contact you."
+    ],
+    [],
+    []
+   ],
+   "found": [
+    {
+     "turn": 6,
+     "detail": "alarms 1; handoffs button_error: Error: handle_order_button: ILLEGAL_TRANSITION preparing -> cancelled by customer"
+    }
+   ],
+   "expect": "no turn_error"
+  },
+  {
+   "id": "sim-215",
+   "seed": 10214,
+   "category": "cancel",
+   "variant": "during_picking",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 1 Candia Uht Lait Entier 125ml lal tawsil 3a el beit bel Kahlouniyeh",
+    "[sends a location pin: home]",
+    "la2, bass hayda baddo, ma baddi shi tene. fi tari2a nkamel hek?",
+    "[taps \"أوريني الكتالوج\"]",
+    "tayyib, 3tine 10 Candia Uht Lait Entier 125ml, la jarra",
+    "ok 3tine 30 7alib, ya3ne 30 Candia 125ml",
+    "[taps \"إيه، كمّل\"]",
+    "[taps \"كاش عند التوصيل\"]",
+    "[taps \"تأكيد الطلب\"]",
+    "sorry, baddi 2alghi l talab, ma 3ad baddo",
+    "[taps \"إلغاء\"]",
+    "ok merci, ma 3ad baddo l talab AK-1086, please 2alghouh"
+   ],
+   "shop": [
+    [
+     "Tamam! Ba3tlna pin la location lal beit."
+    ],
+    [
+     "تمام، استلمنا الموقع بالكحلونية. الطلب الحالي (حليب كاندي 125 مل) أقل من الحد الأدنى للتوصيل، ضيف عليه أغراض لحتى يوصل للحد الأدنى، شو بدك كمان؟"
+    ],
+    [
+     "للأسف ما في طريقة توصل الحليب لحاله، لازم الطلب يوصل للحد الأدنى للتوصيل. ضيف شي أو شي أغراض لتكمل الطلب، أو ألغيه إذا ما بدك. [أوريني الكتالوج | ألغي الطلب]"
+    ],
+    [
+     "الكتالوج مش جاهز هلق للأسف. قلّي شو بدك تضيف على طلبك (اسم الصنف أو الماركة) وبشوفلك إياه فوراً."
+    ],
+    [
+     "تمام، 10 حليب كاندي. لسا أقل من الحد الأدنى للتوصيل، شو بدك تضيف؟\nCandia Uht Lait Entier 125Ml\n$0.40"
+    ],
+    [
+     "تمام، بدلتلك الكمية لـ 30 حليب كاندي 125 مل. بتحب تكمل الطلب هيك؟ [إيه، كمّل | ضيف أغراض]"
+    ],
+    [
+     "تمام، 30 حليب كاندي 125 مل للتوصيل على الكحلونية. بأي طريقة بدك تدفع؟ [كاش عند التوصيل | Whish | OMT]"
+    ],
+    [
+     "🛒 *طلبك AK-1086*\n\n30 × Candia Uht Lait Entier 125Ml\n$12.00\n\nالتوصيل (الكحلونية): $1.50\n*المجموع: $13.50*\nأو 1,208,000 ل.ل\n\n📍 الكحلونية\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1086\nعم نحضّرو هلّق."
+    ],
+    [
+     "ولا يهمك. إذا بدك تلغي الطلب AK-1086، اضغط Cancel على بطاقة الطلب."
+    ],
+    [
+     "صار في مشكلة صغيرة من عنا.\nرح يتواصل معك حدا من الفريق."
+    ],
+    []
+   ],
+   "found": [
+    {
+     "turn": 11,
+     "detail": "alarms 1; handoffs button_error: Error: handle_order_button: ILLEGAL_TRANSITION preparing -> cancelled by customer"
+    }
+   ],
+   "expect": "no turn_error"
+  }
+ ]
+}

@@ -1,0 +1,917 @@
+{
+ "about": "SIM1 (2026-11-15): simulated conversations where the judge found judge_unnatural_dialect. Failing on purpose: not fixed by SIM1. Owner: message design. Invented customers, invented numbers.",
+ "severity": 2.5,
+ "owner": "message design",
+ "cases": [
+  {
+   "id": "sim-182",
+   "seed": 10181,
+   "category": "food_facts",
+   "variant": "halal",
+   "lang": "ar",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "مرحبا، بدي اسأل، صدر الفروج يلي عندكن ماركة Wilco، هو حلال؟",
+    "[taps \"لا، شكرا\"]"
+   ],
+   "shop": [
+    [
+     "ما عندي معلومات موثّقة عن هل المنتج مطابق لهالشي. تأكد من الملصق على العلبة. [بدي أطلبه | لا، شكرا]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "reply is stiff and vague: 'مطابق لهالشي' never says the word halal",
+     "offers 'I want to order it' right after saying it has no confirmation",
+     "second reply is a stiff scope-limit message after a polite 'no thanks'"
+    ],
+    "summary": "The shop correctly declined to confirm halal status without an approved record and told the customer to check the label, and no order was placed, but the Arabic wording was awkward and the follow-up buttons were odd."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-307",
+   "seed": 10306,
+   "category": "same_as_last",
+   "variant": "same_as_last",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi nafs talab l marra l fatet yaneh emmm nafs elli talabto abel talet iyem merci\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "🛒 *طلبك AK-1120*\n\n1 × Tanmia Mortadella Beef Plain\n$0.78\n2 × Happy Basket Red Eggs Naylon 15Pcs\n$4.92\n1 × جبنة أيدام\n$1.43\n\nالتوصيل (بطمة): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $9.13*\nأو 817,000 ل.ل\n\n📍 بطمة\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1120\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "Replies in formal Arabic script, not Arabizi/Lebanese chat style",
+     "No short intro line before the card"
+    ],
+    "summary": "Shop rebuilt the exact last order in one turn, the customer tapped confirm and the order was confirmed with the correct items and total; only the language register (Arabic script and stiff phrasing for an Arabizi customer) was a small blemish."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-002",
+   "seed": 10001,
+   "category": "food_facts",
+   "variant": "allergy",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, el Maxbell Sardine In Oil 125G fiha bayd? 3indi walad 3ando 7asasiyye men el bayd",
+    "yaʼni ma fiyon yeʼakkdo hala2? ana 3ajel, baddi jewebe wad7a eza safe aw la",
+    "ok yaʼni ma fi ta2keed, ma badde talab. merci"
+   ],
+   "shop": [
+    [
+     "Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine fiha bayd aw la. Ba3ref l7asasiyye, fa 3al 2al2al iqra el label 2abl ma te2kul menn, w el maTba5 lazem ye2kkad.",
+     "سجّلنا «حساسية من البيض (ولد عنده حساسية من البيض)» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟ [إيه، تذكّرها | بس هالمرة]"
+    ],
+    [
+     "Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine ma fiha bayd, fa ma bi2dar 2oulak safe. Eqra el label 2abl ma te3ṭiha, w el ma6ba5 lazem ye2kkad hal2ḍiyye."
+    ],
+    [
+     "Tamam, ma fi talab. Merci 3la tawasol ma3na, ba3d ma bdak shi 2ana 3ando 3ala Alo King."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "turn 1 mixes Arabic-script allergy-memory card into an Arabizi chat",
+     "turn 3 invents 'Alo King' as an alternative, which no tool returned",
+     "stiff, over-long Arabizi lines with a mix of 6 and 2 forms, partly unnatural",
+     "turn 2 tells customer to read the label instead of giving a short answer, though the unknown-is-not-safe rule was respected",
+     "turn 1 offers to save the allergy, which is slightly off for an impatient customer"
+    ],
+    "summary": "The shop correctly refused to call the sardines egg-free and the customer did not order, but the replies were stiff and mixed scripts, and the last message invented an 'Alo King' offer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-018",
+   "seed": 10017,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 7ada men el shop yekellimne 3an talab (order) please, mesh bot",
+    "merci, emta ba3rif yjewebne?",
+    "marhaba, fi 7ada? emta bi jawbouni please?"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turn 2",
+     "silence after hand-off on customer turn 3",
+     "no timing or next-step info given",
+     "replied in Arabic script to an Arabizi customer",
+     "customer left unanswered twice"
+    ],
+    "summary": "The hand-off was logged and the first reply said someone would contact the customer, but both follow-up messages asking when got no reply at all, leaving the customer stranded in silence."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-030",
+   "seed": 10029,
+   "category": "not_sold",
+   "variant": "other_shop",
+   "lang": "mixed",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, baddi bombonet gaz 10 kg stp",
+    "Ma fi bombonet gaz 3andkon? Ma fik tjibha men barra? Merci",
+    "Ok merci, ma fi mushkle. Yslamo, bonne journée"
+   ],
+   "shop": [
+    [
+     "Ma l2it bombonet gaz 10 kg. Bade tshoufle el catalog? [Shoufle el catalog | Bade shi tene]"
+    ],
+    [
+     "Ma la2et bombonet gaz 10 kg bl catalog ta3na halla2. Bade shoufle shu fi 3andna? [Shuf el catalog]"
+    ],
+    [
+     "Tikram, yslamo! Mnih2a2 ba3ed ma tkhalle2 ba2na mn Alo King, ba2dak mnkhdmak bi kell far7."
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "garbled closing message ('Mnih2a2 ba3ed ma tkhalle2 ba2na mn Alo King')",
+     "did not directly answer whether it can get the cylinder from elsewhere",
+     "'Alo King' mentioned without any context"
+    ],
+    "summary": "The shop said plainly it does not sell the gas cylinder, offered the catalogue, invented nothing and never offered to phone an order in, but its Arabizi was somewhat stiff and the final message was garbled."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-062",
+   "seed": 10061,
+   "category": "not_sold",
+   "variant": "tobacco",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 3elbe cigarettes please, esri3 shi 3ashen 3am 3amel break",
+    "ma fi tjibon aya haye 3ade? bas 3elbe wa7de",
+    "ok mish mushkle, merci yslamo, bye"
+   ],
+   "shop": [
+    [
+     "مرحبا، للأسف ما عنا سجاير هلق. بقدر ساعدك بشي تاني؟"
+    ],
+    [
+     "Ma fi sajayer m3na, lal2asaf. Bi2dar sa3dak b2ay shi tene mn Alo King?"
+    ],
+    [
+     "Je suis là seulement pour les commandes Alo King : articles, livraison, et où en est votre commande.\nQue voulez-vous commander ?"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Turn 3 reply switched to French for an Arabizi customer",
+     "Turn 1 reply in Arabic script, not matching the customer's Arabizi",
+     "Replied with an order prompt to a customer who was saying goodbye",
+     "Turn 1 said 'for now' (hala2), implying cigarettes may become available"
+    ],
+    "summary": "The shop plainly declined to sell cigarettes and offered other help without inventing anything, but its replies drifted into Arabic script and then French instead of staying in the customer's Arabizi, and it answered a polite goodbye with a stiff order prompt."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-122",
+   "seed": 10121,
+   "category": "food_facts",
+   "variant": "allergy",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi es2al abel ma 2 otlob el kit kat arba3 asabe3 sitte w talatin ela noss gram fiya gluten because ebné 3ando 7assasiye mn el gluten\"]",
+    "[taps \"Ma bade kit kat\"]",
+    "La merci, ma baddi kit kat. Ma fi ta2kid enno gluten free, fa ma badde"
+   ],
+   "shop": [
+    [
+     "Ma 3anna ma3lumat mo2akkade 3an el gluten bel Kit Kat 4 Fingers 36.5g, fa ma fi nekdar n2ekked innon mnee2 la ebnak. Mnit2ked men el label 2abel ma tetlob, aw tneen min 3and ghayra 3ande ma3lumat? [Es2al el ma7al | Ma bade kit kat]",
+     "سجّلنا «gluten» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟ [إيه، تذكّرها | بس هالمرة]"
+    ],
+    [
+     "Kit Kat 4 Fingers, 3ashan ya5od el talab lal minimum zid ashya tanyeh.\nKit Kat 4 Fingers 36.5G\n$0.63"
+    ],
+    [
+     "Tamam, ma rah nDeef el Kit Kat. Fi shi tenye bdak yetlob?",
+     "سجّلنا «gluten free» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟ [إيه، تذكّرها | بس هالمرة]"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Kit Kat card shown after customer chose 'Ma bade kit kat'",
+     "Garbled card text with minimum-order wording nobody asked for",
+     "Arabic-script 'remember allergy' prompts to an Arabizi customer, twice, and 'gluten free' saved as a preference",
+     "Wrong-language/stiff reply and over-long first message flagged",
+     "Customer tapped no and still got an order card"
+    ],
+    "summary": "The shop correctly said it did not know the gluten status and never called Kit Kat safe, but after the customer declined it still put the Kit Kat on a card, and it mixed in Arabic-script prompts for an Arabizi customer.​"
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-125",
+   "seed": 10124,
+   "category": "cancel",
+   "variant": "before_confirm",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 3 Private feminine pads extra thin normal 10 pieces, la kfarfaqoud",
+    "la2, bass hayda, yalla 2arreb el order",
+    "[taps \"الغي الطلب\"]"
+   ],
+   "shop": [
+    [
+     "الطلب أقل من الحد الأدنى للتوصيل. بدك تضيف شي كمان؟\nPrivate Feminine Pads Extra Thin Normal 10 Pieces\n$1.35"
+    ],
+    [
+     "El order 2al2al men el 7ad el adna lal tawsil. Bade tzid shi?\nPrivate Feminine Pads Extra Thin Normal 10 Pieces\n$1.35 [زيد شي | الغي الطلب]"
+    ],
+    [
+     "تمام، ألغينا الطلب. بتحب تطلب شي ثاني؟"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "first reply in Arabic script to an Arabizi customer",
+     "second reply in stiff transliterated Arabizi, flagged wrong_language",
+     "same below-minimum message repeated after customer said no more items",
+     "price shown for single unit, not 3",
+     "no order card ever shown"
+    ],
+    "summary": "Customer ended with nothing ordered and a cancel acknowledgment, but the shop hit the minimum-order wall twice, mixed scripts awkwardly, and repeated itself; the cancellation itself was clear."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-129",
+   "seed": 10128,
+   "category": "not_sold",
+   "variant": "medicine",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Marhaba, baddi 3elbet paracetamol please, la jerten 3ande kbir bel 3emer",
+    "Ma 3ndkon paracetamol? Fiyon tjibouli yeh men ay blad aw ay mahal?",
+    "Tamem, merci 3ala wa2tkon. Yislamo, bye 🙏"
+   ],
+   "shop": [
+    [
+     "Sorry, I couldn't find paracetamol in our catalog. Would you like me to show you our pharmacy products, or can you tell me another item? [Show pharmacy items | Other item]"
+    ],
+    [
+     "Lal asef, paracetamol ma bel catalog 7aliyan, fa ma bi2dar 2ark el as3ar aw el tfeeleh. Bade wari2 shu 3andna men el mouneh? [Shuf el catalog | Mneen 3ayez shi tene]"
+    ],
+    [
+     "Tamam, 3afwan! Yislamo, ba3d ma bdak shi mn Alo King, ba2a 3m ne7andelak 🙏"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Turn 1 reply in English to an Arabizi customer",
+     "Never plainly says medicine is not sold; says 'not in catalog currently', implying it may come later",
+     "Offers 'pharmacy items' although the shop sells no medicine",
+     "Turn 2 answers the customer's question about getting it from elsewhere only vaguely",
+     "Mixed odd dialect ('3ayez', 'bdak') and emoji against the rules"
+    ],
+    "summary": "Customer was not given a product and ended politely, but the shop never plainly said it does not sell medicine, offered a nonexistent pharmacy section, and replied in English first with off-dialect wording."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-175",
+   "seed": 10174,
+   "category": "not_sold",
+   "variant": "medicine",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba habibi kif halkon baddi 3elbe paracetamol la 2eza eh fi 3andkon please\"]",
+    "Ya3ne ma fi? Fina nitlob menkon yjibouha aw ma btejibo adwiye?",
+    "Tayyib habibi, mashkour w yslamo. Ma fi problem, merci 3ala wa2tkon, Allah ye3tikon el 3afye."
+   ],
+   "shop": [
+    [
+     "ما لقيت بارacetamol عنا هلق. بدك تجرب شي تاني أو تبعتلي اسم ثاني؟ [شو عندكن؟ | لا شكرا]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "الله يسلمك، أهلين فيك بأي وقت. إذا بدك تطلب من ألو كينغ، بس ابعتلي شو بدك."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "never plainly says it does not sell medicine",
+     "first reply garbled ('بارacetamol', mixed script) and implies it might be found later",
+     "replied in Arabic script to an Arabizi customer, stiff and formal",
+     "second reply deflects instead of answering whether it sells medicine",
+     "did not clearly offer something it sells"
+    ],
+    "summary": "The shop never clearly said it does not sell medicine; it gave a garbled, vague non-answer and a deflection, though it invented nothing and did not offer to phone an order in."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-205",
+   "seed": 10204,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "(1) ya 3ayb el shame, el delivery el marra l fetet t2akharit sa3tein w ma 7ada 3ata jawab  (2) shu hal service el zero hayda, ma btfahmo shi",
+    "yalla w2ila, baddi shi akel hallaq, shu fi 3andkon? khabbirouni la ykuno kamen mt2akhrin",
+    "hello?? fi 7ada hon wala el shop nayem? jewe3an w ma fi jawab, shu hal ihmal"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "handed off on turn 1 instead of staying on the job and offering to help order",
+     "reply was formal Arabic script, not Arabizi",
+     "no reply to turn 2 (customer asked what food is available)",
+     "no reply to turn 3 (customer asked if anyone is there)",
+     "hand-off promised a person but nobody answered; customer left hungry and stranded"
+    ],
+    "summary": "The shop handed off after the customer's insults and then went silent for the next two messages, so the hungry customer got no menu, no card and no answer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-224",
+   "seed": 10223,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi 7ade men el shop 7a2i2i (mesh bot) la so2al 3an talab",
+    "emta ra7 yjawebni? ana bel shughol w 3am e7ki bel break",
+    "halla2 fi 7ada? break taba3i 3am yikhlas"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on turn 2",
+     "silence after hand-off on turn 3",
+     "no timeframe or next step given",
+     "reply in Arabic script to an Arabizi customer, formal tone"
+    ],
+    "summary": "The hand-off was logged, but both follow-up messages got no reply, leaving an impatient customer with no word on when anyone would answer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-225",
+   "seed": 10224,
+   "category": "not_sold",
+   "variant": "medicine",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "kifak, fi 3enkon cough syrup? 3ande sa3le w baddi shi la l-ne3me",
+    "ma fi tjibo la 3andkon kermel 2ana? ya3ni bte2daro tjibo2 men ay saydaliye?",
+    "ok mafi mashakel, merci 3ala wa2tkon, yslamo"
+   ],
+   "shop": [
+    [
+     "للأسف ما لقيت شراب الكحة عنّا هلق. بدك شي تاني من المنيو؟ 🙏"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "Afwan, yslamak! Ida bade tatleb shi min Alo King, ana hon."
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "replied in Arabic script to an Arabizi customer",
+     "turn 1 says 'couldn't find' rather than plainly 'we don't sell medicine'",
+     "forbidden emoji in turn 1 (hard failure)",
+     "turn 2 scope reply is stiff and does not directly decline the pharmacy request"
+    ],
+    "summary": "The shop never offered to fetch or phone in the syrup and invented nothing, then closed politely, but its wording was soft ('couldn't find') instead of a plain 'we don't sell this', it used an emoji, and it answered in Arabic script and stiff phrasing to an Arabizi customer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-250",
+   "seed": 10249,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hellogood evening excuse me like i have a question about my order and and i would like to speak to a real person please not a machine thank you very much\"]",
+    "Thank you habibi. Do you know approximately when someone will answer me please?",
+    "Hello, is someone there please? I am still waiting, thank you for your patience."
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "hand-off reply in Arabic to an English-speaking customer",
+     "no reply to follow-up about timing",
+     "second follow-up also left in silence",
+     "customer not told what happens next or when",
+     "older customer left waiting with no acknowledgement"
+    ],
+    "summary": "The hand-off was logged, but the customer got a single Arabic line despite writing in English and then silence on two follow-up messages, leaving them stranded with no information on timing."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-265",
+   "seed": 10264,
+   "category": "off_topic",
+   "variant": "off_topic",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba shu hal 2a6s l yom fi shi shta ana hon bel chouf emmm\"]",
+    "haha ok, w enta shu shayef bel match mbereh? Barcelona 3emlo shi?",
+    "tayyeb, shu bta3mlo bel dabt? shu fiyi 2 टlob menkon?"
+   ],
+   "shop": [
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "identical canned reply three times",
+     "customer wrote Arabizi, shop replied in Arabic script",
+     "third question 'what do you do' got no real answer",
+     "stiff, formal phrasing; no variation between turns",
+     "'Alo King' brand name may not match shop (unverified)"
+    ],
+    "summary": "The shop stayed polite and never insulted back, but it sent the same canned off-topic line three times, in Arabic script to an Arabizi customer, and never actually answered the direct question about what it does."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-266",
+   "seed": 10265,
+   "category": "plain_order",
+   "variant": "few_items",
+   "lang": "en",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"hi how are you hope hope you re doing well please i want two cans of chtoura garden fava beans the four hundred gram ones and one pack of loulou baby diapers size six the twenty six pieces deliver to my home in like moukhtara thank you\"]",
+    "[sends a location pin: home]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "shop": [
+    [
+     "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب."
+    ],
+    [
+     "🛒 *طلبك AK-1102*\n\n2 × Chtoura Garden Fava Beans 400G\n$1.18\n1 × Loulou Baby Diapers Size 6 16-30Kg 26 Pieces\n$4.74\n\nالتوصيل (المختارة): $1.50\nرسم الطلبات الصغيرة: $0.50\n*المجموع: $7.92*\nأو 709,000 ل.ل\n\n📍 المختارة\nالوصول خلال حوالي 30 دقيقة\n💵 الدفع: كاش عند الاستلام\n\nبتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة. [تأكيد الطلب | تعديل | إلغاء]"
+    ],
+    [
+     "✅ تأكد طلبك AK-1102\nعم نحضّرو هلّق."
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Replied in Arabic to an English-speaking customer on every turn",
+     "Customer had to read Arabic order card and confirmation"
+    ],
+    "summary": "The order was correct and confirmed by the customer's own tap, but every shop message was in Arabic although the customer wrote in English."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-269",
+   "seed": 10268,
+   "category": "not_sold",
+   "variant": "medicine",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi 3elbet paracetamol la jerene 3ndi kbir bil emmm 3omor ba3tilna yaha law samaht\"]",
+    "ma fi tjibon aneh ma3 ay shi, aw tshtriyoun min el pharmacie? yslamo",
+    "ok mfhoum, merci 3ala wa2tkon, yslamo"
+   ],
+   "shop": [
+    [
+     "Ma l2ité paracetamol bel catalog 7aliyan. Shu huwwe el shi l-tani ba3d ma ba3tilna yaha?"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "الله يسلمك! إذا بدك تطلب من ألو كينغ، أنا هون."
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "turn 1 reply awkward: 'ba3tilna yaha' garbled, reads as stiff/odd Arabizi",
+     "replies switched to Arabic script for an Arabizi customer",
+     "turn 1 says 'not in catalogue right now' rather than plainly 'we don't sell medicine'",
+     "no offer of a concrete alternative item the shop sells"
+    ],
+    "summary": "The shop declined paracetamol, did not offer to phone anything in or invent facts, and the customer ended politely, but the wording was clumsy and the script switched from Arabizi to Arabic."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-276",
+   "seed": 10275,
+   "category": "off_topic",
+   "variant": "abuse",
+   "lang": "mixed",
+   "voice": false,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "(1) Marhaba... ca va?  (2) Ya3ni la7a2 3am teb3atou lal deliveries ou quoi? Last time kenet zeft, 2 hours w ma wasal chi  (3) Service nul honestly, shu hal ma3azze",
+    "Ok whatever, bas baddi akel hala2, shu 3ندكن sandwich aw manoushe? Please vite 😒",
+    "Allo?? Hata l jaweb bte2ta3o, ya3ni bi2ata3 service zeft w kamen ma fi radd 🙄 baddi manoushe zaatar w jibne, hala2 please"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "handoff on a complaint, then total silence",
+     "ignored two clear food requests (manoushe zaatar w jibne)",
+     "no ordering help given at all",
+     "reply was formal Arabic, not Lebanese dialect",
+     "customer left with no way forward"
+    ],
+    "summary": "The shop sent a single stiff hand-off line about a follow-up and then went silent for two further messages, leaving a customer who clearly wanted to order a manoushe stranded with no card and no answer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-418",
+   "seed": 10417,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, el talta3esh mayy Nejmeh 2L illi jabouhon 2 ayyem kenet 5arbane, fi 7aje 3a2bet el taba3 w m3abbaye mish tamem",
+    "yslamo, fiyon yjawbouni la2an el 3ejuze bl 7ay ma 3anda mayy",
+    "marhaba, fi hada yjawebni? baddon ya3tuni 3ewad aw yredduli l masare please"
+   ],
+   "shop": [
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
+     "Sorry about the Nejmeh water bottles that arrived damaged. I'm passing this to our team now so a person can check it with you."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on both follow-up messages",
+     "reply in English/Arabic script to an Arabizi customer",
+     "no clear next step or timeframe given",
+     "urgent need (elderly neighbour without water) ignored",
+     "customer's refund/replacement question never answered"
+    ],
+    "summary": "The shop handed off the complaint but then went silent on both follow-ups, leaving the customer stranded with no answer about replacement or refund, and the one reply was not in Arabizi."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-438",
+   "seed": 10437,
+   "category": "off_topic",
+   "variant": "stop",
+   "lang": "fr",
+   "voice": true,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"bonjour euh je ne veux plus recevoir de messages de vous s il vous plaît stop\"]",
+    "STOP",
+    "Bonjour, il y a quelqu'un ?"
+   ],
+   "shop": [
+    [
+     "تم، ما رح نتعلّم شي جديد عنك من هلّق، وما منستعمل يلي محفوظ إلا القيود يلي طلبت نتذكّرها. إذا بدك نمحي يلي محفوظ قلّي «إنسى»."
+    ],
+    [
+     "C'est fait. Nous ne vous enverrons plus de messages.\nPour commander, écrivez-nous simplement."
+    ],
+    []
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "Turn 1 reply in Arabic to a French customer (wrong language)",
+     "Turn 1 misread the stop request as a memory/privacy opt-out and did not confirm the opt-out",
+     "Opt-out only confirmed after the customer sent a second STOP",
+     "Final confirmation added an ordering prompt (\"Pour commander, écrivez-nous\") after STOP"
+    ],
+    "summary": "The customer was opted out and nothing was sent after the final message, but the first reply was in the wrong language and ignored the stop request, so the customer had to send STOP a second time."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-007",
+   "seed": 10006,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba kifkon? ca va el yom?",
+    "yslamo, baddi se2el 3an talab 3amelto, fi 7ada men el shabab 2ellé 2ehki ma3o? mesh bot please",
+    "merci! emta ta2riban bye7kou ma3i?",
+    "ok mnee7, bas ma3lesh iza fi 7ada mawjoud halla2? ma btekhlas shi bi dakika?"
+   ],
+   "shop": [
+    [
+     "Ahlan! Shu bdak ta3mel? [Shu 3andkon | Bade talab]"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turns 3 and 4",
+     "handoff message gave no timing or next-step detail",
+     "reply in Arabic script to an Arabizi customer",
+     "customer's 'when' questions left unanswered"
+    ],
+    "summary": "The shop told the customer a team member would contact them, but then sent nothing to the two follow-up messages asking when, leaving the customer stranded in silence."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-033",
+   "seed": 10032,
+   "category": "off_topic",
+   "variant": "off_topic",
+   "lang": "arabizi",
+   "voice": true,
+   "burst": true,
+   "clock": "day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba shu talj ya3ne hal yom ya3ni el jaw barde marra bi batloun 3am tshattei ktir\"]",
+    "(1) ha ha ok  (2) bas shufet el match mbere7? Barcelona 7elwe ktir  (3) chou ra2yak enta",
+    "tamam tamam. tab shu bta3mlo enta bel dabt, shu el khedme?",
+    "tamam fhemet, merci. bye"
+   ],
+   "shop": [
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "ما بقدر حكي بكرة المباريات أو غيره، أنا بس لطلبات ألو كينغ. شو بدك تطلب؟"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "Tamam, merci à toi! Bye 👋"
+    ]
+   ],
+   "found": {
+    "severity": 1,
+    "problems": [
+     "replied in Arabic script to an Arabizi customer",
+     "identical canned reply when asked what the shop does, no real explanation",
+     "final goodbye in French with a banned emoji",
+     "stiff phrasing for Lebanese dialect"
+    ],
+    "summary": "The shop stayed polite and on-topic and never insulted the customer, but it used the wrong script and language register, repeated a canned line for the 'what do you do' question, and ended with a French goodbye and an emoji."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-038",
+   "seed": 10037,
+   "category": "person",
+   "variant": "wants_person",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Marhaba, kif halkon? shi ktir tayyeb ya3tikon el 3afye",
+    "Baddi eHki ma3 shakhs 7a2i2i law sama7et, 3andi so2al 3an talab",
+    "Ok merci, emta ta2riban bijawbo 3alayye?",
+    "Hello? fi hada hon? ba3ref kam da2i2a bas baddi 3ref emta bijawbo"
+   ],
+   "shop": [
+    [
+     "Marhaba! Shu bade orderlak?"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "silence after hand-off on customer turns 3 and 4",
+     "no answer to when someone will respond",
+     "hand-off reply in formal Arabic script to an Arabizi customer",
+     "opening reply ignored the customer's greeting and jumped to 'what to order'"
+    ],
+    "summary": "The hand-off was recorded, but the shop then went silent on both follow-up messages, leaving the customer with no information on timing and no sign anyone was there."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-097",
+   "seed": 10096,
+   "category": "not_sold",
+   "variant": "restaurant",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, baddi pizza kbire men l pizzeria law sama7t",
+    "ma fi tjibouna aya7al? 3am bshteri la jeriti l kbire w baddi yeha bi ay tari2a",
+    "la la, ma baddi jarra. ana 2ult pizza kbire, 2abl shway. ma fi tjibouna yeha aya7al? iza ma fi, ma fi mushkle merci",
+    "ok ma fi mushkle, merci ya3tik l 3afye"
+   ],
+   "shop": [
+    [
+     "pizzeria مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق."
+    ],
+    [
+     "ma fhimit 'jeriti l kbire' bi dakkat. Bidak jarra mi kbire?\nAqua Family 10L\n$0.72\nTannourine Mineral Water Gallon 6L\n$1.29 [Aqua Family 10L | Tannourine 6L | shi tani]"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ],
+    [
+     "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.\nشو بتحب تطلب؟"
+    ]
+   ],
+   "found": {
+    "severity": 2,
+    "problems": [
+     "misread 'jeriti' as jerrycan and showed water product card nobody asked for",
+     "never clearly answered the 'can you get it anyway' follow-up",
+     "replied in Arabic script to Arabizi customer, stiff phrasing",
+     "same canned redirect repeated twice, including after the customer's polite goodbye",
+     "no offer of help with something it actually sells, as the success line requires"
+    ],
+    "summary": "The shop correctly said the pizzeria is not available, but then misread the follow-up as a water jug request and sent an unrequested product card, answered the polite close with a repeated canned line, and used stiff Arabic script for an Arabizi customer."
+   },
+   "expect": "no judge_unnatural_dialect"
+  },
+  {
+   "id": "sim-119",
+   "seed": 10118,
+   "category": "person",
+   "variant": "complaint",
+   "lang": "arabizi",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "marhaba, talab 2a5er 3tene (2 ayem) kenet 3elbet Lipton Yellow Label tea 25 bags 5arbane, mnasra",
+    "la ana ma baddi talab jdid, baddi 2e3mol shakwa: 3elbet el Lipton eli wasalet kenet 5arbane. shu fiyon ta7el hal mawdou3?",
+    "merci, fiyon t2oulo yjawebni ta2rib? baddi a3raf shu rah ysir bel 3elbe el 5arbane",
+    "hello, fi hada yjawebni 3ala shakwet el Lipton tea? merci"
+   ],
+   "shop": [
+    [
+     "Talabak 2a2al men el minimum. Fi ta zido shi tani?\nLipton Yellow Label Black Tea 25 Bags\n$0.73"
+    ],
+    [
+     "رح يتواصل معك حدا من فريقنا بأقرب وقت."
+    ],
+    [],
+    []
+   ],
+   "found": {
+    "severity": 3,
+    "problems": [
+     "misread complaint as new order, showed unwanted product card",
+     "hand-off message in formal Arabic script, not Arabizi",
+     "silence after hand-off on turns 3 and 4",
+     "customer never told what happens next",
+     "no timeframe or acknowledgment of damaged item"
+    ],
+    "summary": "The shop first mistook the complaint for a reorder and showed an uninvited product card; the hand-off was logged, but the two follow-up messages got no reply, leaving the customer stranded with no clear next step."
+   },
+   "expect": "no judge_unnatural_dialect"
+  }
+ ]
+}
