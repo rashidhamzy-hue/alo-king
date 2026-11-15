@@ -141,8 +141,6 @@ export interface Messages {
     minimum: (min: number, now: number, gap: number) => S;
     /** "What is the minimum?" with no basket yet. */
     minimumIs: (min: number) => S;
-    /** The button that adds `n` more of a basket item, enough to reach the minimum (cut to WhatsApp's 20 characters by code). */
-    moreButton: (n: number, name: S) => S;
     cancelButton: S;
     /** The customer let the basket go: nothing is sent. */
     cleared: S;

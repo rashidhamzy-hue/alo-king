@@ -135,7 +135,6 @@ export const ar: Messages = {
     minimum: (min, now, gap) => ["🛒 طلبك أقل من الحد الأدنى.", `الحد الأدنى للطلب: ${usd(min)}`, `طلبك هلّق: ${usd(now)}`,
       `ناقصك: ${usd(gap)}`, "زيد شي، أو اختار من تحت:"].join("\n"),
     minimumIs: (min) => `🛒 الحد الأدنى للطلب: ${usd(min)}\nشو بتحب تطلب؟`,
-    moreButton: (n, name) => `+${n} ${name}`,
     cancelButton: "إلغي الطلب",
     cleared: "تمام، ما رح نبعت شي وسلّتك فاضية.\nاكتبلي أيمتى ما بدك تطلب.",
     soFar: (items) => `🛒 طلبك لسّا ما انبعت. بسلّتك:\n${bullets(items)}`,

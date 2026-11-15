@@ -1258,12 +1258,6 @@ $7.27
 شو بتحب تطلب؟
 ```
 
-## basket.moreButton
-
-```text
-+7 خبز الفورنو أبيض كبير 800 غ
-```
-
 ## basket.cancelButton
 
 ```text
