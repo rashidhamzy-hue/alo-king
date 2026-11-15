@@ -28,3 +28,7 @@ on conflict (source_id, product_id) do nothing;
 insert into stock_levels(source_id, product_id)
 select o.source_id, o.product_id from offers o join sources s on s.id = o.source_id and s.kind = 'dark_store'
 on conflict do nothing;
+
+-- B1c (0138): the house defaults proposed from the founder's hand cases (evals/language/hand.json h0002-h0006), as 0138 sets them on a
+-- database whose catalog was loaded before it. The founder or ops changes them.
+update products set house_default = true where sku in ('AK-0080', 'AK-0133', 'AK-0049', 'AK-0046', 'AK-0103') and not house_default;

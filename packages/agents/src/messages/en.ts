@@ -85,8 +85,8 @@ export const en: Messages = {
     pinSaved: (village) => `✅ We saved your location${village ? ` (${village})` : ""}.\nWhat would you like to order?`,
     fxPaused: "We're updating the exchange rate right now, so we can't price the order this minute.\nYour order is saved: send us \"ok\" in a little while and we'll send the card.",
     pinVillageRefused: "We couldn't use that village for this location.\nSend the location again with the button 📍",
-    closedKept: (opens) => `🌙 We're closed now and open at ${opens}.\n\nWe've saved your order ✅\nWhen we open, tap "Send my order" and we'll carry on here.`,
-    closedKeptPin: (opens) => `📍 We got your location.\n🌙 But we're closed now and open at ${opens}.\n\nYour order is saved: when we open, tap "Send my order" and we'll carry on.`,
+    closedKept: (opens, items) => `🌙 We're closed now and open at ${opens}.\n\nWe've saved your order ✅${items?.length ? `\n${bullets(items)}` : ""}\nWhen we open, tap "Send my order" and we'll carry on here.`,
+    closedKeptPin: (opens, items) => `📍 We got your location.\n🌙 But we're closed now and open at ${opens}.\n\nYour order is saved: when we open, tap "Send my order" and we'll carry on.${items?.length ? `\n${bullets(items)}` : ""}`,
     keptButton: "Send my order",
     keptOpen: "Good morning, we're open ✅\nThe order you sent while we were closed is saved.\nTap \"Send my order\" and we'll carry on.",
     keptGone: "There is no saved order now. What would you like to order?",
@@ -111,6 +111,7 @@ export const en: Messages = {
 
   answer: {
     noOpenOrder: "You have no open order now. What would you like to order?",
+    noOpenRepeat: (items, more) => `You have no open order now.\nTap below and we'll prepare the same order as last time at today's prices:\n${join(items)}${more ? ` and ${more} more` : ""}`,
     awaitingConfirmation: (code, when) => `Order ${code}: waiting for your confirmation${when ? `, for delivery ${when}` : ""}.\nTap "Confirm order" on the card to start.`,
     awaitingPayment: (code, when, total) => `Order ${code}: ${when ? `booked for delivery ${when}, ` : ""}waiting for the payment.\n💵 Amount:\n${usd(total)}\nSend a photo of the receipt here.`,
     confirmedFor: (code, when) => `✅ Order ${code}: confirmed, delivery ${when}.`,
@@ -137,12 +138,14 @@ export const en: Messages = {
   },
 
   basket: {
-    minimum: (min, now, gap) => ["🛒 Your order is under the minimum.", `Minimum order: ${usd(min)}`, `Your basket now: ${usd(now)}`,
+    minimum: (min, now, gap, items) => ["🛒 Your order is under the minimum.", ...(items?.length ? ["In your basket:", bullets(items)] : []), `Minimum order: ${usd(min)}`, `Your basket now: ${usd(now)}`,
       `Still to add: ${usd(gap)}`, "Add something, or choose below:"].join("\n"),
     minimumIs: (min) => `🛒 Minimum order: ${usd(min)}\nWhat would you like to order?`,
     cancelButton: "Cancel order",
     cleared: "OK, nothing will be sent and your basket is empty.\nWrite to me whenever you want to order.",
     soFar: (items) => `🛒 Your order is not sent yet. In your basket:\n${bullets(items)}`,
+    which: (said, rows) => `"${said}": which one would you like?\n${bullets(rows)}\nChoose below.`,
+    houseDefault: (said, name) => `"${said}": we put ${name}.\nIf you want another one, tell me.`,
     changed: (rows) => `✅ Your order is updated:\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Not available now:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
     cancelRefused: (code) => `Order ${code} is already being prepared, so it can't be cancelled from here.\nA person from our team will call you about it.`,

@@ -98,13 +98,33 @@ export class SimConversation {
     const place = (await this.world.db.rpc("save_customer_pin", { p_party: this.partyId, p_lat: p.latitude, p_lng: p.longitude, p_village: v?.id ?? null }))?.place_id ?? null;
     const lines = h.items.map((i) => ({ product_id: this.world.sku.get(i.sku), qty: i.qty })).filter((l) => l.product_id);
     if (!lines.length) return;
-    const o = await this.world.db.rpc("create_order_from_quote", { p_customer: this.partyId, p_conversation: this.conversationId, p_lines: lines,
+    let o = await this.world.db.rpc("create_order_from_quote", { p_customer: this.partyId, p_conversation: this.conversationId, p_lines: lines,
       p_village: v?.id ?? null, p_place: place, p_pickup: false, p_payment: "cod", p_change_for: null, p_notes: null });
+    if (o?.order_id) await this.world.db.rpc("confirm_order_checked", { p_order: o.order_id, p_party: this.partyId, p_wamid: `wamid.SIMHIST.${this.who.waUserId}` });
+    // B1c: a past basket under today's $5 minimum is refused by create_order_from_quote, so B1b's same_as_last scenarios had no last
+    // order at all (sim-073 heard "no earlier order" and "no open order"). Such a past order is written directly, as a test fixture.
+    else o = { order_id: await this.pastOrder(lines, v?.id ?? null, place) };
     if (!o?.order_id) return;
-    await this.world.db.rpc("confirm_order_checked", { p_order: o.order_id, p_party: this.partyId, p_wamid: `wamid.SIMHIST.${this.who.waUserId}` });
     // Test data in the run's own database (as test/db/recall.test.ts does): the past order was delivered and closed.
     await this.world.db.pg.query(`update orders set status = 'closed', delivered_at = now() - make_interval(days => $2) where id = $1`, [o.order_id, h.days_ago]);
     this.historyOrders.push(o.order_id);
+  }
+
+  /** A delivered past order written as rows (the run's own database only), for a basket the minimum would refuse today. */
+  private async pastOrder(lines: { product_id: string | undefined; qty: number }[], villageId: string | null, placeId: string | null): Promise<string | null> {
+    const code = `AK-H${String(Math.floor(Math.random() * 1e6)).padStart(6, "0")}`;
+    const order = (await this.sql<{ id: string }>(`insert into orders(customer_id, short_code, status, village_id, place_id, conversation_id)
+      values ($1, $2, 'draft', $3, $4, $5) returning id`, [this.partyId, code, villageId, placeId, this.conversationId]))[0]?.id;
+    if (!order) return null;
+    const f = (await this.sql<{ id: string; source_id: string }>(`insert into fulfilments(order_id, source_id)
+      select $1, id from sources where kind = 'dark_store' order by id limit 1 returning id, source_id`, [order]))[0];
+    if (!f) return null;
+    for (const l of lines) {
+      await this.sql(`insert into order_items(order_id, fulfilment_id, product_id, name_snapshot, qty, unit_price_usd)
+        select $1, $2, p.id, p.name_en, $4, coalesce(o.price_usd, 0) from products p left join offers o on o.product_id = p.id and o.source_id = $5
+         where p.id = $3`, [order, f.id, l.product_id, l.qty, f.source_id]);
+    }
+    return order;
   }
 
   private event(message: Record<string, unknown>) {

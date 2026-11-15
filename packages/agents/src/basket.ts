@@ -71,7 +71,11 @@ export function diffLines(before: QuoteLineInput[], after: QuoteLineInput[]): Ba
 }
 
 /** A plan line, as plan_order returns it (pipeline.ts PlanLine), with only what an edit needs. */
-interface PlannedLine { idx: number; status: string; qty: number; chosen: { product_id: string } | null; candidates: { product_id: string }[] | null }
+interface PlannedLine { idx: number; status: string; qty: number; chosen: { product_id: string } | null; candidates: { product_id: string }[] | null;
+  /** The planner chose by a rule, not by the customer's words (the best seller, or the house default: pick = house). */
+  assumed?: boolean; pick?: string | null;
+  /** B1c (0138): every product the line's words fit, so a generic word finds the one already in the basket. */
+  tied?: { product_id: string }[] | null }
 interface PlannedBasket { lines: PlannedLine[]; quote_lines: QuoteLineInput[] }
 
 /** The default edit of a line the reading did not mark: "add" for intent add_to_order, else "set" (a restated item keeps its count). */
@@ -95,7 +99,7 @@ export function ordinalIn(said: string): number | null {
  * `unresolved`: lines that need a question (ambiguous, not found, or a remove that names nothing in the basket).
  */
 export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, plan: PlannedBasket, held: QuoteLineInput[], heldQuote?: Pick<Quote, "issues" | "lines"> | null,
-                              hints: Map<number, string[]> = new Map()): { edits: BasketEdit[]; unresolved: PlannedLine[] } {
+                              hints: Map<number, string[]> = new Map(), message = ""): { edits: BasketEdit[]; unresolved: PlannedLine[] } {
   const inBasket = new Set(held.map((l) => l.product_id));
   const substituteOf = new Map<string, string>();
   for (const i of heldQuote?.issues ?? []) {
@@ -116,24 +120,43 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
     // «زيدلي ربطة خبز تالتة»: "a third one" makes three in all, it does not add three (the second B1a run, sim-051: 5 pita). Only from
     // three on: «تانية» is also "another", one more whatever the count.
     const ordinal = ordinalIn(`${said?.raw ?? ""}`);
-    const op: BasketOp = ordinal != null && ordinal === qty && (explicit ?? defaultOp(intent.intent)) === "add" ? "set" : explicit ?? defaultOp(intent.intent);
+    let op: BasketOp = ordinal != null && ordinal === qty && (explicit ?? defaultOp(intent.intent)) === "add" ? "set" : explicit ?? defaultOp(intent.intent);
+    const inB = (p: string | null | undefined): p is string => !!p && inBasket.has(p);
+    // B1c: the basket product these words name: the planner's choice; else the one basket product among those the words fit
+    // («wet wipes» is the Oui Oui in the basket, sim-021; «mortadelle» the Tanmia, sim-025; «لبن» the Khoury yogurt, sim-052); else by
+    // name; else by the catalogue search.
+    const fits = [...(pl.tied ?? []), ...(pl.candidates ?? []), ...(pl.chosen ? [pl.chosen] : [])].map((c) => c.product_id);
+    const named = inB(pl.chosen?.product_id) ? pl.chosen!.product_id
+      : onlyOne(fits.filter(inB))
+        // by name or by the search only when the planner found nothing these words fit, or to take something off: «شيبس ماستر» fits the
+        // Master chips, so it is never the Dolsi in the basket (sim-143)
+        ?? (fits.length === 0 || op === "remove"
+          ? byName([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => l.product_id && inBasket.has(l.product_id))) ?? onlyOne((hints.get(pl.idx) ?? []).filter(inB))
+          : null);
+    // B1c: a product the customer named by its own words (matched, not chosen by a rule) that is not in the basket is a new line,
+    // never the basket's other product of that kind («٢ كيس شيبس ماستر» added two Dolsi, sim-143).
+    const ownNew = pl.status === "matched" && !!pl.chosen && !inB(pl.chosen.product_id) && !pl.assumed;
+    // B1c: the count already in the basket, said again («baddi ba3ten el 3 3elab Candia», sim-117; «شكلهن ما انضافوا», sim-028): the
+    // customer is telling us what they want, not asking for as many again. Unless they say more («كمان», "more").
+    const target = ownNew ? null : named;
+    if (target && op === "add" && (!explicit || MISSING.test(fold(message))) && !MORE_WORDS.test(fold(`${said?.raw ?? ""}`))) {
+      const now = held.find((l) => l.product_id === target)?.qty;
+      if (now != null && Number(now) === qty) op = "set";
+    }
     // "Add 2 more", "make it 3", "take the bread off": the line names something already in the basket. The planner's choice when it
     // is there; else the one basket product among its candidates; else the one basket product whose name shares the customer's words.
     if (explicit) {
-      const target = pl.chosen && inBasket.has(pl.chosen.product_id) ? pl.chosen.product_id
-        : onlyOne((pl.candidates ?? []).map((c) => c.product_id).filter((p) => inBasket.has(p)))
-          ?? byName([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => l.product_id && inBasket.has(l.product_id)))
-          ?? onlyOne((hints.get(pl.idx) ?? []).filter((p) => inBasket.has(p)));
       if (target) { edits.push({ op, product_id: target, qty: op === "remove" ? undefined : qty }); continue; }
       if (op === "remove") { unresolved.push(pl); continue; }
     }
     if (pl.status !== "matched" || !pl.chosen) {
-      // A restated item the planner could not tell apart, whose candidates hold exactly one product already in the basket, is that product.
-      const known = pl.status === "ambiguous" && op === "set" ? onlyOne((pl.candidates ?? []).map((c) => c.product_id).filter((p) => inBasket.has(p))) : null;
-      if (known) { edits.push({ op: "set", product_id: known, qty }); continue; }
+      // A restated item the planner could not tell apart, whose words fit exactly one product already in the basket, is that product.
+      if (pl.status === "ambiguous" && target) { edits.push({ op, product_id: target, qty }); continue; }
       unresolved.push(pl);
       continue;
     }
+    // B1c: the planner chose by a rule (the house default) while the basket already holds one of what the words fit: that one.
+    if (pl.assumed && target && !inB(pl.chosen.product_id)) { edits.push({ op, product_id: target, qty }); continue; }
     const p = pl.chosen.product_id;
     edits.push({ op: inBasket.has(p) ? op : "add", product_id: p, qty, source_id: priced?.source_id ?? null,
                  modifiers: priced?.modifiers, note: priced?.note ?? null, replaces: inBasket.has(p) ? null : substituteOf.get(p) ?? null });
@@ -141,6 +164,12 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
   return { edits, unresolved };
 }
 const onlyOne = (xs: string[]): string | null => (new Set(xs).size === 1 ? xs[0]! : null);
+/** Lower case, Western digits, one alef: for the phrase checks below. */
+const fold = (s: string) => s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
+/** "It wasn't added", "they're missing": the customer thinks a basket line is not there (sim-028's «شكلهن ما انضافوا»). */
+const MISSING = /ما\s*(?:انضاف|انضافو|انضافوا|ضفت|ضفتو|ضفتوا|زدت|زدتو|حطيت|حطيتو)|شكل(?:ه|ها|هن|هم)?\s*ما|مش\s*(?:مضاف|موجود|محطوط)|نسيت|نسيتو|ما\s*في\s*بالطلب|\b(?:ma|mesh|mish)\s*(?:nzed|ndaf|daf|zed|7atet|7atayt)|\bnot\s+(?:added|there|in)\b|\bmissing\b|\bforgot\b|didn'?t\s+add|\bmanque\b|\boubli|pas\s+(?:ajout|mis)|make\s+sure|تأكد|تاكد|ta2akkad|t2akkad|assurez/u;
+/** Words that ask for more of something: «كمان», «زيد», "more", "another", "encore". */
+const MORE_WORDS = /(?:^|[^\p{L}])(?:كمان|زياده|زيدلي|زيد|زيدو|زيدها|ضيف|ضيفلي|kman|kaman|kamen|kamein|zyede|ziyade|zid|zidli|zidlo|dif|difli|more|another|extra|encore|de plus|en plus)(?:$|[^\p{L}])/u;
 
 /** Lower case, one alef, ta marbuta as ha, no diacritics or punctuation: for matching a customer's words to a basket item's name. */
 const foldWords = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
@@ -205,8 +234,16 @@ export async function askMinimum(ctx: ToolContext, basket: Basket, terms: CardTe
     { id: MENU_BROWSE, title: T.support.browseButton },
     { id: BASKET_CLEAR, title: T.basket.cancelButton },
   ];
-  const text = [before, T.basket.minimum(g.min, g.now, g.gap)].filter(Boolean).join("\n");
+  // B1c: the basket itself, line by line, so the customer sees what is in it (sim-test 43756167947: customers who could not see it said
+  // their items again, and every time they were added: 4 piston, 4 sugar, 10 milk).
+  const text = [before, T.basket.minimum(g.min, g.now, g.gap, itemsOf(basket.lines, quote, ctx.state.lang ?? "ar"))].filter(Boolean).join("\n");
   return (await deliver(ctx, buttons(text, items), `[minimum] ${text}`)).ok;
+}
+
+/** The basket as "2 × name" rows, in the conversation's language, named from the quote (or the quotes given). */
+export function itemsOf(lines: QuoteLineInput[], quote: Pick<Quote, "lines"> | null | undefined, lang: Lang, ...more: (Pick<Quote, "lines"> | null | undefined)[]): string[] {
+  const names = namesOf(quote, ...more);
+  return lines.map((l) => { const n = names.get(l.product_id); return `${Number(l.qty)} × ${n ? productName({ ...n, product_id: l.product_id }, lang) : "?"}`; });
 }
 
 /** Keeps the basket in the conversation (it waits on `awaiting`). */
@@ -221,7 +258,7 @@ export function holdBasket(ctx: ToolContext, basket: Basket, terms: CardTerms, q
 /** The customer let the basket go ("cancel" with no order yet, or the button): nothing is sent, nothing is kept. */
 export async function clearBasket(ctx: ToolContext): Promise<boolean> {
   ctx.state.lastQuote = null; ctx.state.pending = null; ctx.state.awaiting = null; ctx.state.slotId = null; ctx.state.orderRestrictions = null;
-  ctx.state.basketAt = null; ctx.state.editing = null;
+  ctx.state.basketAt = null; ctx.state.editing = null; ctx.state.asking = null;
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
   const T = messages(ctx.state.lang);
   return (await deliver(ctx, { type: "text", text: { body: T.basket.cleared } }, T.basket.cleared)).ok;

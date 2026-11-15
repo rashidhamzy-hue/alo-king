@@ -869,6 +869,8 @@ Que voulez-vous commander ?
 🌙 Nous sommes fermés et ouvrons à 08:00.
 
 Nous avons gardé votre commande ✅
+• 1 × Tannourine water 2 L (pack of 6)
+• 2 × Al Forno white bread, large 800 g
 À l'ouverture, appuyez sur « Envoyer ma commande » et nous continuerons ici.
 ```
 
@@ -879,6 +881,7 @@ Nous avons gardé votre commande ✅
 🌙 Mais nous sommes fermés et ouvrons à 08:00.
 
 Votre commande est gardée : à l'ouverture, appuyez sur « Envoyer ma commande ».
+• 2 × Tannourine water 2 L (pack of 6)
 ```
 
 ## fixed.priced
@@ -1090,6 +1093,14 @@ Envoyez ici la photo du reçu.
 Vous n'avez pas de commande en cours. Que voulez-vous commander ?
 ```
 
+## answer.noOpenRepeat
+
+```text
+Vous n'avez pas de commande en cours.
+Appuyez ci-dessous pour la même commande que la dernière fois, aux prix du jour :
+Tannourine water 2 L (pack of 6), Al Forno white bread, large 800 g, Najjar Classic coffee 180 g et 2 autres
+```
+
 ## answer.awaitingConfirmation
 
 ```text
@@ -1271,6 +1282,9 @@ Vous pouvez payer en dollars, ou nous redemander un peu plus tard.
 
 ```text
 🛒 Votre commande est sous le minimum.
+Dans votre panier :
+• 1 × Tannourine water 2 L (pack of 6)
+• 2 × Al Forno white bread, large 800 g
 Commande minimum : $5.00
 Votre panier : $0.69
 Il manque : $4.31
@@ -1282,6 +1296,23 @@ Ajoutez un article, ou choisissez ci-dessous :
 ```text
 🛒 Commande minimum : $5.00
 Que voulez-vous commander ?
+```
+
+## basket.which
+
+```text
+« Tannourine water 2 L (pack of 6) » : lequel voulez-vous ?
+• Tannourine water 2 L (pack of 6): $1.01
+• Al Forno white bread, large 800 g: $1.01
+• Najjar Classic coffee 180 g: $1.01
+Choisissez ci-dessous.
+```
+
+## basket.houseDefault
+
+```text
+« ربطة خبز » : nous avons mis Tannourine water 2 L (pack of 6).
+Si vous en voulez un autre, dites-le-moi.
 ```
 
 ## basket.cancelButton

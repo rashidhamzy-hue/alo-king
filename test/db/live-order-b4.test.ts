@@ -57,7 +57,7 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(1);
     expect(outbound[0]!.body.interactive.type).toBe("location_request_message");
-    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.askPin);
+    expect(bodyOf(outbound[0]!).endsWith(ar.fixed.askPin)).toBe(true);
 
     // 2. The pin, alone. The pin decides: Khraibeh, said so. With no house or floor yet, one question for them; no model call.
     await t.say({ type: "location", location: PIN });
@@ -141,7 +141,7 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
     outbound = recordKapso();
     const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, village: "بعقلين", building: "بيت الاختبار" }, needs_clarification: [] })]);
     await t.text(MESSAGE + " بيت الاختبار");
-    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.askPin);
+    expect(bodyOf(outbound[0]!).endsWith(ar.fixed.askPin)).toBe(true);
     await t.say({ type: "location", location: PIN });
     const c = await t.customer();
     const order = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
