@@ -128,6 +128,8 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
     const fits = [...(pl.tied ?? []), ...(pl.candidates ?? []), ...(pl.chosen ? [pl.chosen] : [])].map((c) => c.product_id);
     const named = inB(pl.chosen?.product_id) ? pl.chosen!.product_id
       : onlyOne(fits.filter(inB))
+        // the basket product named by its brand («add 2 more Dove cream bars»: the Dove soap, never a cream; sim-083)
+        ?? byBrand([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => l.product_id && inBasket.has(l.product_id)))
         // by name or by the search only when the planner found nothing these words fit, or to take something off: «شيبس ماستر» fits the
         // Master chips, so it is never the Dolsi in the basket (sim-143)
         ?? (fits.length === 0 || op === "remove"
@@ -174,6 +176,12 @@ const MORE_WORDS = /(?:^|[^\p{L}])(?:كمان|زياده|زيدلي|زيد|زي�
 /** Lower case, one alef, ta marbuta as ha, no diacritics or punctuation: for matching a customer's words to a basket item's name. */
 const foldWords = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
   .replace(/^ال/u, "").split(/[^\p{L}\p{N}]+/u).map((w) => w.replace(/^ال/u, "")).filter((w) => w.length >= 3 && !/^\d+$/.test(w));
+/** The one basket line whose brand (the first word of its English name, four letters or more) the customer said. */
+function byBrand(said: (string | null | undefined)[], lines: QuoteLine[]): string | null {
+  const words = new Set(said.flatMap((s) => (s ? foldWords(s) : [])));
+  const hits = lines.filter((l) => { const b = foldWords(l.name)[0]; return !!b && b.length >= 4 && words.has(b); }).map((l) => l.product_id!);
+  return onlyOne(hits);
+}
 /** The one basket line whose English or Arabic name shares a word (three letters or more) with what the customer said. */
 function byName(said: (string | null | undefined)[], lines: QuoteLine[]): string | null {
   const words = new Set(said.flatMap((s) => (s ? foldWords(s) : [])));

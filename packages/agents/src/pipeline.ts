@@ -178,11 +178,13 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
-  // B1c: a question asked by code that these words answer (a product it offered, now chosen) waits no more.
+  // B1c: a question asked by code that these words answer (a product it offered, now chosen) waits no more, and the next one waits.
+  // Words that do not answer it move on: the questions are dropped, never asked again (sim-test 43771268952, sim-083: «which cream?»
+  // asked six times after the customer said «no cream, just the 4 Dove soaps»).
   if (ctx.state.asking?.length) {
     const chosen = new Set(plan.lines.map((l) => l.chosen?.product_id).filter(Boolean));
-    while (ctx.state.asking?.length && ctx.state.asking[0]!.candidates.some((c) => chosen.has(c.product_id))) ctx.state.asking.shift();
-    if (!ctx.state.asking?.length) ctx.state.asking = null;
+    const answered = ctx.state.asking[0]!.candidates.some((c) => chosen.has(c.product_id));
+    ctx.state.asking = answered && ctx.state.asking.length > 1 ? ctx.state.asking.slice(1) : null;
   }
   // A new order's words about where are this order's: the last order's directions never describe a new place (B4: the staging
   // probe's second first-order kept the house of the one before, and the address question was skipped). B1a: an edit to the basket
@@ -206,6 +208,9 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
   }
+  // B1c: «مثلا ربطة خبز أو علبة تونة», «chocolate aw chips»: the customer names choices, not a basket. Nothing is added by code (no house
+  // default, no edit, no question): the loop answers (sim-test 43771268952, sim-043 and sim-040 had the bread and a third Kit Kat added).
+  if (intent.lines.length > 1 && offersChoices(said ?? "", intent)) return { done: false, plan };
   // B1a: the edits to the basket in hand. What is resolved is applied and kept; a line that needs a question goes to the loop with
   // the basket. The rest of this function then routes the whole basket as it would a new one, the changes said before the card.
   let changed: string | undefined;
@@ -241,12 +246,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
       return (await askChoice(ctx)) ? { done: true, path: "which" } : { done: false, plan: { ...plan, quote, quote_lines: merged.lines } };
     }
     if (unresolved.length) return { done: false, plan: { ...plan, quote, quote_lines: merged.lines } };
-    // A question asked before still waits (the customer said something else meanwhile): ask it again, the basket kept.
+    // The next question of the same message still waits (the customer answered the one before in words): ask it, the basket kept.
     if (ctx.state.asking?.length && !held.draft) {
       if (ctx.state.awaiting === "minimum") ctx.state.awaiting = null;
       ctx.state.pending = ctx.state.pending ?? held.terms;
       if (await askChoice(ctx, merged.changes.length ? T(ctx).basket.soFar(itemsOf(merged.lines, quote, ctx.state.lang ?? "ar", held.quote)) : undefined))
-        return { done: true, path: "which_again" };
+        return { done: true, path: "which_next" };
     }
     if (merged.changes.length && held.draft) changed = T(ctx).basket.changed(changeRows(merged.changes, namesOf(quote, held.quote), ctx.state.lang ?? "ar"));
     const other = plan.issues.filter((i) => !QUOTE_ISSUES.has(i.code) && !i.code.startsWith("slot_"));
@@ -587,6 +592,22 @@ export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInp
   }
   const card = await issueCard(ctx, basket, terms, { before });
   return card.ok ? { done: true, path: card.waiting_for ? "ask_phone" : "card" } : { done: false };
+}
+
+/** "For example", or an "or" between two of the lines' own words: the customer names choices («مثلا ربطة خبز أو علبة تونة», "chocolate aw chips"). */
+const FOR_EXAMPLE = /(?:^|[^\p{L}])(?:مثلا|مثلاً|متلا|متلاً|masalan|mathalan|matalan|for example|for instance|e\.g\.|par exemple|genre)(?:$|[^\p{L}])/iu;
+const OR_WORD = "(?:أو|او|ولا|aw|aww|or|ou|walla|wala)";
+export function offersChoices(said: string, intent: Pick<OrderIntent, "lines">): boolean {
+  if (FOR_EXAMPLE.test(said)) return true;
+  const t = said.toLowerCase();
+  const words = intent.lines.map((l) => (l.raw || l.query).toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, " ").trim().split(/\s+/).filter((w) => w.length >= 3));
+  for (let i = 0; i + 1 < words.length; i++) {
+    const a = words[i]!.at(-1), b = words[i + 1]![0];
+    if (!a || !b) continue;
+    const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`${esc(a)}[^\\n]{0,25}?(?:^|\\s)${OR_WORD}\\s[^\\n]{0,25}?${esc(b)}`, "iu").test(t)) return true;
+  }
+  return false;
 }
 
 /** The three questions recognised without a model (quick-intent.ts). */

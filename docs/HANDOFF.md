@@ -136,7 +136,33 @@ customer gets the question.
 F1 0.909, wrong 0; B1c **F1 0.909, wrong 0** (first cut 0.894: brand + an unknown word went not found, and the founder's own generic sentences asked; the brand rule was narrowed and the defaults proposed; two wrong products the replay found, g0151 and g0426, are in `zero-wrong.json`). The founder's demo h0013 («كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار») is right through the defaults.
 **The live gate** (`language-pack` on the branch): [run 43766779770](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43766779770), 990 readings, F1 0.913, the 0.13 demo right, live evals 103 of 103, but **one wrong product**: g0370 «please send pain d'or khebez 3arabe, 900g» cut into «pain d'or» and «khebez 3arabe, 900g», whose bread line took the house loaf. The brand the message names now narrows what fits (as it narrows a tie); the reading is in `zero-wrong.json`. The second gate run ([43767961138](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43767961138)): F1 0.909, the demo right, live 103 of 103, one wrong product: g0958 «باكيت محارم مبللة وي وي، الأكوا» with «الأكوا» read as its own line, which the model's phrase (an older rule) and the brand-with-one-product rule took as Aqua's water; «اكوا» is a word of the Oui Oui wipes' own term («اكوا بيور»). Neither rule chooses now when a brand-only line's word belongs to another product the message names exactly (`zero-wrong.json`). **The gate holds** on the third run ([43769093717](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43769093717), head 67d367e): 990 readings, **F1 0.915, wrong products 0**, the 0.13 demo right, the live evals 102 of 103; the one miss is `addr-13nov-voice`, the voice-address variance B1a and B1b recorded (it passed in this branch's two earlier runs).
 
-SIM_RESULT
+**The simulated customers on `main`, run 1** ([sim-test 43771268952](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43771268952),
+limit 150, budget USD 4, spent **$3.48**; main at 2bd4080, #91; staging deployed with 0138 by run 43770384851):
+
+| | B1b run 2 (#87) | B1c run 1 (#91) | target |
+| --- | --- | --- | --- |
+| wrong or uninvited product (judge) | 34 | **23** | at most 8: **not met** |
+| lost baskets | 1 | **1** | 0: **not met** (below) |
+| minimum-order loops | 0 | 0 | no worse: held |
+| address / language / message rules / off-topic | 1 / 0 / 2 / 1 | 1 / 1 / 4 / 6 | no worse: **not held** for off-topic (6) and message rules (4) |
+| passed | 80 | **88** | |
+
+Read one by one, the 23: about six were the customer's own additions or a correct basket the judge still counted (13 mint after "8 ... ok
+13"); the rest, by cause: (1) a question code asked kept being asked after the customer moved on (sim-083: «which cream?» six times after
+"no cream, just the 4 Dove soaps"), and «add 2 more Dove cream bars» did not reach the Dove in the basket; (2) «مثلا ربطة خبز أو علبة تونة»,
+«chocolate aw chips» (choices) put the house loaf or a third Kit Kat in the basket (sim-043, sim-040, sim-023); (3) the tap on a question
+made «٣٢ حبة» 32 packs (sim-147); (4) readings: «wa7de tene» read as 2, a complaint («sar 5?») read as add 2, a swap; (5) a Gorosti still
+flagged (one product of the brand, chosen and listed). The lost basket was sim-073: with the simulator's past order now written, «same as last
+time» for a past basket under today's $5 minimum got **no reply** on the button and the loop's «it's ready» on the words. The six off-topic
+lines were questions the reading called off-topic («fiyon ykouno bil masa?», «ma fi tjibouna?»), and the four message-rule turns model text;
+neither path changed in B1c.
+
+**B1c follow-up** (second pull request), each with a failing case first (`ordering-b1c`, "what the B1c run on main showed" and "fix 3 ...
+under today's minimum"): a question the customer moves past is dropped, never asked again; a basket product named by its brand is that product;
+the tap applies the pack-size count; choices («مثلا», «أو», «aw», "or" between two lines) are never put in the basket by code (the loop answers);
+«same as last time» for a past basket that cannot go as it is (under the minimum, an item gone) is routed as any basket: the minimum line with its
+lines. SIM_RESULT2
+
 
 ### D4b: the pick queue and rider jobs on the console, 16 November 2026 (Sonnet 5.5); migrations 0147 and 0148
 Screens: `docs/screens/d4b/` (390 and 1440 px, English and Arabic, light; dark for the queue, the packing step and rider jobs) and the pull request.
