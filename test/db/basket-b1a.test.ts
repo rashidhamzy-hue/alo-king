@@ -25,12 +25,15 @@ const line = (raw: string, query: string, qty = 1, extra: Record<string, unknown
   ({ raw, query, qty, unit: "each", modifiers: [], brand_hint: null, source_hint: null, confidence: 0.9, ...extra });
 const LIPTON = line("ليبتون ايس تي ريد فروتس زيرو شوغر 320 مل", "Lipton Ice Tea Red Fruits Zero Sugar 320Ml");
 const LABNEH = line("لبنة ليبان ليه 900 غ", "Liban Lait Labneh Baladieh 900G");
-const BREAD = (qty = 1) => line("خبز وودن بيكري", "Wooden Bakery Pita White Bread Big 800G", qty);
+// B1c: the big loaf said as such (Wooden Bakery has two sizes; «خبز وودن بيكري» alone is a question now, test/db/planner-b1c.test.ts)
+const BREAD = (qty = 1) => line("خبز وودن بيكري الكبير 800 غ", "Wooden Bakery Pita White Bread Big 800G", qty);
 const PEPSI = (qty = 1) => line("Pepsi Carbonated Drink 2.25L", "Pepsi Carbonated Drink 2.25L", qty);
 const order = (lines: unknown[], intent = "order", village: string | null = "بعقلين") =>
   ({ intent, fulfilment: "delivery", lines, address: { village, landmark: null, building: null, floor: null, recipient_name: null, verbatim: null } });
 
 const bodyOf = (s: Sent): string => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
+/** B1c: the minimum line lists the basket under its first line; the fixed words are compared without it. */
+const unlisted = (b: string) => b.replace(/\n(?:بسلّتك:|In your basket:|Dans votre panier :)(?=\n)/g, "").replace(/\n• [^\n]+/g, "");
 const buttonsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
 const isCard = (s: Sent) => buttonsOf(s).some((b) => b.id.startsWith("order:confirm:"));
 const tapId = (t: ReturnType<typeof flow>, id: string) => t.tap(id);
@@ -44,7 +47,7 @@ describe("fix 1: the minimum is said by code, with the minimum, the basket and t
     expect(t.seen).toHaveLength(1);                                    // the reading only: no ask loop to word the minimum
     expect(outbound).toHaveLength(1);
     const msg = outbound[0]!;
-    expect(bodyOf(msg)).toBe(ar.basket.minimum(5, 0.69, 4.31));
+    expect(unlisted(bodyOf(msg))).toBe(ar.basket.minimum(5, 0.69, 4.31));
     expect(bodyOf(msg)).toContain("الحد الأدنى للطلب: $5.00");
     expect(bodyOf(msg)).toContain("طلبك هلّق: $0.69");
     expect(bodyOf(msg)).toContain("ناقصك: $4.31");
@@ -194,7 +197,11 @@ describe("fix 4: the basket changes only by what the customer picked (sim-215, s
     const plan = { lines: [{ idx: 0, status: "matched", qty: 2, chosen: { product_id: "a" }, candidates: null }], quote_lines: [{ product_id: "a", qty: 2 }] };
     const said = { lines: [{ raw: "a", query: "a", qty: 2 }] } as any;
     expect(applyEdits(L, editsFromPlan({ ...said, intent: "order" }, plan, L).edits).lines[0]!.qty).toBe(2);
-    expect(applyEdits(L, editsFromPlan({ ...said, intent: "add_to_order" }, plan, L).edits).lines[0]!.qty).toBe(4);
+    // B1c: "add" with the count already in the basket and no word for more is the customer saying it again (sim-117); the reader's
+    // explicit add («زيد تنين كمان») adds.
+    expect(applyEdits(L, editsFromPlan({ ...said, intent: "add_to_order" }, plan, L).edits).lines[0]!.qty).toBe(2);
+    const more = { lines: [{ raw: "a", query: "a", qty: 2, change: "add" }] } as any;
+    expect(applyEdits(L, editsFromPlan({ ...more, intent: "add_to_order" }, plan, L).edits).lines[0]!.qty).toBe(4);
   });
 
   it("«a third one» makes three in all (sim-051: «زيدلي ربطة خبز تالتة كمان» gave 5 pita); «another» still adds one", () => {
@@ -345,7 +352,7 @@ describe("the two no-reply turns: a window tapped for a basket kept overnight (s
       const t = flow(db, [read(order([LABNEH]))]);
       await pinned(db, t, ids.BAAKLINE);
       await t.text("بدي لبنة");
-      expect(bodyOf(outbound[0]!)).toBe(ar.fixed.closedKept("08:00"));
+      expect(unlisted(bodyOf(outbound[0]!))).toBe(ar.fixed.closedKept("08:00"));
       await db.pg.query(`update offers set price_usd = 4.50 where product_id = $1`, [ids.LABNEH]);
       const n = outbound.length;
       await t.say({ type: "interactive", interactive: { type: "list_reply", list_reply: { id: windowButtonId(slot, null), title: "x" } } });

@@ -44,6 +44,8 @@ const TOMATO = line("كيلو بندورة", "بندورة");
 const order = (lines: unknown[], intent = "order") => ({ intent, fulfilment: "delivery", transcript_quality: "good", needs_clarification: [], lines,
   address: { floor: null, village: null, building: null, landmark: null, verbatim: null, recipient_name: null } });
 const bodyOf = (s: Sent) => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
+/** B1c: the kept and minimum lines list the basket ("• 2 × name"); the fixed words around them are compared without it. */
+const unlisted = (b: string) => b.replace(/\n(?:بسلّتك:|In your basket:|Dans votre panier :)(?=\n)/g, "").replace(/\n• [^\n]+/g, "");
 const rowIds = (s: Sent): string[] => (s.body.interactive?.action?.sections?.[0]?.rows ?? []).map((r: any) => r.id);
 const buttonIds = (s: Sent): string[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id);
 const isCard = (s: Sent) => buttonIds(s).some((id) => id.startsWith("order:confirm:"));
@@ -173,7 +175,7 @@ describe("after hours: a card can be made for a window (C3's request 5)", () => 
     const c = await pinned(db, t, VILLAGE);
     await t.text("قهوة نجار");
     expect(outbound).toHaveLength(2);
-    expect(bodyOf(outbound[0]!)).toBe(ar.fixed.closedKept("08:00"));
+    expect(unlisted(bodyOf(outbound[0]!))).toBe(ar.fixed.closedKept("08:00"));
     expect(buttonIds(outbound[0]!)).toEqual([KEPT_BUTTON]);
     expect(bodyOf(outbound[1]!)).toBe(ar.windows.orChoose);
     const evening = await slotOf(EVENING, 1);

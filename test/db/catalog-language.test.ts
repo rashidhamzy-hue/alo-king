@@ -51,10 +51,16 @@ describe("catalog language (1.22)", () => {
     expect(p.lines[0].candidates.map((c: any) => sku(c.product_id))).toContain("AK-0133");
   });
 
-  it("the model's phrase may choose among the products the customer's words allow, never outside them", async () => {
+  it("the model's phrase never chooses for a generic word (B1c), and never outside the customer's words", async () => {
     await db.pg.exec(`insert into language_pack(sku, term, level, lang, version) values ('AK-0042', 'لبنة طعنايل', 'exact', 'ar', 'test')`);
+    // B1c (0138): for a generic word the model's phrase never chooses: the house default (Liban Lait 450 g), else a question.
     const inside = await plan([line("لبنة", "لبنة طعنايل")]);
-    expect(chosen(inside)).toEqual(["AK-0042"]);
+    expect(chosen(inside)).toEqual(["AK-0046"]);
+    expect(inside.lines[0].pick).toBe("house");
+    await db.pg.query(`update products set house_default = false where sku = 'AK-0046'`);
+    const none = await plan([line("لبنة", "لبنة طعنايل")]);
+    expect(none.lines[0].status).toBe("ambiguous");
+    await db.pg.query(`update products set house_default = true where sku = 'AK-0046'`);
     const outside = await plan([line("لبنة", "لبن ليبان ليه")]);
     expect(chosen(outside)[0]).not.toBe("AK-0050");                    // laban is not labneh
     await db.pg.exec(`delete from language_pack where version = 'test'`);

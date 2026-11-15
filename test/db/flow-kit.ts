@@ -21,7 +21,17 @@ export async function openFlowDb(): Promise<{ db: TestDb; ids: Ids }> {
   const HUB = (await db.one(`update sources set village_id = $1 where kind = 'dark_store' returning id`, [BAAKLINE])).id;
   const LABNEH = (await db.one(`select id from products where name_en = 'Liban Lait Labneh Baladieh 900G'`)).id;
   const BREAD = (await db.one(`select id from products where name_en = 'Wooden Bakery Pita White Bread Big 800G'`)).id;
+  await oldPicks(db);
   return { db, ids: { LABNEH, BREAD, HUB, BAAKLINE } };
+}
+
+/**
+ * B1c (0138): «ربطتين خبز» and «لبنة ليبان ليه» take the house default now. The flow tests were written for the products the planner
+ * chose before 0138 (the best sellers: Liban Lait labneh 450 g, Wooden Bakery pita medium), so those are this rig's defaults for
+ * labneh and bread, in place of the proposed ones (Al Forno's pita). The other proposed defaults stay.
+ */
+export async function oldPicks(db: TestDb) {
+  await db.pg.query(`update products set house_default = (sku in ('AK-0046', 'AK-0082')) where sku in ('AK-0046', 'AK-0051', 'AK-0080', 'AK-0081', 'AK-0082')`);
 }
 
 let toolSeq = 0;

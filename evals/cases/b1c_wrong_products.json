@@ -1,0 +1,385 @@
+{
+ "about": "B1c (15 Nov 2026): the wrong-product conversations of sim-test 43756167947 (B1b's second run on main, 34 judged wrong or uninvited product), read one by one, with what must happen instead. Each class has flow or planner tests in test/db/ordering-b1c.test.ts. Invented customers.",
+ "run": 43756167947,
+ "cases": [
+  {
+   "id": "sim-029",
+   "class": "generic_word",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    "[taps \"Zain Adass Majrouch\"]",
+    null,
+    "[sends a pin]"
+   ],
+   "wrong": "«بدي عدس»: a generic word was picked as one product (Zain lentils) and put in the basket.",
+   "expect": "No product is chosen for «عدس»: one short question with at most three buttons, the fastest sellers first; nothing is added before the tap."
+  },
+  {
+   "id": "sim-048",
+   "class": "generic_word",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    "[taps \"Odex 1300 مل\"]",
+    null,
+    "[sends a pin]",
+    null,
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«ورق حمام، ربطة صغيرة»: a 12-roll pack was picked without asking.",
+   "expect": "«ورق حمام» is a question with at most three buttons; no size the customer did not say is chosen."
+  },
+  {
+   "id": "sim-016",
+   "class": "brand_alone",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«بدي Gorosti»: a brand alone was put in the basket as Gorosti Turkey Breast.",
+   "expect": "A brand alone is a question (the brand's products, at most three buttons); nothing is added before the tap."
+  },
+  {
+   "id": "sim-093",
+   "class": "generic_word",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    null,
+    null,
+    "[taps \"إلغاء الطلب\"]",
+    null
+   ],
+   "wrong": "«سيكس باك بيرة»: matched the brand Puck (cooking cream) by its sound and added it.",
+   "expect": "A brand match that leaves the customer's other words unexplained is not that brand: not found, nothing added."
+  },
+  {
+   "id": "sim-139",
+   "class": "size",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "wrong": "«تنتين مي تنورين ٢ ليتر ربطة ٦»: the 6 L gallon was chosen; the customer said 2 L, packs of 6.",
+   "expect": "Tied sizes are a question by code (2 L x6 and the 6 L gallon), never the loop's guess."
+  },
+  {
+   "id": "sim-077",
+   "class": "generic_word",
+   "lang": "arabizi",
+   "customer": [
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "[taps \"تعديل\"]",
+    null
+   ],
+   "wrong": "«tomato paste» restated after «Yamama 660G» was in the basket: the 1325 G tin was added as a second product, and «3andkon khebez?» added bread.",
+   "expect": "A generic word said again with one of its kind in the basket is that basket line; no second size is added."
+  },
+  {
+   "id": "sim-021",
+   "class": "basket_edit",
+   "lang": "arabizi",
+   "customer": [
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    "[taps \"Tiffany Wafer 23.5G\"]",
+    null,
+    null,
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    null
+   ],
+   "wrong": "«1 wet wipes» (a correction) with Oui Oui in the basket added Wellplus wet wipes, the best seller.",
+   "expect": "A correction that names the kind of a basket line edits that line."
+  },
+  {
+   "id": "sim-025",
+   "class": "basket_edit",
+   "lang": "mixed",
+   "customer": [
+    null,
+    "[taps \"Legs 900g\"]",
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    null,
+    null,
+    "[taps \"تعديل\"]",
+    null,
+    null,
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«mortadelle 1 mech 2» with Tanmia mortadelle in the basket added Al Mouna mortadella.",
+   "expect": "The edit lands on the basket's mortadella; no other brand is added."
+  },
+  {
+   "id": "sim-052",
+   "class": "basket_edit",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    null,
+    "[taps \"Whish\"]",
+    null
+   ],
+   "wrong": "«علبة لبن تالتة» with Khoury yogurt in the basket added 3 Mazaraana laban 1 kg; «بدي بس ... 2 مرتديلا» made 4.",
+   "expect": "«لبن» names the basket's yogurt; «بدي بس» (only) sets the counts."
+  },
+  {
+   "id": "sim-143",
+   "class": "basket_edit",
+   "lang": "ar",
+   "customer": [
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    "[taps \"Dolsi 80G\"]",
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    null,
+    null
+   ],
+   "wrong": "«كمان ٢ كيس شيبس ماستر» with Dolsi chips in the basket added 2 Dolsi.",
+   "expect": "A product the customer names by brand is that product, added as a new line; never the basket's other chips."
+  },
+  {
+   "id": "sim-010",
+   "class": "hidden_basket",
+   "lang": "arabizi",
+   "customer": [
+    "marhaba, baddi tnayn Wellplus liquid soap Marrakesh Mystique khamsemiyet ml, w kilo loubye. badde yeha tousal el masa hal yom, bel 3achiye, mesh halla2. ana b Botmeh.",
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    null
+   ],
+   "wrong": "The minimum line never showed the basket; «baddi tnayn ... w kilo loubye» said again doubled the beans.",
+   "expect": "The minimum line lists the basket; an item said again with the same count is not added twice."
+  },
+  {
+   "id": "sim-067",
+   "class": "hidden_basket",
+   "lang": "ar",
+   "customer": [
+    null,
+    "[taps \"أيوه، هيدي\"]",
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "wrong": "At night the customer said the basket again («بعدي بدي كمان تنين بيستون ...», «بدي سكر ديروني») and it grew to 4 and 4.",
+   "expect": "The minimum line lists the basket, so the customer sees it; an item said again with the same count stays as it is."
+  },
+  {
+   "id": "sim-078",
+   "class": "hidden_basket",
+   "lang": "fr",
+   "customer": [
+    null,
+    null,
+    null,
+    null,
+    "[taps \"Parcourir\"]",
+    null,
+    null,
+    null
+   ],
+   "wrong": "2 mozzarella were in the basket all along ($2.78), but the minimum line never said so and the customer kept asking for 2.",
+   "expect": "The minimum line lists the basket with its counts."
+  },
+  {
+   "id": "sim-117",
+   "class": "hidden_basket",
+   "lang": "arabizi",
+   "customer": [
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«baddi ba3ten el 3 3elab Candia» (I still want the 3) made 6.",
+   "expect": "An item said again with the count already in the basket is not added twice."
+  },
+  {
+   "id": "sim-133",
+   "class": "hidden_basket",
+   "lang": "arabizi",
+   "customer": [
+    "Marhaba, kifkon? Baddi 3elbe wa7de Candia halib full fat, el 180 ml, w baddon yousalo lal beit bi Bchetfine bil 3achiyye, mush halla2 please.",
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    "[taps \"Ei, Candia halib\"]",
+    null
+   ],
+   "wrong": "The customer added milk to reach the minimum without ever seeing the count, and ended with 10.",
+   "expect": "The minimum line lists the basket with its counts."
+  },
+  {
+   "id": "sim-121",
+   "class": "set_as_add",
+   "lang": "ar",
+   "customer": [
+    null,
+    "[taps \"إيه\"]",
+    null,
+    "[sends a pin]",
+    null,
+    "[taps \"لا، كمّل\"]",
+    "[taps \"كمّل\"]",
+    null,
+    null,
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«غيّر كمية الرول أون نيفيا لتلاتة» (change the quantity to three) made 4.",
+   "expect": "«غيّر ... ل٣» sets the count."
+  },
+  {
+   "id": "sim-003",
+   "class": "pack_size",
+   "lang": "en",
+   "customer": [
+    "Hi, I want to order please. Three large blue trash bags, Vimax, thirty pieces. One cucumber. One Perla interfold tissue, the white one. One Foody's frozen green peas, four hundred grams. And one pack of Nestle Pure Life water, the small bottles, twelve pieces. Delivery to Jdeidet ech Chouf please.",
+    "[sends a pin]",
+    null,
+    "[taps \"Confirm order\"]"
+   ],
+   "wrong": "«Three large blue trash bags, Vimax, thirty pieces» became 30 packs; «one pack ... twelve pieces» became 12.",
+   "expect": "A count of pieces that is the product's own pack size is the pack; the count said for packs (three, one) is the quantity."
+  },
+  {
+   "id": "sim-088",
+   "class": "dropped_line",
+   "lang": "ar",
+   "customer": [
+    "مرحبا، مسا الخير، آسف عالإزعاج بهالوقت. بدي تلات معجنات أسنان كولجيت هيربل، الحجم مية وخمسة وعشرين غرام، وعلبة تومية جاهزة من مامّيغز كيتشن، مية غرام، بس نص من فضلك، للتوصيل عالبيت بالمختارة.",
+    "[taps \"Colgate Herbal 125ml\"]",
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    "[taps \"اليوم 09:00-11:00\"]",
+    "[sends a pin]",
+    null,
+    null,
+    "[taps \"Herbal\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "At night, the garlic said with the Colgate was dropped when the Colgate size was asked.",
+   "expect": "Every line said is kept: the line asked about is asked by code, and the other lines stay in the basket."
+  },
+  {
+   "id": "sim-130",
+   "class": "dropped_line",
+   "lang": "arabizi",
+   "customer": [
+    null,
+    null,
+    "[sends a pin]",
+    null,
+    null,
+    "[taps \"شوف الأغراض\"]",
+    null,
+    null,
+    null,
+    "[taps \"Gold 100g\"]",
+    null,
+    null
+   ],
+   "wrong": "The chicken strips dropped off when the eggplant was asked about.",
+   "expect": "Every line said is kept while another is asked about."
+  },
+  {
+   "id": "sim-073",
+   "class": "same_as_last",
+   "lang": "ar",
+   "customer": [
+    "مرحبا / بدي نفس الطلبية يلي المرة الماضية / لو سمحت",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "wrong": "«بدي نفس الطلبية يلي المرة الماضية» answered «no earlier order» and then «no open order», with nothing in hand.",
+   "expect": "With no open order, the last delivered order is offered as a new basket; never «no open order» with nothing in hand."
+  }
+ ]
+}
