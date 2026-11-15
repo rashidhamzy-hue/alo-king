@@ -55,6 +55,12 @@
     { "text": "لا خلص، مرسي. رح اسأل غير محل", "expect": "not_off_topic" },
     { "text": "kifak, baddi 3elbet cigarette marlboro law sama7t", "expect": "not_off_topic" },
     { "text": "ok ma tshghol, merci. yslamo", "expect": "not_off_topic" },
-    { "text": "ولو؟ ما فيي طلب بس هالشيئين؟ ما بدي غيرهن، شو بتنصحني؟", "expect": "not_off_topic" }
+    { "text": "ولو؟ ما فيي طلب بس هالشيئين؟ ما بدي غيرهن، شو بتنصحني؟", "expect": "not_off_topic" },
+    { "text": "مرحبا، كيفكن؟ شو أخباركن اليوم؟", "expect": "not_off_topic" },
+    { "text": "marhaba kifkon? shu el a5bar, kif el 2ata3 el yom", "expect": "not_off_topic" },
+    { "text": "مرحبا، كيفكن؟ عندي سؤال صغير", "expect": "not_off_topic" },
+    { "text": "Marhaba, kif halkon? shi 7ada mn el shop 7ada yihki ma3i?", "expect": "not_off_topic" },
+    { "text": "merci, emta ta2riban bijaweb 7ada?", "expect": "not_off_topic" },
+    { "text": "ok mershi, merci. ayran bi 3raf mn laban w mal7 bas ma fi 2akid, bfut 3al label iza jebta", "expect": "not_off_topic" }
   ]
 }

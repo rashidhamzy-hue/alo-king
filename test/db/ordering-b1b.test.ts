@@ -263,3 +263,15 @@ describe("fix 5: the village said in an earlier message settles a pin between vi
     expect(bodyOf(outbound.at(-1)!)).toContain("عترين");
   }, 30_000);
 });
+
+describe("fix 8: a tap on a button the Concierge offered is an answer, never off-topic (sim-136, sim-118 on main)", () => {
+  it("«Eh, hayda» tapped, read as off_topic: the Concierge answers it", async () => {
+    const t = flow(db, [read({ intent: "question", lines: [], language: "arabizi" }), [use("reply", { text: "Hayda el Snickers?", buttons: [{ id: "snickers_yes", title: "Eh, hayda" }] })],
+      read({ intent: "off_topic", lines: [], language: "arabizi" }), [use("reply", { text: "Tamam, zedto." })]]);
+    await t.customer();
+    await t.text("baddi snickers");
+    await t.tap("snickers_yes", "Eh, hayda");
+    expect(outbound.map(bodyOf)).not.toContain(ar.fixed.offTopic);
+    expect(bodyOf(outbound.at(-1)!)).toBe("Tamam, zedto.");
+  });
+});

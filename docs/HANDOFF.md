@@ -56,7 +56,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **DS1 built** (below): the design system (`packages/ui`), the console's shell, Today, Inbox and Orders, and the website's home, category, search and product pages. The crown waits for the founder's approval.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
 - **B1a merged (#77, #79, #80), two of three targets met** (below): on 150 simulated customers, minimum-order loops 66 to 0 and lost baskets 11 to 0; wrong products 34 (target 8; the planner's generic and size picks, a kept overnight basket's counts and reading cases remain); passed 35 to 48.
-- **B1b built** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. <!-- B1B-STATUS -->
+- **B1b merged** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. On 150 simulated customers on main: address 8 to 1, other language 14 to 0, message rules 70 to 0 (all targets met); off-topic 16 to 8 (target 3, the follow-up below); passed 35 to 93; B1a's measures no worse. The language gate holds (F1 0.911, wrong products 0). <!-- B1B-STATUS -->
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
 - **`docs/DESIGN_BRIEF.md`** was not in the DOC1 hand-over; DS1 converted it from the founder's attachment on 15 November (see "DS1" below). No crown picture was attached: DS1 drew an original mark, which waits for the founder's approval.
@@ -297,7 +297,46 @@ source or confirmation path changed.
 counts are B1c's (they need `plan_order` and `sendKept`). Fixed messages for Arabizi customers stay in Arabic script: the code check accepts
 it, and an Arabizi message pack is new copy for a person to write and read. The judge's "unnatural dialect" may still flag it.
 
-<!-- B1B-RESULTS -->
+**Tested here (CI, no key):** every row above; `npm run typecheck` clean, `npm test` green (2,070 tests).
+
+**The language gate holds** (`language-pack` on the branch, head 980e4c7): [run 43750105245](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43750105245),
+990 readings, **F1 0.911, wrong products 0**, the 0.13 demo right, the live evals **97 of 97**. The first gate run (43746499760, the first
+head) had one wrong product, hz0815 «bazella w jazar mkhalta», the reading M1's runs flagged before (B1b's corrections do not touch a
+three-line reading). It also had three live misses: a reading sent as the bare word "greeting" (now read), the gluten wording and the
+13 Nov voice address (both model variance seen before). The second (43748065821) and third runs were clean.
+
+**Two branch runs** on the 36 conversations that failed these classes in B1a's last run (sim-test 43746511047 and 43748069612, $0.84 and
+$0.85) found what the first code missed. A typed address with no place made the confirm tap ask for the pin again, so it is now a place
+said in words. Other finds: more ways of saying thanks or asking after a person; a French customer read as Arabizi («Ah il ...»); and two
+faults in the simulator's language check (above).
+
+**The simulated customers on `main`** ([sim-test 43751120408](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43751120408),
+limit 150, budget USD 4, spent **$2.82**; main at 40e2ff7, PR #85), against SIM1's first run on the same 150 scenarios:
+
+| | SIM1 (first 150) | B1b on main | target |
+| --- | --- | --- | --- |
+| address (fix 5) | 8 | **1** | at most 1: **met** |
+| reply in another language (fix 6) | 14 | **0** | at most 2: **met** |
+| message rules (fix 7) | 70 | **0** | at most 14: **met** |
+| off-topic line outside its scenarios (fix 8) | 16 | **8** | at most 3: **not met** (follow-up below) |
+| passed | 35 | **93 (62%)** | |
+
+B1a's measures, against its third run (43736730998): minimum-order loops 0 (0), lost baskets 0 (0), wrong or uninvited product (judge)
+32 (34): **no worse**. No code check failed on any turn: no message rule, wrong language, no reply, turn error or silence after a
+hand-off (24 hand-offs, 24 alerted). The judge's classes: goal not reached 50, wrong product 32, unnatural dialect 32, repeated question
+24, dead end 14, invented fact 9.
+
+The 8 off-topic conversations, read one by one, had four causes:
+- a greeting with one word more («مرحبا، كيفكن؟ شو أخباركن اليوم؟», "kif el 2ata3 el yom"): 3;
+- a tap on a button the Concierge itself offered ("Eh, hayda", "Rje3 3al taleb", "Ehke ma3 7ada"), whose few words the reading
+  called off-topic: 3;
+- "when will someone answer?": 1;
+- a thank-you of 19 words: 1.
+
+The follow-up pull request adds the six texts to `evals/cases/off_topic.json` first. A message that opens with a greeting is a greeting,
+a tap on our own button is never off-topic (`turn.ts`), someone from the shop is on the job, and a thank-you may be 20 words.
+<!-- B1B-RUN2 -->
+
 
 ### B1a: basket integrity, 15 November 2026 (Opus 5.5)
 Ordering lane, branch `claude/beautiful-archimedes-d93rkb`, one pull request. No migration. SIM1's fixes 1, 3, 4, 9 and 10 and its two
