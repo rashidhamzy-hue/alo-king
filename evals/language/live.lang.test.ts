@@ -3,13 +3,14 @@
 // Each case goes through the production path: extractOrder() (the real prompt, schema and forced call) on the live model,
 // then plan_order() on PGlite loaded with every migration and the catalog seeds. The matched products are scored against the
 // truth (score.ts). Writes evals/language/results/<LABEL>.json; the workflow puts the summary on the run page.
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
 import { mkdirSync, readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { extractOrder } from "../../packages/agents/src/concierge";
 import { openTestDb } from "../../test/db/harness";
 import { scoreCase, totals, type Expected, type Got, type CaseScore } from "./score";
+import { startMeter, finishMeter, type CostMeter } from "../../scripts/lib/model-cost.mjs";
 
 const env = ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {});
 const live = env.ALO_LANG_EVAL === "1" && !!env.ANTHROPIC_API_KEY;
@@ -25,6 +26,10 @@ async function poolMap<T, R>(xs: T[], n: number, fn: (x: T) => Promise<R>): Prom
 }
 
 describe.skipIf(!live)("live: catalog language (1.22)", () => {
+  // COST1: counted in model_costs, one row per model and LABEL (before, after, after-<model>), and stopped at the run's dollar cap.
+  let meter: CostMeter;
+  beforeAll(async () => { meter = await startMeter({ workflow: "language-pack", capDefault: 5, step: env.LABEL ?? "run" }); });
+  afterAll(async () => { if (meter) await finishMeter(meter); });
   it("scores the eval set", async () => {
     const model = env.MODEL ?? "claude-haiku-5-5", label = env.LABEL ?? "run", repeat = Number(env.REPEAT ?? 1);
     const only = env.ONLY ? new Set(env.ONLY.split(",")) : null;
@@ -36,6 +41,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     const usage = { input: 0, output: 0 };
 
     const runs = await poolMap(cases.flatMap((c) => Array.from({ length: repeat }, (_, k) => ({ c, k }))), 8, async ({ c, k }) => {
+      if (meter.capReached) return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got: [] as Got[], score: scoreCase(c.items, []), next: null, errors: "cost cap reached: not run", rejected: null, lines: [] as any[] };
       const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} }).catch((e) => ({ intent: null, errors: String(e), usage: { input: 0, output: 0 } }));
       usage.input += r.usage.input; usage.output += r.usage.output;
       let lines: any[] = []; let next: string | null = null;
@@ -60,7 +66,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     };
     const all = totals(runs.map((r) => r.score));
     const card0013 = runs.filter((r) => r.id === "h0013").map((r) => r.score.tp === 3 && r.score.wrong.length === 0);
-    const report = { label, model, repeat, at: new Date().toISOString(), usage, all, by_kind: by((r) => r.kind), by_lang: by((r) => r.lang),
+    const report = { label, model, repeat, at: new Date().toISOString(), usage, stopped_at_cap: meter.capReached, all, by_kind: by((r) => r.kind), by_lang: by((r) => r.lang),
       demo_0013_right: card0013, wrong: runs.filter((r) => r.score.wrong.length).map(({ id, text, expected, got, lines }) => ({ id, text, expected, got, lines })),
       missed: runs.filter((r) => r.score.missed.length).map(({ id, text, score, lines, errors, rejected }) => ({ id, text, missed: score.missed, lines, errors, rejected })),
       // every reading, so replay.test.ts can run the same readings through a changed planner without the model
@@ -74,5 +80,6 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     console.log(md);
     if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, md + "\n");
     expect(runs.length).toBeGreaterThan(0);
+    expect(meter.capReached, "the run stopped at its cost cap: its scores are incomplete").toBe(false);
   }, 3_600_000);
 });

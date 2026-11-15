@@ -56,6 +56,11 @@ export class Budget {
   private lastPrinted = 0;
   constructor(readonly soft: number, readonly hard: number, private prices: PriceRow[], private log: (s: string) => void = (s) => console.log(s),
               private day = new Date().toISOString().slice(0, 10)) {}
+  /** The run's cost as model_costs rows (one per model and role), in the shape scripts/lib/model-cost.mjs records. */
+  costLines() {
+    return [...this.byModelRole.values()].map((l) => ({ model: l.model, step: l.role, calls: l.calls, input_tokens: l.input, output_tokens: l.output,
+      cache_read_tokens: l.cacheRead, cache_write_tokens: l.cacheWrite, web_searches: 0, usd: Number(l.usd.toFixed(6)) }));
+  }
   /** May a new conversation start? */
   canStart(): boolean { return this.spent < this.soft; }
   /** Throws before a call when the hard limit is reached. */
@@ -65,9 +70,17 @@ export class Budget {
     if (!p) throw new Error(`NO_PRICE: model_prices has no row for ${model} on ${this.day}; the run refuses to spend without a price`);
     return costOf(p, u);
   }
-  add(role: Role, usd: number): void {
+  /** Per model and role, for the cost table (model_costs, 0139): the rows COST1's recorder writes. */
+  readonly byModelRole = new Map<string, { model: string; role: Role; calls: number; input: number; output: number; cacheRead: number; cacheWrite: number; usd: number }>();
+  add(role: Role, usd: number, model?: string, usage?: CallUsage): void {
     this.spent += usd; this.calls++;
     this.byRole[role].usd += usd; this.byRole[role].calls++;
+    if (model) {
+      const k = `${model}\u0000${role}`;
+      const l = this.byModelRole.get(k) ?? { model, role, calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, usd: 0 };
+      l.calls++; l.usd += usd; l.input += usage?.input ?? 0; l.output += usage?.output ?? 0; l.cacheRead += usage?.cacheRead ?? 0; l.cacheWrite += usage?.cacheWrite ?? 0;
+      this.byModelRole.set(k, l);
+    }
     if (this.spent - this.lastPrinted >= 0.25) { this.lastPrinted = this.spent; this.log(`[budget] USD ${this.spent.toFixed(3)} after ${this.calls} calls`); }
   }
 }

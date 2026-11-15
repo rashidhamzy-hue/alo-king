@@ -624,12 +624,13 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 0 | PUB1 public-repository hygiene | Sonnet, medium | Nothing | None | Not started |
 | 0 | BK0 free backups and restore check | Sonnet, medium | The founder's passphrase secret | None | Not started |
 | 1 | HO1 never-stranded hand-off | Opus, high | SIM1's report merged | 0135 to 0137 (0138 unused) | Done: built, tested in CI, and sim-test run 43711132002 shows zero silences after a hand-off (`docs/HANDOFF.md`, HO1) |
-| 1 | COST1 cost recorded, capped | Sonnet, medium | SIM1's report merged | 0139 | Not started; waits for SIM1's report to be merged |
+| 1 | COST1 cost recorded, capped | Sonnet, medium | SIM1's report merged | 0139 | Built and tested (15 Nov); the live run of each workflow waits for 0139 on staging (`deploy-staging` from `main`) |
 | 1 | OPS1 alerts that wake someone | Sonnet, high | Nothing | 0140 to 0142 | Built and tested (see HANDOFF, "OPS1"); founder actions listed there; live proofs are filled in after the first run on `main` |
-| 2 | B1 ordering fixes from SIM1 | Opus, high | HO1 merged | None | Not started |
-| 2 | DS1 design system and flagship screens | Fable, high | OPS1 and HO1 merged; the crown picture attached | None | Not started |
+| 2 | B1a ordering fixes from SIM1, part 1 (report fixes 1, 3, 4, 9, 10 and the two no-reply turns; minimum order $5, no small-order fee at launch) | Opus, high | HO1 merged | None | Not started |
+| 2 | B1b ordering fixes from SIM1, part 2 (report fixes 5, 6, 7, 8; a first order without a pin is accepted, marked for a rider call) | Opus, high | B1a merged | None | Not started |
+| 2 | DS1 design system and flagship screens (converts the founder's brief to `docs/DESIGN_BRIEF.md` first) | Fable, high | OPS1 and HO1 merged; the crown picture and the brief attached | None | Not started |
 | 2 | PIX pictures | Sonnet, medium | Nothing | None | Not started |
-| 3 | CX1 customer pack | Opus, high | B1 merged | 0143 to 0146 | Not started |
+| 3 | CX1 customer pack | Opus, high | B1b merged | 0143 to 0146 | Not started |
 | 3 | D4b pick queue and rider jobs on the console | Sonnet, high | DS1 merged | 0147 to 0148 | Not started |
 | 4 | T1 friends' test set-up | Opus, medium | Gate A: CX1, D4b, DS1 merged; pictures approved; Arabic read (T1 checks the list and stops if one is missing) | 0134 | **Waits for gate A** |
 | 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | Not started |

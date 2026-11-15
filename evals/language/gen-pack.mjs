@@ -5,12 +5,15 @@
 // food fact (invariant 15): build-pack.mjs drops any term about allergens, diet, halal or nutrition that is not printed in the name.
 // The generator never sees the eval set. Writes evals/language/pack.json (raw, before the build drops anything).
 import Anthropic from "@anthropic-ai/sdk";
+import { startMeter, autoFinish } from "../../scripts/lib/model-cost.mjs";
 import { writeFileSync } from "node:fs";
 import { loadCatalog, byCategory, pool, chunks, line, root } from "./catalog.mjs";
 
 const MODEL = process.env.GEN_MODEL ?? "claude-opus-5-5";
 const args = process.argv.slice(2);
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : Infinity;
+// COST1: counted in model_costs and stopped at the run's dollar cap (MODEL_COST_CAP_USD); the meter wraps fetch, so it comes first.
+autoFinish(await startMeter({ workflow: "language-pack", capDefault: 5, step: "pack" }));
 const client = new Anthropic({ maxRetries: 6 });
 const usage = { input: 0, output: 0 };
 

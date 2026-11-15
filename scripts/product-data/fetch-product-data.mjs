@@ -19,6 +19,7 @@ import { offLookup, offTexts, offIdentity } from "./lib/off.mjs";
 import { buildFacts } from "./lib/facts.mjs";
 import { mapRequest, mapText } from "./lib/map-model.mjs";
 import { Fatal, newUsage } from "./lib/anthropic.mjs";
+import { runMetered } from "../lib/model-cost.mjs";
 
 export { Fatal };
 
@@ -73,7 +74,7 @@ function args(argv) {
   return a;
 }
 
-async function main() {
+async function main(meter) {
   const a = args(process.argv.slice(2));
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "ANTHROPIC_API_KEY", "MODEL_FAST"].filter((k) => !process.env[k]);
   if (missing.length) { console.error(`missing env: ${missing.join(", ")}`); process.exit(2); }
@@ -92,7 +93,7 @@ async function main() {
   console.log(`run ${runId}: ${items.length} items to look up in Open Food Facts (one request every 4 s, about ${Math.ceil(items.length * 4 / 60)} min)`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
-    if (fatal) return { sku: item.sku, outcome: "not_run" };
+    if (fatal || meter.capReached) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
     try {
       const r = await processItem(item, d);
       console.log(`${item.sku} ${r.outcome}${r.proposed !== undefined ? ` (${(r.attributes ?? []).join(",")})` : ""}${r.error ? ` ${r.error}` : ""}`);
@@ -117,7 +118,7 @@ async function main() {
       `- approved from Open Food Facts: ${coverage.approved_from_open_food_facts} (must be 0). No allergen proposal means unknown, not free.`, ""].join("\n"));
   }
   const errors = s.outcomes.error ?? 0;
-  if (fatal || (items.length >= 10 && errors > items.length / 2) || coverage.approved_from_open_food_facts !== 0) process.exit(1);
+  if (fatal || (items.length >= 10 && errors > items.length / 2) || coverage.approved_from_open_food_facts !== 0) process.exitCode = 1;   // not process.exit: the cost is recorded first (COST1)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(e.message); process.exit(1); });
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) runMetered({ workflow: "product-data", capDefault: 3, step: "facts" }, main);

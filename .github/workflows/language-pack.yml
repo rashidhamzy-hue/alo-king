@@ -1,5 +1,8 @@
 # Build plan 1.22 (session B3): generate the catalog language pack and its eval set with the Anthropic API, and score the live
 # model before and after. The build environment cannot reach the API, so it runs here. Spends money: only on request.
+# Cost (COST1): every model call is counted in model_costs (migration 0139) and the run stops making model calls at its dollar cap,
+# max_usd (default 5; request.json may carry "max_usd"). One "after" pass is the default. "before", "also_models", "cases", "pack" and
+# "live" run only when asked for; "cases" and "pack" (Opus) can need a higher cap. The run summary prints the total by model and step.
 # How to run: by hand (workflow_dispatch), or by committing evals/language/request.json with {"steps": [...]} to any branch.
 #   steps: "cases" (write evals/language/cases.json), "pack" (write evals/language/pack.json and migration 0054),
 #          "before" (score the live model on origin/main's code), "after" (score it on this commit's code),
@@ -13,7 +16,8 @@ name: language-pack
 on:
   workflow_dispatch:
     inputs:
-      steps: { description: "Comma-separated: cases, pack, before, after", type: string, default: "before,after" }
+      steps: { description: "Comma-separated: cases, pack, before, after, live (default: one 'after' pass)", type: string, default: "after" }
+      max_usd: { description: "Dollar cap for the whole run's model calls; the run stops making calls when it passes it", type: string, default: "5" }
       repeat: { description: "Runs of each case on the live model", type: string, default: "1" }
   push:
     paths: [evals/language/request.json]
@@ -29,6 +33,11 @@ jobs:
     timeout-minutes: 150
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # COST1: the prices are read from, and the cost written to, the staging database (model_prices, model_costs). Nothing else is touched.
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '5' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -48,9 +57,13 @@ jobs:
           echo "also=$also" >> "$GITHUB_OUTPUT"
           [ "${{ github.event_name }}" = "workflow_dispatch" ] || echo "ONLY=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.only||[]).filter((x)=>/^[a-z0-9_]+$/.test(x)).join(","))')" >> "$GITHUB_ENV"
           [[ "$repeat" =~ ^[0-9]+$ ]] || repeat=1
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            cap=$(node -e 'const r=require("./evals/language/request.json"); console.log(r.max_usd ?? "")')
+            [[ "$cap" =~ ^[0-9]+(\.[0-9]+)?$ ]] && echo "MODEL_COST_CAP_USD=$cap" >> "$GITHUB_ENV"
+          fi
           echo "steps=,$steps," >> "$GITHUB_OUTPUT"; echo "repeat=$repeat" >> "$GITHUB_OUTPUT"
           echo "MODEL=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
-          echo "- steps: $steps, repeat: $repeat" >> "$GITHUB_STEP_SUMMARY"
+          echo "- steps: $steps, repeat: $repeat, cost cap: USD ${MODEL_COST_CAP_USD}" >> "$GITHUB_STEP_SUMMARY"
       - name: Unit tests of the eval and the pack builder
         run: npx vitest run evals/language
       - name: Generate the eval set
@@ -66,6 +79,7 @@ jobs:
           git worktree add ../main origin/main
           mkdir -p ../main/evals/language
           cp evals/language/{score.ts,live.lang.test.ts,hand.json} ../main/evals/language/
+          mkdir -p ../main/scripts/lib && cp scripts/lib/model-cost.mjs scripts/lib/model-cost.d.mts ../main/scripts/lib/   # the cost meter (COST1) is not on main until this is merged
           [ -f evals/language/cases.json ] && cp evals/language/cases.json ../main/evals/language/
           ( cd ../main && npm ci --silent && npx vitest run evals/language/live.lang.test.ts )
           mkdir -p evals/language/results && cp ../main/evals/language/results/before.json evals/language/results/

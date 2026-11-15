@@ -20,6 +20,10 @@ on:
         description: Open Food Facts only, even if the search secret exists
         type: boolean
         default: false
+      max_usd:
+        description: Dollar cap for the run's model calls (the picture check). The run stops starting new items when it passes it.
+        type: string
+        default: "2"
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -37,6 +41,9 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
       RUN_ID: ${{ github.run_id }}
+      # COST1: counted in model_costs (0139), stopped at this cap.
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '2' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

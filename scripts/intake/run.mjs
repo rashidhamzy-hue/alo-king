@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { plan, loadPicture, loadFacts } from "../product-data/load-research.mjs";
 import { readResearch } from "../product-data/lib/research.mjs";
 import { researchItem, committedFile, costOf, Fatal } from "./lib/research.mjs";
+import { startMeter, finishMeter } from "../lib/model-cost.mjs";
 
 export const DEFAULTS = { maxJobs: 15, maxSpend: 0.75, researchDir: "data/research" };
 const isFatal = (e) => e instanceof Fatal || e?.name === "Fatal" || e?.constructor?.name === "Fatal";
@@ -135,6 +136,11 @@ async function main() {
   const store = makeStore({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY });
   const prices = await store.rpc("intake_prices", { p_model: model });
   if (!prices) { console.error(`no price for ${model} in model_prices (or no web-search price in settings.intake): an unknown price is never counted as free`); process.exit(1); }
+  // COST1: every model call of the run is also counted in model_costs (migration 0139). The cap is this run's own --max-spend, which
+  // runIntake enforces between jobs (a refused call in the middle of a job would put its item on the review list), so the meter
+  // records and does not refuse. A model call is never made before this point.
+  const cost = await startMeter({ workflow: "intake", runId, capUsd: a.maxSpend, enforce: false, step: "intake", webSearchUsd: prices.web_search_usd_per_search,
+    conn: { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY } });
   const [{ default: Anthropic }, { loadSharp }, { checkPicture }, { download }, { proposeFromResearch }] = await Promise.all([
     import("@anthropic-ai/sdk"), import("../images/lib/image.mjs"), import("../images/lib/vision.mjs"), import("../images/fetch-images.mjs"), import("../images/research-pictures.mjs")]);
   const sharp = await loadSharp();
@@ -148,11 +154,13 @@ async function main() {
       try { meter.usd += costOf((await res.clone().json()).usage, { ...prices, web_search_usd_per_search: 0 }).usd; } catch { /* no usage: not priced */ }
       return res;
     } }) }, meta);
-  const run = await runIntake({ store, runId, model, prices, client, pictures, researchDir: a.researchDir }, a);
+  let run;
+  try { run = await runIntake({ store, runId, model, prices, client, pictures, researchDir: a.researchDir }, a); cost.stoppedAtCap = !!run.stopped?.startsWith("spend_cap"); }
+  finally { await finishMeter(cost); }
   console.log(JSON.stringify({ ...run, advance: undefined }, null, 2));
   if (a.reportOut) writeFileSync(a.reportOut, JSON.stringify(run, null, 2) + "\n");
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryLines(run).join("\n"));
-  if (run.stopped?.startsWith("fatal")) process.exit(1);
+  if (run.stopped?.startsWith("fatal")) process.exitCode = 1;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(e.message); process.exit(1); });
