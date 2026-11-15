@@ -1,8 +1,11 @@
-# Weekly: how full is the staging Supabase project? Reads database size, storage size and egress (read only) and FAILS when any of
+# Weekly: how full is the staging Supabase project, and how much of the Cloudflare Workers Paid allowance has the account used this month? Reads database size, storage size and egress (read only) and FAILS when any of
 # them is above 70% of the plan's included amount, or cannot be read (AUDIT-G1 point 11). A red run emails the repository's watchers.
 # Database and storage come from SQL; egress from the dashboard's usage report, which SQL cannot see. The plan is the repository
 # variable SUPABASE_PLAN (free or pro; free when unset); the limits are one table in scripts/ci/usage-check.mjs.
-# Secrets used (repository secrets, never printed): SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD.
+# Cloudflare (second job): Workers requests and Durable Object duration for the whole account, month to date, from the GraphQL Analytics
+# API with the deploy token; fails above 70% of the Workers Paid plan's included amount. If the token cannot read analytics (it needs
+# "Account > Account Analytics > Read") that job says so and passes: the part is left off until the permission is added.
+# Secrets used (repository secrets, never printed): SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
 name: usage-check
 on:
   schedule: [{ cron: "17 5 * * 1" }]     # Mondays 05:17 UTC (08:17 in Beirut)
@@ -46,3 +49,15 @@ jobs:
           echo "STORAGE_BYTES=$(psql "$DATABASE_URL" -At -c "select coalesce(sum((metadata->>'size')::bigint), 0)::bigint from storage.objects")" >> "$GITHUB_ENV"
       - name: Compare with the plan (fails above 70%)
         run: node scripts/ci/usage-check.mjs
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Workers requests and Durable Object duration (fails above 70% of Workers Paid)
+        run: node scripts/ci/cloudflare-usage.mjs

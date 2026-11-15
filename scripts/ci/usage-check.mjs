@@ -22,17 +22,18 @@ export const PLAN_LIMITS = {
 export function evaluate(used, limits, threshold = THRESHOLD) {
   const rows = ["database", "storage", "egress"].map((metric) => {
     const u = used[metric], l = limits[metric];
+    if (u === "off") return { metric, used: null, limit: l, pct: null, status: "off" };   // the token cannot read it: said plainly, never a pass or a fail
     if (u === null || u === undefined || !Number.isFinite(u)) return { metric, used: null, limit: l, pct: null, status: "unreadable" };
     const pct = u / l;
     return { metric, used: u, limit: l, pct, status: pct > threshold ? "over" : "ok" };
   });
-  return { rows, ok: rows.every((r) => r.status === "ok") };
+  return { rows, ok: rows.every((r) => r.status === "ok" || r.status === "off") };
 }
 
 const fmt = (b) => (b === null ? "n/a" : b >= GB ? `${(b / GB).toFixed(2)} GB` : `${(b / MB).toFixed(1)} MB`);
 export function table(rows, threshold = THRESHOLD) {
   return ["| metric | used | included | of limit | |", "| --- | --- | --- | --- | --- |",
-    ...rows.map((r) => `| ${r.metric} | ${fmt(r.used)} | ${fmt(r.limit)} | ${r.pct === null ? "n/a" : (r.pct * 100).toFixed(1) + "%"} | ${r.status === "ok" ? "ok" : r.status === "over" ? `**over ${threshold * 100}%**` : "**could not be read**"} |`)].join("\n");
+    ...rows.map((r) => `| ${r.metric} | ${fmt(r.used)} | ${fmt(r.limit)} | ${r.pct === null ? "n/a" : (r.pct * 100).toFixed(1) + "%"} | ${r.status === "ok" ? "ok" : r.status === "over" ? `**over ${threshold * 100}%**` : r.status === "off" ? "**left off** (no access, see below)" : "**could not be read**"} |`)].join("\n");
 }
 
 /**
@@ -42,7 +43,11 @@ export function table(rows, threshold = THRESHOLD) {
  */
 export async function readEgress(token, ref, fetchImpl = fetch) {
   const h = { Authorization: `Bearer ${token}`, Accept: "application/json" };
-  const get = async (url) => { const r = await fetchImpl(url, { headers: h }); if (!r.ok) throw new Error(`HTTP ${r.status} from ${new URL(url).pathname}`); return r.json(); };
+  const get = async (url) => {
+    const r = await fetchImpl(url, { headers: h });
+    if (!r.ok) throw Object.assign(new Error(`HTTP ${r.status} from ${new URL(url).pathname.replace(/\/organizations\/[^/]+/, "/organizations/<org>")}`), { denied: r.status === 401 || r.status === 403 });
+    return r.json();
+  };
   const project = await get(`https://api.supabase.com/v1/projects/${ref}`);
   const slug = project.organization_slug ?? project.organization_id;
   if (!slug) throw new Error("the project answer names no organisation");
@@ -66,7 +71,13 @@ async function main() {
     const e = await readEgress(process.env.SUPABASE_ACCESS_TOKEN ?? "", process.env.SUPABASE_PROJECT_REF ?? "");
     used.egress = e.bytes;
     if (e.includedBytes) limits.egress = e.includedBytes;
-  } catch (err) { notes.push(`egress could not be read: ${String(err.message ?? err).slice(0, 300)}`); }
+  } catch (err) {
+    if (err.denied) {
+      // The documented Management API has no usage figure; the dashboard's usage report refuses an access token (HTTP 401, 14 Nov 2026).
+      used.egress = "off";
+      notes.push(`egress is LEFT OFF: the Supabase access token cannot read the usage report (${String(err.message).slice(0, 120)}). Read it by hand in the dashboard (Organization, Usage) until a way to read it exists; docs/HANDOFF.md, A5.`);
+    } else notes.push(`egress could not be read: ${String(err.message ?? err).slice(0, 300)}`);
+  }
   const { rows, ok } = evaluate(used, limits);
   const out = [`Supabase usage, plan "${plan}", threshold ${THRESHOLD * 100}% of the included amount`, "", table(rows), "", ...notes.map((n) => `- ${n}`)].join("\n");
   console.log(out);

@@ -1,5 +1,6 @@
 # Manual, STAGING only. Proves build plan 1.23 on live staging: a NEW product gets its search words with nobody doing anything.
-# It adds one clearly named test product (no price, no stock: it cannot be ordered), waits for the Worker's cron to build its words
+# It adds one clearly named test product with a price and stock at the hub (the planner only matches what can be sold; without them every
+# phrasing is "not found" whatever the words are), waits for the Worker's cron to build its words
 # with the real model, prints what appeared (the job, the words by level and language, any phrasing that did not resolve), then
 # removes the test product and everything built for it, so staging ends as it began. The evidence is this run's summary.
 # Why not "through the console": the console has no page that creates a product (and by rule no insert of its own: its tests forbid it),
@@ -46,13 +47,17 @@ jobs:
           q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
           # a previous run that died half way: remove its leftovers first
           q -c "delete from search_word_reviews where sku = '$SKU'; delete from search_word_jobs where sku = '$SKU'; delete from search_word_state where sku = '$SKU';
-                delete from language_pack where sku = '$SKU'; delete from products where sku = '$SKU';"
+                delete from language_pack where sku = '$SKU';
+                delete from offers where product_id in (select id from products where sku = '$SKU'); delete from stock_levels where product_id in (select id from products where sku = '$SKU');
+                delete from products where sku = '$SKU';"
           # Building one item's words can re-level another item's word (a kind word that was someone's exact word). Fingerprint everyone else's
           # words now and again after the clean-up, and say whether they changed.
           echo "FP_BEFORE=$(q -c "select md5(coalesce(string_agg(sku || '|' || term || '|' || level, ',' order by sku, term, level), '')) from language_pack where sku <> '$SKU'")" >> "$GITHUB_ENV"
           echo "settings.search_words: $(q -c "select value::text from settings where key = 'search_words'")"
           q -c "insert into products(sku, name_en, brand, category, sub_type, sell_unit) values ('$SKU', 'Qalamoun Pomegranate Fizz 330 ml', 'Qalamoun', 'Beverages', 'pomegranate fizz', 'each')"
-          echo "- test product $SKU inserted at $(date -u +%H:%M:%SZ): Qalamoun Pomegranate Fizz 330 ml (no price, no stock)" >> "$GITHUB_STEP_SUMMARY"
+          q -c "insert into offers(source_id, product_id, price_usd) select s.id, p.id, 1.50 from sources s, products p where s.kind = 'dark_store' and p.sku = '$SKU';
+                insert into stock_levels(source_id, product_id, on_hand) select s.id, p.id, 40 from sources s, products p where s.kind = 'dark_store' and p.sku = '$SKU'"
+          echo "- test product $SKU inserted at $(date -u +%H:%M:%SZ): Qalamoun Pomegranate Fizz 330 ml, 1.50 USD, 40 on hand at the hub (removed at the end)" >> "$GITHUB_STEP_SUMMARY"
           echo "job right after the insert: $(q -c "select status || ' / ' || reason from search_word_jobs where sku = '$SKU'")"
       - name: Wait for the Worker's cron to build the words
         run: |
@@ -88,10 +93,12 @@ jobs:
         run: |
           q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
           q -c "delete from search_word_reviews where sku = '$SKU'; delete from search_word_jobs where sku = '$SKU'; delete from search_word_state where sku = '$SKU';
-                delete from language_pack where sku = '$SKU'; delete from products where sku = '$SKU';"
+                delete from language_pack where sku = '$SKU';
+                delete from offers where product_id in (select id from products where sku = '$SKU'); delete from stock_levels where product_id in (select id from products where sku = '$SKU');
+                delete from products where sku = '$SKU';"
           left=$(q -c "select (select count(*) from products where sku = '$SKU') + (select count(*) from language_pack where sku = '$SKU')")
-          echo "- test product removed; rows left: $left" >> "$GITHUB_STEP_SUMMARY"
+          echo "- test product removed; rows left: $left" | tee -a "$GITHUB_STEP_SUMMARY"
           after=$(q -c "select md5(coalesce(string_agg(sku || '|' || term || '|' || level, ',' order by sku, term, level), '')) from language_pack where sku <> '$SKU'")
-          if [ "$after" = "$FP_BEFORE" ]; then echo "- every other item's search words are unchanged" >> "$GITHUB_STEP_SUMMARY"
-          else echo "- **another item's search words changed while this one was built (a kind word that was someone's exact word); see the run log**" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$after" = "$FP_BEFORE" ]; then echo "- every other item's search words are unchanged" | tee -a "$GITHUB_STEP_SUMMARY"
+          else echo "- **another item's search words changed while this one was built (a kind word that was someone's exact word); see the run log**" | tee -a "$GITHUB_STEP_SUMMARY"; fi
           [ "$left" = "0" ]
