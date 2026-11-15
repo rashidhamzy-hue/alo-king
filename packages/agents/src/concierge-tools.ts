@@ -44,6 +44,8 @@ export interface ConversationState {
   replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
   /** HO1: the turn key that was already queued again once after a technical failure (the second failure gets the fixed line). */
   technicalRetry?: string | null;
+  /** CX1: the first-ever welcome was decided for this conversation (sent, or not due), so it is never asked again. */
+  welcomed?: boolean;
   /** B1a: the card the customer tapped "edit" on (now a draft): its lines are lastQuote, and the next card replaces it. */
   editing?: { orderId: string; shortCode: string } | null;
   /** B1c: lines asked about by code («ربطة خبز»: which one?), the first being asked now, each with its words, count and the products offered. */
@@ -418,8 +420,10 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
 export async function sendCard(ctx: ToolContext, input: Omit<CardInput, "lang" | "address">, before?: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const lang = ctx.state.lang ?? "ar";
   const address = input.quote.pickup ? null : await rpc<CardAddress | null>(ctx.db, "order_address", { p_order: input.orderId }).catch(() => null);
+  // CX1: where a pickup is collected (settings.pickup), and the choices already on this order (a card made again keeps them).
+  const pickupPlace = input.quote.pickup ? await rpc<string | null>(ctx.db, "pickup_place", { p_lang: lang }).catch(() => null) : null;
   const gaps = new Set<string>();
-  const parts = formatOrderCard({ ...input, lang, address }, { before, gaps });
+  const parts = formatOrderCard({ ...input, lang, address, pickupPlace }, { before, gaps });
   for (let i = 0; i < parts.length; i++) {
     const last = i === parts.length - 1;
     const summary = last ? `[order card ${input.shortCode}] total $${input.quote.total_usd}` : (parts[i] as { text: { body: string } }).text.body;

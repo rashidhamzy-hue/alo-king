@@ -220,7 +220,8 @@ describe("parse once, then the database (1.1)", () => {
     expect((await db.one(`select status from orders where id = $1`, [c.orderId])).status).toBe("confirmed");
     expect(Number((await db.one(`select reserved from stock_levels where product_id = $1`, [LABNEH])).reserved)).toBeGreaterThanOrEqual(1);
     expect(outbound).toHaveLength(1);
-    expect(outbound[0]!.body.text.body).toContain(c.shortCode);
+    // CX1: the confirmation is one list (the card's choices under the words); the words are its body.
+    expect(outbound[0]!.body.interactive.body.text).toContain(c.shortCode);
   });
 
   it("a tap on someone else's order changes nothing", async () => {

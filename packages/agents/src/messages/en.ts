@@ -153,7 +153,41 @@ export const en: Messages = {
 
   payment: {
     proofReceived: (code) => `✅ We received the payment photo for order ${code}, thank you.\nSomeone from our team is checking it and will get back to you.`,
+
     proofResend: "We couldn't open the picture.\nCould you send the receipt photo again?",
+  },
+  cx: {
+    welcome: (open, close) => [`👑 Welcome to Alo King!`, `We bring home groceries to your door in the Chouf. Tell me what you need, in writing or by voice note.`,
+      ...(open && close ? [`🌙 We are open from ${open} to ${close}.`] : []), en.cx.privacy].join("\n"),
+    privacy: "By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time.",
+    orderButton: "Order", areaButton: "Do you deliver here?",
+    orderAsk: "Go ahead: tell me what you need, or send a voice note.",
+    areaAsk: "📍 Send your location with the button below, or type your village, and we'll tell you if we deliver there.",
+    missingLine: (p) => `If an item is missing: ${{ best_match: "we put the closest match", ask: "we ask you", remove: "we take it off" }[p]}`,
+    keepLine: "Your change stays with us as credit.",
+    choicesButton: "Options", choicesMissing: "If an item is missing", choicesNote: "Paying cash", choicesOrder: "The order",
+    missingRow: { best_match: "Closest match", ask: "Ask me", remove: "Take it off" },
+    exactRow: "I have the exact amount", noteRow: (n) => `I'll pay with ${usd(n)}`, keepRow: "Keep change as credit", cancelRow: "Cancel the order",
+    missingSet: (p) => `✅ Done: if an item is missing, ${{ best_match: "we put the closest match", ask: "we ask you before swapping", remove: "we take it off the order" }[p]}.`,
+    exactSet: "✅ Done: you'll pay the exact amount.",
+    noteSet: (note, change) => `✅ Done, we'll bring change for ${usd(note)}\nYour change: ${usd(change)}`,
+    keepSet: (change) => `✅ Done, no change will be given back.\nIt becomes your credit once paid: ${usd(change)}`,
+    needsNote: "First choose the note you'll pay with.",
+    noteTooSmall: (total) => `That note is less than the total: ${usd(total)}`,
+    choiceTooLate: (code) => `We've started preparing order ${code}, so this can't change any more.`,
+    cancelAsk: (code, credit) => credit > 0
+      ? `Cancel order ${code}? We haven't started preparing it.\nWhat you paid comes back as credit: ${usd(credit)}`
+      : `Cancel order ${code}? We haven't started preparing it.`,
+    cancelYes: "Yes, cancel it",
+    cancelAfterPick: (code, refundable, kept) => [`We've started preparing order ${code}, so it can't be cancelled from here.`,
+      `If we cancel it, your credit back: ${usd(refundable)}`, ...(kept.length ? [wrapNames("Can't go back on the shelf:", kept, ", ")] : []),
+      "A person from our team will talk to you now."].join("\n"),
+    cancelAfterPickCash: (code) => `We've started preparing order ${code}, so it can't be cancelled from here.\nYou haven't paid anything. A person from our team will talk to you now.`,
+    cancelOnTheWay: (code) => `🛵 Order ${code} is on its way, so it can't be cancelled from here.\nA person from our team will talk to you now.`,
+    handoverCode: (code) => `🔢 Your handover code: ${code}\nGive it to the rider only when you have your order.`,
+    pickupAt: (place) => `🏠 Pickup at ${place}, no delivery fee`,
+    pickupOff: "Pickup isn't available yet, so we'll deliver to your home.",
+    pickupReady: (code, place) => `📦 Order ${code} is ready for pickup at ${place}.\nIf it's prepaid, bring your handover code.`,
   },
 
   notice: {
@@ -338,5 +372,11 @@ export const en: Messages = {
     proofAlert: (method, code, total, reused) => `💵 ${method} payment photo for order #${code}. Needs a person to confirm.\nDue:\n${usd(total)}`
       + (reused ? "\n⚠️ The same picture was sent before for another order." : ""),
     turnCap: (limit) => `⚠️ A customer passed ${limit} assistant messages in an hour.\nThey get a fixed menu until the hour turns.`,
+    askCode: (code) => `🔢 Order #${code} is prepaid.\nAsk the customer for their handover code (4 digits) and type it here.`,
+    wrongCode: (left) => `Wrong code. ${left} tries left.`,
+    codeLocked: (code) => `⚠️ Too many wrong codes for order #${code}. Do not hand it over; ops will call you.`,
+    codeLockedAlert: (code) => `⚠️ The handover code of order #${code} is locked after wrong tries. Call the customer and the rider.`,
+    codeOk: (code) => `✅ Code correct: order #${code} handed over.`,
+    keepChange: (note) => `💵 No change: the customer keeps it as credit. The note: ${usd(note)}`,
   },
 };

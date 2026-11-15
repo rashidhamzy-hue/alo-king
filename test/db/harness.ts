@@ -54,12 +54,15 @@ const enc = (v: unknown): unknown =>
   Array.isArray(v) && v.every((x) => typeof x === "string") ? `{${v.join(",")}}`
   : v !== null && typeof v === "object" ? JSON.stringify(v) : v;
 
-export async function openTestDb(opts: { seeds?: boolean } = {}): Promise<TestDb> {
+/** `welcome`: CX1's first-ever welcome (0143) stays on. Off by default, so a test's fresh customer is answered as before CX1; the CX1
+ *  tests and the simulated customers (evals/sim/world.ts) turn it on. */
+export async function openTestDb(opts: { seeds?: boolean; welcome?: boolean } = {}): Promise<TestDb> {
   const pg = new PGlite({ extensions: { pg_trgm, pgcrypto } });
   for (const f of readdirSync(root + "migrations").sort()) {
     try { await pg.exec(readFileSync(root + "migrations/" + f, "utf8")); }
     catch (e) { throw new Error(`${f}: ${(e as Error).message}`); }
   }
+  if (!opts.welcome) await pg.exec(`update settings set value = '{"enabled": false}' where key = 'welcome'`);
   if (opts.seeds !== false) {
     for (const f of ["load_catalog.sql", "load_aliases.sql", "villages.sql", "travel_times_estimate.sql"]) await runSeed(pg, f);
   }

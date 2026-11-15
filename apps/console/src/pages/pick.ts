@@ -13,6 +13,7 @@ import { pick, t, type Lang } from "../i18n";
 import { ALL, LEADS } from "../roles";
 import { pickChangeNotice, substitutionNotice, tell, type Offer, type PickChanges } from "../notices";
 import { badge, button, card, empty, timerChip, type Tone } from "@ak/ui/components";
+import { messages } from "@ak/agents/messages";
 
 type Board = { order_id: string; short_code: string; status: string; is_pickup: boolean; confirmed_at: string | null; promise_at: string | null; promise_min: number | null;
   window: { starts: string; ends: string; day_offset: number } | null; village_ar: string | null; village_en: string | null; items: number; chilled: number; has_note: boolean;
@@ -218,7 +219,12 @@ async function missing(c: Ctx) {
   return doit(c, "pick_line_missing", { order, item, found }, `/pick/${order}#l${local(c.form.n ?? "")}`, async () => {
     const { db } = c.deps;
     await db.rpc("pick_mark_line", { p_item: item, p_by: c.staff.partyId, p_picked: false });     // what was ticked before no longer holds
-    const r = await db.rpc<{ decision: string; total_usd: number | string; credit_usd?: number | string }>("pick_item_missing", { p_item: item, p_by: c.staff.partyId, p_found: found });
+    const r = await db.rpc<{ decision: string; total_usd: number | string; credit_usd?: number | string; substitute_name?: string }>("pick_item_missing", { p_item: item, p_by: c.staff.partyId, p_found: found });
+    // CX1: the customer chose "closest match" on the card; the database kept it for them, so nothing is asked.
+    if (r.decision === "substituted") {
+      const l = await db.rpc<{ short_code?: string } | null>("pick_list", { p_order: order }).catch(() => null);
+      return { msg: messages(L).ops.subKept(l?.short_code ?? "", r.substitute_name ?? "") };
+    }
     const credit = Number(r.credit_usd ?? 0) > 0 ? ` ${pick(L, `Credit owed to the customer: ${usd(r.credit_usd)}.`, `رصيد للزبون: ${usd(r.credit_usd)}.`)}` : "";
     if (r.decision === "pending") return { msg: pick(L, "Recorded as missing. Offer a substitute or take the line off.", "سُجّل كناقص. اعرض بديلاً أو أزل البند.") };
     return { msg: pick(L, `Taken off the order. The new total is ${usd(r.total_usd)}.`, `أُزيل من الطلب. المجموع الجديد ${usd(r.total_usd)}.`) + credit };

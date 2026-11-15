@@ -78,7 +78,7 @@ export function zoneForHour(hour: number, now = new Date()): string {
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return (h ?? 0) * 60 + (m ?? 0); };
 export async function openWorld(opts: { label: string; copy: Copy | null; oosSkus: string[]; log?: (s: string) => void }): Promise<World> {
   const log = opts.log ?? (() => {});
-  const db = await openTestDb({ seeds: !opts.copy });
+  const db = await openTestDb({ seeds: !opts.copy, welcome: true });
   const adjustments: string[] = [];
   if (opts.copy) adjustments.push(...(await loadCopy(db, opts.copy, log)));
   // Gaps the copy may have; each is said.

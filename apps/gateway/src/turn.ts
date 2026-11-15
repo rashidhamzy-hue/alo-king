@@ -31,6 +31,8 @@ import { personSignal } from "@ak/agents/person-request";
 import { CASE_KEEP, CASE_VOICE, MENU_BROWSE, MENU_ORDER, MENU_PERSON, RETRY_PREFIX, openCase, parseCallbackButton, remindCase, retryButtonId,
          supportMessage, tellOpened, type OpenedCase } from "@ak/agents/support";
 import { buttons as buttonMsg } from "@ak/wa/kapso";
+import { applyChoice, cancelAsk, cancelRefusedText, cancelWords, confirmedWithChoices, parseChoiceButton, pickupWords, sendWelcome, switchToPickup,
+         WELCOME_AREA, WELCOME_ORDER, type CancelTerms } from "@ak/agents/customer-pack";
 
 interface SavedPin { place_id: string; village_id: string | null; village: string | null; village_ar?: string | null; served?: boolean | null;
   status: "located" | "unsure" | "outside"; said_village_id?: string | null; said_village_ar?: string | null;
@@ -85,6 +87,8 @@ export interface OpenedTurn {
   bot_paused?: boolean;
   /** HO1 (0135): the conversation's open cases. */
   cases?: { case_id: string; kind: string; topic: string | null; state: string }[];
+  /** CX1 (0143): this is the customer's first message ever and the welcome is on (claim_welcome decides, and records it). */
+  welcome_due?: boolean;
   budget?: { allowed: boolean; used: number; limit: number } | null;
   customer_context?: unknown;
 }
@@ -187,6 +191,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (await remindCase(ctx, c.case_id)) return;
     if ((await sendRaw({ type: "text", text: { body: T().support.reminder } })).ok) ctx.sent.texts.push(T().support.reminder);
   };
+  /** CX1: Cancel (tapped, or said) once picking started or the order left: the exact refundable amount, and a case for a person. */
+  const cancelTooLate = async (t: CancelTerms): Promise<boolean> => {
+    const text = cancelRefusedText(t, state.lang);
+    if (!text) return false;
+    await openCase(ctx, "order_problem", `cancel_refused: ${t.short_code} (${t.reason}, refundable ${t.refundable_usd})`, { orderId: t.order_id, source: "code" });
+    await say(text, t.order_id);
+    return true;
+  };
   /** B1a (SIM1 fix 9): Cancel tapped on an order the database will not cancel now. A fixed line and a case for a person. */
   const cancelRefused = async (orderId: string) => {
     const b = await call<{ found: boolean; short_code?: string; status?: string }>(db, "basket_from_order", { p_party: conv.party_id, p_order: orderId });
@@ -225,6 +237,19 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     return false;
   };
 
+  // CX1: the first-ever welcome, before anything else is said. Asked of the database once per conversation; a first message that is
+  // STOP or START gets none (the consent line answers it).
+  let welcome: string | null = null;
+  if (!state.welcomed) {
+    const firstTexts = pending.map((p) => p.event.message.type === "text" ? p.event.message.text?.body ?? "" : "").filter(Boolean);
+    if (conv.welcome_due && !firstTexts.some((b) => detectConsentSignal(b))) {
+      learnLang(firstTexts);
+      welcome = await sendWelcome(ctx, turnIds);
+      if (welcome) sent.push(welcome);
+    }
+    state.welcomed = true;
+  }
+
   for (const p of pending) {
     const m = p.event.message;
 
@@ -250,7 +275,16 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
             continue;
           }
           if (r.status === "needs_location") { await sendRaw(askLocation(T().tap.needsLocation), btn.orderId); continue; }
-          await say(buttonReplyText(r, {}, state.lang), btn.orderId);
+          // CX1: Cancel once picking started (or the order left): nothing is cancelled; the exact refundable amount and a person.
+          if (r.status === "too_late" && await cancelTooLate({ ...(r as unknown as CancelTerms), order_id: btn.orderId })) continue;
+          const reply = buttonReplyText(r, {}, state.lang);
+          if (btn.action === "confirm" && r.changed && (r.status === "confirmed" || r.status === "awaiting_payment")) {
+            // CX1: the confirmation carries the card's two choices (a missing item, the note) and Cancel, as one list; a prepaid
+            // order's handover code is under the words. Still one message.
+            const msg = await confirmedWithChoices(ctx, reply, { orderId: btn.orderId, status: r.status, payment_method: r.payment_method,
+                                                               total_usd: r.total_usd, handover_code: (r as { handover_code?: string | null }).handover_code ?? null });
+            if ((await sendRaw(msg, btn.orderId)).ok) sent.push(reply);
+          } else await say(reply, btn.orderId);
           // W1 (C3's request 3): the window filled or closed before the tap. The order is a draft again; the open windows follow.
           if ((r.status === "slot_full" || r.status === "slot_closed") && r.windows?.length)
             await sendRaw(formatWindowChoice(btn.orderId, r.windows, { body: T().windows.choose, lang: state.lang }), btn.orderId);
@@ -273,6 +307,20 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         }
         continue;
       }
+      // CX1: a row of the choices under the confirmation (a missing item, the note, the change kept as credit). Code answers.
+      const choice = parseChoiceButton(tapped);
+      if (choice) {
+        buttonsHandled++;
+        try { await say(await applyChoice(ctx, choice), choice.orderId); }
+        catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          await tapFailed(tapped, "choice", err, choice.orderId);
+        }
+        continue;
+      }
+      // CX1: the welcome's buttons (Browse is the menu's own, below).
+      if (tapped === WELCOME_ORDER) { buttonsHandled++; await say(T().cx.orderAsk); continue; }
+      if (tapped === WELCOME_AREA) { buttonsHandled++; if ((await sendRaw(askLocation(T().cx.areaAsk))).ok) sent.push(T().cx.areaAsk); continue; }
       // A delivery window chosen from a list (W1, C3's request 2): for the card it was offered under, or for the basket in hand.
       const win = parseWindowButton(tapped);
       if (win) {
@@ -477,6 +525,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (audioFailed > 0) { await say(T().fixed.audioUnusable); return { outcome: "audio_unusable", sent }; }
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
+  // CX1: a first message that only says hello is answered by the welcome itself.
+  if (welcome && transcripts.length === 0 && pins === 0 && texts.length > 0
+      && texts.every((t) => { const q = quickIntent(t); return q === "greeting" || q === "small_talk"; })) return { outcome: "answered", sent };
   // HO1: a person claimed or answered this chat within settings.support.pause_min: the bot steps back until then. Buttons,
   // pins, STOP and payments were handled above. The 2-minute alarm (customer_unanswered) watches that the person answers.
   if (conv.bot_paused) return { outcome: "paused", sent };
@@ -535,6 +586,23 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (pins > 0 && !state.villageId && await askPinVillage(ctx)) { remember(); await record("ok", "ask_pin_village"); return { outcome: "answered", sent }; }
     }
 
+    // CX1: "cancel my order" said on its own, about a confirmed order: what a cancel gives back and a button that cancels; once
+    // picking started, the exact refundable amount and a person. A card still waiting for its tap keeps the usual path.
+    const one = texts.length === 1 && transcripts.length === 0 && pins === 0 ? texts[0]! : null;
+    if (one && cancelWords(one)) {
+      const s = await call<{ order_id?: string; status?: string } | null>(db, "order_status_for", { p_party: conv.party_id });
+      if (s?.order_id && s.status !== "awaiting_confirmation") {
+        const t = await call<CancelTerms>(db, "cancel_terms", { p_order: s.order_id });
+        if (t.cancellable) { if ((await sendRaw(cancelAsk(t, state.lang), t.order_id)).ok) ctx.sent.texts.push(T().cx.cancelAsk(t.short_code, Number(t.paid_usd))); }
+        else if (!(await cancelTooLate(t))) await say(buttonReplyText({ status: "too_late", short_code: t.short_code, changed: false }, {}, state.lang), t.order_id);
+        remember(); await record("ok", "cancel_words"); return { outcome: "answered", sent };
+      }
+    }
+    // CX1: "I'll pick it up": the basket in hand (or the card waiting for its tap) goes on as a pickup at the hub, no delivery fee.
+    if (one && pickupWords(one)) {
+      const r = await switchToPickup(ctx);
+      if (r.done) { remember(); await record("ok", r.path); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
+    }
     // A time said on its own («بكرا الصبح», "jumaa ba3d el dohr") while a card, a basket or a change is in hand (W1): code reads it
     // (evals/cases/delivery_time.json) and the database matches it to the open windows. No model call.
     const when = texts.length === 1 && transcripts.length === 0 && pins === 0 ? whenOnly(texts[0]!) : null;

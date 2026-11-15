@@ -160,9 +160,28 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
       } else if (b?.kind === "stop" && b.action === "arrived") {
         await rpc(db, "rider_arrived", { p_order: b.id, p_driver: driver });
       } else if (b?.kind === "stop" && b.action === "delivered") {
-        const r = await rpc<{ needs_cash: boolean; total_usd: number; fx_rate_lbp: number; short_code: string; delivery_done: boolean }>(db, "rider_delivered", { p_order: b.id, p_driver: driver });
+        let r: { needs_cash: boolean; total_usd: number; fx_rate_lbp: number; short_code: string; delivery_done: boolean };
+        try { r = await rpc(db, "rider_delivered", { p_order: b.id, p_driver: driver }); }
+        catch (err) {
+          // CX1 (0146): a prepaid order is handed over only with the customer's four-digit code. The rider types it next.
+          const code = /HANDOVER_CODE_REQUIRED (\S+)/.exec(String(err));
+          if (!code) throw err;
+          await say(O.askCode(code[1]!)); continue;
+        }
         if (r.needs_cash) await out(cashAsk({ order_id: b.id, short_code: r.short_code, total_usd: r.total_usd, fx_rate_lbp: r.fx_rate_lbp }));
         else if (!r.delivery_done) { const d = await rpc<string | null>(db, "driver_active_delivery", { p_driver: driver }); if (d) await showNext(d); }
+      } else if (/^\s*\d{4}\s*$/.test(text) && await rpc<string | null>(db, "rider_code_pending", { p_driver: driver })) {
+        // CX1: the customer's handover code, typed at the door. Right: handed over; wrong: the tries left; locked: ops is told.
+        const order = (await rpc<string | null>(db, "rider_code_pending", { p_driver: driver }))!;
+        const r = await rpc<{ ok: boolean; result: string; short_code?: string; tries_left?: number; delivery_done?: boolean }>(db, "rider_handover", { p_order: order, p_driver: driver, p_code: text });
+        if (r.result === "wrong") { await say(O.wrongCode(Number(r.tries_left ?? 0))); continue; }
+        if (r.result === "locked") {
+          await say(O.codeLocked(r.short_code ?? ""));
+          await alertOps(deps, O.codeLockedAlert(r.short_code ?? ""), `${turnKey}:alert:code`);
+          continue;
+        }
+        await say(O.codeOk(r.short_code ?? ""));
+        if (!r.delivery_done) { const d = await rpc<string | null>(db, "driver_active_delivery", { p_driver: driver }); if (d) await showNext(d); }
       } else if (b?.kind === "stop" && b.action === "exact") {
         const owed = (await rpc<{ order_id: string; total_usd: number }[]>(db, "rider_unpaid_orders", { p_driver: driver })).find((x) => x.order_id === b.id);
         if (!owed) { await say(T.noJob); continue; }
@@ -441,6 +460,8 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
       db, "pick_item_missing", { p_item: itemId, p_by: staff, p_found: found });
     const l = await rpc<PickList>(db, "pick_list", { p_order: r.order_id });
     const gone = l.missing.find((x) => x.item_id === r.missing_item);
+    // CX1: the customer chose "closest match" on the card: the database kept the closest substitute for them, so no question goes.
+    if (r.decision === "substituted") { await say(O.subKept(l.short_code, (r as { substitute_name?: string }).substitute_name ?? "")); await showPick(l); return; }
     if (r.decision === "pending" && r.candidates?.length) {
       // 2.2: the picker may offer one substitute from the list the database allows; the customer decides.
       await out(list(O.chooseSub(gone?.name ?? ""), O.chooseSubButton, [

@@ -25,7 +25,9 @@ async function deliver(orderId: string) {
   expect(d.status).toBe("offered");
   await db.rpc("rider_respond", { p_delivery: d.delivery_id, p_driver: rider, p_accept: true });
   await db.rpc("rider_picked_up", { p_delivery: d.delivery_id, p_driver: rider });
-  return db.rpc("rider_delivered", { p_order: orderId, p_driver: rider });
+  // CX1 (0146): a prepaid order is handed over with the customer's four-digit code, typed by the rider.
+  const code = (await db.one(`select handover_code from orders where id = $1`, [orderId])).handover_code as string | null;
+  return code ? db.rpc("rider_handover", { p_order: orderId, p_driver: rider, p_code: code }) : db.rpc("rider_delivered", { p_order: orderId, p_driver: rider });
 }
 
 beforeAll(async () => {

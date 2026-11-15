@@ -182,6 +182,7 @@ or 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -207,6 +208,7 @@ Arrives in about 30 minutes
 💵 Payment: cash on delivery
 We'll bring change for a note of:
 $20.00
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -230,6 +232,7 @@ or 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Tomorrow 10:00-12:00
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -253,6 +256,7 @@ or 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Wednesday 18/11, 10:00-12:00
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -274,6 +278,7 @@ or 561,000 LBP
 
 🏠 Pickup from the shop
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -302,6 +307,7 @@ Arrives in about 30 minutes
 💵 Payment: Whish transfer
 There is an amount owed from before, so this order is paid in advance (Whish transfer) before we prepare it.
 We'll send the details after you confirm.
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -329,6 +335,7 @@ A first order is paid in cash up to:
 $50.00
 This order is larger, so it is paid in advance (Whish transfer) before we prepare it.
 We'll send the details after you confirm.
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -352,6 +359,7 @@ or 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Tomorrow 10:00-12:00
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 This card replaces your order AK-1040.
 Nothing changes until you confirm it.
 
@@ -377,6 +385,7 @@ or 651,000 LBP
 📍 Baakline
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -484,6 +493,7 @@ or 651,000 LBP
 📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
+If an item is missing: we ask you
 
 By confirming, you agree that we send updates about your orders in this chat.
 ```
@@ -1373,6 +1383,276 @@ Someone from our team is checking it and will get back to you.
 ```text
 We couldn't open the picture.
 Could you send the receipt photo again?
+```
+
+## cx.welcome
+
+```text
+👑 Welcome to Alo King!
+We bring home groceries to your door in the Chouf. Tell me what you need, in writing or by voice note.
+🌙 We are open from 08:00 to 22:00.
+By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time.
+```
+
+## cx.welcome.noHours
+
+```text
+👑 Welcome to Alo King!
+We bring home groceries to your door in the Chouf. Tell me what you need, in writing or by voice note.
+By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time.
+```
+
+## cx.privacy
+
+```text
+By writing to us you agree that we keep your messages and orders only to serve them. Write STOP at any time.
+```
+
+## cx.orderButton
+
+```text
+Order
+```
+
+## cx.areaButton
+
+```text
+Do you deliver here?
+```
+
+## cx.orderAsk
+
+```text
+Go ahead: tell me what you need, or send a voice note.
+```
+
+## cx.areaAsk
+
+```text
+📍 Send your location with the button below, or type your village, and we'll tell you if we deliver there.
+```
+
+## cx.keepLine
+
+```text
+Your change stays with us as credit.
+```
+
+## cx.choicesButton
+
+```text
+Options
+```
+
+## cx.choicesMissing
+
+```text
+If an item is missing
+```
+
+## cx.choicesNote
+
+```text
+Paying cash
+```
+
+## cx.choicesOrder
+
+```text
+The order
+```
+
+## cx.exactRow
+
+```text
+I have the exact amount
+```
+
+## cx.keepRow
+
+```text
+Keep change as credit
+```
+
+## cx.cancelRow
+
+```text
+Cancel the order
+```
+
+## cx.exactSet
+
+```text
+✅ Done: you'll pay the exact amount.
+```
+
+## cx.needsNote
+
+```text
+First choose the note you'll pay with.
+```
+
+## cx.cancelYes
+
+```text
+Yes, cancel it
+```
+
+## cx.pickupOff
+
+```text
+Pickup isn't available yet, so we'll deliver to your home.
+```
+
+## cx.missingLine.best_match
+
+```text
+If an item is missing: we put the closest match
+```
+
+## cx.missingRow.best_match
+
+```text
+Closest match
+```
+
+## cx.missingSet.best_match
+
+```text
+✅ Done: if an item is missing, we put the closest match.
+```
+
+## cx.missingLine.ask
+
+```text
+If an item is missing: we ask you
+```
+
+## cx.missingRow.ask
+
+```text
+Ask me
+```
+
+## cx.missingSet.ask
+
+```text
+✅ Done: if an item is missing, we ask you before swapping.
+```
+
+## cx.missingLine.remove
+
+```text
+If an item is missing: we take it off
+```
+
+## cx.missingRow.remove
+
+```text
+Take it off
+```
+
+## cx.missingSet.remove
+
+```text
+✅ Done: if an item is missing, we take it off the order.
+```
+
+## cx.noteRow
+
+```text
+I'll pay with $20.00
+```
+
+## cx.noteSet
+
+```text
+✅ Done, we'll bring change for $20.00
+Your change: $12.73
+```
+
+## cx.keepSet
+
+```text
+✅ Done, no change will be given back.
+It becomes your credit once paid: $12.73
+```
+
+## cx.noteTooSmall
+
+```text
+That note is less than the total: $7.27
+```
+
+## cx.choiceTooLate
+
+```text
+We've started preparing order AK-1042, so this can't change any more.
+```
+
+## cx.cancelAsk
+
+```text
+Cancel order AK-1042? We haven't started preparing it.
+```
+
+## cx.cancelAsk.credit
+
+```text
+Cancel order AK-1042? We haven't started preparing it.
+What you paid comes back as credit: $7.27
+```
+
+## cx.cancelAfterPick
+
+```text
+We've started preparing order AK-1042, so it can't be cancelled from here.
+If we cancel it, your credit back: $5.27
+A person from our team will talk to you now.
+```
+
+## cx.cancelAfterPick.kept
+
+```text
+We've started preparing order AK-1042, so it can't be cancelled from here.
+If we cancel it, your credit back: $5.27
+Can't go back on the shelf: Tannourine water 2 L (pack of 6), Al Forno white bread, large 800 g,
+Najjar Classic coffee 180 g.
+A person from our team will talk to you now.
+```
+
+## cx.cancelAfterPickCash
+
+```text
+We've started preparing order AK-1042, so it can't be cancelled from here.
+You haven't paid anything. A person from our team will talk to you now.
+```
+
+## cx.cancelOnTheWay
+
+```text
+🛵 Order AK-1042 is on its way, so it can't be cancelled from here.
+A person from our team will talk to you now.
+```
+
+## cx.handoverCode
+
+```text
+🔢 Your handover code: 4821
+Give it to the rider only when you have your order.
+```
+
+## cx.pickupAt
+
+```text
+🏠 Pickup at the Alo King hub, Baakline, no delivery fee
+```
+
+## cx.pickupReady
+
+```text
+📦 Order AK-1042 is ready for pickup at the Alo King hub, Baakline.
+If it's prepaid, bring your handover code.
 ```
 
 ## support.opened
@@ -2518,6 +2798,66 @@ $7.27
 ```text
 ⚠️ A customer passed 30 assistant messages in an hour.
 They get a fixed menu until the hour turns.
+```
+
+## ops.askCode
+
+```text
+🔢 Order #AK-1042 is prepaid.
+Ask the customer for their handover code (4 digits) and type it here.
+```
+
+## ops.wrongCode
+
+```text
+Wrong code. 4 tries left.
+```
+
+## ops.codeLocked
+
+```text
+⚠️ Too many wrong codes for order #AK-1042. Do not hand it over; ops will call you.
+```
+
+## ops.codeLockedAlert
+
+```text
+⚠️ The handover code of order #AK-1042 is locked after wrong tries. Call the customer and the rider.
+```
+
+## ops.codeOk
+
+```text
+✅ Code correct: order #AK-1042 handed over.
+```
+
+## ops.keepChange
+
+```text
+💵 No change: the customer keeps it as credit. The note: $20.00
+```
+
+## ops.drop.keepChange
+
+```text
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
+💵 حصّل:
+$7.27
+أو 651,000 ل.ل
+💵 ما في فراطة: الزبون بيترك الباقي رصيد. الورقة: $20.00
+```
+
+## ops.drop.code
+
+```text
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
+مدفوع مسبقاً. ما تاخد مصاري.
+🔢 الطلب #AK-1042 مدفوع سلف.
+اطلب من الزبون رمز الاستلام (4 أرقام) واكتبو هون.
 ```
 
 # Utility templates (templates/templates.json)

@@ -45,7 +45,8 @@ describe("the card shows what is owed and asks for prepayment (1.4)", () => {
 
     // The tap: awaiting payment, and the transfer amount includes the dues.
     await t.tap(orderButtonId("confirm", order.id));
-    expect(outbound.at(-1)!.body.text.body).toContain("$9.74");
+    // CX1: the confirmation is one list (the card's choices under the words); the words are its body.
+    expect(outbound.at(-1)!.body.interactive.body.text).toContain("$9.74");
     expect((await db.one(`select status from orders where id = $1`, [order.id])).status).toBe("awaiting_payment");
     await expectLedgerBalanced(db);
   });

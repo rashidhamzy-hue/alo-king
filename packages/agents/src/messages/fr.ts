@@ -153,7 +153,41 @@ export const fr: Messages = {
 
   payment: {
     proofReceived: (code) => `✅ Nous avons reçu la photo du paiement pour la commande ${code}, merci.\nUne personne de notre équipe la vérifie et revient vers vous.`,
+
     proofResend: "Nous n'avons pas pu ouvrir l'image.\nPouvez-vous renvoyer la photo du reçu ?",
+  },
+  cx: {
+    welcome: (open, close) => [`👑 Bienvenue chez Alo King !`, `Nous livrons vos courses à domicile dans le Chouf. Dites-moi ce qu'il vous faut, par écrit ou par message vocal.`,
+      ...(open && close ? [`🌙 Ouvert de ${open} à ${close}.`] : []), fr.cx.privacy].join("\n"),
+    privacy: "En nous écrivant, vous acceptez que nous gardions vos messages et commandes pour les traiter. STOP à tout moment.",
+    orderButton: "Commander", areaButton: "Vous livrez ici ?",
+    orderAsk: "Allez-y : dites-moi ce qu'il vous faut, ou envoyez un message vocal.",
+    areaAsk: "📍 Envoyez votre position avec le bouton ci-dessous, ou écrivez votre village, et nous vous dirons si nous y livrons.",
+    missingLine: (p) => `Si un article manque : ${{ best_match: "nous mettons le plus proche", ask: "nous vous demandons", remove: "nous le retirons" }[p]}`,
+    keepLine: "Votre monnaie reste chez nous en crédit.",
+    choicesButton: "Options", choicesMissing: "Si un article manque", choicesNote: "Paiement en espèces", choicesOrder: "La commande",
+    missingRow: { best_match: "Le plus proche", ask: "Demandez-moi", remove: "Retirez-le" },
+    exactRow: "J'ai le montant exact", noteRow: (n) => `Je paie avec ${usd(n)}`, keepRow: "Monnaie en crédit", cancelRow: "Annuler la commande",
+    missingSet: (p) => `✅ C'est noté : si un article manque, ${{ best_match: "nous mettons le plus proche", ask: "nous vous demandons avant de le remplacer", remove: "nous le retirons de la commande" }[p]}.`,
+    exactSet: "✅ C'est noté : vous payez le montant exact.",
+    noteSet: (note, change) => `✅ C'est noté, nous apportons la monnaie sur ${usd(note)}\nVotre monnaie : ${usd(change)}`,
+    keepSet: (change) => `✅ C'est noté, aucune monnaie ne sera rendue.\nElle devient votre crédit une fois payé : ${usd(change)}`,
+    needsNote: "Choisissez d'abord le billet avec lequel vous payez.",
+    noteTooSmall: (total) => `Ce billet est inférieur au total : ${usd(total)}`,
+    choiceTooLate: (code) => `La préparation de la commande ${code} a commencé : ce choix ne peut plus changer.`,
+    cancelAsk: (code, credit) => credit > 0
+      ? `Annuler la commande ${code} ? Sa préparation n'a pas commencé.\nCe que vous avez payé revient en crédit : ${usd(credit)}`
+      : `Annuler la commande ${code} ? Sa préparation n'a pas commencé.`,
+    cancelYes: "Oui, annulez",
+    cancelAfterPick: (code, refundable, kept) => [`La préparation de la commande ${code} a commencé : elle ne peut pas être annulée d'ici.`,
+      `Si nous l'annulons, votre crédit : ${usd(refundable)}`, ...(kept.length ? [wrapNames("Ne retournent pas en rayon :", kept, ", ")] : []),
+      "Une personne de l'équipe vous parle tout de suite."].join("\n"),
+    cancelAfterPickCash: (code) => `La préparation de la commande ${code} a commencé : elle ne peut pas être annulée d'ici.\nVous n'avez rien payé. Une personne de l'équipe vous parle tout de suite.`,
+    cancelOnTheWay: (code) => `🛵 La commande ${code} est en route : elle ne peut pas être annulée d'ici.\nUne personne de l'équipe vous parle tout de suite.`,
+    handoverCode: (code) => `🔢 Votre code de remise : ${code}\nDonnez-le au livreur seulement quand vous avez votre commande.`,
+    pickupAt: (place) => `🏠 Retrait à ${place}, sans frais de livraison`,
+    pickupOff: "Le retrait n'est pas encore possible : nous livrons chez vous.",
+    pickupReady: (code, place) => `📦 La commande ${code} est prête à retirer à ${place}.\nSi elle est payée d'avance, apportez votre code de remise.`,
   },
 
   notice: {
@@ -338,5 +372,11 @@ export const fr: Messages = {
     proofAlert: (method, code, total, reused) => `💵 Photo de paiement ${method} pour la commande #${code}. À confirmer par une personne.\nDû :\n${usd(total)}`
       + (reused ? "\n⚠️ La même image a déjà été envoyée pour une autre commande." : ""),
     turnCap: (limit) => `⚠️ Un client a dépassé ${limit} messages à l'assistant en une heure.\nIl reçoit un menu fixe jusqu'à l'heure suivante.`,
+    askCode: (code) => `🔢 La commande #${code} est payée d'avance.\nDemandez au client son code de remise (4 chiffres) et tapez-le ici.`,
+    wrongCode: (left) => `Code faux. Il reste ${left} essais.`,
+    codeLocked: (code) => `⚠️ Trop de codes faux pour la commande #${code}. Ne la remettez pas ; les opérations vous appellent.`,
+    codeLockedAlert: (code) => `⚠️ Le code de remise de la commande #${code} est bloqué après des essais faux. Appelez le client et le livreur.`,
+    codeOk: (code) => `✅ Code correct : commande #${code} remise.`,
+    keepChange: (note) => `💵 Pas de monnaie : le client la garde en crédit. Le billet : ${usd(note)}`,
   },
 };

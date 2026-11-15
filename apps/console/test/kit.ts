@@ -244,7 +244,10 @@ export async function deliver(db: TestDb, orderId: string, rider: string) {
   const d = await db.rpc("dispatch_order", { p_order: orderId });
   await db.rpc("rider_respond", { p_delivery: d.delivery_id, p_driver: rider, p_accept: true });
   await db.rpc("rider_picked_up", { p_delivery: d.delivery_id, p_driver: rider });
-  return { delivery: d.delivery_id as string, result: await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider }) };
+  // CX1 (0146): a prepaid order is handed over with the customer's four-digit code, typed by the rider.
+  const code = (await db.one(`select handover_code from orders where id = $1`, [orderId])).handover_code as string | null;
+  return { delivery: d.delivery_id as string, result: code ? await db.rpc("rider_handover", { p_order: orderId, p_driver: rider, p_code: code })
+                                                            : await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider }) };
 }
 /** Cash reaches the hub drawer as in life: the rider drops what they hold at the hub and the ops lead confirms it. */
 export async function dropAtHub(db: TestDb, rider: string, by: string) {
