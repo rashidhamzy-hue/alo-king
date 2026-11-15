@@ -1,0 +1,23 @@
+---
+import type { CatalogCard } from "@ak/commerce/index";
+import { nameIn, t, unitLabel, usd, type Lang } from "../lib/i18n";
+import { pictureUrl } from "../lib/db";
+interface Props { item: CatalogCard; lang: Lang; env: App.Locals["env"] }
+const { item, lang, env } = Astro.props;
+const name = nameIn(lang, item.name_en, item.name_ar);
+const unit = unitLabel(lang, item.sell_unit);
+const pic = item.picture;
+---
+<li class="card">
+  <a class="cover" href={`/p/${encodeURIComponent(item.sku)}`}>
+    {pic
+      ? <img class="pic" src={pictureUrl(env, pic.path, 400)} alt={name} loading="lazy" decoding="async" width={pic.width_px ?? 400} height={pic.height_px ?? 400} />
+      : <div class="ph" role="img" aria-label={t(lang, "no_picture")}></div>}
+    <span class="body">
+      <span class="name">{name}</span>
+      {(item.brand || unit) && <span class="muted small">{[item.brand, unit].filter(Boolean).join(" · ")}</span>}
+      <span class="price"><bdi>{usd(item.price_usd)}</bdi></span>
+      <span class={item.in_stock ? "badge" : "badge out"}>{item.in_stock ? t(lang, "in_stock") : t(lang, "out_of_stock")}</span>
+    </span>
+  </a>
+</li>
