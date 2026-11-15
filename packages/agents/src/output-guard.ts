@@ -12,7 +12,7 @@
 //     a list, a status, is a fixed message that code builds (packages/agents/src/messages/).
 
 export type GuardCode = "money_in_free_text" | "quality_judgement" | "unapproved_food_claim" | "allergy_reassurance" | "sensitive_inference" | "too_long"
-  | "minimum_by_code" | "catalogue_claim";
+  | "minimum_by_code" | "catalogue_claim" | "change_claim";
 export interface Violation { code: GuardCode; match: string }
 
 /** Arabic-Indic and Persian digits to ASCII, Arabic decimal and thousands marks to "." and ",", tatweel removed, lower case. */
@@ -114,6 +114,8 @@ export interface CheckOptions {
   skipQuality?: boolean;
   /** B1a: search_catalog ran this turn, so "the only one we have" / "no other" has a tool result behind it. */
   catalogueSearched?: boolean;
+  /** B1a: quote_order or a card changed the basket this turn, so "I changed it" has a tool result behind it. */
+  basketChanged?: boolean;
 }
 
 // B1a (SIM1 fix 1): the minimum order, the basket and the gap are said by code with their amounts (basket.ts); the model never words
@@ -123,6 +125,11 @@ const MINIMUM = /الحد الأدنى|الحد الادنى|حد أدنى|حد 
 // (show_catalog); "the only one" and "no other" need a search this turn.
 const CATALOGUE_STATE = /(?:catalog(?:ue)?|كتالوج|كاتالوج|الكتالوج|الكاتالوج|katalog)[^.!?؟\n]{0,20}(?:not ready|isn't ready|is not ready|not available|unavailable|n'est pas prêt|pas disponible|مش جاهز|مش جاهزة|مش متوفر|مش متاح|غير متوفر|ma7adar|mesh jehez|msh jehez)/u;
 const ONLY_ONE = /\bthe only (?:one|kind|flavou?r|brand|size|type)\b|\bthe only [\p{L} ]{1,30}? (?:we have|we've got|we carry|available|in stock|left)\b|\bonly (?:one|kind) (?:we have|available)\b|\bno other\b|\bnothing else (?:like|in)\b|\bwe (?:don't|do not) have (?:any )?(?:other|another)\b|c'est (?:la|le) seule?\b|\bseule? (?:disponible|qu'on a)\b|\baucune? autre\b|\bpas d'autres?\b|الوحيد|الوحيدة|ما عنا غير|ما عندنا غير|ما في غير|ما في غيرها|ما في غيرو|ما في غيره|ما عنا غيرها|ما عنا غيرو|ma 3anna ghayr|ma 3anna gher|ma fi ghayra|ma fi gherha|ma fi ghero|el wa7id|el wa7ide/u;
+
+// B1a (the second run on main: sim-079, sim-146, sim-110, sim-052): the model said it had changed the order («عدّلنا», "I've
+// updated", «ثواني وبحدّث الطلب») when no tool had touched it, and the card stayed as it was. A change is said only after
+// quote_order changed the basket this turn; a code message (basket.changed) says what changed on the card itself.
+const CHANGE_CLAIM = /عدّلنا|عدلنا|عدّلت|عدلت|عم (?:م?ن|ب)عدّل|عم (?:م?ن|ب)عدل|غيّرنا|غيرنا|غيّرت|غيرت|بدّلنا|بدلنا|بدّلت|بدلت|حدّثنا|حدثنا|حدّثت|حدثت|بحدّث|بحدث|منحدّث|صحّحنا|صححنا|صحّحت|صححت|ضفنا|ضفت|زدنا|زدت|شلنا|شلت|نقّصنا|نقصنا|نقّصت|نقصت|\bI(?:'ve| have)? (?:updated|changed|adjusted|corrected|modified|added|removed|replaced)\b|\bwe(?:'ve| have)? (?:updated|changed|adjusted|corrected|modified|added|removed|replaced)\b|\b(?:I'm|I am|we're|we are) (?:updating|changing|adjusting|correcting)\b|\b(?:order|basket) (?:is|has been) (?:updated|changed|adjusted|corrected)\b|\bj'ai (?:modifié|ajouté|retiré|changé|corrigé|mis à jour|remplacé)(?!\p{L})|\bnous avons (?:modifié|ajouté|retiré|changé|corrigé)(?!\p{L})|\bon a (?:modifié|ajouté|retiré|changé|corrigé)(?!\p{L})|\b3addalt?\b|\b3addalna\b|\bghayyart?\b|\bghayyarna\b|\bzedt\b|\bzedna\b|\bshelt\b|\bshelna\b/iu;
 
 /** M1: at most two sentences, each short. A line break ends a sentence too (a list is not two sentences). */
 export const MAX_SENTENCES = 2;
@@ -151,6 +158,8 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   if (state) return { code: "catalogue_claim", match: state[0] };
   const only = opts.catalogueSearched ? null : ONLY_ONE.exec(t);
   if (only) return { code: "catalogue_claim", match: only[0] };
+  const claim = opts.basketChanged ? null : CHANGE_CLAIM.exec(t);
+  if (claim) return { code: "change_claim", match: claim[0] };
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
   // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
   // judgement (K1: B4's live run refused it). A comma or a contrast word starts a new clause, so "I can't rank them, X is the best" fails.
@@ -182,6 +191,7 @@ export const GUARD_HINT: Record<GuardCode, string> = {
   sensitive_inference: "Never mention or infer a religion, health condition or diet from a name, a place or past orders. Ask only what the customer wants to exclude.",
   too_long: "Your own words are at most two short sentences. Say one thing: ask the one question that matters, or offer the choices as buttons (at most three). Lists, cards and totals are sent by the system.",
   minimum_by_code: "Do not mention the minimum order: the system already tells the customer the minimum, their basket and what is missing, with buttons. Answer the rest of their message, or ask what they want to add.",
+  change_claim: "Never say the order or basket was changed unless quote_order changed it this turn. To change it, call quote_order with the new lines (and remove), then send_confirmation for the new card; or ask what to change.",
   catalogue_claim: "Say only what a tool returned about the catalogue. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",
   money_in_free_text: "Prices, fees and totals are never written in free text. Leave amounts out: pass the product ids in `price_of` and the system adds prices from the database, or call quote_order and send_confirmation so the card shows the total.",
 };

@@ -77,6 +77,17 @@ interface PlannedBasket { lines: PlannedLine[]; quote_lines: QuoteLineInput[] }
 /** The default edit of a line the reading did not mark: "add" for intent add_to_order, else "set" (a restated item keeps its count). */
 export const defaultOp = (intent: OrderIntent["intent"]): BasketOp => (intent === "add_to_order" ? "add" : intent === "cancel" ? "remove" : "set");
 
+const ORDINALS: [RegExp, number][] = [
+  [/تالت|تالتة|ثالث|ثالثة|\btal(?:e)?t(?:e|a)?\b|\bthird\b|\btroisième\b/iu, 3],
+  [/رابع|رابعة|\brab(?:e)?3(?:a|e)?\b|\bfourth\b|\bquatrième\b/iu, 4],
+  [/خامس|خامسة|\bkhames(?:e|a)?\b|\bfifth\b|\bcinquième\b/iu, 5],
+];
+/** "A third one", «رابعة», "talte": the count it makes in all (3 to 5), or null. */
+export function ordinalIn(said: string): number | null {
+  for (const [re, n] of ORDINALS) if (re.test(said)) return n;
+  return null;
+}
+
 /**
  * The edits a reading makes to the basket in hand, from the planner's lines. A line to remove or to re-count names a product in the
  * basket (the planner's choice, or the one basket product among its candidates); a line that adds names the product the planner
@@ -100,9 +111,12 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
     if (pl.status === "same_as_before") continue;                      // the same product said twice in one message
     const said = intent.lines[pl.idx] as (OrderIntent["lines"][number] & { change?: BasketOp | null }) | undefined;
     const explicit = said?.change ?? null;
-    const op: BasketOp = explicit ?? defaultOp(intent.intent);
     const priced = pl.chosen ? plan.quote_lines.find((q) => q.product_id === pl.chosen!.product_id) : undefined;
     const qty = Number(priced?.qty ?? pl.qty);
+    // «زيدلي ربطة خبز تالتة»: "a third one" makes three in all, it does not add three (the second B1a run, sim-051: 5 pita). Only from
+    // three on: «تانية» is also "another", one more whatever the count.
+    const ordinal = ordinalIn(`${said?.raw ?? ""}`);
+    const op: BasketOp = ordinal != null && ordinal === qty && (explicit ?? defaultOp(intent.intent)) === "add" ? "set" : explicit ?? defaultOp(intent.intent);
     // "Add 2 more", "make it 3", "take the bread off": the line names something already in the basket. The planner's choice when it
     // is there; else the one basket product among its candidates; else the one basket product whose name shares the customer's words.
     if (explicit) {
@@ -207,7 +221,7 @@ export function holdBasket(ctx: ToolContext, basket: Basket, terms: CardTerms, q
 /** The customer let the basket go ("cancel" with no order yet, or the button): nothing is sent, nothing is kept. */
 export async function clearBasket(ctx: ToolContext): Promise<boolean> {
   ctx.state.lastQuote = null; ctx.state.pending = null; ctx.state.awaiting = null; ctx.state.slotId = null; ctx.state.orderRestrictions = null;
-  ctx.state.basketAt = null;
+  ctx.state.basketAt = null; ctx.state.editing = null;
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
   const T = messages(ctx.state.lang);
   return (await deliver(ctx, { type: "text", text: { body: T.basket.cleared } }, T.basket.cleared)).ok;

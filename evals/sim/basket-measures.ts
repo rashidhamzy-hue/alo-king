@@ -3,7 +3,7 @@
 //  - minimum-order loop: the minimum was mentioned in two or more turns, at least once without an amount ($). Code's minimum line
 //    always carries the minimum, the basket and the gap, so a loop of it alone is never counted; SIM1's model never could.
 //  - lost basket: «you have no open order» said after the first turn (the status shortcut answering mid-order, SIM1 fix 3).
-//  - wrong product: the judge's wrong_or_uninvited_product.
+//  - wrong product: the judge's wrong_or_uninvited_product (its rubric made explicit after run 43730014902: see basketSection).
 // SIM1's first run, first 150 scenarios (sim-001 to sim-150, all judged): loops 66, lost baskets 11, wrong products 40;
 // all 463 judged first attempts: 227, 40, 143.
 import type { ConversationResult } from "./run";
@@ -46,5 +46,8 @@ export function basketSection(judged: ConversationResult[]): string[] {
     `Definitions in \`evals/sim/basket-measures.ts\`. Baseline: SIM1's first run, ${base === SIM1_BASELINE.first150 ? "the same first 150 scenarios" : "all judged first attempts"}.`, "",
     "| measure | this run | SIM1 | change in rate |", "| --- | --- | --- | --- |",
     row("minimum-order loop", "minimumLoop"), row("lost basket («no open order» mid-order)", "lostBasket"), row("wrong or uninvited product (judge)", "wrongProduct"),
-    `| minimum said without its amount (any turn) | ${count("minimumWithoutAmount")} | | |`, ""];
+    `| minimum said without its amount (any turn) | ${count("minimumWithoutAmount")} | | |`, "",
+    "The judge's rubric for a wrong product was made explicit after the second B1a run (43730014902): what the customer added themselves, " +
+    "to reach the minimum or on second thought, is what they asked for. That run's 54 flags, read one by one: 17 were the customer's own " +
+    "additions, 3 had no wrong product, 34 were the shop's. SIM1's 40 were judged on the old wording and were not read one by one.", ""];
 }

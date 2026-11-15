@@ -7,7 +7,7 @@ import type { OrderIntent } from "./schemas";
 import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName } from "./messages";
-import { cardInHand, cardWhen, pickWindow, readWhen, schedules, windowsFor, type When } from "./windows";
+import { cardInHand, cardWhen, pickWindow, readWhen, resendCard, schedules, windowsFor, type When } from "./windows";
 import type { QuickIntent } from "./quick-intent";
 import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
@@ -615,7 +615,7 @@ interface Held {
 export async function heldBasket(ctx: ToolContext): Promise<Held | null> {
   const q = ctx.state.lastQuote;
   if (q && q.lines.length) return { lines: q.lines, quote: q.quote, villageId: q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup,
-                                    terms: ctx.state.pending ?? null, draft: null };
+                                    terms: ctx.state.pending ?? null, draft: ctx.state.editing ?? null };
   const card = await cardInHand(ctx).catch(() => null);
   if (!card) return null;
   // A retried turn (G1-21) finds the card its own first attempt made: that card is this turn's answer, not a basket to edit.
@@ -637,17 +637,20 @@ export async function heldBasket(ctx: ToolContext): Promise<Held | null> {
  * never "you have no open order". An order in progress is answered as before.
  */
 export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
-  if (heldLines(ctx)) {
-    const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
-    if (!s || s.status === "delivered") {
-      const r = await resumeBasket(ctx, soFar(ctx));
-      if (r.done) return r;
-    }
+  const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
+  if (heldLines(ctx) && (!s || s.status === "delivered")) {
+    const r = await resumeBasket(ctx, soFar(ctx));
+    if (r.done) return r;
+  }
+  // B1a (the second run on main, sim-079 and sim-146: «I don't see the card, send it again»): a card waiting for the tap is sent
+  // again, the card itself being the answer.
+  if (s?.status === "awaiting_confirmation") {
+    const card = await cardInHand(ctx).catch(() => null);
+    if (card && (await resendCard(ctx, card.order_id).catch(() => false))) return { done: true, path: "card_again" };
   }
   // B1a: no order and no basket, and a request with a person is open: "when will they answer?" read as "where is my order" is
   // about that request (the B1a run on main: 5 of its 6 «no open order» replies). The reminder, at most as often as HO1 allows.
   if (ctx.openCaseIds?.length) {
-    const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
     if (!s) {
       if (await remindCase(ctx, ctx.openCaseIds[0]!)) return { done: true, path: "case_reminder" };
       const r = T(ctx).support.reminder;
@@ -655,6 +658,27 @@ export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
     }
   }
   return answerStatus(ctx);
+}
+
+/**
+ * "Edit" on a card waiting for the tap (B1a): the card is a draft again, and its lines are the basket in hand, so what the customer
+ * says next changes it and the next card replaces it. Nothing is sent here: the tap's own answer asks what to change.
+ */
+export async function holdDraft(ctx: ToolContext, orderId: string): Promise<void> {
+  const b = await rpc<{ found: boolean; short_code?: string; lines?: QuoteLineInput[]; quote?: Quote | null; village_id?: string | null; place_id?: string | null;
+                        pickup?: boolean; payment_method?: "cod" | "whish" | "omt"; change_for_usd?: number | null; notes?: string | null; slot_id?: string | null }>(
+    ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: orderId });
+  if (!b.found || !b.lines?.length || !b.quote) return;
+  const pickup = !!b.pickup;
+  ctx.state.lastQuote = { lines: b.lines, villageId: pickup ? null : b.village_id ?? null, pickup, quote: b.quote };
+  ctx.state.basketAt = Date.now();
+  if (b.village_id) ctx.state.villageId = b.village_id;
+  if (b.place_id) ctx.state.placeId = b.place_id;
+  ctx.state.pending = { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null };
+  ctx.state.awaiting = null;
+  if (b.slot_id) ctx.state.slotId = b.slot_id;
+  const code = b.short_code ?? (await ctx.db.from("orders").select("short_code").eq("id", orderId).single()).data?.short_code;
+  ctx.state.editing = { orderId, shortCode: String(code ?? "") };
 }
 
 /** The basket so far, as one fixed message: "2 × name" per line, in the conversation's language. */
