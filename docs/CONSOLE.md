@@ -10,7 +10,8 @@ modules, 67 tests. The redesign changes how pages look and are grouped, and adds
 - Replies to customers and staff go through the gateway's `send()` (invariants 1, 9, 20).
 - Roles: admin (founder, Rashid), ops lead, picker. Later: vendor (their own orders and statement only), rider (statement only).
 
-## The shell (session D5)
+## The shell (session D5, built 15 November 2026)
+Built: `apps/console/src/style.ts` (tokens, bottom bar below 900 px, sidebar above), `nav.ts` (five places and their badges), `i18n.ts` (Arabic and English), `pwa.ts` (manifest, icons, service worker, page script, offline page), `push.ts` and migration 0158 (push), `pages/hubs.ts` (Approve, Stock, More, the install guide, the alerts switch), `pages/today.ts`, `pages/orders.ts` and migration 0159.
 - One stylesheet with design tokens; bottom navigation on phones (Today, Orders, Approve, Stock, More), a sidebar on wide screens.
 - Arabic and English, right to left handled by logical CSS; large tap targets; forms that work with one thumb.
 - Installable: manifest, icons, a service worker that caches the shell only (never data). On iPhone a one-screen guide to "Add
@@ -26,9 +27,9 @@ Status: **built** (exists and tested), **new**, **extend**. Class as in the syst
 ### Run the day
 | Page | Status | What it shows or does | SQL | Session |
 | --- | --- | --- | --- | --- |
-| Today (home) | extend | The exception inbox first: what needs a person now, oldest first, each with its one action. Then orders late or at risk, riders with cash against the cap, the drawer. A quiet day shows a short green summary | `ops_exceptions`, `riders_on_shift`, `day_open_checklist`, `deliveries_at_risk` (new view) | D5 |
+| Today (home) | **built (D5)** | The exception inbox first: what needs a person now, oldest first, each with its one action. Then orders late or at risk, riders with cash against the cap, the drawer. A quiet day shows a short green summary | `ops_exceptions` (kinds and their one action in `kinds.ts`), the existing late and rider reads, `hub_cash_view`. Late means past the zone ETA; "at risk" means no rider yet. No `deliveries_at_risk` view was built: nothing in it needs more than those reads | D5 |
 | Day open, Day close | built | As today | `day_open_checklist`, `day_close_report`, `close_day` | - |
-| Orders | new | Search by code, phone or name; one order page with its timeline, lines and changes, messages, payments, refunds, "wrong product" and "bot at fault" buttons that file an eval case | `order_timeline` (L1), existing tables | D5 |
+| Orders | **built (D5)** | Search by code, phone or name; one order page with its timeline, lines and changes, messages, payments, refunds, "wrong product" and "bot at fault" buttons that file an eval case | `search_orders`, `file_order_eval_case` (0159); the timeline is read from `order_events`, `payments`, `refunds` and `wa_messages` in the page (L1's `order_timeline` does not exist yet and was not waited for) | D5 |
 | Chats and handoffs | built (extend) | Open handoffs, reply through the gateway, release to the Concierge; a box to correct a voice transcript | `release_handoff` | D5 |
 | Pick queue | new | Orders waiting, start, missing, substitute, done (the ops-line flow, on a screen); scan to pick later | `pick_queue`, `start_pick`, `pick_item_missing`, `finish_pick` | D4b |
 | Riders and cash | built (extend) | Drops, statements, payouts; rider incidents (`mark_rider_off`, `call_off_stranded`, `receive_rider_cash`); over/short per rider | existing, plus F1's view | D4b |
@@ -38,7 +39,7 @@ Status: **built** (exists and tested), **new**, **extend**. Class as in the syst
 | Page | Status | What it shows or does | SQL | Session |
 | --- | --- | --- | --- | --- |
 | **Product readiness** | new | One row per product: name, picture, facts, cost, search words, placement, each a tick or what is missing; filters "blocks the catalog", "blocks ordering"; links to the page that fixes it | `product_readiness()` (new) | D4 |
-| **Names review** | new | The 282 proposed Arabic and English names and sizes beside the current ones; approve, correct or reject each; keyboard and swipe; progress counter | `product_name_proposals`, `review_product_name()` (new) | D4 |
+| **Names review** | new | The 282 proposed Arabic and English names and sizes beside the current ones; approve, correct or reject each; keys a, c, r and the arrows; "Approve all shown" for the screenful (at most 20), one at a time, logged, with undo for the batch; progress counter. Swipe was not built: a swipe that approves is too easy to do by accident on a phone; the buttons are 44 px | `product_name_proposals`, `review_product_name()` (new) | D4 |
 | Pictures | built (extend) | Add the vision check's reasons and the source page; bulk approve a screenful only for brand or Open Food Facts sources | `review_product_image` | D4 |
 | Food facts and label intake | built (extend) | Show the **basis** of every proposal in words ("inferred from the ingredient list, not printed on the pack"; "from a web page for the Gulf market"); the label photo beside it; a disagreement between label and web source is flagged and the label wins (audit points 1, 4) | `food_fact_review_queue`, `review_proposed_fact` | D4 |
 | Search words | built | As today | 0076, 0080 | - |
@@ -74,6 +75,11 @@ Vendors (onboarding workflow, menu review, statements, performance), vendor and 
 - Push: a subscription belongs to one staff party; a removed staff member's subscription is deleted; an alert is sent once per exception.
 - Names review: approving a name updates the product, queues its search words, and is undone by rejecting within the page.
 - Readiness: a product with no approved picture is "blocks the catalog", not "blocks ordering".
+
+## What D5 left for a live account
+- The VAPID secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; `node apps/console/scripts/vapid-keys.mjs` makes them) are not set on any Worker: until they are, the More page says alerts are not set up and the cron does nothing. The console workflow does not set them.
+- Nothing has been pushed to a real phone: the encryption is checked against RFC 8291's own example and an independent receiver, the rest against fakes. First real push: install on an iPhone, switch alerts on, raise a `pick_empty` exception on staging.
+- The Arabic strings in `i18n.ts`, `kinds.ts` and the pages are model-written and need a reader of Arabic. The 24 pages built before D5 are English inside an Arabic shell (marked `lang="en" dir="ltr"`).
 
 ## Cost
 None beyond the existing console Worker. Push uses the browsers' own push services (free).
