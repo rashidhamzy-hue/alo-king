@@ -48,7 +48,7 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ### Where the build stands (14 November 2026, after H1)
 - **On `main`:** Phase 0 (A1), ordering B1 to B4, hub C1 to C4, console D1 to D4, infra A2, A4, A5 and A6, pictures P1 and P2, product data N1, catalog K1, audit S1, reply speed SP1, G1 fixes F1, research R1 to R4, delivery windows W1, intake I1 and the commerce core C4 (pull requests 1 to 57). Per-session records: `docs/history/HANDOFF_sessions_2026-11-13_14.md`.
-- **Open pull requests at the time of writing:** M1 (message design, #54: built and tested; not merged because the gate the founder set, two runs in a row with live 41/41, is not met; see "Session M1" below, "Blocked") and an A5 follow-up (#51). Nothing else waits to merge.
+- **Open pull requests at the time of writing:** M1 (message design, #54: built and tested; merges on the coordinator's condition of 15 Nov, see "Session M1" below) and an A5 follow-up (#51). Nothing else waits to merge.
 - **Wave order** is in `docs/BUILD_PLAN.md` ("Waves"): waves 1 and 2 are done, H1 is this hygiene pass, wave 3 is M1, I1 (merged) and C4 (merged).
 - **Tests:** `npx tsc --noEmit` clean; `npx vitest run` 1,202 passed and 43 live-only skipped on 14 November (local, before H1's last edits; CI runs the suite on every pull request). `TEST_REPORT.txt` is gone: CI is the record.
 - **Everything live is staging only.** Nothing has run with real customers, real money or the two +961 numbers.
@@ -66,7 +66,7 @@ Done: the repository is public (founder's choice, until the build is done), so p
 H1 read the database through the read-only workflow `data-coverage` before deleting anything. Result on staging: 291 research files loaded; **nothing approved yet**: 0 approved pictures (20 proposed, 18 of them from public pages), 0 approved web-page facts (258 fact proposals waiting), 0 approved Open Food Facts facts (212 proposals), the 282 name proposals still await the founder. So no file backs an approved record, and **none was deleted**: every `data/research/AK-nnnn.json` still backs a pending proposal or an unapplied reading, and the research loader and the intake pipeline reuse them. In `data/proposals`, `names.json` backs the pending name proposals and is read by a console test, `categories.json` is read by `test/db/catalog-k1.test.ts`, and `product-facts-summary.json` is a report that the `product-data` workflow rewrites. Delete a research file only after its picture or facts are approved on the console; rerun a coverage read first (the workflow was removed after use; its script is in git history at `scripts/ci/data-coverage.mjs`).
 
 ### Session M1 (message design), 14 November 2026: SYSTEM_PLAN 14, G1-23, the lira answer, W1's request; migrations 0120-0121, 0133
-Opus 5.5, ordering lane, branch `claude/amazing-brahmagupta-jd523b`, PR rashidhamzy-hue/alo-king#54 (**open, not merged: the gate below is not met; blocked, see "Blocked" under the gate table**). Migration 0133 (the mixed word) is M1's too. Main's I1 and C4
+Opus 5.5, ordering lane, branch `claude/amazing-brahmagupta-jd523b`, PR rashidhamzy-hue/alo-king#54 (merge condition set by the coordinator on 15 Nov, see "Coordinator decision" under the gate table). Migration 0133 (the mixed word) is M1's too. Main's I1 and C4
 were merged into the branch (no conflict; no later migration redefines a 0120/0121 function). Locally on the merged code: `npx tsc --noEmit` clean;
 `npx vitest run` 1243 passed, 43 skipped (live-only), 0 failed. CI green on every push.
 
@@ -134,6 +134,16 @@ either. **What would unblock it (the founder's call, not taken here):** (1) a la
 (3) a gate of "41/41, or every miss is a refused first draft with a right reply sent". Everything else in M1 is done and tested;
 `evals/language/request.json` is back to main's content.
 
+**Coordinator decision (15 Nov), which replaces the merge condition above:** (1) the live quality-word check is judged on the reply
+sent, as length is; the guard itself stays strict (a refused draft is correct behaviour): `wordingPasses` (`evals/run.ts`) now
+passes a first draft refused for `too_long` or `quality_judgement` when every other rule passes on that draft (`skipLength`,
+`skipQuality`, live evals only) and a reply went out; tested in `evals/test/wording-passes.test.ts` with the recorded attempts of
+runs 43641359322 and 43657020370. (2) The no-reply turns are a bug on main, open for SP2 (lane B list below); they do not block M1.
+(3) Merge on one gate run on the final code with 0 wrong products, F1 at least 0.90, the demo right and every live miss a no-reply
+turn. Re-judging 43657020370 under (1): `best-restaurant` passes; `gluten-free-declared` and `sesame-allergy` are no-reply turns; the
+"stay on the job" miss («بدي أغراض لمجدرة» judged off-topic) is neither, so that run does not qualify and a gate run on the final code
+follows (below).
+
 **For the ordering lane (found here, not fixed: `concierge.ts` is outside M1's files):** in 2 of the last 4 live runs one ask call
 stopped at `max_tokens` (1024, `request()` in `concierge.ts`) with no text and no tool call, so the turn handed off with nothing sent
 (`sponsored-fails-restriction` in 43642090610, `gluten-free-declared` in 43649220096). The same can happen on a real turn. The live
@@ -186,6 +196,7 @@ Collected by H1 from every finished session record (`docs/history/HANDOFF_sessio
 
 #### Lane B ordering / agents
 
+- **SP2 (open; found by M1, a bug on main; coordinator, 15 Nov): the ask loop can end a turn with no reply**, which hands the customer to a person with nothing sent. Two causes in `packages/agents/src/concierge.ts`: a step stops at `max_tokens` (1024, `request()`) with no text and no tool call; or the model calls `extract_order`, `runAskLoop` answers «the reading for this turn is already recorded; it is in `reading`» (while `reading` can be null), and the model ends the turn, sometimes writing «I'll reply once I've checked the catalog» outside a tool. Seen in 5 live cases over 4 language-pack runs (43642090610, 43644483826, 43649220096, 43657020370; `evals/live` `steps` trace). Likely fix: answer `extract_order` in the ask loop with "answer now through reply", and retry once (or raise the cap) when a step stops at `max_tokens` with no tool call. Recorded case: `sesame-allergy-no-reply` in `evals/cases/live_wording_attempts.json`. (session M1)
 - Pound total on the order card and receipt should be a setting, not hard-coded either way, pending lawyer item 4; not built. (session R4)
 - Known limit: the deterministic card path does not check restrictions against food facts; a stated restriction only travels on order notes. Case `sponsored-fails-restriction` needs 1.11 and 8.12. (session B2)
 - Known limit: the output guard has one known false positive («أحسن تبعتلنا الموقع» read as a quality word), and food-fact unlock is per attribute group, not per product. (session B2)

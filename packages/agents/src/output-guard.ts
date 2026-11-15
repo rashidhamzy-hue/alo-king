@@ -108,6 +108,9 @@ export interface CheckOptions {
   approvedFacts?: ReadonlySet<string>;
   /** Leave out the length rule (M1): for the live evals only, which judge length on the reply sent and every other rule on the first draft. */
   skipLength?: boolean;
+  /** Leave out the quality-word rule (coordinator, 15 Nov): for the live evals only, which judge it on the reply sent as well.
+   *  The guard itself never skips it: a refused draft is the guard doing its job. */
+  skipQuality?: boolean;
 }
 
 /** M1: at most two sentences, each short. A line break ends a sentence too (a list is not two sentences). */
@@ -134,7 +137,7 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
   // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
   // judgement (K1: B4's live run refused it). A comma or a contrast word starts a new clause, so "I can't rank them, X is the best" fails.
-  for (const c of clauses(t)) {
+  for (const c of opts.skipQuality ? [] : clauses(t)) {
     if (DECLINE.test(c)) continue;
     for (const re of QUALITY) { const m = re.exec(c); if (m) return { code: "quality_judgement", match: m[0].trim() }; }
   }

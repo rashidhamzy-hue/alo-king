@@ -1,5 +1,5 @@
 {
- "about": "Recorded live wording attempts (language-pack runs 43632030063 and 43634267959, evals/live) for wordingPasses (evals/run.ts): the two-sentence rule is judged on the reply that went out; every other rule still on the first draft.",
+ "about": "Recorded live wording attempts (language-pack runs 43632030063 and 43634267959, evals/live) for wordingPasses (evals/run.ts): the two-sentence rule is judged on the reply that went out; every other rule still on the first draft; 43641359322 and 43657020370 added for the coordinator's decision (15 Nov): the quality-word check is judged on the reply sent too.",
  "cases": [
   {
    "id": "halal-certified",
@@ -73,6 +73,51 @@
    ],
    "sent": "شو بدك تطلب؟ بعرضلك المنتجات المتوفرة.",
    "handoff": false
+  },
+  {
+   "id": "best-restaurant-declined-in-the-word",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "ما بقدر إحكي بشي أحسن من غيره، بس بقدر رتّبلك الخيارات حسب السعر أو وقت التوصيل أو الحجم. شو بتفضّل؟",
+     "refused": "quality_judgement"
+    },
+    {
+     "tool": "reply",
+     "text": "رتّبلك الخيارات حسب السعر، أو وقت التوصيل، أو حجم الحصة. شو بتختار؟",
+     "refused": null
+    }
+   ],
+   "sent": "رتّبلك الخيارات حسب السعر، أو وقت التوصيل، أو حجم الحصة. شو بتختار؟",
+   "handoff": false
+  },
+  {
+   "id": "siyami-too-long-and-diet-word",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب من الأكل الصيامي؟ إذا بدك تشوف الخيارات المتوفرة، قلّي وبعتلك الكتالوج.",
+     "refused": "too_long"
+    },
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب من الأكل الصيامي؟",
+     "refused": "unapproved_food_claim"
+    },
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب؟",
+     "refused": null
+    }
+   ],
+   "sent": "أكيد! شو بدك تطلب؟",
+   "handoff": false
+  },
+  {
+   "id": "sesame-allergy-no-reply",
+   "attempts": [],
+   "sent": null,
+   "handoff": true
   }
  ]
 }

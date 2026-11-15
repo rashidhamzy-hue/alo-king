@@ -38,14 +38,18 @@ export interface WordingResult { id: string; attempts: { tool: string; text: str
  * not on the first draft. A first draft refused only for its length passes when every other rule holds on that draft and the
  * reply that went out passed the guard; any other refusal of the first draft still fails, as before.
  */
+/** The rules judged on the reply that went out rather than on the first draft: length (founder, 14 Nov) and the quality word
+ *  (coordinator, 15 Nov). The guard refuses both in every draft; a refused draft followed by a clean reply is the guard working.
+ *  Every other rule is still judged on the first draft. */
+const JUDGED_ON_SENT = new Set(["too_long", "quality_judgement"]);
 export function wordingPasses(r: WordingResult, c: Pick<WordingCase, "approved">): { ok: boolean; why: string | null } {
   const first = r.attempts[0];
   if (!first) return { ok: false, why: "no attempt" };
   if (first.refused === null) return { ok: true, why: null };
-  if (first.refused !== "too_long") return { ok: false, why: `first draft refused: ${first.refused}` };
-  const other = checkModelText(first.text, { approvedFacts: new Set(c.approved ?? []), skipLength: true });
+  if (!JUDGED_ON_SENT.has(first.refused)) return { ok: false, why: `first draft refused: ${first.refused}` };
+  const other = checkModelText(first.text, { approvedFacts: new Set(c.approved ?? []), skipLength: true, skipQuality: true });
   if (other) return { ok: false, why: `first draft refused: ${other.code}` };
-  if (r.sent === null) return { ok: false, why: "too_long, and no reply went out" };
+  if (r.sent === null) return { ok: false, why: `${first.refused}, and no reply went out` };
   return { ok: true, why: null };
 }
 
