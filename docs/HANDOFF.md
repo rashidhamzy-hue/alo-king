@@ -75,6 +75,22 @@ A5 itself (K1's lane A request, G1-15, 17, 18, 24, audit points 8 and 11; migrat
 - **Usage** (`usage-check`, run 43624875274, both jobs green). Supabase, free plan: database **35.1 MB of 500 MB (7.0%)**, storage **1.3 MB of 1 GB (0.1%)**; **egress left off** (see the open requests). Cloudflare, Workers Paid limits (10,000,000 requests and 400,000 GB-s of Durable Object duration a month), whole account, month to date: **17,055 requests (0.17%, projected 0.4%)** and **18,154 GB-s (4.54%, projected 9.9%)**. The deploy token **can read analytics**, so no new permission was needed; if it is ever cut the job says "LEFT OFF" and names "Account > Account Analytics > Read" instead of failing. The account also runs two other Workers (`cupsy-coffee-dream` 11,604 requests, `kabsi-go` 2,115): the check counts the whole account because the plan bills it. Figures are Cloudflare's analytics, not its invoice.
 - **Not live yet:** Meta steps A to C and approved pictures, so no picture has been copied; the first real status webhook for `outbox_mark_from_status`; the first real inbound picture or voice note (where Kapso redirects media).
 
+### BK0: free backups and a repeated restore, 15 November 2026 (Sonnet 5.5)
+**Built.** `.github/workflows/backup.yml` (01:30 UTC nightly and by hand; 14:00 UTC freshness check; environment is a parameter) and `.github/workflows/restore-check.yml`
+(Mondays 03:30 UTC and by hand), with `scripts/backup/` (`dump.mjs`, `store.mjs`, `restore.mjs`, `restore-run.sh`, `alert.sh`, `pgclient.sh`, `lib.mjs`). The dump
+is `public` plus the migration record from one exported snapshot, so the manifest (row counts, migrations, ledger total) matches the dump exactly; it is encrypted
+with gpg symmetric AES-256 (`BACKUP_PASSPHRASE`) and stored in R2 `ak-backups/staging/` (14 nightly, 8 weekly, a read-back checksum before anything is pruned), or in the private Supabase
+`media/backups/` when the Cloudflare token cannot use R2. Never an artifact, never printed; the run stops with a clear message if the secret is missing or under 24 characters.
+The restore check decrypts the newest copy, restores it into a `postgres:<major>` container on the runner and checks migrations, every table's row count, and the ledger (zero, per transaction, equal to the manifest).
+A copy older than 36 hours raises ops exception `backup_stale`; a failed check raises `restore_check_failed`; each also sends a Sentry error event, and a green check resolves it. Production: same files, `BACKUP_ENVIRONMENTS`, `*_PRODUCTION` secrets (header of `backup.yml`).
+**Tested.** `test/pg/backup-bk0.test.ts` runs the real scripts against a real Postgres (dump, encryption, directory store, restore into an empty database, every check, three failure cases, the alert) and `test/ci/backup-bk0-workflows.test.ts` reads the workflows for the rules. `npm run typecheck` and `npm test` green.
+**Only a live account can prove:** the pooler dump from Supabase, the R2 call with the real token, the Supabase fallback, and the restore into a container. GitHub does not allow a workflow to be dispatched from a branch until it is on `main`, so the first runs are after the merge.
+**Run links:** filled in below after the first runs on `main`.
+
+### Founder actions (backups)
+- **Set the secret `BACKUP_PASSPHRASE`** (Settings, Secrets and variables, Actions, New repository secret): 24+ characters from a password manager's generator; keep it in two places. It exists only with you; without it the backup stops with a message and nothing is dumped.
+- **If the first backup run's summary says "Fallback store used":** the Cloudflare token cannot use R2. Cloudflare dashboard, My Profile, API Tokens, open the token that is the repository secret `CLOUDFLARE_API_TOKEN`, add the permission **Account, Workers R2 Storage, Edit**, save (the token value does not change). If the message says R2 is not switched on, Cloudflare dashboard, R2 Object Storage, activate it (the free allowance is 10 GB; it may ask for a payment method but is not charged below it). Then run `backup` again; copies move to R2 on their own and the older ones in the Supabase bucket are no longer used.
+
 ### SIM1: simulated customers, 15 November 2026 (Opus 5.5)
 Evals lane, branch `claude/gallant-feynman-yhrzow`. No migration; no product file changed. Files: `evals/sim/**`, `.github/workflows/sim-test.yml`,
 `docs/SIM_REPORT_2026-11-15.md`, `evals/cases/sim_*.json`, this section and the SIM1 row of `docs/BUILD_PLAN.md`.

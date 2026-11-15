@@ -118,6 +118,60 @@ pilot. None is known to have leaked: they exist only in the Worker and in Kapso,
 5. A normal deploy, with the box not ticked, leaves existing secrets alone: it only makes one that is missing.
 Production will rotate the same way from its own workflow (4.2); there is no production Worker yet.
 
+## Backups and Restore (session BK0, 15 November 2026)
+**What is copied.** Every night at 01:30 UTC the `backup` workflow dumps the `public` schema and the migration record of the staging database (through the session
+pooler, from one snapshot), encrypts it with gpg (symmetric AES-256) and stores it in the private Cloudflare R2 bucket `ak-backups`, folder `staging/`. If the Cloudflare
+token has no R2 rights the copy goes to the private Supabase bucket `media`, folder `backups/`, and the run's summary says so (`docs/HANDOFF.md`, Founder actions).
+14 nightly copies and 8 weekly copies (the first copy of each ISO week) are kept; older ones are deleted after the new one has been read back and its checksum matched.
+Each copy holds the dump and a manifest: row counts per table, the number of migrations recorded, the ledger total. **Not in it:** the files in Supabase Storage (voice
+notes, receipts: personal data, left where they are) and Supabase's own `auth` schema (unused: staff and customers are rows in `parties`). Free plans only: R2's free
+allowance is far above a few megabytes a night; no paid plan is needed.
+
+**Who can read a copy.** Only whoever holds the passphrase. It is the repository secret `BACKUP_PASSPHRASE` (for staging) and exists **only with the founder**, in
+their password manager. It is never written to a file, a log or a chat, and nobody else, and no model, is given it. Lose it and every copy is unreadable: keep two
+copies of it (password manager and a sealed paper copy). Change it only by setting the secret again and making a new copy; old copies still need the old one.
+Production will use its own, `BACKUP_PASSPHRASE_PRODUCTION`.
+
+**Checks that run by themselves.**
+- `backup` at 14:00 UTC every day checks the newest copy is younger than 36 hours. If not (or there is none, or the store cannot be read) it raises the ops
+  exception `backup_stale` and sends a Sentry event, and the run is red. A copy that is fresh again resolves the exception.
+- `restore-check`, Mondays 03:30 UTC, restores the newest copy into a throwaway Postgres container of the same major version and checks: migrations recorded equals
+  the manifest, every table's row count equals the manifest, the ledger sums to zero, every ledger transaction balances. A failure raises `restore_check_failed`
+  and sends a Sentry event. Both workflows can be run by hand (Actions, Run workflow); the environment is a choice, staging by default.
+
+**Restore (the steps a person follows).** A restore always goes into a **new, empty** database, never over the live one.
+1. Decide what you are restoring into: a new Supabase project (production: its own; staging: a scratch project) or a local Postgres of the same major version as the copy
+   (the index says which; the workflow summary prints it). Never restore over a live project: make a new one and compare first.
+2. Get the copy. R2: Cloudflare dashboard, R2, `ak-backups`, folder `staging/`, download the newest `.tar.gpg` (its name is its UTC time; `index.json` lists them all).
+   Fallback store: Supabase dashboard, Storage, `media`, folder `backups/staging/`. Do not use a link anyone else can open; download it to your own computer only.
+3. Fetch the passphrase from the founder's password manager. In a terminal, from a repository checkout (`npm ci` once), put it in the environment without typing it into the
+   command line history:
+   ```bash
+   read -rs BACKUP_PASSPHRASE && export BACKUP_PASSPHRASE
+   ```
+4. Decrypt and unpack, into an empty folder:
+   ```bash
+   node scripts/backup/restore.mjs decrypt --in 20261116T013000Z.tar.gpg --out ./restore-work
+   ```
+   `restore-work/dump` is a `pg_dump` custom-format archive and `restore-work/manifest.json` says what it must contain.
+5. Create the empty database and load it. `pg_restore` must be the same major version as the manifest's `pg_major` or newer. In a new Supabase project use its connection
+   string (Settings, Database; the database password is the project's):
+   ```bash
+   export RESTORE_DATABASE_URL=postgres://postgres:PASSWORD@localhost:5432/restore_check    # a local, empty database
+   node scripts/backup/restore.mjs prepare --manifest restore-work/manifest.json
+   pg_restore --list restore-work/dump | grep -Ev '^[0-9]+; [0-9]+ [0-9]+ SCHEMA - public ' > restore-work/restore.list
+   pg_restore --exit-on-error --no-owner --no-privileges --disable-triggers --use-list restore-work/restore.list --dbname "$RESTORE_DATABASE_URL" restore-work/dump
+   node scripts/backup/restore.mjs verify --manifest restore-work/manifest.json
+   ```
+   `scripts/backup/restore-run.sh BUNDLE WORKDIR` does steps 4 and 5 in one go. `restore.mjs prepare` and `verify` refuse any database that is not on localhost, so a restore into a
+   new Supabase project is: restore into a local Postgres first and run `verify`; then load the same `dump` into the new project with `pg_restore` (same flags, its connection
+   string, skip `prepare`). The dump carries the schema, so the migrations are not run again. Then run `scripts/check_permissions.sh` against the new project and read what it says.
+6. Check before anyone uses it: `verify` says "every check passed", and compare the ledger total with the last staging evidence. Then point the Worker's secrets
+   (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`) at the new project (the deploy workflow does it from the repository secrets) and re-create the `media` bucket (`scripts/ci/ensure-media-bucket.sh`);
+   the files in it are not in the copy.
+7. Delete `restore-work` and your downloaded copy when done. Write down how long it took.
+If the passphrase is wrong, `gpg` says "decryption failed: Bad session key" and nothing is written. There is no way round it: that is the point of it.
+
 ## What must never be done to fix an incident
 Turn on marketing. Send from the ops number to a customer. Edit a ledger row. Mark an order paid without the payment.
 Give a rider's cash figure from memory. Each has a database rule that will refuse it; do not work around the rule.
@@ -186,6 +240,7 @@ Runs are on the repository's Actions page. "Not yet" means written and tested lo
 | Roll back the Worker | **Yes**, 13 Nov 2026: rolled back one version, the Worker still answered, then redeployed | `staging-drill` run 43394402493 |
 | Rotate one secret (webhook signing secrets) | **Yes**: new secrets in the Worker and in Kapso, a signed test event accepted on both lines | `staging-drill` run 43394402493 |
 | Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8. Since A4 (14 Nov) the deploy proves Sentry with a check-in to the monitors `deploy-smoke-staging` and `deploy-ingest-check-staging`, not an error, so it no longer opens issues | `deploy-staging` run 43396822066 |
+| Nightly encrypted backup and weekly restore check (BK0) | See `docs/HANDOFF.md` "Session BK0" for the run links | `backup` and `restore-check` |
 | Recovery drill: restore from point-in-time recovery | Not yet. Needs production and a paid Supabase plan (4.8) | |
 
 **What the drill taught.** `wrangler rollback` goes to the previous *version*, and a secret change is a version. If the version you roll back to predates a secret, the Worker loses it. After any rollback run `npx wrangler secret list --env <env>` and compare with the list at the top of this file;
