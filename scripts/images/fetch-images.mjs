@@ -19,6 +19,7 @@ import { brandCandidates, openCandidates } from "./lib/search.mjs";
 import { loadSharp, measure, shrink, MIN_WIDTH } from "./lib/image.mjs";
 import { checkPicture, decide } from "./lib/vision.mjs";
 import { makeStore } from "./lib/store.mjs";
+import { runMetered } from "../lib/model-cost.mjs";
 
 export const MAX_CANDIDATES = 5;
 export class Fatal extends Error {}
@@ -139,7 +140,7 @@ function args(argv) {
   return a;
 }
 
-async function main() {
+async function main(meter) {
   const a = args(process.argv.slice(2));
   const need = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "ANTHROPIC_API_KEY", "MODEL_FAST"];
   const missing = need.filter((k) => !process.env[k]);
@@ -172,7 +173,7 @@ async function main() {
   console.log(`run ${runId}: ${items.length} items (${skipped} skipped: already looked at to the end); sources: Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
-    if (fatal) return { sku: item.sku, outcome: "not_run" };
+    if (fatal || meter.capReached) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
     try {
       const r = await processItem(item, d);
       console.log(`${item.sku} ${r.outcome}${r.source_kind ? ` (${r.source_kind})` : ""}${r.error ? ` ${r.error}` : ""}`);
@@ -192,7 +193,7 @@ async function main() {
       `- **catalog now: ${coverage.items} items; usable proposed ${coverage.proposed_usable} (Open Food Facts ${coverage.open_food_facts}, brand site ${coverage.brand_site}); approved ${coverage.approved}; licence-unknown only ${coverage.unknown_licence_only}; photograph at intake ${coverage.photograph_at_intake}**`, ""].join("\n"));
   }
   const errors = s.outcomes.error ?? 0;
-  if (fatal || (items.length >= 10 && errors > items.length / 2)) process.exit(1);
+  if (fatal || (items.length >= 10 && errors > items.length / 2)) process.exitCode = 1;   // not process.exit: the cost is recorded first (COST1)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(e.message); process.exit(1); });
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) runMetered({ workflow: "images", capDefault: 2, step: "picture check" }, main);

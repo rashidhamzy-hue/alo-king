@@ -27,6 +27,10 @@ on:
         description: Look up again items that already have an answer (never touches approved facts)
         type: boolean
         default: false
+      max_usd:
+        description: Dollar cap for the whole run's model calls (facts, names and categories together). The run stops making model calls when it passes it. Names and categories on the whole catalog may need more.
+        type: string
+        default: "3"
 permissions: { contents: write }
 defaults:
   run: { shell: bash }
@@ -46,6 +50,9 @@ jobs:
       STEPS: ${{ inputs.steps }}
       LIMIT: ${{ inputs.limit }}
       FORCE: ${{ inputs.force }}
+      # COST1: every model call is counted in model_costs (migration 0139) and the run stops at this cap; an input that is not a positive number falls back to 3.
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '3' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

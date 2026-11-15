@@ -42,7 +42,7 @@ export function metered(raw: ModelClient, opts: { role: Role; budget: Budget; me
     }
     const usage = usageOf(res);
     const usd = opts.budget.price(body.model, usage);
-    opts.budget.add(opts.role, usd);
+    opts.budget.add(opts.role, usd, body.model, usage);
     opts.meter.calls.push({ role: opts.role, model: body.model, usd, usage, ms: Date.now() - started, error: null });
     if (opts.role === "concierge") {
       const context = JSON.stringify(body.messages);

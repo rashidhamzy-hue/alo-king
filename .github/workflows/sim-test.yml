@@ -4,7 +4,10 @@
 # the secrets product-data.yml uses). No parties, chats, orders or media are read. Kapso is never called: every send is recorded.
 # The real turn code drives each conversation; the Concierge is MODEL_FAST from wrangler.jsonc; the customer and the judge are
 # MODEL_SMART (Sonnet 5.5). Budget: no new conversation above USD 27, every model call refused at USD 33 (evals/sim/budget.ts);
-# with the budget_usd input, no new conversation from 85% of it and every call refused at it.
+# with the budget_usd input, no new conversation from 85% of it and every call refused at it. budget_usd is the one dollar limit.
+# Cost (COST1): the run's tokens and dollars by model and role are written to model_costs (migration 0139) by the last step, from
+# out/sim/model-cost.json (its cap is the hard limit above); that step only writes the cost table, and the simulation itself
+# still only reads staging. The key and its own usage limit are unchanged.
 # Key: secrets.ANTHROPIC_API_KEY_SIM only. The job stops at once if it is missing; it never falls back to another key, and the
 # key is never printed (it is passed to the one step that needs it, as an environment variable).
 # Output: the artifact sim-results (report.md, cases/sim_<class>.json, results.jsonl, summary.json), the head of the report in
@@ -50,6 +53,7 @@ jobs:
     timeout-minutes: 350
     env:
       SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: The simulation key is set
         env:
@@ -104,3 +108,10 @@ jobs:
         if: always()
         run: |
           if [ -d out/sim ]; then tar czf - -C out sim | base64 -w 4000 | sed 's/^/SIMBUNDLE /'; fi
+      - name: Record the cost in model_costs (writes the cost table only)
+        if: always()
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ -f out/sim/model-cost.json ]; then node scripts/lib/model-cost.mjs out/sim/model-cost.json
+          else echo "- no model-cost.json: the run stopped before it spent anything, or before it could write it" >> "$GITHUB_STEP_SUMMARY"; fi

@@ -4,6 +4,7 @@
 // shelf and the message, must name the same products or the message is dropped. The generator never sees the language pack.
 // Writes evals/language/cases.json.
 import Anthropic from "@anthropic-ai/sdk";
+import { startMeter, autoFinish } from "../../scripts/lib/model-cost.mjs";
 import { writeFileSync } from "node:fs";
 import { loadCatalog, byCategory, pool, chunks, line, root } from "./catalog.mjs";
 
@@ -12,6 +13,8 @@ const CHECK_MODEL = process.env.CHECK_MODEL ?? "claude-sonnet-5-5";
 const MULTI = Number(process.env.MULTI ?? 120);
 const args = process.argv.slice(2);
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : Infinity;
+// COST1: counted in model_costs and stopped at the run's dollar cap (MODEL_COST_CAP_USD); the meter wraps fetch, so it comes first.
+autoFinish(await startMeter({ workflow: "language-pack", capDefault: 5, step: "cases" }));
 const client = new Anthropic({ maxRetries: 6 });
 const usage = { input: 0, output: 0, cache_read: 0 };
 
