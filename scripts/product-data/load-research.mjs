@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pool } from "./lib/http.mjs";
 import { readResearch, pictureCandidates, buildWebFacts } from "./lib/research.mjs";
+import { runMetered } from "../lib/model-cost.mjs";
 
 const PICTURE_DONE = new Set(["none_passed", "no_candidates", "skipped_rejected"]);   // loaded to the end, with nothing standing
 
@@ -121,7 +122,7 @@ function args(argv) {
   return a;
 }
 
-async function main() {
+async function main(meter) {
   const a = args(process.argv.slice(2));
   const need = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", ...(a.parts.includes("picture") ? ["ANTHROPIC_API_KEY", "MODEL_FAST"] : [])];
   const missing = need.filter((k) => !process.env[k]);
@@ -147,7 +148,7 @@ async function main() {
   console.log(`run ${runId}: ${names.length} research files in ${a.dir}; ${state.size} active catalog items; parts: ${a.parts.join(", ")}${a.force ? " (force)" : ""}`);
   let fatal = null;
   const results = await pool(names, a.concurrency, async (name) => {
-    if (fatal) return { file: name, invalid: "not_run" };
+    if (fatal || meter.capReached) return { file: name, invalid: "not_run" };   // at the cost cap no new file is started (COST1)
     try {
       const r = await loadFile(name, readFileSync(join(a.dir, name), "utf8"), state, d, { parts: a.parts, force: a.force });
       console.log(r.invalid ? `${r.sku ?? r.file} not loadable: ${r.invalid}` : `${r.sku} picture ${r.picture.outcome}; facts ${r.facts.outcome}${r.facts.proposed?.length ? ` (${r.facts.proposed.join(",")})` : ""}`);
@@ -162,7 +163,7 @@ async function main() {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, reportLines(runId, s, coverage).join("\n"));
   const ran = results.filter((r) => !r.invalid);
   const errors = ran.filter((r) => r.picture.outcome === "error" || r.facts.outcome === "error").length;
-  if (fatal || coverage.approved_from_web_page !== 0 || (ran.length >= 10 && errors > ran.length / 2)) process.exit(1);
+  if (fatal || coverage.approved_from_web_page !== 0 || (ran.length >= 10 && errors > ran.length / 2)) process.exitCode = 1;   // not process.exit: the cost is recorded first (COST1)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(e.message); process.exit(1); });
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) runMetered({ workflow: "research-load", capDefault: 2, step: "picture" }, main);
