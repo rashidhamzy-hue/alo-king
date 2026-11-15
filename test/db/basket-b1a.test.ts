@@ -3,7 +3,7 @@
 // scripted model. The minimum is the seeded 5 USD; Lipton 0.69, Pepsi 2.25 L 1.65, bread 1.01, labneh 900 g 5.00.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ar, en } from "@ak/agents/messages";
-import { BASKET_CLEAR, applyEdits, editsFromPlan, moreToReach, minimumGap } from "@ak/agents/basket";
+import { BASKET_CLEAR, applyEdits, editsFromPlan, minimumGap } from "@ak/agents/basket";
 import { checkModelText } from "@ak/agents/output-guard";
 import { orderButtonId, windowButtonId } from "@ak/agents/order-card";
 import { MENU_BROWSE } from "@ak/agents/support";
@@ -37,7 +37,7 @@ const tapId = (t: ReturnType<typeof flow>, id: string) => t.tap(id);
 const NO_OPEN = [ar.answer.noOpenOrder, en.answer.noOpenOrder];
 
 describe("fix 1: the minimum is said by code, with the minimum, the basket and the gap (sim-208, sim-024, sim-009)", () => {
-  it("one Lipton: the minimum line with the amounts and three one-tap ways, and no model wording it", async () => {
+  it("one Lipton: the minimum line with the amounts, Browse and Cancel, and no model wording it", async () => {
     const t = flow(db, [read(order([LIPTON])), read({ intent: "question", lines: [] })]);
     await pinned(db, t, ids.BAAKLINE);
     await t.text("مرحبا، بدي ليبتون ايس تي ريد فروتس زيرو شوغر ٣٢٠مل، وحدة");
@@ -48,28 +48,14 @@ describe("fix 1: the minimum is said by code, with the minimum, the basket and t
     expect(bodyOf(msg)).toContain("الحد الأدنى للطلب: $5.00");
     expect(bodyOf(msg)).toContain("طلبك هلّق: $0.69");
     expect(bodyOf(msg)).toContain("ناقصك: $4.31");
-    const b = buttonsOf(msg);
-    expect(b.map((x) => x.id)).toEqual([`basket:more:${P.lipton}:7`, MENU_BROWSE, BASKET_CLEAR]);   // 7 more Lipton make 5.52
-    expect(b[0]!.title.startsWith("+7 ")).toBe(true); expect(b[0]!.title.length).toBeLessThanOrEqual(20);
+    // No button raises a quantity for the customer: the B1a run on main counted "+7 Lipton" as a product the customer never chose.
+    expect(buttonsOf(msg).map((x) => x.id)).toEqual([MENU_BROWSE, BASKET_CLEAR]);
 
     // "What is the minimum exactly?": the same numbers, by code, again with no ask loop (SIM1: asked up to five times, never told).
     await t.text("شو الحد الأدنى بالضبط؟");
     expect(t.seen).toHaveLength(2);
     expect(outbound).toHaveLength(2);
     expect(bodyOf(outbound[1]!)).toContain("ناقصك: $4.31");
-  });
-
-  it("the +7 button reaches the minimum: the card, with the whole basket and what changed", async () => {
-    const t = flow(db, [read(order([LIPTON]))]);
-    const c = await pinned(db, t, ids.BAAKLINE);
-    await t.text("بدي ليبتون");
-    await tapId(t, `basket:more:${P.lipton}:7`);
-    const card = outbound.find(isCard)!;
-    expect(card).toBeTruthy();
-    expect(bodyOf(card)).toContain("8 × ");
-    expect(outbound.map(bodyOf).join("\n")).toContain("1 → 8");
-    const o = await db.one(`select subtotal_usd, status from orders where customer_id = $1`, [c.party_id]);
-    expect(Number(o.subtotal_usd)).toBeCloseTo(5.52); expect(o.status).toBe("awaiting_confirmation");
   });
 
   it("an item said next is added to the basket under the minimum, never a new basket", async () => {
@@ -211,11 +197,43 @@ describe("fix 4: the basket changes only by what the customer picked (sim-215, s
     expect(applyEdits(L, editsFromPlan({ ...said, intent: "add_to_order" }, plan, L).edits).lines[0]!.qty).toBe(4);
   });
 
-  it("the one-tap way to the minimum takes the fewest units", () => {
-    const q = { lines: [{ product_id: "x", name: "X", name_ar: null, qty: 1, unit: "each", line_total_usd: 0.69, unit_price_usd: 0.69, ok: true },
-                        { product_id: "y", name: "Y", name_ar: null, qty: 1, unit: "each", line_total_usd: 1.65, unit_price_usd: 1.65, ok: true }] } as any;
-    expect(moreToReach(q, 2.66)).toMatchObject({ product_id: "y", n: 2 });
+  it("the gap is the minimum less the basket, to the cent", () => {
     expect(minimumGap({ issues: [{ code: "below_minimum", minimum_usd: 5, subtotal_usd: 3.2 }] })).toEqual({ min: 5, now: 3.2, gap: 1.8 });
+  });
+});
+
+describe("what the B1a run on main showed (sim-test 43722643280)", () => {
+  it("the basket waits on the house and floor: «البناية البيضا» is the address, never eggs on the card", async () => {
+    const eggsAddress = { intent: "order", fulfilment: "delivery", lines: [line("البيضا", "بيض")],
+      address: { village: null, landmark: null, building: "البناية البيضا", floor: "الطابق التاني", recipient_name: null, verbatim: "البناية البيضا، الطابق التاني" } };
+    const t = flow(db, [read(order([LABNEH])), read(eggsAddress)]);
+    const c = await t.customer();
+    await t.text("بدي لبنة عبعقلين");
+    await t.say({ type: "location", location: { latitude: 33.68, longitude: 35.56 } });
+    expect(bodyOf(outbound.at(-1)!)).toContain(ar.fixed.askAddress.split("\n")[0]!);
+    await t.text("البناية البيضا، الطابق التاني");
+    const card = outbound.find(isCard)!;
+    expect(card).toBeTruthy();
+    const items = await db.all(`select i.product_id from order_items i join orders o on o.id = i.order_id where o.customer_id = $1`, [c.party_id]);
+    expect(items.map((i: any) => i.product_id)).toEqual([ids.LABNEH]);
+  });
+
+  it("an order with a food question: the loop answers the question first, the minimum is not said over it", async () => {
+    const asked = { ...order([LIPTON]), restrictions: ["gluten"] };
+    const t = flow(db, [read(asked), [use("reply", { text: "ما عنا معلومات موثّقة عن الغلوتين بهالمنتج، شوف الملصق." })]]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي ليبتون بس فيه غلوتين؟");
+    expect(t.seen).toHaveLength(2);
+    expect(bodyOf(outbound[0]!)).not.toContain("الحد الأدنى");
+  });
+
+  it("«when will someone answer?» with a request open and no order: the request's reminder, never «no open order»", async () => {
+    const t = flow(db, []);
+    const c = await t.customer();
+    await db.rpc("open_case", { p_conversation: c.conversation_id, p_kind: "person_requested", p_topic: "test", p_order: null, p_source: "test" });
+    await t.text("وين طلبي؟");
+    expect(NO_OPEN).not.toContain(bodyOf(outbound.at(-1)!));
+    expect(bodyOf(outbound.at(-1)!)).toBe(ar.support.reminder);
   });
 });
 

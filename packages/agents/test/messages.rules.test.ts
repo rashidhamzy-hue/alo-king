@@ -146,7 +146,7 @@ function render(m: Messages): Rendered[] {
 
   // B1a: the basket said by code (the minimum, the basket so far, what changed, a refused cancel).
   const bk = m.basket;
-  add("basket.minimum", bk.minimum(5, 0.69, 4.31)); add("basket.minimumIs", bk.minimumIs(5)); add("basket.moreButton", bk.moreButton(7, names[1]!));
+  add("basket.minimum", bk.minimum(5, 0.69, 4.31)); add("basket.minimumIs", bk.minimumIs(5));
   add("basket.cancelButton", bk.cancelButton); add("basket.cleared", bk.cleared); add("basket.soFar", bk.soFar(names.map((n, i) => `${i + 1} × ${n}`)));
   add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));

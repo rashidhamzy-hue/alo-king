@@ -72,6 +72,8 @@ export interface ToolContext {
   support?: SupportNote;
   /** B1a (SIM1 fix 10): search_catalog ran this turn, so a claim about what the catalogue holds has a tool result behind it. */
   searched?: boolean;
+  /** B1a: the conversation's open cases (HO1), so "where is my order?" with no order and no basket recalls the open request. */
+  openCaseIds?: string[];
 }
 
 const MAX_SENDS_PER_TURN = 2;
