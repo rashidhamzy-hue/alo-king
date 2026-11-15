@@ -34,7 +34,7 @@ export function renderKapso(body: any): BotMsg {
 }
 
 // ---------- language ----------
-const FR = /\b(je|vous|votre|nous|est|pas|merci|bonjour|commande|livraison|avec|pour|les|des|une|svp|oui|non|désolé|c'est|ça|il|elle|sont|quel|quelle)\b/giu;
+const FR = /\b(je|vous|votre|nous|est|pas|merci|bonjour|commande|livraison|avec|pour|les|des|une|svp|oui|non|désolé|c'est|ça|il|elle|sont|quel|quelle|le|et|dans|sur|au|aux|moi|bien|envoyez|livrer|adresse|près|porte|très|panier|confirmée|préparons)\b/giu;
 const EN = /\b(the|you|your|is|are|order|delivery|please|thanks|with|for|and|what|which|we|it|can|sorry|yes|no|would|like|have)\b/giu;
 export type Seen = "ar" | "arabizi" | "en" | "fr" | "unknown";
 /** The language a message is written in, from its letters and its small words. Unknown when there is too little to tell. */
@@ -48,7 +48,8 @@ export function langOf(text: string): Seen {
   const fr = (clean.match(FR) ?? []).length, en = (clean.match(EN) ?? []).length;
   if (fr === 0 && en === 0) return "arabizi";
   // Words written with the Arabizi digits (3, 7, 2, 5...) are Arabizi: more of them than English or French words decides it.
-  const az = (clean.match(/(?<![\p{L}\d])(?:[a-z]*[235789][a-z]+|[a-z]+[235789][a-z]*|shu|sho|baddak|baddik|baddi|badde|ahlan|ahla|marhaba|tamam|yalla|halla2|hala2|kifak|kifik|ya3ni|hek|hayda|bas|kamen|kaman|ma3|w|el|fi|mesh|mish)(?![\p{L}\d])/giu) ?? []).length;
+  // A size or a count ("900g", "x2", "6l") is not Arabizi.
+  const az = (clean.replace(/(?<![\p{L}\d])(?:\d+(?:[.,]\d+)?(?:g|gr|kg|l|ml|cl|x|pcs?)|x\d+)(?![\p{L}\d])/giu, " ").match(/(?<![\p{L}\d])(?:[a-z]*[235789][a-z]+|[a-z]+[235789][a-z]*|shu|sho|baddak|baddik|baddi|badde|ahlan|ahla|marhaba|tamam|yalla|halla2|hala2|kifak|kifik|ya3ni|hek|hayda|bas|kamen|kaman|ma3|w|el|fi|mesh|mish)(?![\p{L}\d])/giu) ?? []).length;
   if (az >= Math.max(fr, en)) return "arabizi";
   if (fr > en) return "fr";
   if (en > fr) return "en";
@@ -62,7 +63,7 @@ export function wrongLanguage(expected: Lang, text: string): Seen | null {
   // capitalised Latin words in a sentence ("Mentos Incredible Chew Strawberry"); an Arabic card was read as English for its names.
   const all = text.split("\n");
   // A price list's product line is followed by its amount line («Dolsi Vegas ...» then «$0.75»).
-  const words = all.filter((l, i) => !/\$\d/.test(l) && !/^\s*\$\d/.test(all[i + 1] ?? "") && !/^\s*[+−-]?\s*\d+(?:\.\d+)?\s*[×x]\s/u.test(l) && !/→/u.test(l))
+  const words = all.filter((l, i) => !/\$\d/.test(l) && !/^\s*\$\d/.test(all[i + 1] ?? "") && !/^\s*[+−•-]?\s*\d+(?:\.\d+)?\s*[×x]\s/u.test(l) && !/→/u.test(l))
     .join("\n").replace(/(?:[A-Z][\p{L}\d'.&-]*\s+){1,}[A-Z\d][\p{L}\d'.&-]*/gu, (run) => (new RegExp(FR.source, "iu").test(run) || new RegExp(EN.source, "iu").test(run) ? run : " "));
   const seen = langOf(words);
   if (seen === "unknown") return null;

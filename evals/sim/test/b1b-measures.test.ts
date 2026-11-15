@@ -19,6 +19,10 @@ describe("B1b measures", () => {
     expect(b1bMeasures(az).language).toBe(false);
     const card = conv([turn("text", [{ text: "🛒 *طلبك AK-1017*\n\n3 × Dolsi Vegas With Caramel Filling\n$3.00\n1 × Deroni Italian Rice 900G\n$1.20\n📍 عين قني" }])], { lang: "ar" });
     expect(b1bMeasures(card).language).toBe(false);
+    // The second run on main (43756167947): a basket line after a bullet, and two French replies the check called Arabizi.
+    expect(b1bMeasures(conv([turn("text", [{ text: "🛒 طلبك لسّا ما انبعت. بسلّتك:\n• 1 × Oui Oui Diapers Size 6 16-30Kg 32 Pieces" }])], { lang: "ar" })).language).toBe(false);
+    expect(b1bMeasures(conv([turn("text", [{ text: "Pain D'Or 900G (7 pains) x2 bien noté. Dans quel village livrer ?" }])], { lang: "fr" })).language).toBe(false);
+    expect(b1bMeasures(conv([turn("text", [{ text: "Bien sûr. Envoyez-moi l'adresse en texte à Moukhtara : le bâtiment, l'étage et un point de repère près de la porte." }])], { lang: "fr" })).language).toBe(false);
     const en = conv([turn("text", [{ text: "Sorry, we can't deliver there yet. What would you like to order?" }])], { lang: "arabizi" });
     expect(b1bMeasures(en).language).toBe(true);
   });

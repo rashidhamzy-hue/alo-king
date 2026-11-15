@@ -56,7 +56,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **DS1 built** (below): the design system (`packages/ui`), the console's shell, Today, Inbox and Orders, and the website's home, category, search and product pages. The crown waits for the founder's approval.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
 - **B1a merged (#77, #79, #80), two of three targets met** (below): on 150 simulated customers, minimum-order loops 66 to 0 and lost baskets 11 to 0; wrong products 34 (target 8; the planner's generic and size picks, a kept overnight basket's counts and reading cases remain); passed 35 to 48.
-- **B1b merged** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. On 150 simulated customers on main: address 8 to 1, other language 14 to 0, message rules 70 to 0 (all targets met); off-topic 16 to 8 (target 3, the follow-up below); passed 35 to 93; B1a's measures no worse. The language gate holds (F1 0.911, wrong products 0). <!-- B1B-STATUS -->
+- **B1b merged** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. On 150 simulated customers on main (second run, after the follow-up #87): address 8 to 1, other language 14 to 0, message rules 70 to 2, off-topic 16 to 1: **all four targets met**; passed 35 to 80 (93 on the first run). B1a's measures: loops 0, wrong products 34 (34), one lost basket (a "same as last time" question answered with "no open order"). The language gate holds (F1 0.914, wrong products 0).
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
 - **`docs/DESIGN_BRIEF.md`** was not in the DOC1 hand-over; DS1 converted it from the founder's attachment on 15 November (see "DS1" below). No crown picture was attached: DS1 drew an original mark, which waits for the founder's approval.
@@ -335,7 +335,42 @@ The 8 off-topic conversations, read one by one, had four causes:
 
 The follow-up pull request adds the six texts to `evals/cases/off_topic.json` first. A message that opens with a greeting is a greeting,
 a tap on our own button is never off-topic (`turn.ts`), someone from the shop is on the job, and a thank-you may be 20 words.
-<!-- B1B-RUN2 -->
+Merged as #87; its language gate ([run 43754517550](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43754517550), second attempt):
+F1 0.914, wrong products 0, the demo right, every live case passing. The first attempt missed only `addr-13nov-voice`, the model variance
+above.
+
+**The second run on `main`** ([sim-test 43756167947](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43756167947), limit 150,
+budget USD 4, spent **$3.02**; main at 9848932, #87), against SIM1's first run on the same 150 scenarios:
+
+| | SIM1 (first 150) | run 1 (#85) | run 2 (#87) | target |
+| --- | --- | --- | --- | --- |
+| address (fix 5) | 8 | 1 | **1** | at most 1: **met** |
+| reply in another language (fix 6) | 14 | 0 | **0** (the run's report: 3) | at most 2: **met** |
+| message rules (fix 7) | 70 | 0 | **2** | at most 14: **met** |
+| off-topic line outside its scenarios (fix 8) | 16 | 8 | **1** | at most 3: **met** |
+| passed | 35 | 93 | 80 | |
+
+The run's own report counted 3 replies in another language. All three were the check misreading the right language:
+- an Arabic basket line led by a bullet («• 1 × Oui Oui Diapers ...»), whose English name the check counted;
+- a French reply that named "900G" and "x2" (counted as Arabizi);
+- a French reply in words the check did not know.
+
+The third pull request corrects the check (bulleted lines, sizes, more French words; tests in `evals/sim/test/b1b-measures.test.ts`). It
+recomputes both runs and SIM1's baseline from their recorded replies with the same code: SIM1 stays at 14 (first 150) and 51 (all),
+and run 2 is 0. The 2 message-rule conversations were the customer's own digits in a card line's words («٥٠٠ مل، ١٢ قنينة»); the card
+now shows Latin digits for a line's words and the address (`order-card.ts`, test in `packages/agents/test/model-text-b1b.test.ts`).
+The off-topic one left is "Vous pouvez pas la ramener quand meme?" about a product we do not sell, which is fair to call off-topic.
+
+B1a's measures on run 2, against its third run (43736730998): minimum-order loops 0 (0), wrong or uninvited product (judge) 34 (34),
+lost baskets **1** (0). The one is sim-073, a "same as last time" scenario: «آخر طلبية كانت من خمس ايام، مش مسجلة عندكن؟» ("my last
+order was five days ago, isn't it recorded?") was read as "where is my order", and the status answer "you have no open order" was
+given. No basket was in hand. It is B1a's class "same as last time with no earlier order" (its first run's sixth); B1b changed neither
+the status answer nor the repeat path. Passed fell from 93 to 80 between the two runs on the same code paths. The judge's classes
+(goal not reached 51, wrong product 34, unnatural dialect 34, repeated question 29, dead end 19) moved with model variance, not with a
+B1b change. No silence after a hand-off (26 hand-offs, 26 alerted).
+
+**Not proven:** WhatsApp and Kapso; a rider or ops actually calling the customer of an order without a pin (the note and the flag are
+written; nothing reads the flag yet, see "For L1"); the Arabic of B1b's four new lines, read by a person.
 
 
 ### B1a: basket integrity, 15 November 2026 (Opus 5.5)

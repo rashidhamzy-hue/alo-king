@@ -3,6 +3,7 @@
 // the payment are always on it, each amount on its own line.
 import { buttons, list, type Outbound } from "@ak/wa/kapso";
 import { messages, productName, usd, villageName, windowLabel, windowRow, type Lang } from "./messages";
+import { latinDigits } from "./output-guard";
 
 export { windowLabel, windowRow };
 
@@ -74,7 +75,7 @@ export function formatWindowChoice(orderId: string | null, windows: DeliveryWind
 /** The address line's words: village, building, floor, as the customer gave them (B4); the village alone when that is all we have. */
 export function addressText(a: CardAddress | null | undefined, q: Pick<Quote, "village" | "village_ar">, lang: Lang): string {
   const village = villageName(lang, a?.village_ar ?? q.village_ar, a?.village_en ?? q.village);
-  return messages(lang).join([village, a?.building, a?.floor].map((x) => (x ?? "").trim()).filter(Boolean));
+  return messages(lang).join([village, a?.building, a?.floor].map((x) => latinDigits((x ?? "").trim())).filter(Boolean));
 }
 
 /**
@@ -90,7 +91,8 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
   const m = messages(lang);
   const head = m.card.heading(input.shortCode);
   const items = q.lines.flatMap((l) => {
-    const extras = [...(l.modifiers ?? []), ...(l.note ? [l.note] : [])];
+    // B1b (the second run on main, 43756167947): the customer's own words on a line («٥٠٠ مل، ١٢ قنينة») show with Latin digits (rule 7).
+    const extras = [...(l.modifiers ?? []), ...(l.note ? [l.note] : [])].map(latinDigits);
     return [m.card.item(qty(l.qty), productName(l, lang, opts.gaps), extras), usd(l.line_total_usd)];
   });
 
