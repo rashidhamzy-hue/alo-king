@@ -45,11 +45,15 @@ describe.each([["backup.yml", backup], ["restore-check.yml", restore]])("%s, the
     }
     expect(text).not.toMatch(/set -x|--debug|ACTIONS_STEP_DEBUG/);
   });
-  it("a production run never falls back to a staging secret", () => {
-    // every secret is chosen by name from a suffix; the only plain secret is the Cloudflare account id (not a credential)
-    const plain = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]);
-    expect(plain.filter((n) => n !== "CLOUDFLARE_ACCOUNT_ID")).toEqual([]);
-    expect(text).toMatch(/secrets\[format\('BACKUP_PASSPHRASE\{0\}'/);
+  it("a production run never falls back to a staging secret, and no secret is picked by a computed name", () => {
+    // CodeQL: secrets[expression] hands every secret to the runner. Each secret is named statically, once for each environment,
+    // and one step chooses by environment.
+    expect(text).not.toMatch(/secrets\[/);
+    for (const n of ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD", "SUPABASE_SERVICE_KEY", "CLOUDFLARE_API_TOKEN", "BACKUP_PASSPHRASE"]) {
+      expect(text).toContain(`S_${n}: \${{ secrets.${n} }}`);
+      expect(text).toContain(`P_${n}: \${{ secrets.${n}_PRODUCTION }}`);
+    }
+    expect(text).toMatch(/p=S; \[ "\$ENVIRONMENT" = production \] && p=P/);
   });
   it("stops with a message naming the missing secret, before it does anything", () => {
     expect(text).toMatch(/is not set up\. Missing:/);
