@@ -54,6 +54,10 @@
     { "id": "arabic-to-arabizi-family", "turns": [
       { "typed": "بدي ربطة خبز", "reading": "ar_lb", "expect": "ar" },
       { "typed": "w baddi kamen 2 labne w ma3on, shu fi 3andkon?", "reading": "arabizi", "expect": "arabizi" } ] },
+    { "id": "sim-034-fr-stays-fr", "turns": [
+      { "typed": "Bonsoir, je voudrais 3 Kinder Bueno et une bouteille d'eau Rim svp", "reading": "fr", "expect": "fr" },
+      { "typed": "Ah il manque 10 cents haha. Mettez 15 alors svp", "reading": "fr", "expect": "fr" },
+      { "typed": "Ok merci, pas de souci, j'attends l'ouverture", "reading": "fr", "expect": "fr" } ] },
     { "id": "first-tap-only", "turns": [
       { "tap": "Same as last time", "reading": "en", "expect": "en" },
       { "typed": "w zid 2 labne", "reading": "arabizi", "expect": "arabizi" } ] }

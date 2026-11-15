@@ -48,7 +48,7 @@ export function langOf(text: string): Seen {
   const fr = (clean.match(FR) ?? []).length, en = (clean.match(EN) ?? []).length;
   if (fr === 0 && en === 0) return "arabizi";
   // Words written with the Arabizi digits (3, 7, 2, 5...) are Arabizi: more of them than English or French words decides it.
-  const az = (clean.match(/(?<![\p{L}\d])(?:[a-z]*[235789][a-z]+|[a-z]+[235789][a-z]*)(?![\p{L}\d])/giu) ?? []).length;
+  const az = (clean.match(/(?<![\p{L}\d])(?:[a-z]*[235789][a-z]+|[a-z]+[235789][a-z]*|shu|sho|baddak|baddik|baddi|badde|ahlan|ahla|marhaba|tamam|yalla|halla2|hala2|kifak|kifik|ya3ni|hek|hayda|bas|kamen|kaman|ma3|w|el|fi|mesh|mish)(?![\p{L}\d])/giu) ?? []).length;
   if (az >= Math.max(fr, en)) return "arabizi";
   if (fr > en) return "fr";
   if (en > fr) return "en";
@@ -60,7 +60,9 @@ export function wrongLanguage(expected: Lang, text: string): Seen | null {
   // A card or a list carries product names in their own language: judge the lines without an amount and without a product name.
   // B1b: a card's item lines («3 × Dolsi Vegas ...», «+ 1 × ...», «X: 3 → 2») are product names too, and so is a run of two or more
   // capitalised Latin words in a sentence ("Mentos Incredible Chew Strawberry"); an Arabic card was read as English for its names.
-  const words = text.split("\n").filter((l) => !/\$\d/.test(l) && !/^\s*[+−-]?\s*\d+(?:\.\d+)?\s*[×x]\s/u.test(l) && !/→/u.test(l))
+  const all = text.split("\n");
+  // A price list's product line is followed by its amount line («Dolsi Vegas ...» then «$0.75»).
+  const words = all.filter((l, i) => !/\$\d/.test(l) && !/^\s*\$\d/.test(all[i + 1] ?? "") && !/^\s*[+−-]?\s*\d+(?:\.\d+)?\s*[×x]\s/u.test(l) && !/→/u.test(l))
     .join("\n").replace(/(?:[A-Z][\p{L}\d'.&-]*\s+){1,}[A-Z\d][\p{L}\d'.&-]*/gu, (run) => (new RegExp(FR.source, "iu").test(run) || new RegExp(EN.source, "iu").test(run) ? run : " "));
   const seen = langOf(words);
   if (seen === "unknown") return null;

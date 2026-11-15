@@ -8,7 +8,7 @@ import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@a
 import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
+import { answerQuick, answerWhen, askPinVillage, settlePinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
          waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
@@ -515,6 +515,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       }
       if (texts.length === 0) { await say(T().fixed.phoneSaved); remember(); return { outcome: "answered", sent }; }
       // A pin with no basket waiting, that no village clearly owns: the customer chooses by tap, never the model.
+      if (pins > 0 && !state.villageId && await settlePinVillage(ctx)) {
+        // B1b: the village the customer already named, when the pin is near it: no question.
+        await say(T().fixed.pinSaved(villageName(state.lang ?? "ar", state.pinCheck?.villageAr, state.pinCheck?.villageEn)));
+        remember(); await record("ok", "pin_village_said"); return { outcome: "answered", sent };
+      }
       if (pins > 0 && !state.villageId && await askPinVillage(ctx)) { remember(); await record("ok", "ask_pin_village"); return { outcome: "answered", sent }; }
     }
 

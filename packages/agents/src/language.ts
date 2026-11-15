@@ -15,12 +15,13 @@ const LATIN = /[A-Za-zÀ-ÿ]/gu;
 // brand and product words) are not evidence. Counted once each, so a brand like "Oui Oui" counts once.
 const ARABIZI_WORDS = new Set(("baddi badde bade bedde bidde bidi baddak baddik baddon badda shu sho chu shou kifak kifik kifkon kifkoun keefak marhaba " +
   "marhabtein ahla ahlan yalla halla2 hala2 hala ma3 3a 3al 3ala w wa ma mesh msh mish mush ya3ne ya3ni yaany hek hayda haydi hayde hydol " +
-  "hawdi kaman kamen kman zid zidli zidlo zidle zidoulé zidoule 3tine 3tini a3tine ba3d bokra lyom el l il fi fiye fiyi fina wen wein wayn " +
+  "hawdi kaman kamen kman zid zidli zidlo zidle zidoulé zidoule 3tine 3tini a3tine ba3d bokra lyom el l fi fiye fiyi fina wen wein wayn " +
   "talab talabi talabe tayeb tayyeb tamam khalas eza iza ktir kteer shway shwaye wa7de wa7ad tnein tnen tlete ana enta inta nehna " +
-  "bas bass la2 eh ah akid ya3tik yislamo yeslamo habibi 2annine 2anenin 3elbe 3elbet ras kilo nos ma3on binaye bineye tabe2 taba2").split(" "));
+  "bas bass la2 akid ya3tik yislamo yeslamo habibi 2annine 2anenin 3elbe 3elbet ras kilo nos ma3on binaye bineye tabe2 taba2").split(" "));
 const FRENCH_WORDS = new Set(("je j' vous votre vos nous est sont pas bonjour bonsoir commande livraison livrer avec pour les des une un le la du " +
   "svp stp oui non désolé desole c'est ça il elle quel quelle voudrais veux peux pouvez combien quand où aujourd'hui demain " +
-  "rien merci-beaucoup beaucoup s'il plaît plait d'accord").split(" "));
+  "rien merci-beaucoup beaucoup s'il plaît plait d'accord il elle alors mettez manque attends j'attends souci ouverture voulez " +
+  "pourriez merci-bien bonne soirée journée encore aussi mais").split(" "));
 const ENGLISH_WORDS = new Set(("i i'm i'd my me you your is are the a an and with for what which where when how we it can could would " +
   "sorry want need order delivery deliver have has do does did don't not this that there here someone anyone talk speak english " +
   "hello hi thanks thank anyway still nothing just send to of in on at yesterday today tomorrow same last time as more much many " +

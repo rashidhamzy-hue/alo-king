@@ -247,12 +247,17 @@ reading leftovers, and the founder's Arabic of 15 November, each from a failing 
 | 10, the founder's Arabic | The nine strings approved on 15 November are in `ar.ts` (support.opened, reminder, stillOnIt, resumed, resolved, voiceNoteAsk, capMenu, browseButton; basket.cancelButton). Every row of the HO1 and B1a sections of `docs/ARABIC_REVIEW.md` is marked "RA 15 Nov". B1b's new Arabic lines (four, and the wrapped village list) are in a new section, **not read by a person yet** | `arabic-review.test.ts`, the message snapshots |
 
 The simulator report gains "Address, language, message rules, off-topic (B1b measures)" (`evals/sim/b1b-measures.ts`), against SIM1's counts
-on the same definitions, read from run 43696512658's results: **first 150 scenarios: address 11, language 16, message rules 70, off-topic 16**;
-all 463 judged first attempts 46, 56, 246, 55. The language measure is recomputed from the recorded replies with this tree's check
-(`evals/sim/checks.ts`), which B1b corrected: it dropped every digit before reading a message, so Arabizi «l2it» became "l it" and was
-read as English "it", and it counted English product names on an Arabic card. SIM1's run had counted 21 and 69 with the old check. Address counts the pin asked again after words, the village buttons and "a first order needs a
-pin"; language and message rules are the code checks; off-topic is the off-topic line outside the off-topic scenarios. Target: each down 80%
-(at most 2, 4, 14 and 3 of 150).
+on the same definitions, recomputed by code from run 43696512658's recorded replies: **first 150 scenarios: address 8, language 14, message
+rules 70, off-topic 16**; all 463 judged first attempts 28, 51, 246, 55. Target: each down 80% (at most 1, 2, 14 and 3 of 150).
+- Address: the pin asked for again after the customer said they cannot send one or gave the address in words; "which village?" asked when
+  the customer had already named one of the villages offered, or asked twice; "a first order needs a pin". A pin request repeated after an
+  item was added is the basket still waiting, and "which village?" asked once with no village said is the one short question the coordinator's
+  decision allows: neither is counted.
+- Language: a reply the code check calls another language, recomputed with this tree's check (`evals/sim/checks.ts`), which B1b corrected.
+  It dropped every digit before reading a message, so Arabizi «l2it» became "l it" and was read as English "it"; it counted English product
+  names on an Arabic card or a price list; and it knew no Arabizi word without a digit («Shu baddak»). SIM1's run had counted 21 and 69 with
+  the old check.
+- Message rules and off-topic: as SIM1 counted them (the code check; the off-topic line outside the off-topic scenarios).
 
 **For L1 (no migration here):** an order without a pin is marked by its note and a `risk_flags` row (`call_before_dispatch`), and its place is
 a `customer_places` row with no coordinates. None of these is a field the rider's job card or the dispatch board reads yet. L1 should add one,

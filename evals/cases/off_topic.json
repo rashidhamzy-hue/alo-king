@@ -50,6 +50,11 @@
     { "text": "la2 shukran, bs ba3ed ma 3rifet iza vegan, bantazer jawab l fareek", "expect": "not_off_topic" },
     { "text": "ولا يهمك، شو بتنصحني زيد؟ بدي بس شي بسيط لحتى يكمل الحد", "expect": "not_off_topic" },
     { "text": "ok مشي الحال، يعطيك العافية", "expect": "not_off_topic" },
-    { "text": "Ya binte, ana bi Aainbal, w Aainbal 3indkon bil la2ha. Yimkin el pin ma tla3 sah. Shu fiki ta3mili? Sa3idini", "expect": "not_off_topic" }
+    { "text": "Ya binte, ana bi Aainbal, w Aainbal 3indkon bil la2ha. Yimkin el pin ma tla3 sah. Shu fiki ta3mili? Sa3idini", "expect": "not_off_topic" },
+    { "text": "Ok pas grave, merci qd mm, bonne soirée", "expect": "not_off_topic" },
+    { "text": "لا خلص، مرسي. رح اسأل غير محل", "expect": "not_off_topic" },
+    { "text": "kifak, baddi 3elbet cigarette marlboro law sama7t", "expect": "not_off_topic" },
+    { "text": "ok ma tshghol, merci. yslamo", "expect": "not_off_topic" },
+    { "text": "ولو؟ ما فيي طلب بس هالشيئين؟ ما بدي غيرهن، شو بتنصحني؟", "expect": "not_off_topic" }
   ]
 }

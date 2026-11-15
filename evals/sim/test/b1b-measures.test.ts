@@ -8,8 +8,10 @@ const turn = (kind: string, replies: { kind?: string; text?: string; options?: {
 const conv = (turns: unknown[], extra: Record<string, unknown> = {}) => ({ id: "sim-001", category: "plain_order", turns, failures: [], ...extra }) as unknown as ConversationResult;
 
 describe("B1b measures", () => {
-  it("the pin asked again after words, not after a pin", () => {
-    expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), turn("text", [{ kind: "location_request" }])])).address).toBe(true);
+  it("the pin asked again after the address in words, not after a pin or an item", () => {
+    const said = (text: string, replies: any[]) => ({ ...turn("text", replies), action: { kind: "text", text } });
+    expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), said("ما فيني ابعت لوكيشن. بعقلين، البناية البيضا، الطابق التاني", [{ kind: "location_request" }])])).address).toBe(true);
+    expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), said("زيدلي ربطة خبز", [{ kind: "location_request" }])])).address).toBe(false);
     expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), turn("pin", [{ kind: "location_request" }])])).address).toBe(false);
   });
   it("the language check: Arabizi with digits inside words, and product names on an Arabic card, are not another language", () => {
@@ -21,7 +23,10 @@ describe("B1b measures", () => {
     expect(b1bMeasures(en).language).toBe(true);
   });
   it("the village buttons after a pin, and «a first order needs a pin»", () => {
-    expect(b1bMeasures(conv([turn("pin", [{ kind: "buttons", options: [{ id: "pinvillage:x", title: "A" }] }])])).address).toBe(true);
+    const ask = { kind: "buttons", options: [{ id: "pinvillage:x", title: "عترين" }, { id: "pinvillage:y", title: "عينبال" }] };
+    expect(b1bMeasures(conv([turn("pin", [ask])])).address).toBe(false);                              // asked once, nothing said: allowed
+    expect(b1bMeasures(conv([{ ...turn("text", [{ text: "ok" }]), action: { kind: "text", text: "بدي اطلب لعترين" } }, turn("pin", [ask])])).address).toBe(true);
+    expect(b1bMeasures(conv([turn("pin", [ask]), turn("pin", [ask])])).address).toBe(true);
     expect(b1bMeasures(conv([turn("text", [{ text: "For a first order we need your location" }])])).address).toBe(true);
   });
   it("language and message rules from the code checks; the off-topic line outside its scenarios", () => {

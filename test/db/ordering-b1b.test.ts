@@ -251,3 +251,15 @@ describe("B1a's reading leftovers, through the turn", () => {
     expect(skus.some((s: string) => ["AK-0055", "AK-0056", "AK-0057", "AK-0058"].includes(s))).toBe(false);
   }, 30_000);
 });
+
+describe("fix 5: the village said in an earlier message settles a pin between villages (sim-043 on the second branch run)", () => {
+  it("named in the first message, a pin then sent with no basket: the village is taken, no question", async () => {
+    const t = flow(db, [read({ intent: "question", lines: [] }), [use("reply", { text: "أهلين! ابعتلي موقعك من الزر تحت." })]]);
+    await t.customer();
+    await t.text("مرحبا، بدي اطلب لعترين، كيف بعمل؟");
+    const mid = { lat: (V.Aainbal!.lat + V.Aatrine!.lat) / 2, lng: (V.Aainbal!.lng + V.Aatrine!.lng) / 2 };
+    await pin(t, mid.lat, mid.lng);
+    expect(outbound.some((s) => buttonsOf(s).some((b) => b.id.startsWith("pinvillage:")))).toBe(false);
+    expect(bodyOf(outbound.at(-1)!)).toContain("عترين");
+  }, 30_000);
+});

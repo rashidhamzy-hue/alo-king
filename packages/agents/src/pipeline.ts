@@ -487,6 +487,22 @@ function mergeDirections(a: string | null | undefined, b: string | null | undefi
   return b.includes(a) ? b : `${a} | ${b}`;
 }
 
+/**
+ * B1b (SIM1 fix 5): a pin between villages, when the customer already named one of them, takes that village with no question: the village
+ * said before the pin (sim-110), or one the customer wrote or said in this conversation (sim-043, said in a voice note). Only one of the
+ * pin's candidates, and set_pin_village checks the distance. True when the village is set.
+ */
+export async function settlePinVillage(ctx: ToolContext): Promise<boolean> {
+  const pin = ctx.state.pinCheck;
+  if (!pin || pin.status !== "unsure" || !pin.candidates.length || !ctx.state.placeId) return false;
+  const ids = new Set(pin.candidates.map((c) => c.village_id));
+  if (pin.saidId && ids.has(pin.saidId) && await choosePinVillage(ctx, pin.saidId)) return true;
+  const words = (ctx.state.history ?? []).filter((h) => h.role === "customer").slice(-6).map((h) => h.text).join("\n");
+  if (!words.trim()) return false;
+  const v = await rpc<{ village_id: string } | null>(ctx.db, "village_in_text", { p_text: words }).catch(() => null);
+  return !!v && ids.has(v.village_id) && await choosePinVillage(ctx, v.village_id);
+}
+
 /** Which village is this pin in? Buttons with the nearest villages; the tap decides. False when there is nothing to ask. */
 export async function askPinVillage(ctx: ToolContext): Promise<boolean> {
   const pin = ctx.state.pinCheck;
@@ -562,8 +578,7 @@ export async function completePending(ctx: ToolContext): Promise<boolean> {
     if (!ctx.state.villageId) {
       // The pin is between villages, or near none we know. B1b (SIM1 fix 5, sim-110): the village the customer named is taken when the
       // pin is near it (one of the candidates; set_pin_village checks the distance). Otherwise ask, one short question; never guess.
-      if (pin?.status === "unsure" && pin.saidId && pin.candidates.some((c) => c.village_id === pin.saidId) && await choosePinVillage(ctx, pin.saidId))
-        return completePending(ctx);
+      if (await settlePinVillage(ctx)) return completePending(ctx);
       if (pin?.status === "unsure" && pin.candidates.length) { ctx.state.awaiting = "village"; return askPinVillage(ctx); }
       ctx.state.awaiting = "pin";
       const r = await deliver(ctx, askLocation(T(ctx).fixed.pinOutside), `[location request] ${T(ctx).fixed.pinOutside}`);
