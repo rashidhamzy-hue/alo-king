@@ -73,9 +73,18 @@ recorded", and ended the turn with free text («I'll reply once I've checked the
 | Run | Code | item F1 | wrong products | demo | live | no-reply turns |
 | --- | --- | --- | --- | --- | --- | --- |
 | 43682755490 | 3163a76 | 0.916 | 0 | right | 49/49 | 0 |
+| 43682808248 | 3163a76 | 0.913 | 0 | right | 48/49 (see below) | 0 |
+| 43683508108 | 3163a76 | 0.911 | 0 | right | 49/49 | 0 |
+
+Three gate runs in a row: zero no-reply turns, F1 at least 0.90, zero wrong products, the demo right, and every live case judged on
+the reply sent passed. The one live miss (run 43682808248) is "stay on the job" «شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة» read as
+off-topic: the forced reading call (prompt, schema, tools unchanged by SP2), never the ask loop; lane B item (b) below, failing in 3 of
+M1's last 4 runs on main's own prompt. Not a no-reply turn: that customer gets the fixed off-topic line. Left for the lane that owns the
+reading prompt. None of the 8 new live cases stalled visibly; run 1 shows 10 `extract_order` calls in the ask loop, each followed by a
+reply.
 
 Files outside the row: `docs/BUILD_PLAN.md` (the SP2 row), `evals/run.ts` and `evals/live/concierge.live.test.ts` (the runners). No prompt, schema,
-price source, gateway allowlist or money function changed. Locally: `npm run typecheck` clean; `npm test` 1,342 passed, 51 skipped (live-only).
+price source, gateway allowlist or money function changed. Locally, after merging main (WEB1): `npm run typecheck` clean; `npm test` 1,402 passed, 51 skipped (live-only), 0 failed.
 
 Only a live account can prove: after merge and deploy, one typed order on the staging customer line gets its card (see below), and an
 `agent_handoff` alert reaching the ops line (the cron path is the one every other exception already uses).
