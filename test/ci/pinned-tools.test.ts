@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";   // already in the lockfile (a dependency of wrangler and vitest)
 // @ts-expect-error plain .mjs, no types
 import { pickFile, verifySha256, TOOLS } from "../../scripts/ci/install-tool.mjs";
 
@@ -42,6 +43,16 @@ describe("the checksum is verified before anything runs", () => {
   it("refuses a different hash and a changed file", () => {
     expect(() => verifySha256(bytes, "0".repeat(64), "x")).toThrow(/checksum/i);
     expect(() => verifySha256(Buffer.from("changed"), good, "x")).toThrow(/checksum/i);
+  });
+});
+
+describe("the workflows", () => {
+  // A colon inside an unquoted step name made ci.yml invalid once: the run failed with no jobs at all, and nothing said why.
+  it("every workflow file is valid YAML with jobs", () => {
+    for (const f of readdirSync(join(ROOT, ".github/workflows")).filter((x) => /\.ya?ml$/.test(x))) {
+      const doc = parseYaml(read(`.github/workflows/${f}`)) as { jobs?: Record<string, unknown> };
+      expect(Object.keys(doc.jobs ?? {}).length, f).toBeGreaterThan(0);
+    }
   });
 });
 

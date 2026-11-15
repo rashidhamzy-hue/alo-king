@@ -137,7 +137,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - name: Pinned tools (gitleaks, osv-scanner: exact version, SHA-256 checked)
+      - name: Pinned tools (gitleaks and osv-scanner, exact version, SHA-256 checked)
         run: |
           node scripts/ci/install-tool.mjs gitleaks
           node scripts/ci/install-tool.mjs osv-scanner
