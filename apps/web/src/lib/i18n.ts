@@ -51,6 +51,17 @@ const en: Dict = {
   offline: "You are offline", offline_text: "This page is not saved on your phone. Pages you opened before still work. Ordering needs a connection.",
   privacy: "Privacy", terms: "Terms", language: "Language",
   placeholder_legal: "This text is being prepared with our lawyer and will be published here before the site opens for orders.",
+  hero_title: "Groceries to your door in the Chouf", hero_text: "Order on WhatsApp by text or voice note, or shop here. Pay cash when it arrives.",
+  shop_here: "Shop here", wa_greeting: "Hello, I would like to order", order_item_whatsapp: "Order this item on WhatsApp",
+  check_title: "Do we deliver to you?", check_label: "Your village", check_choose: "Choose your village", check_go: "Check",
+  check_yes: "We deliver to {village}.", check_fee: "Delivery {fee}", check_time: "About {n} minutes", check_other: "Not on the list? Ask us on WhatsApp.",
+  trust_cash: "Cash on delivery", trust_cash_text: "In dollars, or in pounds at the day's rate.",
+  trust_rider: "The rider keeps the whole delivery fee", trust_rider_text: "The delivery fee and any tip go in full to the person who brings your order.",
+  trust_hours: "Opening hours", trust_person: "A person on WhatsApp", trust_person_text: "When you need help, someone from our team answers.",
+  filter_brand: "Brand", filter_unit: "Sold by", filter_stock: "In stock only", filter_all: "All", filter_show: "Show", filter_clear: "Clear filters",
+  sort: "Sort", sort_default: "As arranged", sort_price_asc: "Price, low to high", sort_price_desc: "Price, high to low",
+  items_of: "{n} of {total} items", filter_none: "Nothing matches these filters.", unit_each: "each", live_hint: "Results appear as you type.",
+  gallery: "Component gallery",
   footer_note: "Prices are in US dollars. Price and stock are checked again when you order.",
 };
 const ar: Dict = {
@@ -77,6 +88,17 @@ const ar: Dict = {
   offline: "لا يوجد اتصال", offline_text: "هذه الصفحة غير محفوظة على هاتفك. الصفحات التي فتحتها سابقًا تعمل. الطلب يحتاج إلى اتصال.",
   privacy: "الخصوصية", terms: "الشروط", language: "اللغة",
   placeholder_legal: "يجري إعداد هذا النص مع محامينا وسيُنشر هنا قبل فتح الموقع للطلبات.",
+  hero_title: "البقالة إلى باب بيتك في الشوف", hero_text: "اطلب عبر واتساب برسالة مكتوبة أو صوتية، أو تسوّق هنا. الدفع نقدًا عند الاستلام.",
+  shop_here: "تسوّق هنا", wa_greeting: "مرحبا، بدي اطلب", order_item_whatsapp: "اطلب هذا المنتج عبر واتساب",
+  check_title: "هل نوصّل إليك؟", check_label: "قريتك", check_choose: "اختر قريتك", check_go: "تحقّق",
+  check_yes: "نوصّل إلى {village}.", check_fee: "التوصيل {fee}", check_time: "حوالي {n} دقيقة", check_other: "قريتك غير موجودة في القائمة؟ اسألنا عبر واتساب.",
+  trust_cash: "الدفع نقدًا عند الاستلام", trust_cash_text: "بالدولار، أو بالليرة بسعر اليوم.",
+  trust_rider: "رسم التوصيل كله للمندوب", trust_rider_text: "رسم التوصيل وأي إكرامية يذهبان كاملين إلى من يوصل طلبك.",
+  trust_hours: "ساعات العمل", trust_person: "شخص يجيبك على واتساب", trust_person_text: "عندما تحتاج إلى مساعدة، يجيبك أحد أفراد فريقنا.",
+  filter_brand: "الماركة", filter_unit: "يُباع بـ", filter_stock: "المتوفر فقط", filter_all: "الكل", filter_show: "اعرض", filter_clear: "إزالة التصفية",
+  sort: "الترتيب", sort_default: "ترتيب القسم", sort_price_asc: "السعر: من الأقل إلى الأعلى", sort_price_desc: "السعر: من الأعلى إلى الأقل",
+  items_of: "{n} من {total} منتج", filter_none: "لا شيء يطابق هذه التصفية.", unit_each: "بالقطعة", live_hint: "تظهر النتائج أثناء الكتابة.",
+  gallery: "معرض المكوّنات",
   footer_note: "الأسعار بالدولار الأميركي. يُعاد التحقق من السعر والتوفر عند الطلب.",
 };
 const fr: Dict = {
@@ -103,6 +125,17 @@ const fr: Dict = {
   offline: "Vous êtes hors ligne", offline_text: "Cette page n'est pas enregistrée sur votre téléphone. Les pages déjà ouvertes fonctionnent. Commander demande une connexion.",
   privacy: "Confidentialité", terms: "Conditions", language: "Langue",
   placeholder_legal: "Ce texte est en cours de rédaction avec notre avocat et sera publié ici avant l'ouverture du site aux commandes.",
+  hero_title: "Vos courses à votre porte dans le Chouf", hero_text: "Commandez sur WhatsApp par message ou note vocale, ou achetez ici. Paiement en espèces à la livraison.",
+  shop_here: "Acheter ici", wa_greeting: "Bonjour, je voudrais commander", order_item_whatsapp: "Commander cet article sur WhatsApp",
+  check_title: "Livrons-nous chez vous ?", check_label: "Votre village", check_choose: "Choisissez votre village", check_go: "Vérifier",
+  check_yes: "Nous livrons à {village}.", check_fee: "Livraison {fee}", check_time: "Environ {n} minutes", check_other: "Pas dans la liste ? Demandez-nous sur WhatsApp.",
+  trust_cash: "Paiement à la livraison", trust_cash_text: "En dollars, ou en livres au taux du jour.",
+  trust_rider: "Le livreur garde tous les frais de livraison", trust_rider_text: "Les frais de livraison et le pourboire reviennent en entier à la personne qui vous livre.",
+  trust_hours: "Horaires", trust_person: "Une personne sur WhatsApp", trust_person_text: "Si vous avez besoin d'aide, quelqu'un de notre équipe vous répond.",
+  filter_brand: "Marque", filter_unit: "Vendu par", filter_stock: "En stock seulement", filter_all: "Tous", filter_show: "Afficher", filter_clear: "Retirer les filtres",
+  sort: "Trier", sort_default: "Ordre du rayon", sort_price_asc: "Prix croissant", sort_price_desc: "Prix décroissant",
+  items_of: "{n} sur {total} articles", filter_none: "Rien ne correspond à ces filtres.", unit_each: "à l'unité", live_hint: "Les résultats s'affichent pendant la saisie.",
+  gallery: "Galerie des composants",
   footer_note: "Les prix sont en dollars américains. Prix et stock sont revérifiés à la commande.",
 };
 export const DICTS: Record<Lang, Dict> = { en, ar, fr };
@@ -123,3 +156,9 @@ export const unitLabel = (l: Lang, unit: string | null | undefined): string => {
   };
   return names[u]?.[l] ?? u;
 };
+
+/** The chat link with a greeting already typed (a wa.me address takes ?text=). A link that already carries a query is left as it is. */
+export const withGreeting = (link: string | null | undefined, l: Lang): string | null =>
+  !link ? null : link.includes("?") ? link : `${link}?text=${encodeURIComponent(t(l, "wa_greeting"))}`;
+/** The chat's address without its query: the door to the chat from any page. */
+export const chatBase = (link: string | null | undefined): string | null => (link ? link.replace(/\?.*$/, "") || null : null);

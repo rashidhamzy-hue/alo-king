@@ -4,6 +4,14 @@ The founder's cockpit: mobile first, role aware, installable on a phone, built a
 transaction. The Worker, the sign-in, the SQL permissions and audit-before-action stay exactly as built (D1 to D3): 21 page
 modules, 67 tests. The redesign changes how pages look and are grouped, and adds the missing ones. Nothing is rewritten in a framework.
 
+## The redesign of 15 November (session DS1)
+The page-by-page decisions are now `docs/strategy/05-console-website-design-handoff.md`, section A; where this file differs, that one wins.
+Built by DS1 on the design system (`packages/ui`): the shell (sidebar with the groups Today, Inbox, Orders, Approve, Stock, Money, Settings;
+bottom bar Today, Orders, Inbox, Approve, More; command bar; bell; light and dark), Today (KPI tiles with comparisons, the exception list,
+the live board with timers, riders against the caps as bars), the Inbox (case rows, the chat) and Orders (the table with filters, sorting,
+columns, CSV, and the drawer). A gallery of every component is at `/gallery` on staging. The other pages wear the new tokens and are moved
+onto the components, with Arabic, by UX2. What was left out because no read gives it yet is a table in `docs/HANDOFF.md`, DS1.
+
 ## What never changes
 - The browser never holds a database key; the acting person comes from the session; every action is logged before it runs and
   does not run if the log cannot be written; the console has no insert, update or delete of its own (`no-direct-writes.test.ts`).

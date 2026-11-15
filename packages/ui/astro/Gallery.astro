@@ -1,0 +1,6 @@
+---
+// Every component on one page (packages/ui/src/gallery.ts), in the page's language. Staging only: the page that uses it decides.
+import { gallery, type GalleryLang } from "../src/gallery";
+interface Props { lang: GalleryLang }
+---
+<Fragment set:html={gallery(Astro.props.lang).s} />

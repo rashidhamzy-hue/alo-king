@@ -1,0 +1,7 @@
+---
+// A Lucide icon from packages/ui/src/icons.ts. With `label` it is read out; without, it is decoration.
+import { icon, type IconName } from "../src/components";
+interface Props { name: IconName; label?: string; flip?: boolean; back?: boolean }
+const { name, label, flip, back } = Astro.props;
+---
+<Fragment set:html={icon(name, { label, flip, back }).s} />

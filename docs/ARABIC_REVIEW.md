@@ -59,3 +59,48 @@ Source: `messages(...).basket` in `packages/agents/src/messages/ar.ts`. When eac
 | `changed(["خبز: 2 → 4"])` | ✅ عدّلنا طلبك:<br>خبز: 2 → 4 | ✅ Your order is updated:<br>Bread: 2 → 4 | |
 | `unavailable(["لبنة"])` | ⚠️ مش متوفّر هلّق:<br>• لبنة<br>قلّي شو بدك بدالو، أو منشيلو. | ⚠️ Not available now:<br>• Labneh<br>Tell me what you'd like instead, or remove it. | |
 | `cancelRefused("AK-1234")` | طلبك AK-1234 عم يتحضّر هلّق، فما فينا نلغيه من هون.<br>حدا من فريقنا رح يتّصل فيك بخصوصه. | Order AK-1234 is already being prepared, so it can't be cancelled from here.<br>A person from our team will call you about it. | |
+
+## DS1, the website's redesigned pages (15 November 2026)
+
+Source: the `ar` dictionary in `apps/web/src/lib/i18n.ts` (the test `test/ui/design-system.test.ts` checks this section lists every line, so
+change both together). Where each shows: the home page (the promise, "Do we deliver to you?", the trust strip), a category's filters, the
+product card and the search page. Written by a model in the site's existing register (formal Arabic); the greeting is Lebanese, because the
+customer sends it as their own first message. `{village}`, `{fee}`, `{n}` and `{total}` are filled by code. The console's Arabic (staff only)
+is not listed here.
+
+| Key | Arabic | English | Read by |
+|---|---|---|---|
+| `hero_title` | البقالة إلى باب بيتك في الشوف | Groceries to your door in the Chouf | |
+| `hero_text` | اطلب عبر واتساب برسالة مكتوبة أو صوتية، أو تسوّق هنا. الدفع نقدًا عند الاستلام. | Order on WhatsApp by text or voice note, or shop here. Pay cash when it arrives. | |
+| `shop_here` | تسوّق هنا | Shop here | |
+| `wa_greeting` | مرحبا، بدي اطلب | Hello, I would like to order | |
+| `order_item_whatsapp` | اطلب هذا المنتج عبر واتساب | Order this item on WhatsApp | |
+| `check_title` | هل نوصّل إليك؟ | Do we deliver to you? | |
+| `check_label` | قريتك | Your village | |
+| `check_choose` | اختر قريتك | Choose your village | |
+| `check_go` | تحقّق | Check | |
+| `check_yes` | نوصّل إلى {village}. | We deliver to {village}. | |
+| `check_fee` | التوصيل {fee} | Delivery {fee} | |
+| `check_time` | حوالي {n} دقيقة | About {n} minutes | |
+| `check_other` | قريتك غير موجودة في القائمة؟ اسألنا عبر واتساب. | Not on the list? Ask us on WhatsApp. | |
+| `trust_cash` | الدفع نقدًا عند الاستلام | Cash on delivery | |
+| `trust_cash_text` | بالدولار، أو بالليرة بسعر اليوم. | In dollars, or in pounds at the day's rate. | |
+| `trust_rider` | رسم التوصيل كله للمندوب | The rider keeps the whole delivery fee | |
+| `trust_rider_text` | رسم التوصيل وأي إكرامية يذهبان كاملين إلى من يوصل طلبك. | The delivery fee and any tip go in full to the person who brings your order. | |
+| `trust_hours` | ساعات العمل | Opening hours | |
+| `trust_person` | شخص يجيبك على واتساب | A person on WhatsApp | |
+| `trust_person_text` | عندما تحتاج إلى مساعدة، يجيبك أحد أفراد فريقنا. | When you need help, someone from our team answers. | |
+| `filter_brand` | الماركة | Brand | |
+| `filter_unit` | يُباع بـ | Sold by | |
+| `filter_stock` | المتوفر فقط | In stock only | |
+| `filter_all` | الكل | All | |
+| `filter_show` | اعرض | Show | |
+| `filter_clear` | إزالة التصفية | Clear filters | |
+| `sort` | الترتيب | Sort | |
+| `sort_default` | ترتيب القسم | As arranged | |
+| `sort_price_asc` | السعر: من الأقل إلى الأعلى | Price, low to high | |
+| `sort_price_desc` | السعر: من الأعلى إلى الأقل | Price, high to low | |
+| `items_of` | {n} من {total} منتج | {n} of {total} items | |
+| `filter_none` | لا شيء يطابق هذه التصفية. | Nothing matches these filters. | |
+| `unit_each` | بالقطعة | each | |
+| `live_hint` | تظهر النتائج أثناء الكتابة. | Results appear as you type. | |

@@ -4,6 +4,13 @@ A real ordering channel on the same products, prices, stock, fees, order states 
 14 November; conflict register C4). It is a client of the commerce core (`docs/SYSTEM_PLAN.md` section 1). It owns no price,
 no stock figure and no order state (invariant 19).
 
+## The redesign of 15 November (session DS1)
+The page-by-page decisions are now `docs/strategy/05-console-website-design-handoff.md`, section B; where this file differs, that one wins.
+Built by DS1 on the design system (`packages/ui`, Tailwind v4 compiled in the Astro build, our own fonts): the frame with the crown and
+Order on WhatsApp on every page, home with "Do we deliver to you?", category with filters, search that follows the typing, and product.
+One small script (`public/site.js`) makes the delivery check and the search quicker; every page works without it. A gallery of every
+component is at `/gallery` on staging. Cart, checkout and tracking are WEB2's; what DS1 left out is a table in `docs/HANDOFF.md`, DS1.
+
 ## Shape
 - A third Cloudflare Worker, `apps/web/`, **Astro 6 with the Cloudflare adapter, rendered on the server** (RESEARCH_REGISTER b).
   HTML first: every page works with JavaScript off except the live tracking refresh. Islands only for the cart counter and tracking.

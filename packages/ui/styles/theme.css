@@ -1,0 +1,30 @@
+/* Tailwind v4 reads its theme from here. No value is written in this file: every entry points at a token in ../tokens.css,
+   so utilities (bg-surface, text-muted, rounded-ak, gap-3 ...) and the components draw from the same source. */
+@theme inline {
+  --color-*: initial;
+  --color-ink: var(--ak-ink);
+  --color-paper: var(--ak-paper);
+  --color-gold: var(--ak-gold);
+  --color-bg: var(--ak-bg);
+  --color-surface: var(--ak-surface);
+  --color-surface-2: var(--ak-surface-2);
+  --color-text: var(--ak-text);
+  --color-text-2: var(--ak-text-2);
+  --color-muted: var(--ak-muted);
+  --color-line: var(--ak-line);
+  --color-accent: var(--ak-accent);
+  --color-ok: var(--ak-ok);
+  --color-warn: var(--ak-warn);
+  --color-danger: var(--ak-danger);
+  --font-*: initial;
+  --font-sans: var(--ak-font);
+  --radius-*: initial;
+  --radius-ak: var(--ak-radius);
+  --radius-full: var(--ak-radius-full);
+  --shadow-*: initial;
+  --shadow-ak: var(--ak-shadow-1);
+  --spacing: 4px;
+  --breakpoint-*: initial;
+  --breakpoint-md: 46rem;
+  --breakpoint-lg: 900px;
+}

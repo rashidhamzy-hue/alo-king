@@ -1,0 +1,16 @@
+---
+// The component gallery (DS1; docs/strategy/05, section C): every component of packages/ui in the visitor's language, light or dark
+// as the phone says. Staging and local only: in production this address is "not found". It reads nothing from the database.
+import Base from "../layouts/Base.astro";
+import Unavailable from "../components/Unavailable.astro";
+import Gallery from "@ak/ui-astro/Gallery.astro";
+import "../styles/gallery.css";
+import { t } from "../lib/i18n";
+const { lang, env } = Astro.locals;
+const off = env.ENVIRONMENT === "production";
+if (off) Astro.response.status = 404;
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+<Base title={off ? t(lang, "not_found") : t(lang, "gallery")} lang={lang} path="/gallery">
+  {off ? <Unavailable lang={lang} notFound /> : <><h1>{t(lang, "gallery")}</h1><Gallery lang={lang} /></>}
+</Base>

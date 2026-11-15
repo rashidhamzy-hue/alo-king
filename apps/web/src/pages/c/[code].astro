@@ -1,27 +1,64 @@
 ---
+// A category (redesigned in DS1; docs/strategy/05, section B): product cards, and filters by brand, how it is sold and stock, with a
+// sort by price. The filters are in the address and applied here to what the database returned, so they work with no script; the
+// plain address stays the one the Worker caches. Sorting is by facts only (invariant 14). Not here because the catalog reads do not
+// give it yet (docs/HANDOFF.md, DS1): pack size as a number, and popularity.
 import Base from "../../layouts/Base.astro";
 import Card from "../../components/Card.astro";
 import Unavailable from "../../components/Unavailable.astro";
-import { nameIn, t } from "../../lib/i18n";
+import Button from "@ak/ui-astro/Button.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import Empty from "@ak/ui-astro/Empty.astro";
+import { chatBase, nameIn, t, unitLabel } from "../../lib/i18n";
 const { lang, catalog, env } = Astro.locals;
 let r; let failed = false;
 const code = String(Astro.params.code ?? "");
 // A code is letters, digits, underscore and hyphen: anything else is not a category, and never reaches the database.
 try { r = /^[a-z0-9_-]{1,60}$/i.test(code) ? await catalog().category(code) : { ok: false as const, error: "unknown_category" as const }; } catch { failed = true; Astro.response.status = 503; }
 if (r && !r.ok) Astro.response.status = 404;
-const sections = r && r.ok ? r.sections : [];
+const all = r && r.ok ? r.sections : [];
+const total = all.reduce((a, s) => a + s.items.length, 0);
+const everything = all.flatMap((s) => s.items);
+const brands = [...new Set(everything.map((i) => i.brand).filter((b): b is string => !!b))].sort((a, b) => a.localeCompare(b));
+const units = [...new Set(everything.map((i) => i.sell_unit).filter(Boolean))].sort();
+const p = Astro.url.searchParams;
+const brand = brands.includes(p.get("brand") ?? "") ? p.get("brand")! : "";
+const unit = units.includes(p.get("unit") ?? "") ? p.get("unit")! : "";
+const stock = p.get("stock") === "1";
+const sort = p.get("sort") === "price_asc" || p.get("sort") === "price_desc" ? p.get("sort")! : "";
+const filtered = !!(brand || unit || stock || sort);
+const keep = (i: (typeof everything)[number]) => (!brand || i.brand === brand) && (!unit || i.sell_unit === unit) && (!stock || i.in_stock);
+// Sorted by price, the shelf's sub-groups no longer mean anything: one list.
+const sections = sort
+  ? [{ title_en: null, title_ar: null, items: everything.filter(keep).sort((a, b) => (sort === "price_asc" ? 1 : -1) * (Number(a.price_usd) - Number(b.price_usd))) }]
+  : all.map((s) => ({ ...s, items: s.items.filter(keep) })).filter((s) => s.items.length > 0);
 const count = sections.reduce((a, s) => a + s.items.length, 0);
 const anyCredit = sections.some((s) => s.items.some((i) => i.picture?.licence === "cc_by_sa"));
 const title = r && r.ok ? nameIn(lang, r.category.name_en, r.category.name_ar) : t(lang, "not_found");
+const whatsapp = r && r.ok ? r.whatsapp : null;
+if (filtered) Astro.response.headers.set("Cache-Control", "no-store");
 ---
-<Base title={title} lang={lang} path={Astro.url.pathname}>
+<Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(whatsapp)}>
   {failed ? <Unavailable lang={lang} /> : !r || !r.ok ? <Unavailable lang={lang} notFound /> : <>
+    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li>{title}</li></ol>
     <h1>{title}</h1>
-    <p class="muted">{t(lang, "items", { n: count })}</p>
+    <form class="filters" method="get" action={Astro.url.pathname}>
+      {brands.length > 1 && <label class="ak-field"><span>{t(lang, "filter_brand")}</span>
+        <select class="ak-select" name="brand"><option value="">{t(lang, "filter_all")}</option>{brands.map((b) => <option value={b} selected={b === brand}>{b}</option>)}</select></label>}
+      {units.length > 1 && <label class="ak-field"><span>{t(lang, "filter_unit")}</span>
+        <select class="ak-select" name="unit"><option value="">{t(lang, "filter_all")}</option>{units.map((u) => <option value={u} selected={u === unit}>{unitLabel(lang, u) || t(lang, "unit_each")}</option>)}</select></label>}
+      <label class="ak-field"><span>{t(lang, "sort")}</span>
+        <select class="ak-select" name="sort"><option value="">{t(lang, "sort_default")}</option><option value="price_asc" selected={sort === "price_asc"}>{t(lang, "sort_price_asc")}</option><option value="price_desc" selected={sort === "price_desc"}>{t(lang, "sort_price_desc")}</option></select></label>
+      <label class="tick"><input type="checkbox" name="stock" value="1" checked={stock}> {t(lang, "filter_stock")}</label>
+      <Button label={t(lang, "filter_show")} />
+      {filtered && <Button label={t(lang, "filter_clear")} href={Astro.url.pathname} variant="ghost" />}
+    </form>
+    <p class="muted">{filtered ? t(lang, "items_of", { n: count, total }) : t(lang, "items", { n: total })}</p>
+    {count === 0 && <Empty title={t(lang, "filter_none")} icon="search" />}
     {sections.map((s) => (
       <section>
         {(s.title_en || s.title_ar) && <h2 class="sec-title">{nameIn(lang, s.title_en, s.title_ar)}</h2>}
-        <ul class="grid">{s.items.map((item) => <Card item={item} lang={lang} env={env} />)}</ul>
+        <ul class="ak-grid">{s.items.map((item) => <Card item={item} lang={lang} env={env} whatsapp={whatsapp} />)}</ul>
       </section>
     ))}
     {anyCredit && <p class="muted small credit">{t(lang, "credit_pictures")}</p>}

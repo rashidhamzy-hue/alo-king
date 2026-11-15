@@ -1,0 +1,7 @@
+---
+// The crown mark (packages/ui/src/crown.ts), for an Astro page. The same markup the console prints.
+import { crown, type CrownTone } from "../src/crown";
+interface Props { tone?: CrownTone; size?: 32 | 64 | 120; label?: string }
+const { tone, size, label } = Astro.props;
+---
+<Fragment set:html={crown({ tone, size, label }).s} />

@@ -7,6 +7,8 @@
 // for any other address.
 import { CSS } from "./style";
 import { ICONS } from "./icons";
+import { FONTS } from "./fonts.generated";
+import { UI_TOKENS } from "./ui.generated";
 
 export const SHELL_ASSETS = ["/console.css", "/shell.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/offline"] as const;
 
@@ -15,7 +17,7 @@ const fnv = (s: string) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i
 export const MANIFEST = {
   name: "Alo King console", short_name: "Alo King", description: "Alo King staff console",
   start_url: "/?source=pwa", scope: "/", display: "standalone", orientation: "portrait", lang: "en", dir: "auto",
-  background_color: "#f4f6f8", theme_color: "#0f3d5e",
+  background_color: UI_TOKENS.paper, theme_color: UI_TOKENS.ink,
   icons: [
     { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
     { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
@@ -86,6 +88,54 @@ if(names){
   blocks.forEach(function(b,k){b.addEventListener("focusin",function(){cur=k;mark(false);});b.addEventListener("click",function(){cur=k;mark(false);});});
   mark(false);
 }
+// The command bar (Ctrl+K, Cmd+K or the search button): type to filter the pages; Enter opens the first match, or submits the search.
+var cmdk=document.querySelector("[data-cmdk]");
+if(cmdk&&cmdk.showModal){
+  var cin=cmdk.querySelector("input"),items=Array.prototype.slice.call(cmdk.querySelectorAll("li")),sel=-1;
+  var shown=function(){return items.filter(function(li){return !li.hidden;});};
+  var paint=function(){items.forEach(function(li){li.removeAttribute("aria-selected");});var v=shown();if(sel>=v.length)sel=v.length-1;if(sel>=0&&v[sel]){v[sel].setAttribute("aria-selected","true");v[sel].scrollIntoView({block:"nearest"});}};
+  var filter=function(){var q=cin.value.trim().toLowerCase();items.forEach(function(li){li.hidden=q!==""&&li.textContent.toLowerCase().indexOf(q)===-1;});sel=q!==""&&shown().length?0:-1;paint();};
+  var openCmd=function(){if(cmdk.open)return;cin.value="";filter();cmdk.showModal();cin.focus();};
+  var opener=document.querySelector("[data-open-cmdk]");
+  if(opener)opener.addEventListener("click",function(e){e.preventDefault();openCmd();});
+  cin.addEventListener("input",filter);
+  cmdk.addEventListener("click",function(e){if(e.target===cmdk)cmdk.close();});
+  cmdk.addEventListener("keydown",function(e){
+    var v=shown();
+    if(e.key==="ArrowDown"){sel=Math.min(v.length-1,sel+1);paint();e.preventDefault();}
+    else if(e.key==="ArrowUp"){sel=Math.max(-1,sel-1);paint();e.preventDefault();}
+    else if(e.key==="Enter"&&sel>=0&&v[sel]){var a=v[sel].querySelector("a");if(a){e.preventDefault();location.href=a.getAttribute("href");}}
+  });
+  window.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&(e.key==="k"||e.key==="K")){e.preventDefault();openCmd();}});
+}
+
+// The bell closes on a tap outside it and on Escape.
+var bell=document.querySelector("[data-bell]");
+if(bell){
+  window.addEventListener("click",function(e){if(bell.open&&!bell.contains(e.target))bell.open=false;});
+  window.addEventListener("keyup",function(e){if(e.key==="Escape")bell.open=false;});
+}
+
+// Orders: on a wide screen an order opens in the drawer beside the list (the same list address with open=); on a phone its link is its own page.
+if(document.querySelector("a[data-drawer]")){
+  document.addEventListener("click",function(e){
+    var a=e.target&&e.target.closest?e.target.closest("a[data-drawer]"):null;
+    if(!a||e.ctrlKey||e.metaKey||e.shiftKey||e.button)return;
+    if(window.matchMedia&&window.matchMedia("(min-width:1200px)").matches){e.preventDefault();location.href=a.getAttribute("data-drawer");}
+  });
+}
+
+// Today refreshes itself each minute while it is in front and nobody is typing or has something open, so its "live" mark is true.
+var live=document.querySelector("[data-live]");
+if(live){
+  setInterval(function(){
+    var el=document.activeElement,tag=el&&el.tagName;
+    if(document.visibilityState!=="visible"||tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;
+    if((cmdk&&cmdk.open)||(bell&&bell.open))return;
+    if(navigator.onLine===false){live.setAttribute("data-stale","");return;}
+    location.reload();
+  },60000);
+}
 })();`;
 
 // ---------- the service worker ----------
@@ -133,8 +183,8 @@ self.addEventListener("notificationclick", (e) => {
 }
 
 export const offlinePage = () => `<!doctype html><html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f3d5e"><title>Offline · Alo King console</title><link rel="stylesheet" href="/console.css"></head>
-<body><header class="top"><strong>Alo King console</strong></header><main><h1>No connection</h1>
+<meta name="theme-color" content="${UI_TOKENS.ink}"><title>Offline · Alo King console</title><link rel="stylesheet" href="/console.css"></head>
+<body><header class="top"><span class="ak-logo"><strong>Alo King console</strong></span></header><main><h1>No connection</h1>
 <p>The console needs the internet: nothing is kept on this phone, so nothing here can be out of date. Check the connection and open the page again.</p>
 <p lang="ar" dir="rtl">اللوحة تحتاج إلى الإنترنت. لا يُحفظ شيء على هذا الهاتف. تحقق من الاتصال ثم افتح الصفحة مرة أخرى.</p>
 <p><a class="btn primary" href="/">Try again · حاول مرة أخرى</a></p></main></body></html>`;
@@ -151,5 +201,8 @@ export function staticRoute(path: string): Response | null {
   if (path === "/offline") return new Response(offlinePage(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=300", ...SAFE } });
   const icon = /^\/icons\/([a-z0-9-]+\.png)$/.exec(path)?.[1];
   if (icon && ICONS[icon]) return new Response(b64(ICONS[icon]!), { headers: { "content-type": "image/png", "cache-control": "max-age=86400", ...SAFE } });
+  // The fonts (IBM Plex Sans and IBM Plex Sans Arabic), from this Worker's own address: no other site is asked for anything.
+  const font = /^\/fonts\/([a-z0-9-]+\.woff2)$/.exec(path)?.[1];
+  if (font && FONTS[font]) return new Response(b64(FONTS[font]!), { headers: { "content-type": "font/woff2", "cache-control": "public, max-age=2592000", ...SAFE } });
   return null;
 }

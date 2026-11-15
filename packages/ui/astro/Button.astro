@@ -1,0 +1,6 @@
+---
+// The button (packages/ui/src/components.ts: button). A link when `href` is set.
+import { button, type ButtonOpts } from "../src/components";
+type Props = ButtonOpts;
+---
+<Fragment set:html={button(Astro.props).s} />

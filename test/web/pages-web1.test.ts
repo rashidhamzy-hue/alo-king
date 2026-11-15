@@ -80,7 +80,9 @@ describe("pages render from the database, with JavaScript off", () => {
     await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
     expect(closed.html).not.toContain("wa.me");
     await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
-    expect((await page("/")).html).toContain('href="https://wa.me/96100000000"');
+    const home = (await page("/")).html;
+    expect(home).toContain('href="https://wa.me/96100000000?text=');           // DS1: the chat opens with a greeting already typed
+    expect(decodeURIComponent(/href="https:\/\/wa\.me\/96100000000\?text=([^"]+)"/.exec(home)![1]!)).toBe("Hello, I would like to order");
     expect((await page("/p/AK-0042")).html).toContain("https://wa.me/96100000000?text=AK-0042");
   });
 
@@ -91,7 +93,7 @@ describe("pages render from the database, with JavaScript off", () => {
     expect(status).toBe(200);
     expect(skus(html).length).toBeGreaterThan(10);
     expect(html).toContain("Leen Taanayel Labneh Premium");
-    const card = html.split('<li class="card">').find((c) => c.includes("AK-0042"))!;
+    const card = html.split('<li class="ak-product').find((c) => c.includes("AK-0042"))!;      // DS1: the shared product card
     expect(card).toContain("Out of stock");
     expect(card).toMatch(/\$\d+\.\d\d/);
   });
@@ -242,7 +244,7 @@ describe("search: the chat's matcher", () => {
   it("a miss says so, offers the chat, and is logged once", async () => {
     await db.pg.exec(`delete from demand_signals`);
     for (let i = 0; i < 3; i++) { const { html, status } = await page("/search?q=zzqqxx+nothing"); expect(status).toBe(200); expect(text(html)).toContain('We do not have "zzqqxx nothing" yet'); }
-    expect((await page("/search?q=zzqqxx+nothing")).html).toContain('href="https://wa.me/96100000000"');
+    expect((await page("/search?q=zzqqxx+nothing")).html).toContain('href="https://wa.me/96100000000?text=');
     expect(await db.all(`select kind, origin, query from demand_signals`)).toEqual([{ kind: "unknown_product", origin: "web_search", query: "zzqqxx nothing" }]);
   });
 
@@ -287,6 +289,7 @@ describe("weight and the installable shell", () => {
     const { html } = await page("/");
     expect(html).toContain('rel="manifest" href="/manifest.webmanifest"');
     expect(html).toContain('<script src="/sw-register.js" defer>');
+    expect(html).toContain('<script src="/site.js" defer>');                 // DS1: the one small script, a file of this site
     const reg = await (await get("/sw-register.js")).text();
     expect(reg).toContain("serviceWorker.register");
   });
@@ -333,6 +336,90 @@ describe("the Worker's connection", () => {
   });
 });
 
+describe("DS1: the redesigned pages", () => {
+  it("every page carries the crown, the fonts as this site's own files, and Order on WhatsApp with a greeting, in the header and the phone's bar", async () => {
+    for (const path of ["/", "/c/dairy_eggs", "/p/AK-0042", "/search?q=labneh"]) {
+      const { html } = await page(path);
+      expect(html, path).toContain('class="ak-crown"');
+      expect(html.match(/href="https:\/\/wa\.me\/96100000000\?text=Hello%2C%20I%20would%20like%20to%20order"/g)!.length, path).toBeGreaterThanOrEqual(2);
+      expect(html, path).toMatch(/<link rel="preload" href="\/_astro\/plex-latin-400\.[\w-]+\.woff2" as="font" type="font\/woff2" crossorigin>/);
+      expect(html, path).not.toMatch(/fonts\.googleapis|fonts\.gstatic|cdn\./);
+      expect(html, path).not.toMatch(/\/cart|class="ak-cartbar"/);                     // no cart until it exists (WEB2)
+    }
+    const css = await (await get(/href="(\/_astro\/[^"]+\.css)"/.exec((await page("/")).html)![1]!)).text();
+    expect([...css.matchAll(/url\(([^)]+)\)/g)].every((m) => /^\/_astro\/plex-(latin|arabic)-(400|600)\.[\w-]+\.woff2$/.test(m[1]!.replace(/["']/g, "")))).toBe(true);
+    expect(css).toContain("--ak-gold:#c9a227"); expect(css).toContain("prefers-color-scheme:dark");
+    expect((await page("/", { "accept-language": "ar" })).html).toContain(encodeURIComponent("مرحبا، بدي اطلب"));
+  });
+
+  it("'Do we deliver to you?' answers from the database with no script: the village's fee and time, and whether we are open", async () => {
+    const served = await db.all<any>(`select vi.name_en, z.delivery_fee_usd, z.base_eta_minutes from villages vi join zones z on z.id = vi.zone_id where vi.is_served and z.is_active`);
+    const home = await page("/");
+    const options = [...home.html.matchAll(/<option value="(\d+)"[^>]*data-name="([^"]+)"/g)].map((m) => ({ n: m[1]!, name: m[2]! }));
+    expect(options.length).toBe(served.length);
+    expect(home.html).toMatch(/<div class="answer" role="status" hidden/);            // nothing is claimed before a village is picked
+    const pick = options[1]!; const row = served.find((v) => v.name_en === pick.name)!;
+    const t = text((await page(`/?village=${pick.n}`)).html);
+    expect(t).toContain(`We deliver to ${pick.name}.`); expect(t).toContain(`$${Number(row.delivery_fee_usd).toFixed(2)}`); expect(t).toContain(`About ${row.base_eta_minutes} minutes`);
+    expect(t).toContain("Open now");
+    for (const bad of ["0", "999", "abc", "-1", "1.5"]) { const r = await page(`/?village=${bad}`); expect(r.status, bad).toBe(200); expect(text(r.html), bad).not.toContain("We deliver to "); }
+    expect(text(home.html)).not.toMatch(/next round/i);                                 // no source for it yet: not said
+  });
+
+  it("a category filters by brand, how it is sold and stock, and sorts by price only; the filtered address is not cached", async () => {
+    await db.pg.exec(`update stock_levels set on_hand = 0 where product_id = (select id from products where sku = 'AK-0042')`);
+    try {
+      const plain = await page("/c/dairy_eggs");
+      const all = skus(plain.html);
+      const stock = await page("/c/dairy_eggs?stock=1");
+      expect(skus(stock.html)).toEqual(all.filter((x) => x !== "AK-0042"));
+      expect(stock.headers.get("cache-control")).toBe("no-store");
+      const brand = /<select class="ak-select" name="brand">[\s\S]*?<option value="([^"]+)"/.exec(plain.html.replace(/<option value="">[^<]*<\/option>/g, ""))![1]!;
+      const byBrand = await page(`/c/dairy_eggs?brand=${encodeURIComponent(brand)}`);
+      expect(skus(byBrand.html).length).toBeGreaterThan(0); expect(skus(byBrand.html).length).toBeLessThan(all.length);
+      expect(text(byBrand.html)).toMatch(new RegExp(`${skus(byBrand.html).length} of ${all.length} items`));
+      const prices = (h: string) => [...h.matchAll(/<span class="price"><bdi>\$([\d.]+)<\/bdi>/g)].map((m) => Number(m[1]));
+      const up = prices((await page("/c/dairy_eggs?sort=price_asc")).html), down = prices((await page("/c/dairy_eggs?sort=price_desc")).html);
+      expect(up.length).toBe(all.length); expect([...up].sort((a, b) => a - b)).toEqual(up); expect([...down].sort((a, b) => b - a)).toEqual(down);
+      // a filter that is not one is ignored; nothing but facts can sort (invariant 14)
+      expect(skus((await page("/c/dairy_eggs?brand=%3Cscript%3E&sort=best&unit=x")).html)).toEqual(all);
+      expect(plain.html).not.toMatch(/value="(popular|best|rating|recommended)[^"]*"/i);
+    } finally { await db.pg.exec(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = 'AK-0042')`); }
+  });
+
+  it("a card's one tap orders that item on WhatsApp, only when it is in stock; the product page says what a search engine may read, with no script", async () => {
+    await db.pg.exec(`update stock_levels set on_hand = 0 where product_id = (select id from products where sku = 'AK-0046')`);
+    try {
+      const cat = (await page("/c/dairy_eggs")).html;
+      const card = (sku: string) => cat.split('<li class="ak-product').find((c) => c.includes(`/p/${sku}"`))!;
+      expect(card("AK-0042")).toContain('href="https://wa.me/96100000000?text=AK-0042"'); expect(card("AK-0046")).not.toContain("wa.me");
+      const prod = (await page("/p/AK-0042")).html;
+      expect(prod).toContain('itemtype="https://schema.org/Product"'); expect(prod).toContain('itemprop="priceCurrency" content="USD"'); expect(prod).toContain('href="https://schema.org/InStock"');
+      expect((await page("/p/AK-0046")).html).toContain('href="https://schema.org/OutOfStock"');
+      expect((await page("/")).html).toContain('itemtype="https://schema.org/GroceryStore"');
+      expect(prod).not.toMatch(/application\/ld\+json|aggregateRating|ratingValue|review/i);
+    } finally { await db.pg.exec(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = 'AK-0046')`); }
+  });
+
+  it("search follows the typing through this site's own script, which asks only this site; with no script the form still works", async () => {
+    const { html } = await page("/search?q=labneh");
+    expect(html).toContain("data-live-search"); expect(html).toMatch(/<div data-live aria-live="polite">/);
+    const js = await (await get("/site.js")).text();
+    expect(js).toContain('"/search?q="'); expect(js).not.toMatch(/https?:\/\//); expect(js).not.toMatch(/cookie =|localStorage|innerHTML|eval\(/);
+    expect(js).toMatch(/q\.length < 3/);                                                // a pause on three letters or more, never each key
+    expect((await page("/")).html).not.toContain("data-live-search");                 // only the search page swaps results in
+  });
+
+  it("the gallery is served outside production, in the visitor's language, and reads nothing from the database", async () => {
+    const before = fake.calls.length;
+    const g = await page("/gallery");
+    expect(g.status).toBe(200); expect(text(g.html)).toContain("Measured contrast"); expect(g.html).not.toMatch(/\sstyle="/);
+    expect((await page("/gallery", { "accept-language": "ar" })).html).toContain("التاج");
+    expect(fake.calls.length).toBe(before);
+    expect((await page("/")).html).toContain('href="/gallery"');
+  });
+});
+
 describe("the page cache keys by language", () => {
   it("a cached Arabic page is not served to an English visitor, and a cached page is at most a minute stale", async () => {
     await stop();
@@ -350,5 +437,15 @@ describe("the page cache keys by language", () => {
     expect(ar2.headers.get("cache-control")).toBe("no-cache");               // the visitor's browser always asks; the Worker's copy is the cache
     expect((await page("/c/dairy_eggs?x=1", { "accept-language": "ar" })).headers.get("x-page-cache")).toBeNull();   // only the plain address is cached
     expect((await page("/search?q=labneh")).headers.get("x-page-cache")).toBeNull();
+  });
+});
+
+describe("DS1: the gallery is staging only", () => {
+  it("in production the gallery is 'not found' and the home page does not link to it", async () => {
+    await stop();
+    await startServer({ ENVIRONMENT: "production", PAGE_CACHE: "off" });
+    const g = await page("/gallery");
+    expect(g.status).toBe(404); expect(text(g.html)).toContain("Page not found"); expect(text(g.html)).not.toContain("Measured contrast");
+    expect((await page("/")).html).not.toContain('href="/gallery"');
   });
 });

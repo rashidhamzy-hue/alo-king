@@ -29,5 +29,6 @@ import { inboxSection } from "./inbox";
 import { windowsSection } from "./windows";
 import { staffSection } from "./staff";
 import { templatesSection } from "./templates";
+import { gallerySection } from "./gallery";
 
-export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection];
+export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection];
