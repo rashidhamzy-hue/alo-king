@@ -1,0 +1,9 @@
+---
+import Base from "../layouts/Base.astro";
+import { t } from "../lib/i18n";
+const { lang } = Astro.locals;
+---
+<Base title={t(lang, "privacy")} lang={lang} path="/privacy">
+  <h1>{t(lang, "privacy")}</h1>
+  <p class="notice">{t(lang, "placeholder_legal")}</p>
+</Base>

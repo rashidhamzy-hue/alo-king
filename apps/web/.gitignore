@@ -1,0 +1,4 @@
+dist/
+.astro/
+.dev.vars
+.wrangler/
