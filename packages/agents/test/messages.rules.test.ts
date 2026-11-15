@@ -145,6 +145,13 @@ function render(m: Messages): Rendered[] {
   add("answer.lira", a.lira(89500, { code: CODE, usd: 7.27, lbp: 651000 })); add("answer.lira.noOrder", a.lira(89500, null)); add("answer.noRate", a.noRate);
 
   add("payment.proofReceived", m.payment.proofReceived(CODE)); add("payment.proofResend", m.payment.proofResend);
+  // HO1: the six case lines, their buttons, the technical lines and the Inbox drafts.
+  const sp = m.support;
+  for (const k of ["opened", "reminder", "stillOnIt", "resumed", "resolved", "callbackButton", "keepOrderingButton", "voiceNoteButton", "callbackNoted",
+                   "keepOrdering", "voiceNoteAsk", "technical", "capMenu", "stalled", "browseButton", "myOrderButton", "personButton", "buttonError",
+                   "retryButton", "notOnRecord", "browseInWords"] as const) add(`support.${k}`, sp[k]);
+  add("support.afterHours", sp.afterHours("08:00"));
+  for (const k of ["person_requested", "order_problem", "complaint", "refund", "payment", "safety", "other"] as const) add(`support.draft.${k}`, sp.draft(k, CODE));
   const n = m.notice;
   add("notice.orderCancelled", n.orderCancelled(CODE, "ما تأكّد الطلب بالوقت المحدد")); add("notice.riderAtDoor", n.riderAtDoor(CODE));
   add("notice.paymentReceived", n.paymentReceived(CODE, "12.50$ نقداً")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.riderWaiting", n.riderWaiting(CODE));

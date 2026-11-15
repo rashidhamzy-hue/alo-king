@@ -4,10 +4,11 @@ import { flashOf, openShop, placeOrder, rig, type Rig } from "./kit";
 
 afterEach(() => vi.unstubAllGlobals());
 
+// HO1: a request for a person is an open case (0135), and a person's claim pauses the bot for a few minutes. Nothing locks a chat.
 async function handedOver(r: Rig, village: string) {
   const o = await placeOrder(r.db, village);
-  await r.db.pg.query(`update conversations set human_handoff = true, last_inbound_at = now() where id = $1`, [o.conversation]);
-  await r.db.pg.query(`insert into handoffs(conversation_id, reason) values ($1, 'customer asked for a person')`, [o.conversation]);
+  await r.db.pg.query(`update conversations set last_inbound_at = now(), bot_paused_until = now() + interval '5 minutes' where id = $1`, [o.conversation]);
+  await r.db.rpc("open_case", { p_conversation: o.conversation, p_kind: "person_requested", p_topic: "customer asked for a person", p_order: null, p_source: "test" });
   return o;
 }
 
@@ -65,17 +66,18 @@ describe("Exceptions and chats", () => {
     expect(flashOf((await b.post(`/chats/${o.conversation}/release`)).text)).toMatch(/^Not available yet: the database has no release_handoff\(\)/);
   });
 
-  it("with release_handoff() in the database, a chat goes back to the Concierge", async () => {
+  it("with release_handoff() in the database, the pause ends and the bot answers again; the case stays open for the Inbox", async () => {
     const r = await rig();
     const village = await openShop(r.db);
     const o = await handedOver(r, village);
     const lead = await r.staff("admin");
     const b = r.browser();
     await b.signIn(lead);
-    expect((await b.get("/exceptions")).text).toContain("Hand back to the Concierge");
-    expect(flashOf((await b.post(`/chats/${o.conversation}/release`)).text)).toBe("Handed back to the Concierge.");
-    expect((await r.db.one(`select human_handoff from conversations where id = $1`, [o.conversation])).human_handoff).toBe(false);
-    expect((await r.db.one(`select status from handoffs where conversation_id = $1`, [o.conversation])).status).toBe("resolved");
+    expect((await b.get("/exceptions")).text).toContain("Let the bot answer now");
+    expect(flashOf((await b.post(`/chats/${o.conversation}/release`)).text)).toBe("The bot answers this chat again.");
+    expect(await r.db.one(`select human_handoff, bot_paused_until from conversations where id = $1`, [o.conversation])).toEqual({ human_handoff: false, bot_paused_until: null });
+    expect((await r.db.one(`select state from handoffs where conversation_id = $1`, [o.conversation])).state).toBe("open");
+    expect(flashOf((await b.post(`/chats/${o.conversation}/release`)).text)).toBe("The bot is already answering this chat.");
     const picker = await r.staff("picker");
     await expect(r.db.rpc("release_handoff", { p_conversation: o.conversation, p_by: picker.partyId })).rejects.toThrow(/NOT_AUTHORISED/);
   });

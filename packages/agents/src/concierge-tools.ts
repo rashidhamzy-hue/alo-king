@@ -8,6 +8,7 @@ import { buttonReplyText, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type
 import { messages, productName, type Lang } from "./messages";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 import { catalogMessages } from "./catalog-messages";
+import { handoffToCase, openCase, tellOpened, type SupportNote } from "./support";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -36,6 +37,8 @@ export interface ConversationState {
   slotId?: string | null;
   /** W1 (2.8 d): the customer tapped "edit" on a confirmed scheduled order; the next basket is its replacement (a new card). */
   replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
+  /** HO1: the turn key that was already queued again once after a technical failure (the second failure gets the fixed line). */
+  technicalRetry?: string | null;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
@@ -62,6 +65,8 @@ export interface ToolContext {
   approvedFacts?: Set<string>;
   /** The customer turn this runs in (SP1, G1-21): a retried turn finds the order its first attempt made, instead of a second. */
   turnKey?: string;
+  /** HO1: what the turn learned about cases (opened, reminded, a food fact not on record, a stalled loop). */
+  support?: SupportNote;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -176,11 +181,10 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return { ok: true, messages: r.messages.length };
     },
 
+    // HO1: a person is added; the bot is never removed. A case opens (or the open one is recalled) and the customer is told
+    // once; a food fact the records do not hold gets the fixed "not confirmed" line and no case (support.ts).
     async handoff_human({ reason }) {
-      await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
-      await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason });
-      await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
-      return { ok: true };
+      return handoffToCase(ctx, String(reason ?? "model_handoff"), "model", ctx.support ??= {});
     },
   };
 }
@@ -308,10 +312,12 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
       ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.slotId = null;
       if (link.reason === "paid") {
         // A change to an order already paid by transfer goes to a person (C3's decision); so does a change to pickup.
-        await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
-        await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason: `${basket.pickup ? "change_to_pickup" : "change_paid_order"}: ${link.short_code ?? old.shortCode}` });
-        const told = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
-        return told.ok ? { ok: false, error: "change_paid" } : told;
+        // HO1: a case of kind order_problem on the old order; the bot stays in the chat.
+        const c = await openCase(ctx, "order_problem", `${basket.pickup ? "change_to_pickup" : "change_paid_order"}: ${link.short_code ?? old.shortCode}`,
+                                 { orderId: old.orderId, source: "code" });
+        if (c.opened) (ctx.support ??= {}).opened = c;
+        const told = c.opened ? await tellOpened(ctx, c, old.orderId) : true;
+        return told ? { ok: false, error: "change_paid" } : { ok: false, error: "not_sent" };
       }
       const text = buttonReplyText({ status: "too_late", short_code: link.short_code ?? old.shortCode, changed: false, window: link.window ?? null }, {}, ctx.state.lang);
       const told = await deliver(ctx, { type: "text", text: { body: text } }, text, old.orderId);
