@@ -169,6 +169,37 @@ export const fr: Messages = {
     late: (code, total) => `Le délai de réponse est passé, nous avons retiré l'article de la commande ${code}.\n*Total maintenant : ${usd(total)}*`,
   },
 
+  support: {
+    opened: "✅ Une personne de notre équipe vous répond dans quelques minutes.\nEn attendant, vous pouvez continuer à commander avec moi.",
+    reminder: "Votre demande est ouverte ; une personne de notre équipe va vous répondre.",
+    stillOnIt: "Nous nous en occupons ; une personne de notre équipe va vous répondre.\nContinuer la commande, être rappelé, ou laisser un vocal ?",
+    resumed: "Je suis de retour. Votre demande est toujours ouverte et une personne va vous répondre.\nComment puis-je vous aider ?",
+    afterHours: (opens) => `🌙 Nous sommes fermés et ouvrons à ${opens}.\nVotre demande est enregistrée ; une personne vous répond à l'ouverture.\nVous pouvez commander maintenant, nous la gardons jusqu'à l'ouverture.`,
+    resolved: "✅ Votre demande est close. Pour autre chose, écrivez-nous ici.",
+    callbackButton: "Rappelez-moi", keepOrderingButton: "Continuer", voiceNoteButton: "Message vocal",
+    callbackNoted: "C'est noté : une personne de notre équipe vous appelle sur ce numéro.",
+    keepOrdering: "Allez-y : que voulez-vous commander ?",
+    voiceNoteAsk: "Envoyez votre message vocal ici ; la personne qui suit votre demande l'écoutera.",
+    technical: "⚠️ Un petit problème technique de notre côté.\nRenvoyez votre message dans une minute.",
+    capMenu: "Nous avons atteint la limite de messages de cette heure.\nChoisissez ci-dessous :",
+    stalled: "Désolé, je n'ai pas bien compris.\nQue voulez-vous faire ?",
+    browseButton: "Parcourir", myOrderButton: "Ma commande", personButton: "Parler à quelqu'un",
+    buttonError: "⚠️ Ce bouton n'a pas fonctionné de notre côté.\nRéessayez.", retryButton: "Réessayer",
+    notOnRecord: "Ce n'est pas confirmé dans nos registres, nous ne pouvons donc pas dire que cela vous convient.\nVoulez-vous choisir autre chose ?",
+    browseInWords: "Dites-moi ce qu'il vous faut et je le cherche.",
+    draft: (kind, code) => {
+      const about = code ? ` au sujet de votre commande ${code}` : "";
+      switch (kind) {
+        case "person_requested": return `Bonjour, ici l'équipe Alo King${about}.\nComment pouvons-nous vous aider ?`;
+        case "order_problem": case "complaint": return `Bonjour, ici l'équipe Alo King${about}.\nDésolés pour le désagrément. Que s'est-il passé exactement ?`;
+        case "refund": return `Bonjour, ici l'équipe Alo King${about}.\nNous avons votre demande ; nous la vérifions et revenons vers vous avec la réponse.`;
+        case "payment": return `Bonjour, ici l'équipe Alo King au sujet du paiement${code ? ` de la commande ${code}` : ""}.\nNous le vérifions.`;
+        case "safety": return `Bonjour, ici l'équipe Alo King${about}.\nNous avons votre message et nous nous en occupons. Que s'est-il passé ?`;
+        default: return `Bonjour, ici l'équipe Alo King${about}.\nComment pouvons-nous vous aider ?`;
+      }
+    },
+  },
+
   ops: {
     newPick: (code) => `📦 Nouvelle commande à préparer #${code}`,
     startButton: (code) => `Commencer #${code}`,
@@ -287,6 +318,6 @@ export const fr: Messages = {
     riderErrorAlert: (err) => `⚠️ Erreur avec un livreur : ${err}`,
     proofAlert: (method, code, total, reused) => `💵 Photo de paiement ${method} pour la commande #${code}. À confirmer par une personne.\nDû :\n${usd(total)}`
       + (reused ? "\n⚠️ La même image a déjà été envoyée pour une autre commande." : ""),
-    turnCap: (limit) => `⚠️ Un client a dépassé ${limit} messages à l'assistant en une heure. Une personne a repris la conversation.`,
+    turnCap: (limit) => `⚠️ Un client a dépassé ${limit} messages à l'assistant en une heure.\nIl reçoit un menu fixe jusqu'à l'heure suivante.`,
   },
 };

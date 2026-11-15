@@ -169,6 +169,37 @@ export const en: Messages = {
     late: (code, total) => `The time to answer ran out, so we removed the item from order ${code}.\n*Total now: ${usd(total)}*`,
   },
 
+  support: {
+    opened: "✅ A person from our team will answer you within minutes.\nMeanwhile you can keep ordering with me as usual.",
+    reminder: "Your request is open; a person from our team will answer you.",
+    stillOnIt: "We are still on it; a person from our team will answer you.\nKeep ordering, get a call back, or leave a voice note?",
+    resumed: "I'm back with you. Your request is still open and a person will answer you.\nHow can I help now?",
+    afterHours: (opens) => `🌙 We are closed now and open at ${opens}.\nYour request is recorded; a person will answer you when we open.\nYou can order now and we keep it until we open.`,
+    resolved: "✅ Your request is closed. If you need anything else, write to us here.",
+    callbackButton: "Call me back", keepOrderingButton: "Keep ordering", voiceNoteButton: "Voice note",
+    callbackNoted: "Noted: a person from our team will call you on this number.",
+    keepOrdering: "Go ahead: what would you like to order?",
+    voiceNoteAsk: "Send your voice note here; the person handling your request will listen to it.",
+    technical: "⚠️ A short technical problem on our side.\nSend your message again in a minute.",
+    capMenu: "We reached this hour's message limit.\nChoose below:",
+    stalled: "Sorry, I did not get that.\nWhat would you like to do?",
+    browseButton: "Browse", myOrderButton: "My order", personButton: "Talk to a person",
+    buttonError: "⚠️ That tap did not go through on our side.\nPlease try again.", retryButton: "Try again",
+    notOnRecord: "This is not confirmed in our records, so we cannot say it suits you.\nWould you like to choose something else?",
+    browseInWords: "Tell me what you need and I will look for it.",
+    draft: (kind, code) => {
+      const about = code ? ` about your order ${code}` : "";
+      switch (kind) {
+        case "person_requested": return `Hello, this is the Alo King team${about}.\nHow can we help you?`;
+        case "order_problem": case "complaint": return `Hello, this is the Alo King team${about}.\nWe are sorry for the trouble. What happened exactly?`;
+        case "refund": return `Hello, this is the Alo King team${about}.\nWe have your request; we will check it and get back to you with the answer.`;
+        case "payment": return `Hello, this is the Alo King team about the payment${code ? ` for order ${code}` : ""}.\nWe are checking it now.`;
+        case "safety": return `Hello, this is the Alo King team${about}.\nWe have your message and are on it now. What happened?`;
+        default: return `Hello, this is the Alo King team${about}.\nHow can we help you?`;
+      }
+    },
+  },
+
   ops: {
     newPick: (code) => `📦 New order to pick #${code}`,
     startButton: (code) => `Start #${code}`,
@@ -287,6 +318,6 @@ export const en: Messages = {
     riderErrorAlert: (err) => `⚠️ Error with a rider: ${err}`,
     proofAlert: (method, code, total, reused) => `💵 ${method} payment photo for order #${code}. Needs a person to confirm.\nDue:\n${usd(total)}`
       + (reused ? "\n⚠️ The same picture was sent before for another order." : ""),
-    turnCap: (limit) => `⚠️ A customer passed ${limit} assistant messages in an hour. A person now has the chat.`,
+    turnCap: (limit) => `⚠️ A customer passed ${limit} assistant messages in an hour.\nThey get a fixed menu until the hour turns.`,
   },
 };

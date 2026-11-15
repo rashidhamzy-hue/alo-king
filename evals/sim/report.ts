@@ -27,6 +27,8 @@ export const OWNER: Record<string, string> = {
 export function handoffGroup(reason: string): string {
   const head = reason.split(":")[0]!.trim();
   if (/^(agent_did_not_finish|model_turn_cap|model_capacity|plan_handoff|delivery_problem)$/.test(head)) return head;
+  // HO1 (0135): a case's reason starts with its kind, which code chose.
+  if (/^(person_requested|order_problem|complaint|refund|payment|safety|other)$/.test(head)) return `case: ${head}`;
   if (/^(agent_error|button_error|window_error|substitution_error)$/.test(head)) return `code error: ${head}`;
   const r = reason.toLowerCase();
   if (/refund|rembours|money back|مصاري|ترجع/.test(r)) return "model: refund asked";
@@ -104,7 +106,8 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   for (const r of handed) for (const h of new Set(r.facts!.handoffs.map(handoffGroup))) reasons.set(h, (reasons.get(h) ?? 0) + 1);
   const silenced = first.filter((r) => r.failures.some((f) => f.code === "silence_after_handoff"));
   const silentMsgs = first.reduce((s, r) => s + r.failures.filter((f) => f.code === "silence_after_handoff").length, 0);
-  const alerted = handed.filter((r) => (r.facts?.exceptions.agent_handoff ?? 0) > 0).length;
+  // Before HO1 a hand-off raised agent_handoff; after it, the case raises support_case (0135).
+  const alerted = handed.filter((r) => (r.facts?.exceptions.agent_handoff ?? 0) + (r.facts?.exceptions.support_case ?? 0) > 0).length;
   const costs = first.map((r) => r.usd.total);
   const repeats = all.filter((r) => r.attempt > 0);
   const errors = new Map<string, number>();
@@ -150,13 +153,13 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   L.push("## Hand-offs and silence (baseline for the hand-off redesign)", "");
   L.push(table(["", "value"], [
     ["conversations with a hand-off", `${handed.length} (${pct(handed.length, first.length)})`],
-    ["of those, an agent_handoff exception raised (ops alerted by the cron)", `${alerted}`],
+    ["of those, an ops exception raised (agent_handoff before HO1, support_case after; ops alerted by the cron)", `${alerted}`],
     ["customers left in silence after a hand-off", `${silenced.length} (${pct(silenced.length, handed.length)} of hand-offs)`],
     ["follow-up messages that got no reply", silentMsgs],
   ]), "");
   L.push("Codes are written by code; \"model:\" reasons are the Concierge's own hand-off (handoff_human), grouped by what its free text is about.", "");
   L.push(table(["hand-off reason", "conversations", "share of all"], [...reasons].sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, pct(v, first.length)])), "");
-  L.push("No person answers in a simulation, so every message after a hand-off meets the gateway's `human` outcome: it is stored and nothing is sent. That silence is what the customer sees today until a person replies.", "");
+  L.push("No person answers in a simulation. Before HO1 every message after a hand-off met the gateway's `human` outcome: stored, nothing sent. Since HO1 a hand-off opens a case and the bot keeps answering; a turn after it with no reply of any kind is counted here.", "");
   L.push("## Time per turn", "");
   L.push(table(["turns", "count", "median s", "95th s", "model calls per turn (mean)"], [
     ["all customer turns", turns.length, quantile(turns.map((t) => t.seconds), 0.5).toFixed(1), quantile(turns.map((t) => t.seconds), 0.95).toFixed(1), (turns.reduce((s, t) => s + t.modelCalls, 0) / (turns.length || 1)).toFixed(2)],

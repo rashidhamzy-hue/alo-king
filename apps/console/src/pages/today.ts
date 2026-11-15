@@ -82,7 +82,8 @@ async function inboxData(c: Ctx) {
   const { db } = c.deps;
   const [excs, chats, cfg] = await Promise.all([
     db.rows<Exc>("ops_exceptions", { select: "id,kind,ref,detail,status,created_at", where: { status: { in: ["open", "acknowledged"] } }, order: [{ col: "created_at" }], limit: 100 }).catch(() => [] as Exc[]),
-    db.rows<{ id: string }>("conversations", { select: "id", where: { line: "customer", human_handoff: true }, limit: 100 }).catch(() => [] as { id: string }[]),
+    // HO1: customers waiting for a person are the open cases (0135); no chat is locked any more.
+    db.rows<{ id: string }>("support_cases", { select: "id", where: { state: { in: ["open", "claimed"] } }, limit: 100 }).catch(() => [] as { id: string }[]),
     db.rpc<{ high_priority_kinds?: string[] } | null>("setting", { p_key: "push_alerts" }).catch(() => null),
   ]);
   return { excs, chats: chats.length, high: new Set(cfg?.high_priority_kinds ?? []) };
@@ -118,7 +119,7 @@ ${inbox.excs.length ? html`<ul class="inbox">${inbox.excs.map((e) => html`<li cl
 <div class="actions"><a class="btn primary" href="${kindHref(e)}">${kindCta(e.kind, L)}</a>
 ${e.status === "open" ? form(c.f, `/exceptions/${e.id}/acknowledged`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "im_on_it")}</button>`) : ""}
 ${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "resolved")}</button>`)}</div></li>`)}</ul>` : ""}
-${inbox.chats ? html`<p><a class="btn" href="/exceptions">${t(L, "chats_waiting", { n: inbox.chats })}</a></p>` : ""}` : ""}
+${inbox.chats ? html`<p><a class="btn" href="/inbox">${t(L, "chats_waiting", { n: inbox.chats })}</a></p>` : ""}` : ""}
 ${quiet ? html`<p class="summary-ok">${t(L, "quiet_summary")}</p>` : ""}
 ${atRisk.length ? html`<h2>${t(L, "at_risk_h")} (${atRisk.length})</h2><ul class="inbox">${atRisk.map((o) => html`<li class="${(o.lateBy ?? 0) > 0 ? "high" : ""}">
 <strong>${orderLink(o)}</strong> · ${word(o.status)}${(o.lateBy ?? 0) > 0 ? html` · <strong class="warn">${o.lateBy} ${pick(L, "min late", "د تأخير")}</strong>` : ""}${o.noRider ? html` · <strong class="warn">${pick(L, "no rider yet", "لا مندوب بعد")}</strong>` : ""}
