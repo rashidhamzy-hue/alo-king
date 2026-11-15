@@ -46,6 +46,19 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ## Status
 
+### Strategy of 15 November (session DOC1, Sonnet, docs only)
+The planning chat of 15 November audited `main` and staging read-only and wrote the strategy now in `docs/strategy/` (start with its `README.md`).
+The engine is ahead of the business: the next phase builds less and proves more. Decisions are in `docs/DECISIONS.md` ("Founder decisions,
+15 November 2026"); the roadmap rows are the last section of `docs/BUILD_PLAN.md`; the rules every session follows and every prompt are in
+`docs/NEXT_SESSIONS.md`. Where these disagree with an older section of this file, they win.
+- **Gates.** **A**, the friends' test (Rashid and three friends on the US number): HO1, B1, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; simulated customers show zero silences after a hand-off. **B**, the shadow run (staff and family, cash only, 7 days, 100 orders): WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15%. **C**, the paid pilot: the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the +961 numbers; auto-reload on with a limit. Stop conditions: `docs/strategy/01-verdict-gates.md`.
+- **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; waits for the founder's secret `BACKUP_PASSPHRASE`). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1, DS1, PIX, CX1, D4b. **T1 waits for gate A.** At most three sessions at once.
+- **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
+- **Not done by DOC1:** `docs/DESIGN_BRIEF.md`. The founder's brief (.docx) was not in the hand-over, so it was not converted and nothing was written in its place. DS1 reads it and waits for OPS1 and HO1 first, so no session is blocked yet. Founder action: attach the .docx to a new DOC1 follow-up (or any docs session) before DS1 starts.
+- **Founder actions that follow from the strategy** (exact clicks are written into this file by the session that needs each): add the secret `BACKUP_PASSPHRASE` (BK0); rotate the webhook secrets that were exposed while the repository was public (PUB1); export what is needed from the old Supabase project and delete it, before its grace period ends on 24 November; create three free uptime checks and Hussein's staff account (OPS1).
+- **Left out on purpose:** part 4 of the strategy (the systems audit) and the founder's action drafts stay out of the repository until it is private (`docs/strategy/README.md`).
+- **One number corrected:** WH1a's migrations are 0153, 0156, 0157, 0188 and 0189, because WEB1 already uses 0154 and 0155 (`docs/DECISIONS.md`).
+
 ### Where the build stands (14 November 2026, after H1)
 - **On `main`:** Phase 0 (A1), ordering B1 to B4, hub C1 to C4, console D1 to D4, infra A2, A4, A5 and A6, pictures P1 and P2, product data N1, catalog K1, audit S1, reply speed SP1, G1 fixes F1, research R1 to R4, delivery windows W1, intake I1 and the commerce core C4 (pull requests 1 to 57). Per-session records: `docs/history/HANDOFF_sessions_2026-11-13_14.md`.
 - **Open pull requests at the time of writing:** M1 (message design, #54: built and tested; the coordinator's merge condition of 15 Nov met by language-pack run 43677251482, see "Session M1" below) and the A5 follow-up (#51, the section "A5: infra, live results" below). WEB1 merges beside it.
