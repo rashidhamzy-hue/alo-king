@@ -16,6 +16,12 @@ export function makeStore({ url, key, fetchImpl = fetch }) {
       if (!res.ok) throw new Error(`select_${table}_${res.status}`);
       return res.json();
     },
+    /** One stored picture, by its path in the private bucket (service key). */
+    async download(path) {
+      const res = await fetchRetry(`${url}/storage/v1/object/media/${path}`, { headers: h }, { fetchImpl });
+      if (!res.ok) throw new Error(`download_${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    },
     async upload(path, data, contentType = "image/jpeg") {
       const res = await fetchRetry(`${url}/storage/v1/object/media/${path}`, { method: "POST", headers: { ...h, "content-type": contentType, "x-upsert": "true" }, body: data }, { fetchImpl });
       if (!res.ok) throw new Error(`upload_${res.status}: ${(await res.text()).slice(0, 200)}`);

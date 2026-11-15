@@ -118,6 +118,7 @@ overriding the "licence unknown is never shown" rule of 5.17 step 4 and not wait
 What still holds: the picture shows exactly the catalog item; no watermark, shop logo, price tag or added text (Meta's catalog rules and
 our own); the source address is stored with every picture; a person approves each one before a customer sees it; if a rights holder or
 Meta objects to a picture it is withdrawn at once and replaced by our own photo at intake (5.15). Recorded licence value: `public_page`.
+Applied to web search by session PIX (15 Nov 2026): a search hit that names its https page is filed as `public_page`; a hit without a page address stays `unknown`. No migration: 0070 already allows it.
 
 ## Founder decisions of 14 November 2026 (from `docs/SYSTEM_BRIEF.md`), recorded by session S1
 Each is a decision. Where it disagrees with an older decision or with the wording of an invariant, it is in the conflict

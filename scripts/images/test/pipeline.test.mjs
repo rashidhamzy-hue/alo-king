@@ -19,7 +19,7 @@ const mk = (over = {}) => {
     check: async () => { calls.check++; return GOOD; },
     off: async () => { calls.off++; return [cand("open_food_facts", "off")]; },
     brand: async () => { calls.brand++; return []; },
-    open: async () => { calls.open++; return [cand("web_search", "web")]; },
+    open: async () => { calls.open++; return [cand("public_page", "web")]; },
     store: { async rpc(fn, args) { return db.rpc(fn, args); }, async upload(path) { uploads.push(path); } },
     ...over };
   return { d, calls, cand };
@@ -48,17 +48,19 @@ describe("fetch pipeline (5.17 steps 2-5)", () => {
     expect(await db.rpc("product_image_for_customer", { p_product: items[0].product_id })).toBeNull();   // proposed: not visible
   });
 
-  it("when Open Food Facts has nothing that passes, search runs; its picture is licence unknown and stays off the customer side", async () => {
+  it("when Open Food Facts has nothing that passes, search runs; its picture is a public page picture with its page and time stored (founder decision, 14 Nov)", async () => {
     uploads = [];
     const calls = { n: 0 };
     const { d } = mk({ check: async (_i, jpeg) => (jpeg.toString().includes("off") ? { ...GOOD, same_size: "no" } : GOOD) });
     const r = await processItem(items[1], d);
-    expect(r).toMatchObject({ outcome: "proposed", source_kind: "web_search", licence: "unknown" });
+    expect(r).toMatchObject({ outcome: "proposed", source_kind: "public_page", licence: "public_page" });
     const row = await db.one(`select * from product_images where product_id = $1`, [items[1].product_id]);
-    expect(row).toMatchObject({ licence: "unknown", source_kind: "web_search" });
+    expect(row).toMatchObject({ licence: "public_page", source_kind: "public_page", status: "proposed" });
+    expect(row.source_url).toMatch(/^https:\/\//); expect(row.page_url).toMatch(/^https:\/\//);
+    expect(row.fetched_at).toBeTruthy(); expect(row.vision.retrieved_at).toBeTruthy();
     const rows = await db.rpc("product_images_review");
-    expect(rows.find((x) => x.product_id === items[1].product_id)).toMatchObject({ customer_visible: false });
-    expect((await db.rpc("photograph_at_intake")).find((x) => x.product_id === items[1].product_id)).toMatchObject({ reason: "unknown_licence_only" });
+    expect(rows.find((x) => x.product_id === items[1].product_id)).toMatchObject({ customer_visible: true });   // visible only once a person approves it
+    expect(await db.rpc("product_image_for_customer", { p_product: items[1].product_id })).toBeNull();            // proposed: not shown
     void calls;
   });
 
@@ -91,13 +93,15 @@ describe("fetch pipeline (5.17 steps 2-5)", () => {
     expect(calls.check).toBe(0);
   });
 
-  it("at most five candidates are looked at per item, across all sources", async () => {
+  it("at most four candidates per source and eight per item are looked at", async () => {
     const { d, calls } = mk({
       off: async () => Array.from({ length: 4 }, (_, i) => ({ sourceKind: "open_food_facts", imageUrl: `https://img.test/o${i}.jpg`, pageUrl: "p", attribution: "CC BY-SA" })),
-      open: async () => Array.from({ length: 4 }, (_, i) => ({ sourceKind: "web_search", imageUrl: `https://img.test/w${i}.jpg`, pageUrl: "p", attribution: null })),
+      brand: async () => [],
+      open: async () => Array.from({ length: 9 }, (_, i) => ({ sourceKind: "public_page", imageUrl: `https://img.test/w${i}.jpg`, pageUrl: "https://img.test/p", attribution: null })),
       check: async () => { calls.check++; return { ...GOOD, same_product: "no" }; } });
     await processItem(items[6], d);
-    expect(calls.check).toBe(MAX_CANDIDATES);
+    expect(calls.check).toBe(8);   // 4 from Open Food Facts, 4 from search: never more than MAX_CANDIDATES
+    expect(MAX_CANDIDATES).toBe(8);
   });
 
   it("an item with no barcode skips Open Food Facts; without a search key only Open Food Facts runs", async () => {
@@ -145,6 +149,28 @@ describe("fetch pipeline (5.17 steps 2-5)", () => {
   it("evaluate never throws for a broken picture", async () => {
     const out = await evaluate(items[0], { sourceKind: "web_search", imageUrl: "https://img.test/x.jpg" }, { download: async () => Buffer.from("x"), measure: async () => { throw new Error("not_an_image"); } });
     expect(out).toMatchObject({ kept: false, reasons: ["error:not_an_image"] });
+  });
+});
+
+describe("duplicates and the stored fingerprint (PIX)", () => {
+  it("the fingerprint and the retrieval time are stored with the proposal; the same picture for another item is refused and named", async () => {
+    const more = (await db.rpc("product_images_to_fetch", { p_force: true })).filter((i) => i.barcode).slice(12, 14);
+    const { makeRegistry } = await import("../lib/dedupe.mjs");
+    const registry = makeRegistry();
+    const sameHash = async () => "a0".repeat(768);
+    const first = await processItem({ ...more[0], rank: 3 }, mk({ registry, hash: sameHash }).d);
+    expect(first).toMatchObject({ outcome: "proposed" });
+    const row = await db.one(`select vision, fetched_at from product_images where product_id = $1 and status = 'proposed'`, [more[0].product_id]);
+    expect(row.vision.phash).toBe("a0".repeat(768));
+    expect(row.vision.rank).toBe(3);
+    expect(new Date(row.vision.retrieved_at).getTime()).toBeGreaterThan(Date.now() - 60000);
+    const { d, calls } = mk({ registry, hash: sameHash });
+    const second = await processItem(more[1], d);
+    expect(second).toMatchObject({ outcome: "none_passed" });
+    expect(second.reasons).toContain(`duplicate:${more[0].sku}`);
+    expect(calls.check).toBe(0);   // refused before the paid check
+    const att = await db.one(`select detail from product_image_attempts where product_id = $1`, [more[1].product_id]);
+    expect(att.detail.evaluated[0]).toMatchObject({ duplicate_of: more[0].sku });
   });
 });
 
