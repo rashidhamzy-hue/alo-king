@@ -1,5 +1,5 @@
 // M1: every fixed message in English. Same messages, same shapes as ar.ts.
-import { grouped, returnGroups, usd, type Messages } from "./types";
+import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} LBP`;
 const join = (xs: string[]) => xs.join(", ");
@@ -73,6 +73,10 @@ export const en: Messages = {
     badPhone: "I couldn't read the number.\nCould you send it like this: 03123456 or +9613123456?",
     phoneSaved: "Got it, we saved the number. What would you like to order?",
     askPin: "✅ Your order is ready.\n📍 Send us your location with the button below\nand we'll send your order card.",
+    noPinCall: (village) => `📍 OK, we deliver to ${village} without a pin.\nThe rider will call you before leaving, to check the address.`,
+    askVillageLandmark: "📍 No problem without a pin.\nWrite your village and the nearest landmark to your home (a mosque, church, school, bakery).",
+    noPinNote: "No map pin: the rider must call the customer before leaving",
+    welcome: "You're welcome. If you need anything, write to me here.",
     pinReceived: (village) => `✅ We got your location${village ? `: ${village}` : ""}`,
     askAddress: "For the rider, we just need:\n🏠 the building name or nearest landmark\n🔢 the floor",
     pinVillage: (pin, said) => `📍 The location you sent is in ${pin}, not ${said}.\nSo the delivery is to ${pin}.`,
@@ -119,7 +123,7 @@ export const en: Messages = {
     failed: (code) => `Order ${code}: we couldn't deliver it.\nSomeone from the team will contact you.`,
     other: (code) => `Order ${code}: in progress.\nIf it's urgent, write to us.`,
     hours: (open, close, openNow) => `We take orders every day from ${open} to ${close}.\n${openNow ? "✅ We're open now." : "🌙 We're closed now."}`,
-    outOfArea: (said, served) => `We don't deliver to ${said} yet.\n📍 We deliver to: ${join(served)}.`,
+    outOfArea: (said, served) => `We don't deliver to ${said} yet.\n${wrapNames("📍 We deliver to:", served, ", ")}`,
     inArea: (village, fee, eta) => `✅ Yes, we deliver to ${village}.\n🛵 Delivery: ${usd(fee)}\nIt usually takes about ${eta} minutes.`,
     noPrevious: "I didn't find a completed earlier order. What would you like to order?",
     allMissing: (names) => `The items of your last order are not available now:\n${bullets(names)}\nWhat would you like instead?`,

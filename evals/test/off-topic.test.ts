@@ -10,3 +10,24 @@ describe("stay on the job (evals/cases/off_topic.json)", () => {
     expect(cases.cases.filter((c) => c.expect === "off_topic").length).toBeGreaterThanOrEqual(10);
   });
 });
+
+// B1b (SIM1 fix 8): code's check after the reading. Even when the reading says off_topic, a greeting, a thank-you, a goodbye or a
+// message about shopping for a dish is not turned away; every off_topic case still is.
+import { courtesyOf, stillOffTopic } from "../../packages/agents/src/courtesy";
+describe("code's check after an off_topic reading (SIM1 fix 8)", () => {
+  const b1b = cases.cases.slice(cases.cases.findIndex((c) => c.text === "marhaba") + 1);
+  it("the B1b cases are there", () => { expect(b1b.length).toBeGreaterThanOrEqual(20); });
+  it.each(cases.cases.filter((c) => c.expect === "off_topic").map((c) => [c.text] as const))("still off-topic: %s", (text) => {
+    expect(stillOffTopic(text)).toBe(true);
+  });
+  it.each(b1b.map((c) => [c.text] as const))("not off-topic: %s", (text) => { expect(stillOffTopic(text)).toBe(false); });
+  it("names what each courtesy is", () => {
+    expect(courtesyOf("kifkon?")).toBe("greeting");
+    expect(courtesyOf("مرحبا، كيفك؟ عندي سؤال بسيط")).toBe("greeting");
+    expect(courtesyOf("ok np, thanks anyway. bye")).toBe("thanks");
+    expect(courtesyOf("ماشي مرسي، يعطيكن العافية")).toBe("thanks");
+    expect(courtesyOf("لا شكراً")).toBe("thanks");
+    expect(courtesyOf("بدي علبتين لبنة وربطة خبز")).toBeNull();
+    expect(courtesyOf("kifak? shu 3am ta3mol lyom? khabberne 3an 7alak")).toBeNull();     // chat about the assistant: off-topic
+  });
+});

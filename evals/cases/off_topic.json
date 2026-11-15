@@ -1,5 +1,5 @@
 {
-  "about": "Build plan 1.18, stay on the job. Messages the Concierge's reading must classify. expect 'off_topic': unrelated to ordering, delivery or an order; the system replies with one fixed line (FIXED.offTopic) and the model is not called again. expect 'not_off_topic': about ordering or an order, however casually put, and must never be turned away. CI checks the cases are well formed and that an off_topic reading gets the fixed line; evals/live/ scores the real model's reading of each. Every misread found in production becomes a case here before it is fixed.",
+  "about": "Build plan 1.18, stay on the job. Messages the Concierge's reading must classify. expect 'off_topic': unrelated to ordering, delivery or an order; the system replies with one fixed line (FIXED.offTopic) and the model is not called again. expect 'not_off_topic': about ordering or an order, however casually put, and must never be turned away. CI checks the cases are well formed and that an off_topic reading gets the fixed line; evals/live/ scores the real model's reading of each. Every misread found in production becomes a case here before it is fixed. B1b (SIM1 fix 8): a greeting, a thank-you or a goodbye is not off-topic, nor a message about shopping for a dish (the cases after «marhaba», from SIM1's transcripts and B1a's runs on main). The decision judged is the system's: the reading, then code's check (`stillOffTopic` in packages/agents/src/courtesy.ts), as the turn makes it.",
   "cases": [
     { "text": "ساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟", "expect": "off_topic" },
     { "text": "can you write my essay about climate change?", "expect": "off_topic" },
@@ -20,6 +20,30 @@
     { "text": "السائق ما وصل لهلق", "expect": "not_off_topic" },
     { "text": "بدي اشتكي، اللبنة كانت منتهية", "expect": "not_off_topic" },
     { "text": "can I pay with Whish?", "expect": "not_off_topic" },
-    { "text": "marhaba", "expect": "not_off_topic" }
+    { "text": "marhaba", "expect": "not_off_topic" },
+    { "text": "kifkon?", "expect": "not_off_topic" },
+    { "text": "merci, yislamo", "expect": "not_off_topic" },
+    { "text": "يعطيكن العافية", "expect": "not_off_topic" },
+    { "text": "ولا يهمك، يعطيكن العافية، مرسي", "expect": "not_off_topic" },
+    { "text": "مرحبا كيفك؟ شو أخبارك؟", "expect": "not_off_topic" },
+    { "text": "Bonsoir, ça va ? Désolé de vous écrire si tard", "expect": "not_off_topic" },
+    { "text": "marhaba kifkon? shu el a5bar, kif el shi3l", "expect": "not_off_topic" },
+    { "text": "Marhaba, kifkon? shi hal yom 7elo hek", "expect": "not_off_topic" },
+    { "text": "ok mish mushkle, merci yslamo, bye", "expect": "not_off_topic" },
+    { "text": "No problem, thank you anyway. Have a good day!", "expect": "not_off_topic" },
+    { "text": "ok ma fi mushkle, merci ya3tik l 3afye", "expect": "not_off_topic" },
+    { "text": "مرحبا، كيفك؟ عندي سؤال بسيط", "expect": "not_off_topic" },
+    { "text": "Ok pas de souci, merci! Je vous réécris le matin.", "expect": "not_off_topic" },
+    { "text": "ماشي مرسي، يعطيكن العافية", "expect": "not_off_topic" },
+    { "text": "ok np, thanks anyway. bye", "expect": "not_off_topic" },
+    { "text": "لا شكراً", "expect": "not_off_topic" },
+    { "text": "No thanks", "expect": "not_off_topic" },
+    { "text": "بدي أغراض لمجدرة", "expect": "not_off_topic" },
+    { "text": "baddi agrad la tabbouleh", "expect": "not_off_topic" },
+    { "text": "what do I need for a lasagna? I want to buy the ingredients", "expect": "not_off_topic" },
+    { "text": "Merci beaucoup, bonne soirée", "expect": "not_off_topic" },
+    { "text": "thank you so much!", "expect": "not_off_topic" },
+    { "text": "يسلمو ايديكن", "expect": "not_off_topic" },
+    { "text": "salut ça va?", "expect": "not_off_topic" }
   ]
 }

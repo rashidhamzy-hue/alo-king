@@ -4,6 +4,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { openTestDb, type TestDb } from "../../test/db/harness";
 import data from "./zero-wrong.json";
+import { OrderIntent } from "../../packages/agents/src/schemas";
+import { tidyReading } from "../../packages/agents/src/reading";
 
 let db: TestDb; let party: string; let skuOf: Map<string, string>;
 beforeAll(async () => {
@@ -16,7 +18,9 @@ afterAll(async () => { await db?.pg.close(); });
 
 describe("1.22 zero wrong: the four phrasings B3 left", () => {
   it.each(data.readings.map((r, k) => [`${r.id}#${k} ${r.text}`, r] as const))("%s", async (_n, r) => {
-    const lines = r.lines.map((l: any) => ({ ...l, qty: l.qty ?? 1, unit: l.unit ?? "each", modifiers: l.modifiers ?? [], confidence: 0.8 }));
+    const read = r.lines.map((l: any) => ({ ...l, qty: l.qty ?? 1, unit: l.unit ?? "each", modifiers: l.modifiers ?? [], confidence: 0.8 }));
+    // B1b: code's corrections to the reading, as extractOrder applies them (packages/agents/src/reading.ts).
+    const lines = tidyReading(OrderIntent.parse({ intent: "order", language: "mixed", lines: read }), r.text).lines;
     const plan = await db.rpc("plan_order_core", { p_party: party, p_intent: { intent: "order", lines, _message: r.text }, p_village: null, p_choices: {} });
     const got = (plan.lines ?? []).filter((l: any) => l.status === "matched").map((l: any) => skuOf.get(l.chosen.product_id));
     const allowed = new Set(r.items.flatMap((i: any) => [i.sku, ...(i.accept ?? [])]));

@@ -1,5 +1,5 @@
 {
- "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes. B4's live run 43500022007 (3 runs a case) added g0354: the size «l kbar» left in source_hint, the medium loaf assumed. The final run 43504902606 added g0452: «تنين ليتر وربع» (2.25 L) holds the 1.25 L bottle's «ليتر وربع», and «الكبيرة» went unexplained. M1 (14 Nov): the readings of language-pack runs 43629416444, 43632030063, 43632950715 and 43634267959 for the same message (hz0815, g0815), added before the mixed-word fix (0133); and run 43651509767's, where «mkhalta» was read as «مختلطة».",
+ "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes. B4's live run 43500022007 (3 runs a case) added g0354: the size «l kbar» left in source_hint, the medium loaf assumed. The final run 43504902606 added g0452: «تنين ليتر وربع» (2.25 L) holds the 1.25 L bottle's «ليتر وربع», and «الكبيرة» went unexplained. M1 (14 Nov): the readings of language-pack runs 43629416444, 43632030063, 43632950715 and 43634267959 for the same message (hz0815, g0815), added before the mixed-word fix (0133); and run 43651509767's, where «mkhalta» was read as «مختلطة». B1b: M1's gate run 43675197868 read g0752 «l 2annine l z8ire» as a line of its own, which matched 7Up 330 ml; code now joins a size-only line to the line before it (packages/agents/src/reading.ts), and the test replays each reading through tidyReading first, as extractOrder does.",
  "readings": [
   {
    "id": "g0060",
@@ -662,6 +662,45 @@
     }
    ],
    "run": "43651509767"
+  },
+  {
+   "id": "g0752",
+   "lines": [
+    {
+     "raw": "zet Lina",
+     "query": "zet Lina",
+     "brand_hint": "Lina",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "3abbed shams",
+     "query": "3abbed shams",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "l 2annine l z8ire 0.85",
+     "query": "l 2annine l z8ire",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85",
+   "items": [
+    {
+     "sku": "AK-0216"
+    }
+   ],
+   "run": "43675197868"
   }
  ]
 }

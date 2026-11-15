@@ -795,6 +795,32 @@ Appuyez sur « Envoyer ma commande » et nous continuerons.
 Aucune commande gardée pour le moment. Que voulez-vous commander ?
 ```
 
+## fixed.askVillageLandmark
+
+```text
+📍 Pas de souci sans localisation.
+Écrivez votre village et le repère le plus proche (mosquée, église, école, boulangerie).
+```
+
+## fixed.noPinNote
+
+```text
+Pas de localisation : le livreur doit appeler le client avant de partir
+```
+
+## fixed.welcome
+
+```text
+Avec plaisir. Si vous avez besoin de quelque chose, écrivez-moi ici.
+```
+
+## fixed.noPinCall
+
+```text
+📍 D'accord, nous livrons à بعقلين sans localisation.
+Le livreur vous appellera avant de partir, pour vérifier l'adresse.
+```
+
 ## fixed.notAvailable
 
 ```text

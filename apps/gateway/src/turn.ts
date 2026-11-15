@@ -370,10 +370,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (m.type === "location" && m.location) {
       const place = await call<SavedPin>(db, "save_customer_pin",
         { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
+      const saidBefore = state.villageId ?? null;
       state.placeId = place.place_id;
       state.villageId = place.village_id ?? null;
       state.pinCheck = { status: place.status, villageAr: place.village_ar ?? null, villageEn: place.village ?? null, served: place.served ?? null, candidates: place.candidates ?? [],
-                         saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null };
+                         saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null,
+                         saidId: place.said_village_id ?? saidBefore };
       pins++;
       texts.push(`[location pin received, ${place.village ? `village: ${place.village}` : "village not clear: the customer is asked to choose"}]`);
       continue;

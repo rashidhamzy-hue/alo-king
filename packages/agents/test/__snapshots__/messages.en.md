@@ -795,6 +795,32 @@ Tap "Send my order" and we'll carry on.
 There is no saved order now. What would you like to order?
 ```
 
+## fixed.askVillageLandmark
+
+```text
+📍 No problem without a pin.
+Write your village and the nearest landmark to your home (a mosque, church, school, bakery).
+```
+
+## fixed.noPinNote
+
+```text
+No map pin: the rider must call the customer before leaving
+```
+
+## fixed.welcome
+
+```text
+You're welcome. If you need anything, write to me here.
+```
+
+## fixed.noPinCall
+
+```text
+📍 OK, we deliver to بعقلين without a pin.
+The rider will call you before leaving, to check the address.
+```
+
 ## fixed.notAvailable
 
 ```text

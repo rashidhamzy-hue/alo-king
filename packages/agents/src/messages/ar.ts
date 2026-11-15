@@ -1,5 +1,5 @@
 // M1: every fixed message in Lebanese Arabic. Meaning as before M1; only the layout follows the brief's rules (types.ts).
-import { grouped, returnGroups, usd, type Messages } from "./types";
+import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} ل.ل`;
 const join = (xs: string[]) => xs.join("، ");
@@ -72,6 +72,10 @@ export const ar: Messages = {
     badPhone: "الرقم مش واضح معي.\nفيك تبعتو هيك: 03123456 أو +9613123456؟",
     phoneSaved: "تمام، سجّلنا الرقم. شو بتحب تطلب؟",
     askPin: "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب.",
+    noPinCall: (village) => `📍 تمام، منوصّل على ${village} بلا موقع.\nالسائق رح يتّصل فيك قبل ما يطلع ليتأكّد من العنوان.`,
+    askVillageLandmark: "📍 ما في مشكلة بلا موقع.\nاكتبلي اسم الضيعة وأقرب معلم للبيت (جامع، كنيسة، مدرسة، فرن).",
+    noPinNote: "بلا موقع عالخريطة: السائق لازم يتّصل بالزبون قبل ما يطلع",
+    welcome: "العفو، تكرم عينك. إذا بدك شي، اكتبلي هون.",
     pinReceived: (village) => `✅ وصلنا موقعك${village ? `: ${village}` : ""}`,
     askAddress: "كرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق",
     pinVillage: (pin, said) => `📍 الموقع يلي بعتّو بمنطقة ${pin}، مش ${said}.\nفالتوصيل على ${pin}.`,
@@ -118,7 +122,7 @@ export const ar: Messages = {
     failed: (code) => `طلبك ${code}: ما قدرنا نسلّمو.\nرح يتواصل معك حدا من الفريق.`,
     other: (code) => `طلبك ${code}: قيد المتابعة.\nإذا في شي ضروري اكتبلنا.`,
     hours: (open, close, openNow) => `منستقبل الطلبات كل يوم من ${open} لـ ${close}.\n${openNow ? "✅ نحنا فاتحين هلّق." : "🌙 هلّق مسكّرين."}`,
-    outOfArea: (said, served) => `لهلّق ما منوصّل على ${said}.\n📍 منوصّل على: ${join(served)}.`,
+    outOfArea: (said, served) => `لهلّق ما منوصّل على ${said}.\n${wrapNames("📍 منوصّل على:", served, "، ")}`,
     inArea: (village, fee, eta) => `✅ إيه منوصّل على ${village}.\n🛵 التوصيل: ${usd(fee)}\nوبياخد عادةً حوالي ${eta} دقيقة.`,
     noPrevious: "ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟",
     allMissing: (names) => `أغراض طلبك الماضي مش متوفّرة هلّق:\n${bullets(names)}\nشو بتحب تطلب بدالها؟`,

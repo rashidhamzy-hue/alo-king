@@ -51,12 +51,16 @@ export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
   /** The village the conversation had before the pin (usually from the text), when the pin put it somewhere else. */
   saidAr: string | null;
+  /** B1b: the village said before the pin, by id. When the pin is between villages and this is one of them, it is taken. */
+  saidId?: string | null;
   candidates: { village_id: string; name_ar: string | null; name_en: string }[];
 }
 /** Everything about a card that is not its lines. */
 export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null;
   /** Set when the database refused cash on delivery and the card goes out prepaid (1.4 dues, 1.16 first-order cap). */
-  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null;
+  /** B1b: a risk flag for the order once created (a first order without a pin: call before dispatch). Kept while the card waits. */
+  flag?: { rule: string; details: Record<string, unknown> } | null }
 export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
 
 export interface ToolContext {
@@ -349,6 +353,10 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
+  // B1b (coordinator decision 3): the order is marked for a rider call; ops and the rider see the flag and the note.
+  if (terms.flag && !(created as { reused?: boolean }).reused)
+    await ctx.db.from("risk_flags").insert({ subject_kind: "order", subject_id: created.order_id, rule: terms.flag.rule, severity: 1,
+                                             details: terms.flag.details }).then(() => undefined, () => undefined);
   // What we owe the customer comes off this order at once, on its own card line (C2's request). The database caps it at the
   // order's total, records it once per order, gives it back if the order is cancelled, and uses it up when the order is paid.
   const credit = await rpc<{ applied_usd: number; total_usd: number }>(ctx.db, "apply_customer_credit", { p_order: created.order_id, p_by: null });

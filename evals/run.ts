@@ -88,9 +88,14 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
 // The forced extraction on one message, compared with the expected class. Live only, like runWordingCase.
 import { extractOrder } from "../packages/agents/src/concierge";
 
+import { stillOffTopic } from "../packages/agents/src/courtesy";
+import { hasAddressWords } from "../packages/agents/src/pipeline";
 export async function runReadingCase(client: ModelClient, model: string, c: { text: string; expect: "off_topic" | "not_off_topic" }) {
   const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} });
-  const got = r.intent ? (r.intent.intent === "off_topic" && r.intent.lines.length === 0 ? "off_topic" : "not_off_topic") : "unreadable";
+  // B1b (SIM1 fix 8): the system's decision, as the turn makes it: the reading, then code's check (a courtesy, shopping for a dish, an
+  // address said). A village alone needs the database and is not among these cases.
+  const offTopic = !!r.intent && r.intent.intent === "off_topic" && r.intent.lines.length === 0 && stillOffTopic(c.text) && !hasAddressWords(r.intent);
+  const got = r.intent ? (offTopic ? "off_topic" : "not_off_topic") : "unreadable";
   // B1a: why a reading failed the contract (the codes and paths zod gives, never the customer's text), for the report only.
   const why = r.intent ? undefined : JSON.stringify(r.errors ?? null).slice(0, 600);
   return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect, ...(why ? { errors: why } : {}) };

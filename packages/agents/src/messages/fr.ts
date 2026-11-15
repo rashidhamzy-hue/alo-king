@@ -1,5 +1,5 @@
 // M1: every fixed message in French. Same messages, same shapes as ar.ts.
-import { grouped, returnGroups, usd, type Messages } from "./types";
+import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} LBP`;
 const join = (xs: string[]) => xs.join(", ");
@@ -73,6 +73,10 @@ export const fr: Messages = {
     badPhone: "Je n'arrive pas à lire le numéro.\nPouvez-vous l'envoyer ainsi : 03123456 ou +9613123456 ?",
     phoneSaved: "C'est noté, nous avons enregistré le numéro. Que voulez-vous commander ?",
     askPin: "✅ Votre commande est prête.\n📍 Envoyez-nous votre position avec le bouton ci-dessous\net nous vous enverrons le bon de commande.",
+    noPinCall: (village) => `📍 D'accord, nous livrons à ${village} sans localisation.\nLe livreur vous appellera avant de partir, pour vérifier l'adresse.`,
+    askVillageLandmark: "📍 Pas de souci sans localisation.\nÉcrivez votre village et le repère le plus proche (mosquée, église, école, boulangerie).",
+    noPinNote: "Pas de localisation : le livreur doit appeler le client avant de partir",
+    welcome: "Avec plaisir. Si vous avez besoin de quelque chose, écrivez-moi ici.",
     pinReceived: (village) => `✅ Nous avons reçu votre position${village ? ` : ${village}` : ""}`,
     askAddress: "Pour le livreur, il nous faut juste :\n🏠 le nom de l'immeuble ou un repère proche\n🔢 l'étage",
     pinVillage: (pin, said) => `📍 La position envoyée est à ${pin}, pas à ${said}.\nLa livraison est donc pour ${pin}.`,
@@ -119,7 +123,7 @@ export const fr: Messages = {
     failed: (code) => `Commande ${code} : nous n'avons pas pu la livrer.\nUne personne de l'équipe va vous contacter.`,
     other: (code) => `Commande ${code} : en cours.\nSi c'est urgent, écrivez-nous.`,
     hours: (open, close, openNow) => `Nous prenons les commandes tous les jours de ${open} à ${close}.\n${openNow ? "✅ Nous sommes ouverts." : "🌙 Nous sommes fermés."}`,
-    outOfArea: (said, served) => `Nous ne livrons pas encore à ${said}.\n📍 Nous livrons à : ${join(served)}.`,
+    outOfArea: (said, served) => `Nous ne livrons pas encore à ${said}.\n${wrapNames("📍 Nous livrons à :", served, ", ")}`,
     inArea: (village, fee, eta) => `✅ Oui, nous livrons à ${village}.\n🛵 Livraison : ${usd(fee)}\nCela prend en général environ ${eta} minutes.`,
     noPrevious: "Je n'ai pas trouvé de commande précédente terminée. Que voulez-vous commander ?",
     allMissing: (names) => `Les articles de votre dernière commande sont indisponibles :\n${bullets(names)}\nQue voulez-vous à la place ?`,
