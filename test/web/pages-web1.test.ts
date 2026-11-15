@@ -51,7 +51,7 @@ beforeAll(async () => {
   ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
   for (const r of await db.all<any>(`select id, sku from products`)) pid[r.sku] = r.id;
   await db.pg.exec(`update stock_levels set on_hand = 10, reserved = 0;
-                    update settings set value = '{"open":"08:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
+                    update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
   fake = await startFakePostgrest(db);
   await build({ root, logLevel: "error" });
   await startServer({ PAGE_CACHE: "off" });
@@ -65,7 +65,7 @@ describe("pages render from the database, with JavaScript off", () => {
     expect(headers.get("content-type")).toMatch(/text\/html/);
     const served = await db.all<any>(`select vi.name_en, z.delivery_fee_usd from villages vi join zones z on z.id = vi.zone_id where vi.is_served and z.is_active order by vi.name_en limit 3`);
     for (const v of served) { expect(html).toContain(v.name_en); expect(html).toContain(`$${Number(v.delivery_fee_usd).toFixed(2)}`); }
-    expect(html).toContain("08:00–23:59");
+    expect(html).toContain("00:00–23:59");
     expect(text(html)).toContain("Open now");
     expect(html).toContain('href="/c/dairy_eggs"');
     // no script runs the page: the only script is the service worker's registration, an external file
@@ -74,10 +74,10 @@ describe("pages render from the database, with JavaScript off", () => {
   });
 
   it("home shows the closed state from the database, and a WhatsApp link only when a person has set one", async () => {
-    await db.pg.exec(`update settings set value = '{"open":"03:00","close":"03:01","tz":"Asia/Beirut"}' where key = 'hours'`);
+    await db.pg.exec(`update settings set value = '{"open":"10:00","close":"10:00","tz":"Asia/Beirut"}' where key = 'hours'`);   // open = close: closed at every hour
     const closed = await page("/");
     expect(text(closed.html)).toContain("Closed now");
-    await db.pg.exec(`update settings set value = '{"open":"08:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
+    await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
     expect(closed.html).not.toContain("wa.me");
     await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
     expect((await page("/")).html).toContain('href="https://wa.me/96100000000"');
