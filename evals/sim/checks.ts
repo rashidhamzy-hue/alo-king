@@ -39,13 +39,17 @@ const EN = /\b(the|you|your|is|are|order|delivery|please|thanks|with|for|and|wha
 export type Seen = "ar" | "arabizi" | "en" | "fr" | "unknown";
 /** The language a message is written in, from its letters and its small words. Unknown when there is too little to tell. */
 export function langOf(text: string): Seen {
-  const clean = text.replace(/\$\d+(\.\d+)?|\d+|https?:\S+|[*_~]/g, " ");
+  // B1b: only whole numbers are dropped. Dropping every digit cut Arabizi words in two («l2it» became "l it", read as English "it").
+  const clean = text.replace(/\$\d+(\.\d+)?|(?<![\p{L}\d])\d+(?:[.,]\d+)?(?![\p{L}\d])|https?:\S+|[*_~]/gu, " ");
   const arabic = (clean.match(/[؀-ۿ]/g) ?? []).length;
   const latin = (clean.match(/[A-Za-zÀ-ÿ]/g) ?? []).length;
   if (arabic + latin < 6) return "unknown";
   if (arabic >= latin) return "ar";
   const fr = (clean.match(FR) ?? []).length, en = (clean.match(EN) ?? []).length;
   if (fr === 0 && en === 0) return "arabizi";
+  // Words written with the Arabizi digits (3, 7, 2, 5...) are Arabizi: more of them than English or French words decides it.
+  const az = (clean.match(/(?<![\p{L}\d])(?:[a-z]*[235789][a-z]+|[a-z]+[235789][a-z]*)(?![\p{L}\d])/giu) ?? []).length;
+  if (az >= Math.max(fr, en)) return "arabizi";
   if (fr > en) return "fr";
   if (en > fr) return "en";
   return "unknown";
@@ -54,7 +58,10 @@ export function langOf(text: string): Seen {
 export function wrongLanguage(expected: Lang, text: string): Seen | null {
   if (expected === "mixed") return null;
   // A card or a list carries product names in their own language: judge the lines without an amount and without a product name.
-  const words = text.split("\n").filter((l) => !/\$\d/.test(l)).join("\n");
+  // B1b: a card's item lines («3 × Dolsi Vegas ...», «+ 1 × ...», «X: 3 → 2») are product names too, and so is a run of two or more
+  // capitalised Latin words in a sentence ("Mentos Incredible Chew Strawberry"); an Arabic card was read as English for its names.
+  const words = text.split("\n").filter((l) => !/\$\d/.test(l) && !/^\s*[+−-]?\s*\d+(?:\.\d+)?\s*[×x]\s/u.test(l) && !/→/u.test(l))
+    .join("\n").replace(/(?:[A-Z][\p{L}\d'.&-]*\s+){1,}[A-Z\d][\p{L}\d'.&-]*/gu, (run) => (new RegExp(FR.source, "iu").test(run) || new RegExp(EN.source, "iu").test(run) ? run : " "));
   const seen = langOf(words);
   if (seen === "unknown") return null;
   if (expected === "ar" || expected === "arabizi") return seen === "ar" || seen === "arabizi" ? null : seen;

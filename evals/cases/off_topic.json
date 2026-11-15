@@ -44,6 +44,12 @@
     { "text": "Merci beaucoup, bonne soirée", "expect": "not_off_topic" },
     { "text": "thank you so much!", "expect": "not_off_topic" },
     { "text": "يسلمو ايديكن", "expect": "not_off_topic" },
-    { "text": "salut ça va?", "expect": "not_off_topic" }
+    { "text": "salut ça va?", "expect": "not_off_topic" },
+    { "text": "Ok pas grave, merci qd meme, bonne journée!", "expect": "not_off_topic" },
+    { "text": "ma fi tjibon ma3kon hek aw hek? 3am esta3jel", "expect": "not_off_topic" },
+    { "text": "la2 shukran, bs ba3ed ma 3rifet iza vegan, bantazer jawab l fareek", "expect": "not_off_topic" },
+    { "text": "ولا يهمك، شو بتنصحني زيد؟ بدي بس شي بسيط لحتى يكمل الحد", "expect": "not_off_topic" },
+    { "text": "ok مشي الحال، يعطيك العافية", "expect": "not_off_topic" },
+    { "text": "Ya binte, ana bi Aainbal, w Aainbal 3indkon bil la2ha. Yimkin el pin ma tla3 sah. Shu fiki ta3mili? Sa3idini", "expect": "not_off_topic" }
   ]
 }

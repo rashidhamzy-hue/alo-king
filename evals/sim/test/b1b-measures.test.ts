@@ -12,12 +12,20 @@ describe("B1b measures", () => {
     expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), turn("text", [{ kind: "location_request" }])])).address).toBe(true);
     expect(b1bMeasures(conv([turn("text", [{ kind: "location_request" }]), turn("pin", [{ kind: "location_request" }])])).address).toBe(false);
   });
+  it("the language check: Arabizi with digits inside words, and product names on an Arabic card, are not another language", () => {
+    const az = conv([turn("text", [{ text: "Ma l2it paracetamol bel catalog 7aliyan. Bade ta3refne ism el dawa?" }])], { lang: "arabizi" });
+    expect(b1bMeasures(az).language).toBe(false);
+    const card = conv([turn("text", [{ text: "🛒 *طلبك AK-1017*\n\n3 × Dolsi Vegas With Caramel Filling\n$3.00\n1 × Deroni Italian Rice 900G\n$1.20\n📍 عين قني" }])], { lang: "ar" });
+    expect(b1bMeasures(card).language).toBe(false);
+    const en = conv([turn("text", [{ text: "Sorry, we can't deliver there yet. What would you like to order?" }])], { lang: "arabizi" });
+    expect(b1bMeasures(en).language).toBe(true);
+  });
   it("the village buttons after a pin, and «a first order needs a pin»", () => {
     expect(b1bMeasures(conv([turn("pin", [{ kind: "buttons", options: [{ id: "pinvillage:x", title: "A" }] }])])).address).toBe(true);
     expect(b1bMeasures(conv([turn("text", [{ text: "For a first order we need your location" }])])).address).toBe(true);
   });
   it("language and message rules from the code checks; the off-topic line outside its scenarios", () => {
-    const r = conv([turn("text", [{ text: "x" }], { path: "off_topic", failures: [{ code: "wrong_language", detail: "" }] })], { failures: [{ code: "message_rules", detail: "" }] });
+    const r = conv([turn("text", [{ text: "أنا هون بس لطلبات ألو كينغ" }], { path: "off_topic" })], { lang: "en", failures: [{ code: "message_rules", detail: "" }] });
     expect(b1bMeasures(r)).toEqual({ address: false, language: true, messageRules: true, offTopic: true });
     expect(b1bMeasures({ ...r, category: "off_topic" } as ConversationResult).offTopic).toBe(false);
     expect(b1bSection([r]).join("\n")).toContain("| message rules (fix 7) | 1 (100.0%) | 246 of 463");

@@ -354,9 +354,11 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
   // B1b (coordinator decision 3): the order is marked for a rider call; ops and the rider see the flag and the note.
-  if (terms.flag && !(created as { reused?: boolean }).reused)
-    await ctx.db.from("risk_flags").insert({ subject_kind: "order", subject_id: created.order_id, rule: terms.flag.rule, severity: 1,
-                                             details: terms.flag.details }).then(() => undefined, () => undefined);
+  // A card made again for an edit carries the note, not the terms' flag: the note marks it too.
+  const flag = terms.flag ?? ((terms.notes ?? "").includes(messages("ar").fixed.noPinNote) ? { rule: "call_before_dispatch", details: { reason: "no_pin" } } : null);
+  if (flag && !(created as { reused?: boolean }).reused)
+    await ctx.db.from("risk_flags").insert({ subject_kind: "order", subject_id: created.order_id, rule: flag.rule, severity: 1,
+                                             details: flag.details }).then(() => undefined, () => undefined);
   // What we owe the customer comes off this order at once, on its own card line (C2's request). The database caps it at the
   // order's total, records it once per order, gives it back if the order is cancelled, and uses it up when the order is paid.
   const credit = await rpc<{ applied_usd: number; total_usd: number }>(ctx.db, "apply_customer_credit", { p_order: created.order_id, p_by: null });

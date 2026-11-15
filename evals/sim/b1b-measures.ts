@@ -2,11 +2,14 @@
 // be set against SIM1's baseline (docs/SIM_REPORT_2026-11-15.md) on the same definitions. Each reads only replies, paths and code failures.
 //  - address (fix 5): the pin asked for again after the customer answered without one; the "which village?" buttons after a pin;
 //    or "a first order needs a pin". (A pin outside the area, refused, and asked again after a pin, is not counted.)
-//  - language (fix 6): the code check wrong_language on any turn.
+//  - language (fix 6): a reply the code check calls another language (wrongLanguage of checks.ts), recomputed from the recorded replies.
 //  - message rules (fix 7): the code check message_rules on any turn.
 //  - off-topic (fix 8): the off-topic line in a conversation that is not an off-topic scenario.
-// SIM1's first run, first 150 scenarios: 11, 21, 70, 16; all 463 judged first attempts: 46, 69, 246, 55.
+// SIM1's first run, first 150 scenarios: 11, 16, 70, 16; all 463 judged first attempts: 46, 56, 246, 55 (language with the corrected check;
+// the run's own wrong_language code counted 21 and 69).
 import type { ConversationResult } from "./run";
+import { wrongLanguage } from "./checks";
+import type { Lang } from "./scenarios";
 
 export interface B1bMeasures { address: boolean; language: boolean; messageRules: boolean; offTopic: boolean }
 
@@ -31,15 +34,16 @@ export function b1bMeasures(r: ConversationResult): B1bMeasures {
   const code = (c: string) => r.failures.some((f) => f.code === c) || r.turns.some((t) => (t.failures ?? []).some((f) => f.code === c));
   return {
     address: pinAskedAgain(r) || replies.some((m) => m.options.some((o) => /^pinvillage:/.test(o.id))) || replies.some((m) => FIRST_ORDER_PIN.test(m.text)),
-    language: code("wrong_language"),
+    // Recomputed from the replies with this tree's check (checks.ts), so SIM1's recorded replies are judged by the same code.
+    language: r.lang !== "mixed" && replies.some((m) => !!wrongLanguage(r.lang as Lang, m.text)),
     messageRules: code("message_rules"),
     offTopic: r.category !== "off_topic" && r.turns.some((t) => t.path === "off_topic"),
   };
 }
 
 /** SIM1's counts on the same definitions (first attempts of run 43696512658). */
-export const SIM1_B1B_BASELINE = { first150: { conversations: 150, address: 11, language: 21, messageRules: 70, offTopic: 16 },
-                                   all: { conversations: 463, address: 46, language: 69, messageRules: 246, offTopic: 55 } } as const;
+export const SIM1_B1B_BASELINE = { first150: { conversations: 150, address: 11, language: 16, messageRules: 70, offTopic: 16 },
+                                   all: { conversations: 463, address: 46, language: 56, messageRules: 246, offTopic: 55 } } as const;
 
 /** The section of the report: each class now, SIM1's rate on the same scenarios, the change, and B1b's target (down 80%). */
 export function b1bSection(judged: ConversationResult[]): string[] {

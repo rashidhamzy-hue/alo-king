@@ -460,10 +460,20 @@ async function acceptWithoutPin(ctx: ToolContext, intent: OrderIntent, said: str
     { p_party: ctx.partyId, p_village: village.name_ar ?? village.name_en, p_landmark: intent.address.landmark ?? null }).catch(() => null);
   if (place && place.village && !place.served) return say(T(ctx).answer.outOfArea(villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en), []), "out_of_area");
   ctx.state.villageId = village.village_id;
+  // A place said in words: the village, the building, the floor and the customer's own words, with no coordinates. The database
+  // already treats such a place as deliverable (place_is_locatable, confirm_order_checked: directions of eight characters or more), so
+  // the confirm tap, an edit to the card and the next order all take the usual path, and the rider reads the words.
+  const directions = ctx.state.directions ?? words ?? said.trim().slice(0, 300);
+  if ((directions ?? "").length + (intent.address.building ?? "").length < 8) return say(T(ctx).fixed.askVillageLandmark, "ask_village_landmark");
+  const { data: row } = await ctx.db.from("customer_places").insert({ party_id: ctx.partyId, village_id: village.village_id,
+    building: intent.address.building ?? null, floor: intent.address.floor ?? null, directions, last_used_at: new Date().toISOString() }).select("id").single();
+  const placeId = (row as { id?: string } | null)?.id ?? null;
+  if (!placeId) return null;
+  ctx.state.placeId = placeId; ctx.state.pinCheck = null;
   const note = messages(STAFF_NOTE_LANG).fixed.noPinNote;
   const notes = mergeDirections(mergeDirections(terms.notes, ctx.state.directions), note);
   const before = T(ctx).fixed.noPinCall(villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en));
-  const card = await issueCard(ctx, { lines: q.lines, villageId: village.village_id, placeId: null, pickup: false },
+  const card = await issueCard(ctx, { lines: q.lines, villageId: village.village_id, placeId, pickup: false },
     { ...terms, notes, flag: { rule: "call_before_dispatch", details: { reason: "no_pin", village_id: village.village_id, cannot_send_pin: cannot } } }, { before });
   if (!card.ok) { ctx.state.awaiting = null; return { done: false, plan: null }; }
   return { done: true, path: card.waiting_for ? `no_pin_${card.waiting_for}` : "card_without_pin" };

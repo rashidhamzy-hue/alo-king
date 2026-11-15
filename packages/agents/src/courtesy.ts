@@ -18,11 +18,19 @@ const THANKS = "شكرا|شكراً|مرسي|ميرسي|يسلمو|يسلمو ا
   "have a good day|have a nice day|good night|see you|take care|merci|merci beaucoup|mersi|yislamo|yeslamo|yslamo|ya3tik el 3afye|ya3tik l 3afye|" +
   "ya3tikon el 3afye|ma fi mushkle|mish mushkle|mesh mushkle|mafi mushkle|tamam|khalas|yalla bye|pas de souci|pas de probleme|d'accord|bonne journee|" +
   "bonne soiree|bonne nuit|au revoir|a bientot|je vous recris le matin|je vous reecris le matin|desole|vous ecrire si tard|i'll write tomorrow|bokra bektoblak|no thanks|no thank you|" +
-  "لا شكرا|لا مرسي|la2 merci|la merci|non merci|la2 shukran|so much|anyway|cheers|beaucoup";
+  "لا شكرا|لا مرسي|la2 merci|la merci|non merci|la2 shukran|so much|anyway|cheers|beaucoup|pas grave|qd meme|quand meme|merci qd meme|" +
+  "مشي الحال|ماشي الحال|يعطيك العافيه|الله يعطيك العافيه|ya3tik el 3afye";
 // Chat about the assistant itself stays off-topic (K1: «kifak? shu 3am ta3mol lyom? khabberne 3an 7alak»).
 const CHAT = /shu 3am ta3mol|shu 3am te3mel|shu 3am ta3mel|sho 3am ta3mol|شو عم تعمل|شو عم تساوي|khabber+n[ei] 3an 7alak|خبرني عن حالك|خبرني عنك|احكيلي عنك|what are you doing|tell me about (?:yourself|you)|que fais tu|qu'est ce que tu fais/u;
 // Shopping for a dish is ordering (HANDOFF lane B (b): «بدي أغراض لمجدرة» read as off-topic in 3 of 4 gate runs).
-const SHOPPING = /اغراض|غراض|مشتريات|مكونات|لوازم|agrad|aghrad|ghrad|grocer|ingredients?|ingrédients?|courses pour|de quoi j'ai besoin pour|i want to buy|baddi ishtri|بدي اشتري/u;
+// B1b's branch run (43746511047): the minimum («بدي شي بسيط لحتى يكمل الحد»), "can't you bring it anyway?", waiting for the team's answer,
+// and the pin («Yimkin el pin ma tla3 sah») are about the order too: the Concierge answers them.
+const SHOPPING = new RegExp("(?<![\\p{L}\\d])(?:و|ف|ب|ل|ال|وال|بال|لل)?(?:اغراض|غراض|مشتريات|مكونات|لوازم|agrad|aghrad|ghrad|grocer|ingredients?|ingrédients?|courses pour|de quoi j'ai besoin pour|" +
+  "i want to buy|baddi ishtri|بدي اشتري|" +
+  "الحد|يكمل|يكمّل|كمّل|كمل|زيد|زيدلي|ضيف|ضيفلي|minimum|ekmel|kamel|kammel|ykamel|zid|zidli|dif|difli|" +
+  "تجيب|تجيبو|تجيبون|جيبلي|جيبولي|tjib|tjibo|tjibon|tjibouha|jibli|bring|apporter|" +
+  "الفريق|فريق|جواب|بنتظر|عم استنى|fareek|fari2|team|jawab|bantazer|natar|équipe|equipe|reponse|réponse|" +
+  "pin|location|lokation|موقع|لوكيشن|localisation|position|maw2a3|mawqe3)(?:ي|ك|ه|ها|كن|نا)?(?![\\p{L}\\d])", "iu");
 
 /** quick-intent's normalise, and Latin accents dropped («ça va» = "ca va», «soirée» = "soiree"). */
 const fold = (x: string) => normalise(x).normalize("NFD").replace(/[\u0300-\u036f]/g, "").normalize("NFC");

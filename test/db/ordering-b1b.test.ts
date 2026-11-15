@@ -46,13 +46,34 @@ describe("fix 5: a first order without a map pin (sim-006, sim-046, sim-077: «�
     expect(outbound.filter(isPinRequest)).toHaveLength(1);             // never asked again
     expect(outbound.map(bodyOf).join("\n")).toContain(ar.fixed.noPinCall("بعقلين"));
     const o = await db.one(`select id, place_id, village_id, customer_notes from orders where customer_id = $1`, [c.party_id]);
-    expect(o.place_id).toBeNull();
+    // A place said in words: no coordinates, the customer's words for the rider.
+    const place = await db.one(`select lat, lng, directions, building from customer_places where id = $1`, [o.place_id]);
+    expect(place.lat).toBeNull();
+    expect(place.directions).toContain("حارة الجامع");
     expect(o.village_id).toBe(V.Baakline!.id);
     expect(o.customer_notes).toContain("حارة الجامع");
     expect(o.customer_notes).toContain(ar.fixed.noPinNote);            // the rider or ops reads it on the order
     const flag = await db.one(`select rule, severity, details from risk_flags where subject_kind = 'order' and subject_id = $1`, [o.id]);
     expect(flag.rule).toBe("call_before_dispatch");
     expect(flag.details.reason).toBe("no_pin");
+    // The branch run (43746511047): the confirm tap on such a card asked for the pin again. It confirms.
+    await t.tap(`order:confirm:${o.id}`, "تأكيد الطلب");
+    expect((await db.one(`select status from orders where id = $1`, [o.id])).status).toBe("confirmed");
+    expect(outbound.filter(isPinRequest)).toHaveLength(1);
+  }, 30_000);
+
+  it("an edit after the card made without a pin never asks for the pin again (sim-046, sim-077 on the branch run)", async () => {
+    const t = flow(db, [read(order([LABNEH, BREAD], { village: "بعقلين" })),
+      read(order([], { village: "بعقلين", landmark: "حارة الجامع", building: "البناية البيضا", floor: "الطابق التاني" })),
+      read(order([{ ...BREAD, qty: 1, change: "set" }], {}, "change_order"))]);
+    const c = await t.customer();
+    await t.text("بدي لبنة ليبان ليه وربطتين خبز عبعقلين");
+    await t.text("ما فيني ابعت لوكيشن. بعقلين، حارة الجامع، البناية البيضا، الطابق التاني");
+    await t.text("بدي ربطة خبز وحدة بس");
+    expect(outbound.filter(isPinRequest)).toHaveLength(1);
+    expect(outbound.filter(isCard).length).toBe(2);
+    const flags = await db.all(`select f.rule from risk_flags f join orders o on o.id = f.subject_id where o.customer_id = $1`, [c.party_id]);
+    expect(flags.map((f: any) => f.rule)).toEqual(["call_before_dispatch", "call_before_dispatch"]);
   }, 30_000);
 
   it("Arabizi, the address only in words (sim-046): the same, and the fixed lines are Arabic", async () => {
