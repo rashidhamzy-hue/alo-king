@@ -53,7 +53,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 `docs/NEXT_SESSIONS.md`. Where these disagree with an older section of this file, they win.
 - **Gates.** **A**, the friends' test (Rashid and three friends on the US number): HO1, B1a, B1b, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; simulated customers show zero silences after a hand-off. **B**, the shadow run (staff and family, cash only, 7 days, 100 orders): WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15%. **C**, the paid pilot: the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the +961 numbers; auto-reload on with a limit. Stop conditions: `docs/strategy/01-verdict-gates.md`.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
-- **B1a merged, targets partly met** (below): minimum-order loops 66 to 0 on simulated customers; lost baskets and wrong products not yet at target (the planner picks one product for a generic word, a SQL change B1a has no migration for). B1b (hand-off wording and language) is not started.
+- **B1a merged (#77, #79, #80), two of three targets met** (below): on 150 simulated customers, minimum-order loops 66 to 0 and lost baskets 11 to 0; wrong products 34 (target 8; the planner's generic and size picks, a kept overnight basket's counts and reading cases remain); passed 35 to 48. B1b (hand-off wording and language) is not started.
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
 - **Not done by DOC1:** `docs/DESIGN_BRIEF.md`. The founder's brief (.docx) was not in the hand-over, so it was not converted and nothing was written in its place. DS1 reads it and waits for OPS1 and HO1 first, so no session is blocked yet. Decided 15 Nov 13:30: DS1 converts it first, from its attachment. Founder action: attach the .docx (and the crown picture) to DS1.
@@ -274,7 +274,27 @@ runs from here are not directly comparable with SIM1's 40 on that line; the repo
 
 **Not done in B1a, and why:** a generic word picked as one product, and wrong sizes, are the planner's choice in SQL (`plan_order`);
 changing it needs a migration, and B1a has none reserved. Add-versus-set phrasings beyond the ordinal («مش ١ بس», "so 9 total") are
-reading cases for the language pack. **Not proven yet:** sim-test on `main` after the second follow-up; WhatsApp itself.
+reading cases for the language pack. Merged as #80.
+
+**The third run on `main`** ([sim-test 43736730998](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43736730998), limit 150,
+budget USD 4, spent **$3.51**; main at 658ef95), against SIM1's first run on the same 150 scenarios:
+
+| | SIM1 (first 150) | run 1 (#77) | run 2 (#79) | run 3 (#80) | target |
+| --- | --- | --- | --- | --- | --- |
+| minimum-order loops | 66 | 0 | 0 | **0** | at most 13: **met** |
+| lost baskets («no open order» after the first turn) | 11 | 6 | 3 | **0** | at most 2: **met** |
+| wrong or uninvited product (judge) | 40 | 71 | 54 | **34** | at most 8: **not met** |
+| passed | 35 | 39 | 41 | **48** | |
+| goal not reached / dead end / repeated question | 93 / 72 / 60 | 71 / 29 / 31 | 71 / 23 / 29 | 58 / 22 / 24 | |
+
+No failure class appeared that SIM1 did not have (the eight classes are SIM1's). Run 3's wrong-product line uses the clarified judge
+rubric (the customer's own additions are not counted), so it is not like for like with SIM1's 40. What its 34 name, from the judge's
+problems: a basket kept overnight whose counts drift or lose a line when it comes back in the morning (sim-021, -028, -067, -104,
+-105); a generic word or a brand alone picked as one product, and sizes (sim-016, -140, -145, -099, -025); «بيضا» (white, of a
+building) read as eggs outside the address step (sim-113, -117); "32 pieces" read as 32 packs (sim-147); add read as set or the
+reverse («3 kman», "add N more": sim-040, -066, -110). **What B1a leaves open:** the overnight basket's counts (the kept-order path,
+`sendKept`), the planner's generic and size picks (`plan_order`, needs a migration), and the reading cases (pack sizes, «بيضا»,
+add versus set) for the language pack. **Not proven:** WhatsApp itself.
 
 ### HO1: the never-stranded hand-off, 15 November 2026 (Opus 5.5)
 Hand-off lane, branch `claude/confident-albattani-a84wbj`, one pull request. Migrations 0135-0137 (0138 held, unused). Specification:
