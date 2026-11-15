@@ -127,3 +127,89 @@ export async function runGoAheadCase(client: ModelClient, model: string, c: GoAh
   const r = await extractOrder(client, model, { texts: c.texts, transcripts: [], state: c.state ?? {} });
   return { id: c.id, intent: r.intent?.intent ?? null, lines: r.intent?.lines.length ?? null, ...judgeGoAhead(c, r.intent) };
 }
+
+// ---------- Every turn ends in a reply (SP2) ----------
+// evals/cases/no_reply.json. A turn of the open-question loop must end with something the customer receives (a reply, a card,
+// the pin request, the catalog) or, only when the model truly cannot answer, a person told and alerted. `scripted` replays the
+// model's recorded steps (the two causes M1 found: a call cut at max_tokens, and extract_order followed by silence); `live` runs
+// the real model on the same situations. Tools return fixed, invented data; reply and the pin request go through the output guard.
+import type Anthropic from "@anthropic-ai/sdk";
+import type { AskInput } from "../packages/agents/src/concierge";
+
+export interface ReplyStep { stop: string; tools: { name: string; input: unknown }[]; text?: string | null }
+export interface ScriptedReplyCase { id: string; cause: string; customer: string; reading: unknown; steps: ReplyStep[];
+  expect: "reply" | "ask_location_pin" | "send_confirmation" | "show_catalog" | "handoff"; forced_reply_by_call?: number }
+export interface ReplyCaseResult { id: string; sent: { tool: string; text: string | null }[]; refused: string[]; handoff: string | null;
+  outcome: string | null; steps: { stop: string | null; tools: string[]; text: string | null }[]; bodies: Anthropic.MessageCreateParamsNonStreaming[] }
+
+/** A model that answers each call with the next recorded step, as the API would shape it. */
+export function replayModel(steps: ReplyStep[], bodies: Anthropic.MessageCreateParamsNonStreaming[]): ModelClient {
+  return { messages: { create: async (body) => {
+    bodies.push(structuredClone(body));
+    const s = steps[bodies.length - 1] ?? { stop: "end_turn", tools: [], text: null };
+    const content = [
+      ...(s.text ? [{ type: "text", text: s.text, citations: null }] : []),
+      ...s.tools.map((t, i) => ({ type: "tool_use", id: `tu_${bodies.length}_${i}`, name: t.name, input: t.input })),
+    ];
+    return { id: `msg_${bodies.length}`, type: "message", role: "assistant", model: "replay", content, stop_reason: s.stop, stop_sequence: null,
+             usage: { input_tokens: 10, output_tokens: s.stop === "max_tokens" ? 4096 : 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } as unknown as Anthropic.Message;
+  } } };
+}
+
+/** The tools of a reply case: an invented catalog, no village yet, no approved food fact. Only these reach the customer: reply,
+ *  ask_location_pin, show_catalog, send_confirmation (refused here: there is no quote), and handoff_human's fixed message. */
+export function replyCaseTools(out: ReplyCaseResult): ConciergeTools {
+  const speak = (tool: string) => async ({ text }: { text: string }) => {
+    const v = checkModelText(text ?? "", {});
+    if (typeof text !== "string" || !text.trim()) { out.refused.push(`${tool}:empty`); return { ok: false, error: "text_required" }; }
+    if (v) { out.refused.push(`${tool}:${v.code}`); return { ok: false, error: `refused:${v.code}` }; }
+    out.sent.push({ tool, text }); return { ok: true };
+  };
+  return {
+    search_catalog: async ({ query }) => ({ reason: null, query, matches: [
+      { product_id: "AK-T001", source_id: null, name: "Test Labneh 500G", name_ar: "لبنة تجربة ٥٠٠ غ", in_stock: true },
+      { product_id: "AK-T002", source_id: null, name: "Test Labneh 1KG", name_ar: "لبنة تجربة ١ كغ", in_stock: true },
+      { product_id: "AK-T003", source_id: null, name: "Test Pita Bread Big", name_ar: "خبز تجربة كبير", in_stock: true },
+    ] }),
+    resolve_place: async () => ({ ok: true, needs_pin: true, village_id: null, saved_places: [] }),
+    quote_order: async () => ({ ok: false, issues: [{ code: "no_delivery_village" }] }),
+    food_facts: async ({ product_ids }) => ({ products: product_ids.map((id) => ({ product_id: id, facts: [], meets: null, checks: "unknown" })) }),
+    ask_location_pin: speak("ask_location_pin"),
+    reply: speak("reply"),
+    send_confirmation: async () => ({ ok: false, error: "no_quote" }),
+    show_catalog: async () => { out.sent.push({ tool: "show_catalog", text: null }); return { ok: true, messages: 1 }; },
+    handoff_human: async ({ reason }) => { out.handoff = reason; return { ok: true }; },
+  };
+}
+
+async function runReplyLoop(client: ModelClient, model: string, id: string, texts: string[], reading: unknown): Promise<ReplyCaseResult> {
+  const out: ReplyCaseResult = { id, sent: [], refused: [], handoff: null, outcome: null, steps: [], bodies: [] };
+  const traced: ModelClient = { messages: { create: async (body) => {
+    const res = await client.messages.create(body);
+    out.steps.push({ stop: res.stop_reason ?? null, tools: res.content.filter((b) => b.type === "tool_use").map((b) => (b as { name: string }).name),
+                     text: res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ").slice(0, 200) || null });
+    return res;
+  } } };
+  // The ask loop's input as turn.ts sends it.
+  const ask = { texts, transcripts: [], state: { delivery_village_id: null, has_saved_place: false, open_quote: null, recent: [] },
+                reading: reading as AskInput["reading"], plan: null, reply_rule: REPLY_RULE };
+  const r = await runAskLoop(traced, model, ask, replyCaseTools(out));
+  out.outcome = r.outcome;
+  return out;
+}
+export async function replayReplyCase(c: ScriptedReplyCase): Promise<ReplyCaseResult> {
+  const bodies: Anthropic.MessageCreateParamsNonStreaming[] = [];
+  const r = await runReplyLoop(replayModel(c.steps, bodies), "replay", c.id, [c.customer], c.reading);
+  r.bodies = bodies;
+  return r;
+}
+export async function runLiveReplyCase(client: ModelClient, model: string, c: { id: string; texts: string[] }): Promise<ReplyCaseResult> {
+  return runReplyLoop(client, model, c.id, c.texts, null);
+}
+
+/** Passes when something reached the customer and nobody was handed the chat; a no-reply turn is the failure SP2 removes. */
+export function replyPasses(r: Pick<ReplyCaseResult, "sent" | "handoff">): { ok: boolean; why: string | null } {
+  if (r.sent.length === 0) return { ok: false, why: r.handoff ? `no reply: handed off (${r.handoff})` : "no reply" };
+  if (r.handoff) return { ok: false, why: `handed off (${r.handoff}) after a reply` };
+  return { ok: true, why: null };
+}

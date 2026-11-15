@@ -5,7 +5,8 @@
 // graded by a person from the report.
 import { describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
-import { runAddressCase, runGoAheadCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
+import { replyPasses, runAddressCase, runGoAheadCase, runLiveReplyCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
+import noReply from "../cases/no_reply.json";
 import askByCode from "../cases/ask_by_code.json";
 import address from "../cases/address_readings.json";
 import neutral from "../cases/neutral_and_food_facts.json";
@@ -53,4 +54,15 @@ describe.skipIf(!live)("live: go ahead with the waiting basket (SP1, 14 Nov «م
     console.log(JSON.stringify(r));
     expect(r.ok, r.why ?? "").toBe(true);
   }, 60_000);
+});
+
+describe.skipIf(!live)("live: every turn ends in a reply (SP2)", () => {
+  const client = live ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! }) : null;
+  const model = env.MODEL ?? "claude-haiku-5-5";
+  it.each(noReply.live.map((c) => [c.id, c] as const))("%s", async (_id, c) => {
+    const r = await runLiveReplyCase(client!, model, c);
+    console.log(JSON.stringify({ ...r, bodies: undefined }));
+    const v = replyPasses(r);
+    expect(v.ok, `${v.why} ${JSON.stringify(r.steps)}`).toBe(true);
+  }, 90_000);
 });
