@@ -128,6 +128,23 @@ export async function runGoAheadCase(client: ModelClient, model: string, c: GoAh
   return { id: c.id, intent: r.intent?.intent ?? null, lines: r.intent?.lines.length ?? null, ...judgeGoAhead(c, r.intent) };
 }
 
+// ---------- Basket edits (B1a, SIM1 fix 4) ----------
+// evals/cases/basket_edits.json: with a basket in hand, the reading marks a change to an item in it (`change` add, set or remove) and
+// an add's quantity is what is added. The first line of the reading is judged.
+export interface BasketEditCase { id: string; texts: string[]; basket: string[]; change: "add" | "set" | "remove" | null; qty?: number }
+export function judgeBasketEdit(c: BasketEditCase, intent: OrderIntent | null): { ok: boolean; why: string | null } {
+  const l = intent?.lines[0] as (OrderIntent["lines"][number] & { change?: string | null }) | undefined;
+  if (!l) return { ok: false, why: intent ? `read as ${intent.intent} with no line` : "unreadable" };
+  if ((l.change ?? null) !== c.change) return { ok: false, why: `change ${l.change ?? null}, expected ${c.change}` };
+  if (c.qty !== undefined && Number(l.qty) !== c.qty) return { ok: false, why: `qty ${l.qty}, expected ${c.qty}` };
+  return { ok: true, why: null };
+}
+export async function runBasketEditCase(client: ModelClient, model: string, c: BasketEditCase) {
+  const r = await extractOrder(client, model, { texts: c.texts, transcripts: [], state: { open_quote: { ok: false, issues: [], lines: c.basket.map((b) => {
+    const m = /^(.*) x(\d+)$/.exec(b)!; return { name: m[1], qty: Number(m[2]) }; }) } } });
+  return { id: c.id, intent: r.intent?.intent ?? null, line: r.intent?.lines[0] ?? null, ...judgeBasketEdit(c, r.intent) };
+}
+
 // ---------- Every turn ends in a reply (SP2) ----------
 // evals/cases/no_reply.json. A turn of the open-question loop must end with something the customer receives (a reply, a card,
 // the pin request, the catalog) or, only when the model truly cannot answer, a person told and alerted. `scripted` replays the

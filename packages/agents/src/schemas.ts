@@ -12,6 +12,10 @@ export const OrderLine = z.object({
   modifiers: z.array(z.string()).default([]).describe("e.g. 'no pickles', 'extra garlic', 'cut in half', 'french bread'"),
   source_hint: z.string().nullable().default(null).describe("Restaurant or shop the customer named ('من عند ...'), if any. Never a product brand: a brand goes in brand_hint"),
   confidence: z.number().min(0).max(1),
+  // B1a (SIM1 fix 4): a change to an item already in the basket or on the card is an explicit edit, never guessed by code.
+  change: z.enum(["add", "set", "remove"]).nullable().default(null).catch(null)
+    .describe("Only for an item already in the basket or on the order card: 'add' for more of it ('add 2 more Pepsi', 'zid wa7de', 'كمان تنين' -> qty is what is added), " +
+              "'set' for a new count ('make it 3', 'خليهن 3'), 'remove' to take it off ('bala khebez', 'شيل الخبز', 'no labneh'). Null for a new item"),
 });
 
 export const OrderIntent = z.object({

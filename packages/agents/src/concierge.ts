@@ -14,7 +14,8 @@ type ToolResult = Promise<unknown>;
 export interface ConciergeTools {
   search_catalog(args: { query: string; source_hint?: string | null }): ToolResult;
   resolve_place(args: { village?: string | null; landmark?: string | null; verbatim?: string | null }): ToolResult;
-  quote_order(args: { lines: { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }[]; pickup?: boolean }): ToolResult;
+  /** B1a: changes the basket in hand (each line sets that product's quantity; `remove` takes products off) and prices all of it. */
+  quote_order(args: { lines?: { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }[]; remove?: string[] | null; pickup?: boolean }): ToolResult;
   ask_location_pin(args: { text: string }): ToolResult;
   /** Approved food facts (1.11) for products, with their status, and optionally whether each meets restriction codes. */
   food_facts(args: { product_ids: string[]; restrictions?: string[] | null }): ToolResult;
@@ -37,10 +38,11 @@ const TOOL_DEFS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: { query: str, source_hint: nstr }, required: ["query"] } },
   { name: "resolve_place", description: "Match a spoken village and landmark, and list the customer's saved places. Sets the delivery village for quote_order when it is recognised and served.",
     input_schema: { type: "object", properties: { village: nstr, landmark: nstr, verbatim: nstr } } },
-  { name: "quote_order", description: "Price the order from the database: line totals, delivery fee, total in USD and LBP, ETA, and issues (out_of_stock with substitutes, below_minimum, closed, no_delivery_village, village_not_served). Pass product_id and source_id exactly as search_catalog returned them.",
+  { name: "quote_order", description: "Change the customer's basket and price all of it from the database. Each line sets that product's quantity in the basket (added if new); `remove` takes products off; anything not named stays as it is. Only products the customer chose: never a suggestion they have not accepted. Returns the whole basket priced: line totals, delivery fee, total in USD and LBP, ETA, and issues (out_of_stock with substitutes, below_minimum, closed, no_delivery_village, village_not_served). Pass product_id and source_id exactly as search_catalog returned them.",
     input_schema: { type: "object", properties: {
       lines: { type: "array", items: { type: "object", properties: { product_id: str, source_id: nstr, qty: { type: "number" }, modifiers: { type: "array", items: str }, note: nstr }, required: ["product_id", "qty"] } },
-      pickup: { type: "boolean" } }, required: ["lines"] } },
+      remove: { type: ["array", "null"], items: str, description: "product ids to take off the basket" },
+      pickup: { type: "boolean" } } } },
   { name: "food_facts", description: "Approved food facts for up to 6 products: allergens, halal, vegetarian, vegan, fasting, ingredients, nutrition, each with its status (certified, declared, calculated) and source. Pass restrictions as codes (gluten, crustaceans, eggs, fish, peanuts, soy, milk, tree_nuts, celery, mustard, sesame, sulphites, lupin, molluscs, halal, vegetarian, vegan, fasting) to get, per product, meets true or false and each check's result: pass, fails or unknown. Unknown is never safe. The only source for any food statement.",
     input_schema: { type: "object", properties: { product_ids: { type: "array", items: str, maxItems: 6 }, restrictions: { type: ["array", "null"], items: str } }, required: ["product_ids"] } },
   { name: "ask_location_pin", description: "Send WhatsApp's location request button. Use for a first-time address or when resolve_place says needs_pin. Ends your turn.",
