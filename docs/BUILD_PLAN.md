@@ -633,15 +633,16 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 3 | CX1 customer pack | Opus, high | B1b merged | 0143 to 0146 | Not started |
 | 3 | D4b pick queue and rider jobs on the console | Sonnet, high | DS1 merged | 0147 to 0148 | **Built 16 Nov** (`docs/HANDOFF.md`, D4b): pick queue, rider jobs with "act for a rider", rider incidents; one order goes confirmed to closed on the console alone, with no staff-line message (`apps/console/test/d4b.test.ts`). Not proven on a phone or staging |
 | 4 | T1 friends' test set-up | Opus, medium | Gate A: CX1, D4b, DS1 merged; pictures approved; Arabic read (T1 checks the list and stops if one is missing) | 0134 | **Waits for gate A** |
-| 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | Not started |
-| 4 | UX2 every remaining console page | Sonnet, high | DS1, D4b merged | None | Not started |
+| 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | **Parked** (design pause, 15 Nov: the founder restarts design) |
+| 4 | UX2 every remaining console page | Sonnet, high | DS1, D4b merged | None | **Parked** (design pause, 15 Nov) |
+| 4 | FX1 product facts by kind (food, drink, household, personal care, baby, pet; AI proposes, console approves; no food facts on non-food; unconfirmed facts collapse to "ask us on WhatsApp"; the chat says "doesn't apply") | Opus, medium | The founder restarts design; CX1 merged | Next free number | **Parked** (design pause, 15 Nov) |
 | 5 | L1 event log, timeline, measured times, places | Opus, high | Gate A open | 0149 to 0152 | Not started |
 | 5 | WH1a warehouse basics | Opus, high | D4b merged | 0153, 0156, 0157, 0188, 0189 (0154 and 0155 are WEB1's) | Not started |
 | 5 | N2 nightly checks and learning | Sonnet, medium | COST1 merged | 0186 | Not started |
 | 6 | RD1 rider pack | Opus, high | L1 merged | 0160 to 0163 | Not started |
 | 6 | AN1 reports and the daily summary | Sonnet, high | L1, UX2 merged | 0164 to 0166 | Not started |
-| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | Not started |
-| 7 | PAY1 payment core and adapters | Opus, high | WEB2 merged | 0167 to 0171 | Not started |
+| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | **Parked** (design pause, 15 Nov) |
+| 7 | PAY1 payment core and adapters | Opus, high | CX1 merged (was WEB2; design pause, 15 Nov) | 0167 to 0171 | Not started |
 | 7 | RCPT1 receipts and lira display | Sonnet, medium | CX1 merged | 0172 to 0173 | Not started |
 | 7 | AUD1 audit of what the planning chat could not reach | Sonnet, high | Nothing | 0176 to 0177 | Not started |
 | 8 | SH1 Send Home | Opus, medium | PAY1 merged | 0174 to 0175 | Not started |

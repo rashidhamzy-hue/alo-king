@@ -13,6 +13,7 @@
 // already has is rejected before the paid check (lib/dedupe.mjs); the items run fastest sellers first (supabase/seed/catalog.csv);
 // every item ends with a candidate or a named reason (report.mjs); the run's file is pictures-run.json.
 // Flags: --limit N  --sku AK-0001  --force (also items that already have a picture)  --no-search  --retry-all (also items an earlier run finished with nothing)  --concurrency N
+//        --from-list data/pictures/candidates.csv  (PIX2: download exactly the listed pictures, run the same checks, queue the passes; no search, no Open Food Facts lookup)
 import { readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { gate, fetchRetry, readCapped, pool } from "./lib/http.mjs";
@@ -23,6 +24,7 @@ import { loadSharp, measure, shrink, MIN_WIDTH } from "./lib/image.mjs";
 import { dhash, makeRegistry, loadRegistry } from "./lib/dedupe.mjs";
 import { checkPicture, decide } from "./lib/vision.mjs";
 import { makeStore } from "./lib/store.mjs";
+import { parseCandidates } from "./lib/fromlist.mjs";
 import { runMetered } from "../lib/model-cost.mjs";
 
 export const MAX_CANDIDATES = 8;     // per item, over all sources
@@ -73,8 +75,9 @@ const licenceOf = (e) => LICENCE_FOR[e.source_kind];
 /** One item, start to finish. d = { off, brand, open, download, sharp, check, store, runId, model, searchOn } (all injectable). */
 export async function processItem(item, d) {
   const sources = []; const evaluated = []; const errors = []; let seen = 0;
-  const stages = [["open_food_facts", () => (item.barcode ? d.off(item) : [])]];
-  if (d.searchOn) stages.push(["brand_site", () => d.brand(item)], ["web_search", () => d.open(item)]);
+  // From-list mode (PIX2): only the pictures a person listed for this item; no search, same checks.
+  const stages = d.listed ? [["listed", async () => d.listed.get(item.sku) ?? []]] : [["open_food_facts", () => (item.barcode ? d.off(item) : [])]];
+  if (!d.listed && d.searchOn) stages.push(["brand_site", () => d.brand(item)], ["web_search", () => d.open(item)]);
   let winner = null;
   try {
     for (const [name, gather] of stages) {
@@ -84,7 +87,7 @@ export async function processItem(item, d) {
       sources.push(name);
       const seenUrls = new Set(evaluated.map((e) => e.image_url));
       cands = cands.filter((c) => !seenUrls.has(c.imageUrl)).slice(0, Math.min(MAX_PER_SOURCE, MAX_CANDIDATES - seen));
-      for (const c of cands) { seen++; evaluated.push({ ...(await evaluate(item, c, d)), page_url: c.pageUrl, attribution: c.attribution }); }
+      for (const c of cands) { seen++; evaluated.push({ ...(await evaluate(item, c, d)), page_url: c.pageUrl, attribution: c.attribution, found_at: c.foundAt ?? null }); }
       const kept = evaluated.filter((e) => e.kept).sort(better);
       winner = kept[0] ?? null;
       if (winner && customerUsable(licenceOf(winner))) break;   // a usable picture: no need to spend on the later stages
@@ -109,7 +112,7 @@ export async function processItem(item, d) {
       p_attribution: winner.attribution ?? null, p_media_path: path, p_sha256: winner.small.sha256,
       p_width: winner.small.width, p_height: winner.small.height, p_bytes: winner.small.bytes,
       p_vision: { run_id: d.runId, model: d.model, report: winner.report, original_width: winner.orig_width, original_height: winner.orig_height, checked_at: new Date().toISOString(),
-        retrieved_at: new Date().toISOString(), phash: winner.hash ?? null, rank: item.rank ?? null, candidates: summary },
+        retrieved_at: new Date().toISOString(), listed_found_at: winner.found_at ?? null, phash: winner.hash ?? null, rank: item.rank ?? null, candidates: summary },
       p_replace: customerUsable(licenceOf(winner)) });
     const outcome = res?.ok ? "proposed" : res?.skipped === "rejected_before" ? "skipped_rejected" : "none_passed";
     await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: seen, p_kept: keptCount, p_outcome: outcome, p_detail: { evaluated: summary, errors, propose: res } });
@@ -172,13 +175,14 @@ export function summarise(results, coverage) {
 }
 
 function args(argv) {
-  const a = { limit: null, sku: null, force: false, search: true, retryAll: false, concurrency: 4 };
+  const a = { limit: null, sku: null, force: false, search: true, retryAll: false, concurrency: 4, fromList: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--limit") a.limit = Number(argv[++i]);
     else if (argv[i] === "--sku") a.sku = argv[++i];
     else if (argv[i] === "--force") a.force = true;
     else if (argv[i] === "--no-search") a.search = false;
     else if (argv[i] === "--retry-all") a.retryAll = true;
+    else if (argv[i] === "--from-list") a.fromList = argv[++i];
     else if (argv[i] === "--concurrency") a.concurrency = Number(argv[++i]);
   }
   return a;
@@ -209,6 +213,13 @@ async function main(meter) {
   };
   let items = await store.rpc("product_images_to_fetch", { p_limit: a.limit, p_force: a.force });
   if (a.sku) items = items.filter((i) => i.sku === a.sku);
+  if (a.fromList) {
+    const { bySku, dropped } = parseCandidates(readFileSync(a.fromList, "utf8"));
+    d.listed = bySku; d.searchOn = false;
+    const before = items.length;
+    items = items.filter((i) => bySku.has(i.sku));
+    console.log(`from list ${a.fromList}: ${bySku.size} items listed (${dropped} rows without an https picture and page dropped); ${items.length} of them still need a picture (${before - items.length} not offered by the database or not listed)`);
+  }
   // The fastest sellers go first, so their candidates are the first in the approval queue.
   const sales = salesBySku(readFileSync(fileURLToPath(new URL("../../supabase/seed/catalog.csv", import.meta.url)), "utf8"));
   const ranked = rankItems(items, sales);
@@ -216,14 +227,14 @@ async function main(meter) {
   console.log(`duplicate check: ${reg.loaded} pictures already held (${reg.backfilled} hashed from the bucket, ${reg.failed} unreadable)`);
   let skipped = 0;
   items = ranked;
-  if (!a.retryAll && !a.force) {
+  if (!a.retryAll && !a.force && !a.fromList) {
     const skip = conclusiveSkips(await store.select("product_image_attempts", "select=product_id,outcome,sources_tried&outcome=in.(none_found,none_passed)"), searchOn);
     const before = items.length;
     items = items.filter((i) => !skip.has(i.product_id));
     skipped = before - items.length;
   }
   console.log(`first in the queue: ${items.slice(0, 20).map((i) => `${i.sku}(${i.units})`).join(" ")}`);
-  console.log(`run ${runId}: ${items.length} items (${skipped} skipped: already looked at to the end); sources: Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`);
+  console.log(`run ${runId}: ${items.length} items (${skipped} skipped: already looked at to the end); sources: ${a.fromList ? `the list ${a.fromList}` : `Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`}`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
     if (fatal || meter.capStop()) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
@@ -241,7 +252,7 @@ async function main(meter) {
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
       `### Product pictures, run ${runId}`,
-      `- sources: Open Food Facts${searchOn ? ", brand sites, web image search (Brave)" : " only"}`,
+      `- sources: ${a.fromList ? `the list ${a.fromList} (no search)` : `Open Food Facts${searchOn ? ", brand sites, web image search (Brave)" : " only"}`}`,
       `- processed this run: ${s.processed}; outcomes: ${JSON.stringify(s.outcomes)}`,
       `- proposed this run by licence: ${JSON.stringify(s.proposed_by_licence)}`,
       `- errors by message: ${JSON.stringify(s.errors_by_message)}`,

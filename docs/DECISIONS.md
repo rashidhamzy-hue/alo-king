@@ -120,6 +120,27 @@ our own); the source address is stored with every picture; a person approves eac
 Meta objects to a picture it is withdrawn at once and replaced by our own photo at intake (5.15). Recorded licence value: `public_page`.
 Applied to web search by session PIX (15 Nov 2026): a search hit that names its https page is filed as `public_page`; a hit without a page address stays `unknown`. No migration: 0070 already allows it.
 
+## Founder decisions, 15 November 2026 (later): design paused; no new picture search service
+Recorded by session PIX2. Each supersedes any earlier line that disagrees.
+
+**1. All website and console design is paused for a full redesign later.** The founder will restart design himself; until he does,
+**UX2, UX3 and WEB2 are parked** (each stays in `docs/NEXT_SESSIONS.md` and `docs/BUILD_PLAN.md` marked parked, with its row kept) and a
+new session **FX1** is parked with them. Console work in other sessions stays **functional, on the existing components, with no visual
+work** (no new styles, no new components, no screenshots required for it). Customer ordering on WhatsApp is unaffected.
+**PAY1 now waits for CX1, not WEB2** (the payment core is built against the order functions, not the website's checkout).
+
+**2. FX1, product facts by kind (parked).** Each item gets a **kind**: food, drink, household, personal care, baby or pet. AI proposes
+the kind; a person approves it in the console (the same propose-and-approve path as names). Each kind shows only its own facts:
+**no nutrition, allergen, diet or Open Food Facts lines on a non-food item.** Facts that are not confirmed collapse to one line,
+"ask us on WhatsApp". The chat answers "doesn't apply" to a food question (calories, allergens, diet) about a non-food item. Invariants 14
+to 16 still hold: unknown is never safe, and a stated allergy is an allergy.
+
+**3. No new search service for pictures.** The founder declined to add Brave or any other search API (this replaces the "Chosen: Brave
+Search API" row in "Product picture search" below; that section is kept as history). Pictures now come from a list of candidates
+(`data/pictures/candidates.csv`: sku, picture address, page, time found), found with a session's own web search or by hand, and loaded by
+the `images` workflow's **from list** mode, which runs the same checks (same pack, no watermark, duplicates refused, 1200 px JPEG under 300 KB).
+A person still approves each picture on the console's Pictures page, fastest sellers first. The public-page rule of 14 November is unchanged.
+
 ## Founder decisions of 14 November 2026 (from `docs/SYSTEM_BRIEF.md`), recorded by session S1
 Each is a decision. Where it disagrees with an older decision or with the wording of an invariant, it is in the conflict
 register below; S1 resolved none of them. The founder answered all eleven on 14 November (section "Founder answers, 14 November", below).
