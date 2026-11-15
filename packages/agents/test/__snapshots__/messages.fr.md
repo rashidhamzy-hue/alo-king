@@ -1241,6 +1241,75 @@ Nous n'avons pas de taux de change confirmé pour le moment.
 Vous pouvez payer en dollars, ou nous redemander un peu plus tard.
 ```
 
+## basket.minimum
+
+```text
+🛒 Votre commande est sous le minimum.
+Commande minimum : $5.00
+Votre panier : $0.69
+Il manque : $4.31
+Ajoutez un article, ou choisissez ci-dessous :
+```
+
+## basket.minimumIs
+
+```text
+🛒 Commande minimum : $5.00
+Que voulez-vous commander ?
+```
+
+## basket.moreButton
+
+```text
++7 Al Forno white bread, large 800 g
+```
+
+## basket.cancelButton
+
+```text
+Annuler
+```
+
+## basket.cleared
+
+```text
+D'accord, rien ne sera envoyé et votre panier est vide.
+Écrivez-moi quand vous voulez commander.
+```
+
+## basket.soFar
+
+```text
+🛒 Votre commande n'est pas encore envoyée. Dans votre panier :
+• 1 × Tannourine water 2 L (pack of 6)
+• 2 × Al Forno white bread, large 800 g
+• 3 × Najjar Classic coffee 180 g
+```
+
+## basket.changed
+
+```text
+✅ Votre commande est modifiée :
++ 2 × Tannourine water 2 L (pack of 6)
+− Al Forno white bread, large 800 g
+Najjar Classic coffee 180 g: 1 → 3
+```
+
+## basket.unavailable
+
+```text
+⚠️ Plus disponible maintenant :
+• Najjar Classic coffee 180 g
+Dites-moi ce que vous voulez à la place, ou retirez-le.
+```
+
+## basket.cancelRefused
+
+```text
+La commande AK-1042 est déjà en préparation, on ne peut pas l'annuler d'ici.
+Une personne de notre équipe vous appellera.
+```
+
 ## payment.proofReceived
 
 ```text

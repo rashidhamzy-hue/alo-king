@@ -9,6 +9,7 @@ import { messages, productName, type Lang } from "./messages";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 import { catalogMessages } from "./catalog-messages";
 import { handoffToCase, openCase, tellOpened, type SupportNote } from "./support";
+import { applyEdits, askMinimum, underMinimumOnly, type BasketEdit } from "./basket";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -23,7 +24,9 @@ export interface ConversationState {
    * A card is ready to go out from lastQuote once the customer supplies what is missing: a pin, the village when the pin was
    * not clear (a tap), the house and floor for a first delivery to a new place, or a phone number the rider can call.
    */
-  awaiting?: "pin" | "village" | "address" | "phone" | "opening" | "window" | null;
+  awaiting?: "pin" | "village" | "address" | "phone" | "opening" | "window" | "minimum" | null;
+  /** B1a: when the basket in hand last changed (ms). A basket nobody touched for BASKET_KEEP_MS is let go (basket.ts). */
+  basketAt?: number | null;
   /** What the last pin said (B4): the pin decides the village. Unsure means the customer chooses from `candidates` by tap. */
   pinCheck?: PinCheck | null;
   pending?: CardTerms | null;
@@ -67,6 +70,8 @@ export interface ToolContext {
   turnKey?: string;
   /** HO1: what the turn learned about cases (opened, reminded, a food fact not on record, a stalled loop). */
   support?: SupportNote;
+  /** B1a (SIM1 fix 10): search_catalog ran this turn, so a claim about what the catalogue holds has a tool result behind it. */
+  searched?: boolean;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -92,6 +97,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     async search_catalog({ query, source_hint }) {
       const r = await rpc<{ matches: Record<string, unknown>[]; reason: string | null }>(ctx.db, "search_catalog",
         { p_query: query, p_source_hint: source_hint ?? null, p_limit: 6 });
+      ctx.searched = true;
       // Trim to what the model needs to choose; ids must be passed back untouched.
       return {
         reason: r.reason,
@@ -114,11 +120,27 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return r;
     },
 
-    async quote_order({ lines, pickup }) {
+    async quote_order({ lines, remove, pickup }) {
+      // B1a (SIM1 fixes 3 and 4): the model changes the basket by explicit edits, never by replacing it. Each line sets that
+      // product's quantity (added when new); `remove` takes products off; a line not named stays. A substitute the last quote
+      // listed for a line that ran out takes that line's place. The whole basket is priced and kept.
+      const held = ctx.state.lastQuote;
+      const substituteOf = new Map<string, string>();
+      for (const i of held?.quote.issues ?? []) {
+        if ((i.code === "out_of_stock" || i.code === "insufficient_stock") && Array.isArray(i.substitutes))
+          for (const x of i.substitutes as { product_id?: string }[]) if (x.product_id && i.product_id) substituteOf.set(x.product_id, String(i.product_id));
+      }
+      const edits: BasketEdit[] = [
+        ...(lines ?? []).map((l) => ({ op: "set" as const, product_id: l.product_id, qty: l.qty, source_id: l.source_id ?? null, modifiers: l.modifiers,
+                                       note: l.note ?? null, replaces: substituteOf.get(l.product_id) ?? null })),
+        ...(remove ?? []).map((p) => ({ op: "remove" as const, product_id: p })),
+      ];
+      const basket = applyEdits(held?.lines ?? [], edits).lines;
       const villageId = pickup ? null : ctx.state.villageId ?? null;
-      const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: lines, p_village: villageId, p_pickup: !!pickup });
-      ctx.state.lastQuote = { lines, villageId, pickup: !!pickup, quote };
-      return quote;
+      const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket, p_village: villageId, p_pickup: !!pickup });
+      ctx.state.lastQuote = { lines: basket, villageId, pickup: !!pickup, quote };
+      ctx.state.basketAt = Date.now();
+      return { ...quote, basket_note: "These lines are the customer's whole basket now. send_confirmation sends exactly this basket." };
     },
 
     async food_facts({ product_ids, restrictions }) {
@@ -173,6 +195,14 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     async show_catalog({ category, product_id }) {
       // 1.21: what to show comes from the database (catalog_list); the words and the message are code's. At most the turn's two sends.
       const r = await catalogMessages(ctx.db, { category: category ?? null, product_id: product_id ?? null });
+      // B1a (SIM1 fix 10): the WhatsApp catalog cannot be shown (not connected, or nothing with a picture): one fixed line by code
+      // that asks for the items in words. The model never words the failure ("the catalogue is not ready"). An unknown category
+      // goes back to the model with the list of categories, to try again.
+      if (!r.ok && r.error !== "unknown_category") {
+        const s = T(ctx).support.browseInWords;
+        const told = await deliver(ctx, { type: "text", text: { body: s } }, s);
+        return told.ok ? { ok: true, note: "The catalog with pictures is not available; the customer was asked to type what they need." } : told;
+      }
       if (!r.ok) return r;
       for (const msg of r.messages) {
         const sent = await deliver(ctx, msg, r.summary);
@@ -195,7 +225,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
  */
 export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
   let v: Violation | null = null;
-  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts }); if (v) break; }
+  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts, catalogueSearched: !!ctx.searched }); if (v) break; }
   if (!v) return null;
   await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
                                            trace: { code: v.code, match: v.match.slice(0, 60) } });
@@ -222,7 +252,7 @@ async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok:
   return { ok: true, text: q.lines.map((l) => T(ctx).fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok)).join("\n") };
 }
 
-export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" | "window" } | { ok: false; error: string; issues?: unknown };
+export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" | "window" | "minimum" } | { ok: false; error: string; issues?: unknown };
 
 /**
  * Creates the order from priced lines and sends the card. The deterministic path and the Concierge's send_confirmation
@@ -259,6 +289,11 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     const told = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.fxPaused } }, T(ctx).fixed.fxPaused);
     return told.ok ? { ok: false, error: "fx_paused" } : told;
+  }
+  // B1a (SIM1 fix 1): under the minimum, said by code with the amounts, before anything else; the basket waits for more.
+  if (!created.created && underMinimumOnly(created.quote) && !ctx.state.replacing) {
+    const told = await askMinimum(ctx, basket, terms, created.quote, opts.before);
+    return told ? { ok: true, waiting_for: "minimum" } : { ok: false, error: "not_sent" };
   }
   const closed = created.created ? undefined : created.quote.issues.find((i) => i.code === "closed");
   if (closed) {

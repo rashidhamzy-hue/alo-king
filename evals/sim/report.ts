@@ -1,5 +1,6 @@
 // SIM1: from the run's results to docs/SIM_REPORT (markdown) and one failing-case file per failure class (evals/cases/sim_<class>.json).
 // Failure classes are the hard checks code ran on every turn and the judge's findings; they are ranked by count times severity.
+import { basketSection } from "./basket-measures";
 import { NOTE_CODES } from "./checks";
 import { describeAction, transcriptOf } from "./judge";
 import { FIXES } from "./fixes";
@@ -150,6 +151,7 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
     L.push(`### ${c.cls} (${c.conversations} conversations, severity ${c.severity.toFixed(2)})`, "");
     for (const r of c.examples.slice(0, 3)) L.push(excerpt(r, c.cls), "");
   }
+  L.push(...basketSection(judged));
   L.push("## Hand-offs and silence (baseline for the hand-off redesign)", "");
   L.push(table(["", "value"], [
     ["conversations with a hand-off", `${handed.length} (${pct(handed.length, first.length)})`],

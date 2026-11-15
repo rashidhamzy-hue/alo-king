@@ -132,6 +132,19 @@ export const fr: Messages = {
     noRate: "Nous n'avons pas de taux de change confirmé pour le moment.\nVous pouvez payer en dollars, ou nous redemander un peu plus tard.",
   },
 
+  basket: {
+    minimum: (min, now, gap) => ["🛒 Votre commande est sous le minimum.", `Commande minimum : ${usd(min)}`, `Votre panier : ${usd(now)}`,
+      `Il manque : ${usd(gap)}`, "Ajoutez un article, ou choisissez ci-dessous :"].join("\n"),
+    minimumIs: (min) => `🛒 Commande minimum : ${usd(min)}\nQue voulez-vous commander ?`,
+    moreButton: (n, name) => `+${n} ${name}`,
+    cancelButton: "Annuler",
+    cleared: "D'accord, rien ne sera envoyé et votre panier est vide.\nÉcrivez-moi quand vous voulez commander.",
+    soFar: (items) => `🛒 Votre commande n'est pas encore envoyée. Dans votre panier :\n${bullets(items)}`,
+    changed: (rows) => `✅ Votre commande est modifiée :\n${rows.join("\n")}`,
+    unavailable: (names) => `⚠️ Plus disponible maintenant :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
+    cancelRefused: (code) => `La commande ${code} est déjà en préparation, on ne peut pas l'annuler d'ici.\nUne personne de notre équipe vous appellera.`,
+  },
+
   payment: {
     proofReceived: (code) => `✅ Nous avons reçu la photo du paiement pour la commande ${code}, merci.\nUne personne de notre équipe la vérifie et revient vers vous.`,
     proofResend: "Nous n'avons pas pu ouvrir l'image.\nPouvez-vous renvoyer la photo du reçu ?",

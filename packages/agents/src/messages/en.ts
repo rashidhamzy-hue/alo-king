@@ -132,6 +132,19 @@ export const en: Messages = {
     noRate: "We have no confirmed exchange rate right now.\nYou can pay in dollars, or ask us again shortly.",
   },
 
+  basket: {
+    minimum: (min, now, gap) => ["🛒 Your order is under the minimum.", `Minimum order: ${usd(min)}`, `Your basket now: ${usd(now)}`,
+      `Still to add: ${usd(gap)}`, "Add something, or choose below:"].join("\n"),
+    minimumIs: (min) => `🛒 Minimum order: ${usd(min)}\nWhat would you like to order?`,
+    moreButton: (n, name) => `+${n} ${name}`,
+    cancelButton: "Cancel order",
+    cleared: "OK, nothing will be sent and your basket is empty.\nWrite to me whenever you want to order.",
+    soFar: (items) => `🛒 Your order is not sent yet. In your basket:\n${bullets(items)}`,
+    changed: (rows) => `✅ Your order is updated:\n${rows.join("\n")}`,
+    unavailable: (names) => `⚠️ Not available now:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
+    cancelRefused: (code) => `Order ${code} is already being prepared, so it can't be cancelled from here.\nA person from our team will call you about it.`,
+  },
+
   payment: {
     proofReceived: (code) => `✅ We received the payment photo for order ${code}, thank you.\nSomeone from our team is checking it and will get back to you.`,
     proofResend: "We couldn't open the picture.\nCould you send the receipt photo again?",
