@@ -11,7 +11,7 @@ export interface Nav { bottom: (NavLink & { icon: string })[]; groups: NavGroup[
 
 /** Which hub shows which pages, in order. The home page and the orders page are first-level and belong to no group. */
 export const GROUPS: { id: "run" | "approve" | "stock"; key: Key; hub: string | null; hrefs: string[] }[] = [
-  { id: "run", key: "g_run", hub: "/more", hrefs: ["/day-open", "/day-close", "/exceptions", "/riders", "/windows", "/cases", "/merchants"] },
+  { id: "run", key: "g_run", hub: "/more", hrefs: ["/day-open", "/day-close", "/exceptions", "/riders", "/windows", "/cases", "/merchants", "/templates", "/staff"] },
   { id: "approve", key: "g_approve", hub: "/approve", hrefs: ["/approvals", "/names", "/readiness", "/pictures", "/food-facts", "/search-words", "/auto-approvals", "/intake"] },
   { id: "stock", key: "g_stock", hub: "/stock", hrefs: ["/payments", "/catalog", "/receiving", "/returns", "/refunds", "/money", "/fx", "/zones"] },
 ];

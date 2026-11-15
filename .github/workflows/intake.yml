@@ -7,6 +7,8 @@
 #      picture and food_facts (P2's loader, unchanged). It stops taking jobs once the run's model spend passes 0.75 USD;
 #   4. writes the run's minutes and spend in intake_runs and in this step summary.
 # A job that fails is tried again next run; after the third failure it is on the review list with its reason.
+# Cost (COST1): the run is also counted in model_costs (migration 0139), and its cap is max_spend_usd below (0.75 at most), enforced
+# between jobs by the script itself. The run summary prints the total.
 # Nothing is approved by this workflow: a person, or a rule that passed its spot check, approves. Allergens, diet labels,
 # prices and costs are never automatic (the database refuses it).
 # Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.

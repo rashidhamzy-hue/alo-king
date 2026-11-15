@@ -20,16 +20,21 @@ Roadmap rows are in `docs/BUILD_PLAN.md`, "Strategy revision, 15 November 2026";
 ## Gates
 | Gate | Opens | Needs |
 |---|---|---|
-| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off |
+| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1a, B1b, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off |
 | **B** | The shadow run (staff and family, cash only, 7 days, 100 orders) | WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15% |
 | **C** | The paid pilot | The SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the numbers; auto-reload on with a limit |
 
 Stop conditions: `docs/strategy/01-verdict-gates.md`.
 
 **Where the queue stands.** HO1 is done (15 November; `docs/HANDOFF.md`, HO1): the simulated customers show zero silences after a hand-off. B1 and DS1 may
-start on it. DOC1 is done. Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
-`BACKUP_PASSPHRASE`). HO1 and COST1 wait for SIM1's report to be merged (`docs/SIM_REPORT_2026-11-15.md`; the workflow is on `main`).
+start on it. DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
+`BACKUP_PASSPHRASE`). SIM1's report is merged (`docs/SIM_REPORT_2026-11-15.md`).
 T1 waits for gate A. At most three sessions at once.
+
+**Coordinator decisions of 15 November, 13:30** (full text in `docs/DECISIONS.md`, "Coordinator decisions, 15 November 2026, 13:30"):
+B1 is split into **B1a** and **B1b**, run one after the other after HO1, and CX1 waits for B1b; the minimum order is $5 with no small-order fee
+at launch; a first order without a map pin is accepted with a typed village and landmark and marked for a rider call; DS1 converts the
+founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 
 ## Sessions in run order
 | Wave | Session | Model, effort | Waits for | Runs beside | Files | Migrations | Done when |
@@ -38,12 +43,13 @@ T1 waits for gate A. At most three sessions at once.
 | 0 | **PUB1** public-repository hygiene | Sonnet, medium | Nothing | DOC1, BK0 | `scripts/ci/`, `.github/workflows/ci.yml`, `.gitleaks.toml`, `test/ci/`, `package.json` | None | A planted phone number, pin, plus code or key fails CI and the pre-commit hook; CI tools pinned with checksums |
 | 0 | **BK0** free backups and restore check | Sonnet, medium | The founder's passphrase secret | DOC1, PUB1 | `.github/workflows/backup.yml`, `restore-check.yml`, `scripts/backup/`, `docs/RUNBOOK.md` | None | One encrypted copy stored; one restore check green; an alert when a copy is older than 36 hours |
 | 1 | **HO1** never-stranded hand-off (done, 15 Nov) | Opus, high | SIM1's report merged | COST1, OPS1 | `apps/gateway/src/turn.ts`, `packages/agents/src/messages/`, `apps/console/src/pages/inbox.ts` (new) | 0135 to 0137 used | The tests in `05`, section D; a plain Inbox page works |
-| 1 | **COST1** cost recorded, capped | Sonnet, medium | SIM1's report merged | HO1, OPS1 | `.github/workflows/*`, `scripts/` that call a model | 0139 | Every model-calling workflow writes tokens and dollars to a table and its summary, and stops at its cap |
-| 1 | **OPS1** alerts that wake someone | Sonnet, high | Nothing | HO1, COST1 | `apps/console/` (push, roles, settings pages), `apps/web/` (Sentry) | 0140 to 0142 | A test case pushes to a phone; staff can be added and blocked in the console; template-health page; sign-in throttle; Sentry in all three Workers |
-| 2 | **B1** ordering fixes from SIM1 | Opus, high | HO1 merged | DS1, PIX | `packages/agents/src/` (reading, planner, guard), `evals/` | None | The report's ranked classes pass their new cases; the language gate holds; 150 simulated conversations re-run with those classes at zero |
-| 2 | **DS1** design system and flagship screens | **Fable, high** | OPS1 and HO1 merged; the crown picture attached | B1, PIX | `packages/ui/` (new), Today, Inbox and Orders pages, the website's home, category, search and product | None | The gallery; the screens rebuilt; every existing test passes; screenshots |
-| 2 | **PIX** pictures | Sonnet, medium | Nothing | B1, DS1 | Picture scripts and workflow only | None | A candidate for every item; the 20 fastest sellers first in the queue; duplicate and wrong-pack checks |
-| 3 | **CX1** customer pack | Opus, high | B1 merged | D4b | `packages/agents/src/`, `packages/commerce/`, card and order functions | 0143 to 0146 | Welcome with the privacy line; missing-item choice; "which note" and keep-the-change; self-service cancel until picking; handover code; pickup |
+| 1 | **COST1** cost recorded, capped | Sonnet, medium | SIM1's report merged | HO1, OPS1 | `.github/workflows/*`, `scripts/` that call a model | 0139 | Every model-calling workflow writes tokens and dollars to a table and its summary, and stops at its cap. **Built 15 Nov**; one real run of each waits for 0139 on staging |
+| 1 | **OPS1** alerts that wake someone (**built**, see HANDOFF) | Sonnet, high | Nothing | HO1, COST1 | `apps/console/` (push, roles, settings pages), `apps/web/` (Sentry) | 0140 to 0142 | A test case pushes to a phone; staff can be added and blocked in the console; template-health page; sign-in throttle; Sentry in all three Workers |
+| 2 | **B1a** ordering fixes from SIM1, part 1 | Opus, high | HO1 merged | DS1, PIX | `packages/agents/src/` (reading, planner, guard, fixed messages), `packages/commerce/` quote, `supabase/seed/proposed_pilot_settings.sql`, `evals/` | None | Report fixes 1, 3, 4, 9 and 10 and the two no-reply turns pass their new cases; the language gate holds; 150 simulated conversations re-run with those classes at zero |
+| 2 | **B1b** ordering fixes from SIM1, part 2 | Opus, high | B1a merged | DS1, PIX | `packages/agents/src/` (reading, places, language), `evals/` | None | Report fixes 5, 6, 7 and 8 pass their new cases; the language gate holds; 150 simulated conversations re-run with those classes at zero |
+| 2 | **DS1** design system and flagship screens | **Fable, high** | OPS1 and HO1 merged; the crown picture and the founder's brief (.docx) attached | B1a, B1b, PIX | `packages/ui/` (new), Today, Inbox and Orders pages, the website's home, category, search and product | None | The gallery; the screens rebuilt; every existing test passes; screenshots |
+| 2 | **PIX** pictures | Sonnet, medium | Nothing | B1a, B1b, DS1 | Picture scripts and workflow only | None | A candidate for every item; the 20 fastest sellers first in the queue; duplicate and wrong-pack checks |
+| 3 | **CX1** customer pack | Opus, high | B1b merged (B1a before it) | D4b | `packages/agents/src/`, `packages/commerce/`, card and order functions | 0143 to 0146 | Welcome with the privacy line; missing-item choice; "which note" and keep-the-change; self-service cancel until picking; handover code; pickup |
 | 3 | **D4b** pick queue and rider jobs on the console | Sonnet, high | DS1 merged | CX1 | `apps/console/src/pages/` (new pages) | 0147 to 0148 | A picker completes an order with no WhatsApp; ops can act for a rider; rider incident pages |
 | 4 | **T1** friends' test set-up | Opus, medium | CX1, D4b, DS1 merged; pictures approved; Arabic read | WEB2, UX2 | Test accounts, the daily test report, `docs/` | 0134 | Four testers and one rider phone work end to end on staging; the report arrives nightly |
 | 4 | **WEB2** cart, checkout, tracking | Opus, high | CX1 merged | T1, UX2 | `apps/web/`, the web functions | 0178 to 0180 | One order placed on the site and one on WhatsApp are identical in price and ledger |
@@ -239,25 +245,81 @@ the tests pass; screenshots. Rules: the block at the top of
 docs/NEXT_SESSIONS.md.
 ```
 
-### B1 (Opus, high)
+### B1a (Opus, high)
 ```
-You are session B1 (ordering fixes from the simulated customers),
-Opus, high effort. Read docs/SIM_REPORT_2026-11-15.md and
-evals/cases/sim_*.json. Fix the failure classes in the report's
-ranked order, each on its failing cases: at least the minimum-order
-loop that never states the amount, Arabic-Indic digits copied into
-replies, the substitute question asked twice, and the two carried
-ordering bugs in HANDOFF (the size-only line; «بدي أغراض لمجدرة»).
-No change to hand-off code. Done when: the new cases pass; the
-language gate holds (wrong products 0, F1 at least 0.90); sim-test
-with limit 150 shows those classes at zero. Rules: the block at the
-top of docs/NEXT_SESSIONS.md.
+You are session B1a (ordering fixes from the simulated customers,
+part 1), Opus, high effort. Read docs/SIM_REPORT_2026-11-15.md,
+evals/cases/sim_*.json and "Coordinator decisions, 15 November 2026,
+13:30" in docs/DECISIONS.md. Run after HO1; B1b follows you. Fix, in
+the report's ranked order, each on its failing cases:
+ 1. The minimum order, said by code with its amount and the gap, both
+    from the quote. The minimum is $5 (a setting: min_order_usd) and
+    there is no small-order fee at launch (the fee setting stays off;
+    change supabase/seed/proposed_pilot_settings.sql to match). One
+    rule, never both. Say it was set by the coordinator and the
+    founder may overrule: the amount is data, not code.
+ 3. The status shortcut must not say "no open order" while a basket
+    or draft is in hand; the card is built from the whole basket.
+ 4. The basket changes only by what the customer picked (no item from
+    a tentative "maybe", quantities as additions, edits by explicit
+    add, remove, set-quantity; a changed card shows what changed).
+ 9. A cancel the database refuses gets a fixed answer and an ops
+    alert, not a button_error hand-off.
+10. No catalogue claim without a tool result; a failed show_catalog
+    gets a fixed line and a typed alternative.
+ And the two no-reply turns (sim-009, sim-014: a tap on a delivery
+ window from the list got nothing back, outcome buttons): a reply or
+ a recorded reason on every tap.
+Also the two carried ordering bugs in HANDOFF (the size-only line;
+«بدي أغراض لمجدرة») if their cases are not already covered. No change
+to hand-off code or to anything fixes 5, 6, 7 and 8 own (B1b). Every
+bug becomes a case in evals/ before its fix. Done when: the new cases
+pass; the language gate holds (wrong products 0, F1 at least 0.90);
+sim-test with limit 150 shows those classes at zero. Rules: the block
+at the top of docs/NEXT_SESSIONS.md; update HANDOFF Status and the
+B1a row of BUILD_PLAN.
 ```
 
-### DS1 (Fable, high) — attach the crown picture
+### B1b (Opus, high)
+```
+You are session B1b (ordering fixes from the simulated customers,
+part 2), Opus, high effort. Read docs/SIM_REPORT_2026-11-15.md,
+evals/cases/sim_*.json and "Coordinator decisions, 15 November 2026,
+13:30" in docs/DECISIONS.md. Run after B1a is merged; CX1 waits for
+you. Fix, each on its failing cases:
+ 5. A first order without a map pin. A first order is accepted with
+    a typed village and landmark and is marked for a rider call: the
+    rider or ops phones the customer before the order goes out. Use
+    the existing resolve_place path and the order's existing note and
+    flag fields; if a new column is needed, stop and write it into
+    HANDOFF for L1 (this session has no migration). A pin that falls
+    between villages asks one short question, not a 257-character
+    list. A pin outside the service area is still refused.
+ 6. Replies in the customer's language, Arabizi included: pass the
+    language the reading found to every fixed message and to the ask
+    loop, and keep it for the conversation.
+ 7. Message rules in model text: fold Arabic-Indic digits to Latin
+    and refuse or split a line over 120 characters in the output
+    guard, as it already does for amounts.
+ 8. A greeting, a thank-you or a goodbye is not off-topic. Add the
+    cases to evals/cases/off_topic.json before changing the reading.
+No change to hand-off code, to the minimum-order rule or to anything
+B1a owns. Every bug becomes a case in evals/ before its fix. Done
+when: the new cases pass; the language gate holds (wrong products 0,
+F1 at least 0.90); sim-test with limit 150 shows classes 5 to 8 at
+zero and B1a's classes still at zero. Rules: the block at the top of
+docs/NEXT_SESSIONS.md; update HANDOFF Status and the B1b row of
+BUILD_PLAN.
+```
+
+### DS1 (Fable, high) — attach the crown picture and the founder's brief (.docx)
 ```
 You are session DS1 (design system and flagship screens), Fable,
-high effort. Read docs/DESIGN_BRIEF.md, docs/strategy/05 sections A,
+high effort. First, before anything else: convert the founder's
+brief, from its attachment, to docs/DESIGN_BRIEF.md, unchanged in
+meaning, and commit it on its own. If the attachment is missing,
+stop and write that in HANDOFF "Founder actions". Then read
+docs/DESIGN_BRIEF.md, docs/strategy/05 sections A,
 B and C (the decisions: follow them), docs/CONSOLE.md and
 docs/WEBSITE.md. No React in the console; its renderer and every
 write path stay as built.

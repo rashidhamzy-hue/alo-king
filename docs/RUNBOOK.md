@@ -172,6 +172,15 @@ Production will use its own, `BACKUP_PASSPHRASE_PRODUCTION`.
 7. Delete `restore-work` and your downloaded copy when done. Write down how long it took.
 If the passphrase is wrong, `gpg` says "decryption failed: Bad session key" and nothing is written. There is no way round it: that is the point of it.
 
+## The AI provider refuses calls (OPS1, 15 November 2026)
+**What you see.** A push "The AI provider refused calls: usage limit | billing | invalid key" (high priority, repeated every 30 minutes while it is open), the same on the ops WhatsApp line, a `model_account` row on the console's exceptions page with the provider's own words, and one Sentry issue per reason. Every customer message is being handed to a person: the customer gets the fixed hand-off message, nobody gets a model answer, and the hourly probe cannot place an order.
+**What to do, by reason** (the exception's name says which):
+- **usage limit.** The provider's words give the date access returns. Anthropic console, Settings, Limits: raise the monthly limit of the workspace the staging key belongs to (or its own limit, if the key has one). The sim and evaluation workflows use their own keys with their own limits; check which key was refused.
+- **billing.** The credit balance is spent. Anthropic console, Plans and Billing: add credit, or switch on auto-reload with a limit.
+- **invalid key.** The key was revoked or mistyped. Make a new key, set the repository secret `ANTHROPIC_API_KEY`, then run `deploy-staging` (it sets the Worker's secret and proves the key and both model ids).
+**How you know it is over.** Nothing to do by hand: the next model run that works resolves the exception within a minute (`resolve_model_account`). Then take over the chats that were handed to a person (console, Exceptions, hand-offs). Acknowledging the exception ("I'm on it") silences the repeats without closing it.
+**Never** put a key in a message, a ticket or the repository; the alert shows the provider's words with any key removed, and that is all it ever carries.
+
 ## What must never be done to fix an incident
 Turn on marketing. Send from the ops number to a customer. Edit a ledger row. Mark an order paid without the payment.
 Give a rider's cash figure from memory. Each has a database rule that will refuse it; do not work around the rule.

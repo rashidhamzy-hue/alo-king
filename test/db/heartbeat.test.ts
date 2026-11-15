@@ -89,12 +89,24 @@ describe("the probe's answers", () => {
   });
 });
 
+describe("the probe's cash (OPS1, 15 Nov: the probe riders held more cash than the cap and the orders stopped at confirmed)", () => {
+  it("each minute the probe step hands the probe riders' cash in, through the database function and nothing else", async () => {
+    const d = deps(); const calls: string[] = [];
+    const rpc = d.db.rpc.bind(d.db); (d.db as { rpc: unknown }).rpc = (fn: string, ...a: unknown[]) => { calls.push(fn); return (rpc as (...x: unknown[]) => unknown)(fn, ...a); };
+    await probeTick(d, { ...env, CONVERSATION: { idFromName: (n: string) => n, get: () => ({ fetch: async () => new Response("ok") }) } } as unknown as Env);
+    expect(calls).toContain("probe_remit_cash");
+    expect(calls.indexOf("probe_remit_cash")).toBeLessThan(calls.indexOf("probe_due"));       // before a new order is placed
+  });
+});
+
 describe("alarms", () => {
-  const alarms = async () => (await db.rpc("heartbeat_alerts")) as { kind: string; ref: string }[];
+  const alarms = async () => (await db.rpc("heartbeat_alerts")) as { kind: string; ref: string; detail: Record<string, unknown> }[];
   it("a probe order that does not finish, and a probe that stops ordering", async () => {
     const conv = (await db.one(`select id from conversations where party_id = $1`, [probeCustomer])).id;
     await db.pg.query(`insert into orders(short_code, customer_id, conversation_id, status, created_at) values ('PRB1', $1, $2, 'confirmed', now() - interval '45 minutes')`, [probeCustomer, conv]);
-    expect((await alarms()).map((a) => a.kind)).toContain("probe_stuck");
+    const stuck = (await alarms()).find((a) => a.kind === "probe_stuck")!;
+    // OPS1: it says why. This probe rider is on no shift here, so there is nobody who could take the order.
+    expect(stuck.detail).toMatchObject({ order: "PRB1", status: "confirmed", riders_on_shift: 0, riders_with_room: 0 });
     await db.pg.exec(`update orders set status = 'closed', created_at = now() - interval '5 hours' where short_code = 'PRB1'`);
     // since 0090 (A4) the probe is only expected to order while open, and once open for three probe periods
     await db.pg.exec(`update settings set value = jsonb_build_object('tz', 'Asia/Beirut',

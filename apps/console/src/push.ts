@@ -3,8 +3,9 @@
 //
 // Rules this file keeps:
 //   * Push is an extra. Nothing here changes how the WhatsApp ops alert is sent or when (ops_exceptions_due is untouched).
-//   * Once per exception: claim_exception_pushes() records the claim before anything is sent (0158). A crash after the claim loses
-//     a push; it never repeats one.
+//   * Once per exception, except a kind with a repeat time (settings.alert_repeat_minutes, 0140: the model provider's account refusal,
+//     30 minutes): claim_alert_pushes() records the claim before anything is sent. A crash after the claim loses a push; it never
+//     repeats one early. A repeat carries the same tag, so it replaces the one on the phone and buzzes again.
 //   * No customer detail leaves for a push service: the text is the kind of exception and, when it is an order, the order code.
 //   * The VAPID keys are Worker secrets (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT); with any missing, push is simply off.
 //   * An endpoint is only ever a known browser push service (a subscription is staff-supplied text; this is the SSRF guard).
@@ -80,8 +81,13 @@ export async function sendPush(env: Required<PushEnv>, t: Target, payload: objec
   return { ok: res.status >= 200 && res.status < 300, gone: res.status === 404 || res.status === 410, status: res.status };
 }
 
-export function alertFor(e: ExceptionRow): { title: string; body: string; url: string; tag: string } {
+const MODEL_ACCOUNT_WHY: Record<string, string> = { usage_limit: "usage limit", billing: "billing", invalid_key: "invalid key" };
+
+export function alertFor(e: ExceptionRow): { title: string; body: string; url: string; tag: string; urgent?: true } {
   const code = [e.ref, e.detail?.short_code, e.detail?.order].find((v) => typeof v === "string" && /^AK-\d+$/i.test(v)) as string | undefined;
+  // The model provider's account refusal: nothing answers customers until a person acts. Says which reason; the phone keeps it on screen.
+  if (e.kind === "model_account")
+    return { title: "Alo King · urgent · عاجل", body: `${kindName(e.kind, "en")}: ${MODEL_ACCOUNT_WHY[e.ref] ?? e.ref}`, url: kindHref(e), tag: `exception-${e.id}`, urgent: true };
   return { title: "Alo King · needs you · يحتاج إليك", body: `${kindName(e.kind, "en")}${code ? ` · ${code}` : ""}`, url: kindHref(e), tag: `exception-${e.id}` };
 }
 
@@ -92,7 +98,7 @@ export async function pushNewExceptions(db: Db, env: PushEnv, now: Date, f: Fetc
   const keys = env as Required<PushEnv>;
   const targets = (await db.rpc<Target[] | null>("push_targets", {})) ?? [];
   if (targets.length === 0) return { ...run, skipped: "no_subscribers" };     // nothing is claimed, so nothing is lost for a later subscriber
-  const found = (await db.rpc<ExceptionRow[] | null>("claim_exception_pushes", { p_limit: 20 })) ?? [];
+  const found = (await db.rpc<ExceptionRow[] | null>("claim_alert_pushes", { p_limit: 20 })) ?? [];
   run.claimed = found.length;
   if (found.length === 0) return run;
   const outcome = new Map<string, { ok: boolean; gone: boolean; error: string | null }>();
@@ -110,4 +116,19 @@ export async function pushNewExceptions(db: Db, env: PushEnv, now: Date, f: Fetc
     catch { /* the next run records it */ }
   }
   return run;
+}
+
+/** OPS1: the "send me a test alert" button. One alert, to the phones of this staff member only; it touches no exception and claims nothing. */
+export async function pushTestAlert(db: Db, env: PushEnv, partyId: string, now: Date, f: Fetch = fetch): Promise<{ subscribers: number; sent: number }> {
+  if (!pushConfigured(env)) return { subscribers: 0, sent: 0 };
+  const mine = ((await db.rpc<Target[] | null>("push_targets", {})) ?? []).filter((t) => t.party_id === partyId);
+  let sent = 0;
+  for (const t of mine) {
+    let r: { ok: boolean; gone: boolean; status: number };
+    try { r = await sendPush(env as Required<PushEnv>, t, { title: "Alo King · test · تجربة", body: "A test alert. If you can read this, alerts reach this phone.", url: "/more", tag: `test-${partyId}`, urgent: true }, now, f); }
+    catch { r = { ok: false, gone: false, status: -1 }; }
+    if (r.ok) sent++;
+    try { await db.rpc("push_endpoint_result", { p_endpoint: t.endpoint, p_gone: r.gone, p_error: r.ok ? null : `push service answered ${r.status}` }); } catch { /* the next real run records it */ }
+  }
+  return { subscribers: mine.length, sent };
 }

@@ -32,6 +32,10 @@ on:
         description: Load again files already loaded (never touches an approved picture or fact, never re-proposes what is unchanged)
         type: boolean
         default: false
+      max_usd:
+        description: Dollar cap for the run's model calls (the picture check). The run stops starting new files when it passes it.
+        type: string
+        default: "2"
   workflow_run:
     workflows: [deploy-staging]
     types: [completed]
@@ -57,6 +61,9 @@ jobs:
       LIMIT: ${{ inputs.limit }}
       PARTS: ${{ inputs.parts }}
       FORCE: ${{ inputs.force }}
+      # COST1: counted in model_costs (0139), stopped at this cap. The automatic run after deploy-staging has no inputs: the default, 2, applies.
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '2' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: main }

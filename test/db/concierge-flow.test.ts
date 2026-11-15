@@ -671,6 +671,26 @@ describe("model capacity (1.15)", () => {
     expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain(ar.fixed.oneMoment);
   });
 
+  it("the provider refuses for an account reason (15 Nov: usage limit): not retried, the customer gets the fixed technical line, the chat stays with the bot, and a high-priority model_account exception opens (OPS1 with HO1)", async () => {
+    const t = direct([], 0);
+    const refusal = Object.assign(new Error(`400 {"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC."}}`), { status: 400, name: "BadRequestError" });
+    let calls = 0;
+    t.deps.model = { messages: { create: async () => { calls++; throw refusal; } } };
+    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
+    expect(r.outcome).toBe("technical");                                // HO1: never silence, never a hand-off for a technical failure
+    expect(calls).toBe(1);                                              // a limit does not clear in a minute: no retry, no "one moment", no queued turn
+    expect(t.waits).toEqual([]);
+    expect(outbound.map((o) => o.body.text?.body ?? o.body.interactive?.body?.text)).toEqual([ar.support.technical]);
+    const c = await t.customer();
+    expect(c.human_handoff).toBeFalsy();
+    const e = await db.one(`select kind, ref, status, detail from ops_exceptions where kind = 'model_account'`);
+    expect(e).toMatchObject({ kind: "model_account", ref: "usage_limit", status: "open" });
+    expect(e.detail.message).toContain("regain access on 2026-12-01");
+    // each chat that met it is findable: the technical exception says which reason
+    expect(await db.one(`select detail->>'where' w from ops_exceptions where kind = 'technical' and detail->>'conversation_id' = $1`, [c.conversation_id])).toEqual({ w: "model_account:usage_limit" });
+    expect(await db.one(`select count(*)::int as n from claim_alert_pushes() where kind = 'model_account'`)).toEqual({ n: 1 });
+  });
+
   it("a bad request is our bug, not capacity: no 'one moment', no backoff retries; queued again once, then the fixed line (HO1)", async () => {
     const t = direct([], 0);
     t.deps.model = { messages: { create: async () => { throw Object.assign(new Error("bad"), { status: 400, name: "BadRequestError" }); } } };

@@ -224,3 +224,14 @@ three gates (A, B, C) are in `docs/strategy/01-verdict-gates.md` and `docs/NEXT_
 `docs/strategy/06-session-plan.md` reserves migrations 0153 to 0157 for WH1a, but 0154 and 0155 were shipped by WEB1 and are on
 `main` (rule: migrations are append-only, never renumber). WH1a uses 0153, 0156, 0157, 0188 and 0189 in `docs/BUILD_PLAN.md` and
 `docs/NEXT_SESSIONS.md`; the strategy file is left as the planning chat wrote it.
+
+## Coordinator decisions, 15 November 2026, 13:30
+Recorded by session COST1 at the coordinator's instruction. Docs only: no code, migration or setting changed by this entry. Each supersedes
+any earlier line that disagrees; the minimum-order and no-pin decisions may be overruled by the founder.
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | **B1 is split into B1a and B1b**, both Opus, high, one after the other after HO1. **B1a:** report fixes 1, 3, 4, 9 and 10 and the two no-reply turns (sim-009 and sim-014). **B1b:** report fixes 5, 6, 7 and 8. B1b starts when B1a is merged. **CX1 waits for B1b.** Gate A lists both. | `docs/NEXT_SESSIONS.md` (table, gate A, prompts), `docs/BUILD_PLAN.md`, `docs/HANDOFF.md` |
+| 2 | **Minimum order: $5. No small-order fee at launch.** The amount and the gap are stated by code, from the quote, never by the model (invariant 7). One rule, never the minimum and the fee together. The founder may overrule the amount. This replaces the 14 November approval of a 0.50 fee on baskets under 10 USD (R4 answer 2; `docs/SYSTEM_PLAN.md`); the fee stays supported as a setting, off. | B1a (report fix 1); `supabase/seed/proposed_pilot_settings.sql` is changed by B1a, not here |
+| 3 | **A first order without a map pin is accepted** with a typed village and landmark, and **marked for a rider call** (the rider or ops phones the customer before the order goes out). A pin outside the service area is still refused. | B1b (report fix 5); L1 for the places data |
+| 4 | **DS1 converts the founder's brief to `docs/DESIGN_BRIEF.md` first**, from its attachment, before any design work. | DS1 prompt; resolves the item "Not done by DOC1" in `docs/HANDOFF.md` once DS1 runs |

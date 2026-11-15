@@ -23,6 +23,12 @@ export const KIND: Record<string, Info> = {
   scheduled_day_changed: { en: "A delivery day changed", ar: "تغيّر يوم توصيل", href: () => "/windows", cta: { en: "Open windows", ar: "افتح النوافذ" } },
   count_needed: { en: "A shelf count is needed", ar: "مطلوب جرد رف", href: () => "/catalog", cta: { en: "Open the catalog", ar: "افتح الكتالوج" } },
   turn_failed: { en: "The assistant gave up on a message", ar: "تخلّى المساعد عن رسالة", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
+  agent_handoff: { en: "A chat was handed to a person", ar: "مُرّرت محادثة إلى شخص", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
+  model_capacity: { en: "The AI model was unavailable: a chat was handed to a person", ar: "نموذج الذكاء الاصطناعي غير متاح: مُرّرت محادثة إلى شخص", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
+  dead_letter: { en: "A customer message failed every retry", ar: "رسالة زبون فشلت كل المحاولات", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
+  "heartbeat:probe_stuck": { en: "The hourly test order is stuck", ar: "طلب التجربة كل ساعة واقف", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
+  "heartbeat:inbound_silent": { en: "No customer message for hours", ar: "ما وصلت رسالة زبون من ساعات", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
+  model_account: { en: "The AI provider refused calls", ar: "مزوّد الذكاء الاصطناعي رفض الطلبات", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
   // HO1: the case ladder (0136) and the 2-minute alarm; each opens the Inbox.
   support_case: { en: "A customer is waiting for a person", ar: "زبون بانتظار شخص", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
   support_case_unclaimed: { en: "Nobody has claimed a customer for 3 minutes", ar: "زبون بلا مستلم من 3 دقائق", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },

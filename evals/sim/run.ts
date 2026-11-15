@@ -265,7 +265,14 @@ export async function runAll(o: RunOptions): Promise<RunSummary> {
     stoppedBy, results,
   };
   await day.db.pg.close();
-  if (o.outDir) writeFileSync(`${o.outDir}/summary.json`, JSON.stringify({ ...summary, results: undefined }, null, 1));
+  if (o.outDir) {
+    writeFileSync(`${o.outDir}/summary.json`, JSON.stringify({ ...summary, results: undefined }, null, 1));
+    // COST1: the run's cost in the shape scripts/lib/model-cost.mjs records in model_costs (the workflow's last step does it: this run
+    // may not write to staging). The cap is the hard limit; the run stopped at it when a call was refused or no new conversation could start.
+    const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+    writeFileSync(`${o.outDir}/model-cost.json`, JSON.stringify({ workflow: "sim-test", run_id: env.MODEL_COST_RUN_ID ?? env.GITHUB_RUN_ID ?? `local-${Date.now()}`, cap_usd: o.hard,
+      stopped_at_cap: /^(BUDGET_STOP|soft limit)/.test(String(stoppedBy ?? "")), lines: budget.costLines() }, null, 1));
+  }
   log(`[sim] done: ${results.length} conversations, ${results.filter((r) => r.status === "judged").length} judged, USD ${budget.spent.toFixed(3)} spent${stoppedBy ? `; stopped: ${stoppedBy}` : ""}`);
   return summary;
 }

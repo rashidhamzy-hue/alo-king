@@ -5,7 +5,9 @@
 --   * the hub: the dark store's village is set to Baakline if it is unset. The real hub is undecided (HANDOFF, rule 3);
 --     staging needs one somewhere so dispatch can work. Data, not code: change it in the database.
 --   * stock: 5,000 of every product, only if the whole store is empty. Staging has no real count.
---   * the probe: a test customer and a test rider (is_probe), their identities, a pinned address, the rider on shift.
+--   * the probe: a test customer, two test riders and a test ops lead (is_probe), their identities (not the ops lead's: it has none, so
+--     nothing can be sent to it), a pinned address, the riders on shift. The ops lead only confirms the riders' cash drops
+--     (probe_remit_cash, 0140): without that the riders' cash rose past the cap and the probe orders stopped at "confirmed" (15 Nov).
 --     Messages to them never reach WhatsApp (can_send answers probe_sink). PROBE_MODE=on in the staging Worker turns the cron's probe on.
 \set ON_ERROR_STOP on
 insert into fx_rates(lbp_per_usd) select 89500 where not exists (select 1 from fx_rates);
@@ -41,6 +43,10 @@ begin
     perform start_shift(r);                                   -- keeps an open shift open; opens one otherwise
     perform record_driver_position(r, lat::numeric, lng::numeric, 'probe_setup');
   end loop;
+  -- the probe's ops lead: confirms the probe riders' hub drops (0140). No identity, no login: it cannot be messaged, pushed or signed in as.
+  if not exists (select 1 from parties where is_probe and role = 'ops_lead') then
+    insert into parties(role, display_name, is_probe) values ('ops_lead', 'Probe ops lead', true);
+  end if;
   -- The hourly order is the founder's 0.13 message, so the live model proves it every hour before he sends it. Brand-led on purpose:
   -- on 13 Nov the live model wrote «خبز» as "bread" (no match), and brand-led labneh and eggs resolved to laban and chicken legs (lane B, HANDOFF).
   update settings set value = value || jsonb_build_object('enabled', true, 'pin', jsonb_build_object('lat', lat, 'lng', lng),

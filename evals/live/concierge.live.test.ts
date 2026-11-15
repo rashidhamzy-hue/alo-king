@@ -3,7 +3,7 @@
 // Prints one line per case. A case passes when the first reply the model tries gets through the output guard; the two-sentence
 // rule alone is judged on the reply that went out (founder decision, M1: wordingPasses in ../run.ts). `must` / `must_not` are
 // graded by a person from the report.
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
 import { replyPasses, runAddressCase, runBasketEditCase, runGoAheadCase, runLiveReplyCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type BasketEditCase, type GoAheadCase, type WordingCase } from "../run";
 import noReply from "../cases/no_reply.json";
@@ -12,9 +12,15 @@ import basketEdits from "../cases/basket_edits.json";
 import address from "../cases/address_readings.json";
 import neutral from "../cases/neutral_and_food_facts.json";
 import offTopic from "../cases/off_topic.json";
+import { startMeter, finishMeter } from "../../scripts/lib/model-cost.mjs";
 
 const env = ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {});
 const live = env.ALO_LIVE_EVAL === "1" && !!env.ANTHROPIC_API_KEY;
+
+// COST1: the run is counted in model_costs and stops at its dollar cap (MODEL_COST_CAP_USD). The meter wraps fetch, and each client below
+// takes the wrapped fetch when it is built, so the meter starts here, before any describe block. No prices, no run (fail closed).
+const meter = live ? await startMeter({ workflow: "language-pack", capDefault: 5, step: "live" }) : null;
+afterAll(async () => { if (meter) await finishMeter(meter); });
 
 describe.skipIf(!live)("live: Concierge wording", () => {
   const client = live ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! }) : null;

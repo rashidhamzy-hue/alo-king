@@ -22,10 +22,14 @@ run("staging preparation", () => {
       (select count(*) from driver_shifts sh join parties p on p.id = sh.driver_id where p.is_probe and sh.ended_at is null)::int open_shifts,
       (select value->>'enabled' from settings where key = 'probe') enabled,
       (select count(*) from customer_places cp join parties p on p.id = cp.party_id where p.is_probe)::int places`;
-    expect(s).toEqual({ fx: 1, hub: "Baakline", stocked: s!.rows, rows: s!.rows, max_on_hand: 5000, probes: 3, open_shifts: 2, enabled: "true", places: 1 });
+    expect(s).toEqual({ fx: 1, hub: "Baakline", stocked: s!.rows, rows: s!.rows, max_on_hand: 5000, probes: 4, open_shifts: 2, enabled: "true", places: 1 });
     expect((await sql`select on_hand from stock_levels where on_hand = 4321`).length).toBe(1);    // the second run did not overwrite stock
     const [g] = await sql`select can_send(p.id, 'customer', 'service', false) g from parties p where p.is_probe and p.role = 'customer'`;
     expect(g!.g).toBe("probe_sink");
+    // OPS1: a probe ops lead confirms the probe riders' cash drops (0140). It has no identity, so no message and no push can reach it.
+    const [lead] = await sql`select count(*)::int n, bool_and(not exists (select 1 from party_identities i where i.party_id = p.id)) no_identity from parties p where p.is_probe and p.role = 'ops_lead'`;
+    expect(lead).toEqual({ n: 1, no_identity: true });
+    expect(((await sql`select probe_remit_cash() r`)[0]!.r as { riders: number }).riders).toBe(0);       // nothing held yet: the call works and does nothing
     const [due] = await sql`select probe_due() d`;
     expect(due!.d).toMatchObject({ wa_user_id: "PR.0000000000000001" });
   });

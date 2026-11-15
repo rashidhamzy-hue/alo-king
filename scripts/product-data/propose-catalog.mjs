@@ -11,6 +11,7 @@ import { newUsage } from "./lib/anthropic.mjs";
 import { pool } from "./lib/http.mjs";
 import { proposeNames, namesCall } from "./lib/names.mjs";
 import { proposeCategories, categoriesCalls } from "./lib/categories.mjs";
+import { runMetered } from "../lib/model-cost.mjs";
 
 const meta = (kind, model, runId, usage) => ({
   kind, status: "proposed", applied: false, generated_at: new Date().toISOString(), run_id: runId, model,
@@ -27,7 +28,7 @@ function args(argv) {
   return a;
 }
 
-async function main() {
+async function main(meter) {
   const a = args(process.argv.slice(2));
   const missing = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "ANTHROPIC_API_KEY", "MODEL_FAST"].filter((k) => !process.env[k]);
   if (missing.length) { console.error(`missing env: ${missing.join(", ")}`); process.exit(2); }
@@ -39,6 +40,7 @@ async function main() {
   mkdirSync(a.out, { recursive: true });
   const lines = [`### Names and categories proposed, run ${runId}`, `- catalog read: ${items.length} items`];
   if (a.only.includes("names")) {
+    meter.step = "names";
     const usage = newUsage();
     const { proposals, rejected } = await proposeNames(items, { call: namesCall({ apiKey, model, usage }), pool: (list, fn) => pool(list, 3, fn) });
     writeFileSync(join(a.out, "names.json"), JSON.stringify({ ...meta("names_and_sizes", model, runId, usage), items: proposals.length, rejected_count: rejected.length, proposals, rejected }, null, 1) + "\n");
@@ -47,6 +49,7 @@ async function main() {
     console.log(lines.at(-1));
   }
   if (a.only.includes("categories")) {
+    meter.step = "categories";
     const usage = newUsage();
     const r = await proposeCategories(items, { ...categoriesCalls({ apiKey, model, usage }), pool: (list, fn) => pool(list, 3, fn) });
     writeFileSync(join(a.out, "categories.json"), JSON.stringify({ ...meta("customer_categories", model, runId, usage), approval: "the founder approves the list (1.21 step 1)", categories: r.categories, unplaced: r.unplaced, empty_categories: r.empty, assignments: r.assignments }, null, 1) + "\n");
@@ -57,4 +60,4 @@ async function main() {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch((e) => { console.error(e.message); process.exit(1); });
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) runMetered({ workflow: "product-data", capDefault: 3, step: "names" }, main);
