@@ -61,7 +61,7 @@ ${r.disabled_reason ? html`<br><small class="warn">${r.disabled_reason}</small>`
 <h2>Spot checks waiting (${o.spot_checks.length})</h2>
 ${o.spot_checks.length === 0 ? html`<p class="muted">Nothing to check.</p>` : o.spot_checks.map((s, i) => html`<div class="pair" id="check-${s.check_id}">
 <div>${pics[i] ? html`<a href="${pics[i]}" target="_blank" rel="noopener"><img class="proof" src="${pics[i]}" alt="picture of ${s.name_en}"></a>` : ""}</div>
-<div style="flex:1"><p><strong>${LABEL[s.field] ?? s.field}</strong> · ${s.applied ? "approved by the rule" : "the rule was off: it would have approved this"} · sample of ${s.sample_day}</p>
+<div><p><strong>${LABEL[s.field] ?? s.field}</strong> · ${s.applied ? "approved by the rule" : "the rule was off: it would have approved this"} · sample of ${s.sample_day}</p>
 <p>${s.sku} · <strong>${s.name_en}</strong>${s.name_ar ? html` · <span dir="rtl" lang="ar">${s.name_ar}</span>` : ""} · ${s.brand ?? "no brand"}${s.barcode ? html` · barcode ${s.barcode}` : ""}</p>
 ${s.picture ? html`<p>Source: ${s.picture.source_kind}${safeHref(s.picture.page_url) ? html` · <a href="${safeHref(s.picture.page_url)}" target="_blank" rel="noopener noreferrer">page</a>` : ""} · now ${s.picture.status}</p>` : ""}
 ${s.name ? html`<p>Proposed: <strong>${[s.name.name_en, s.name.size_en].filter(Boolean).join(" ")}</strong>${s.name.name_ar ? html` · <span dir="rtl" lang="ar">${[s.name.name_ar, s.name.size_ar].filter(Boolean).join(" ")}</span>` : ""} (was ${s.name.current_name_en})</p>` : ""}

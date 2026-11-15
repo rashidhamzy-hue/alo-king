@@ -33,7 +33,7 @@ ${form(c.f, `/exceptions/${e.id}/resolved`, html`<button>Resolved</button>`, { c
 ${convs.map((x, i) => {
   const open = x.last_inbound_at && now.getTime() - new Date(x.last_inbound_at).getTime() < 24 * 3600_000;
   const h = handoffs.find((y) => y.conversation_id === x.id);
-  return html`<div class="pair"><div style="flex:1">
+  return html`<div class="pair"><div>
 <p><strong>${parties.find((p) => p.id === x.party_id)?.display_name ?? "Customer"}</strong>${h ? html` · handed over: ${h.reason} (${when(h.created_at)})` : ""}
 ${open ? "" : html` · <strong class="warn">24-hour window closed: a reply cannot be sent</strong>`}</p>
 <table>${[...msgs[i]!].reverse().map((m) => html`<tr><td class="muted">${when(m.created_at)}</td><td>${m.direction === "inbound" ? "customer" : "us"}</td><td>${m.body ?? `[${m.type}]`}</td></tr>`)}</table>
@@ -47,10 +47,12 @@ async function resolve(c: Ctx) {
   const exc = id(c, "exc");
   const status = c.params.status === "resolved" ? "resolved" : c.params.status === "acknowledged" ? "acknowledged" : null;
   if (!status) throw new UserError("Unknown status.");
+  // Today's inbox posts the same form and asks to come back to Today ("/"); anything else comes back here.
+  const back = c.form.back === "/" ? "/" : "/exceptions";
   return act(c, `exception_${status}`, { exception: exc }, async () => {
     await c.deps.db.rpc("resolve_ops_exception", { p_id: exc, p_by: c.staff.partyId, p_status: status });
     return status === "resolved" ? "Marked resolved." : "Marked as being handled.";
-  }, "/exceptions");
+  }, back);
 }
 
 async function reply(c: Ctx) {

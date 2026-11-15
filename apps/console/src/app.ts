@@ -11,10 +11,13 @@ import { DbError, isMissingFunction } from "./db";
 import type { StaffAuth } from "./auth";
 import { AuthUnavailable, MIN_PASSWORD } from "./auth";
 import type { Media } from "./media";
-import { CSS, form, html, page, type FormCtx, type NavItem, type Raw } from "./html";
+import { CSS, form, html, page, type FormCtx, type Raw } from "./html";
 import {
   FLASH_COOKIE, SESSION_COOKIE, SESSION_SECONDS, SETPW_COOKIE, clearCookie, hmac, randomToken, readCookie, same, seal, setCookie, unseal,
 } from "./session";
+import { LANGS, LANG_COOKIE, type Lang } from "./i18n";
+import { buildNav, computeBadges } from "./nav";
+import { staticRoute } from "./pwa";
 
 import { STAFF_ROLES, type Role } from "./roles";
 export type { Role } from "./roles";
@@ -33,21 +36,26 @@ export interface Deps {
   readLabel?: (images: import("./label").LabelImage[]) => Promise<import("./label").LabelReading | null>;
   /** The model the label reader uses, recorded with each reading. */
   labelModel?: string;
+  /** The VAPID public key (a Worker secret's public half) when web push is set up; absent, the alerts switch says so. */
+  pushPublicKey?: string;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
 export interface Ctx {
   req: Request; url: URL; deps: Deps; staff: Staff; params: Record<string, string>; sections: Section[];
   form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string } | null; f: FormCtx;
+  /** The staff member's language (cookie), and what is waiting per page address (computed on a page view, empty on a post). */
+  lang: Lang; badges: Record<string, number>;
 }
 export type Handler = (c: Ctx) => Promise<Response>;
 export interface Route { method: "GET" | "POST"; path: string; roles: readonly Role[]; handler: Handler }
 export interface Section { nav: { href: string; label: string; roles: readonly Role[] }; routes: Route[] }
 
 // ---------- helpers for pages ----------
-export function render(c: Ctx, title: string, body: Raw | Raw[]): Response {
-  const nav: NavItem[] = c.sections.filter((s) => s.nav.roles.includes(c.staff.role)).map((s) => ({ href: s.nav.href, label: s.nav.label }));
-  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, flash: c.flash, environment: c.deps.environment, body }), c.deps);
+/** `translated`: the body's words follow `c.lang` (Today, Orders, the hubs). Pages built before D5 are English and are marked as such in an Arabic shell. */
+export function render(c: Ctx, title: string, body: Raw | Raw[], opts: { translated?: boolean } = {}): Response {
+  const nav = buildNav(c.sections, c.staff.role, c.lang, c.url.pathname.replace(/\/+$/, "") || "/", c.badges);
+  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body }), c.deps);
 }
 
 export function redirect(to: string, cookies: string[] = []): Response {
@@ -172,9 +180,18 @@ export function id(c: Ctx, field: string): string {
  * If the log cannot be written, nothing runs ("every admin action logged", task 3.1).
  */
 export async function act(c: Ctx, action: string, args: Record<string, unknown>, run: () => Promise<string>, back: string): Promise<Response> {
+  const r = await attempt(c, action, args, run);
+  return flashRedirect(c.deps, back, r.logged ? r.msg : { err: "Not done: the action log could not be written. Try again in a minute." });
+}
+
+/**
+ * The same, without the redirect: for a page that does several things in one request (the names batch). Log the intent first and
+ * do nothing if that fails (`logged: false`); run; log the outcome. The message is the page's to show.
+ */
+export async function attempt(c: Ctx, action: string, args: Record<string, unknown>, run: () => Promise<string>): Promise<{ logged: boolean; ref: string; ok: boolean; msg: { ok?: string; err?: string } }> {
   const ref = randomToken(8);
   try { await audit(c.deps, c.staff, { action, phase: "intent", ref, args }); }
-  catch { return flashRedirect(c.deps, back, { err: "Not done: the action log could not be written. Try again in a minute." }); }
+  catch { return { logged: false, ref, ok: false, msg: {} }; }
   let msg: { ok?: string; err?: string };
   try { msg = { ok: await run() }; await auditQuietly(c.deps, c.staff, { action, phase: "done", ref, ok: true, result: msg.ok }); }
   catch (e) {
@@ -182,7 +199,7 @@ export async function act(c: Ctx, action: string, args: Record<string, unknown>,
     if (!(e instanceof UserError) && !(e instanceof DbError)) console.error(JSON.stringify({ level: "error", event: "console_action_failed", action, err: String(e).slice(0, 300) }));
     await auditQuietly(c.deps, c.staff, { action, phase: "done", ref, ok: false, error: e instanceof Error ? e.message.slice(0, 300) : String(e) });
   }
-  return flashRedirect(c.deps, back, msg);
+  return { logged: true, ref, ok: msg.err === undefined, msg };
 }
 
 // ---------- the action log ----------
@@ -208,12 +225,12 @@ async function auditToBucket(deps: Deps, staff: { partyId: string; userId: strin
   const path = `console_audit/${at.slice(0, 10)}/${at.replace(/[:.]/g, "-")}_${who}_${e.ref ?? randomToken(6)}_${e.phase}.json`;
   await deps.media.put(path, JSON.stringify({ at, environment: deps.environment, party_id: staff?.partyId ?? null, user_id: staff?.userId ?? null, role: staff?.role ?? null, ...e }), "application/json");
 }
-async function auditQuietly(deps: Deps, staff: Staff | null, e: AuditEntry) {
+export async function auditQuietly(deps: Deps, staff: Staff | null, e: AuditEntry) {
   try { await audit(deps, staff, e); }
   catch (err) { console.error(JSON.stringify({ level: "error", event: "console_audit_write_failed", action: e.action, phase: e.phase, err: String(err).slice(0, 200) })); }
 }
 
-async function flashRedirect(deps: Deps, to: string, msg: { ok?: string; err?: string }) {
+export async function flashRedirect(deps: Deps, to: string, msg: { ok?: string; err?: string }) {
   return redirect(to, [setCookie(FLASH_COOKIE, await seal(deps.secret, "flash", { ok: msg.ok?.slice(0, 400), err: msg.err?.slice(0, 400) }, 120, deps.now()), 120)]);
 }
 
@@ -235,7 +252,7 @@ function withHeaders(res: Response, deps: Deps): Response {
   const h = new Headers(res.headers);
   let img = "'self'";
   try { img += " " + new URL(deps.supabaseUrl).origin; } catch { /* no supabase url in tests */ }
-  h.set("content-security-policy", `default-src 'none'; img-src ${img}; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
+  h.set("content-security-policy", `default-src 'none'; img-src ${img}; style-src 'self'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
   h.set("x-content-type-options", "nosniff");
   // Not "no-referrer": with it Chrome sends `Origin: null` on our own form posts, and the cross-site check below refused them.
   h.set("referrer-policy", "same-origin");
@@ -243,8 +260,13 @@ function withHeaders(res: Response, deps: Deps): Response {
   return new Response(res.body, { status: res.status, headers: h });
 }
 
-const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string } | null = null) =>
-  withHeaders(page({ title, body, flash, environment: deps.environment }), deps);
+const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string } | null = null, lang: Lang = "en") =>
+  withHeaders(page({ title, body, flash, lang, translated: false, environment: deps.environment }), deps);
+
+function readLang(req: Request): Lang {
+  const v = readCookie(req, LANG_COOKIE);
+  return (LANGS as readonly string[]).includes(v ?? "") ? (v as Lang) : "en";
+}
 
 function match(pattern: string, path: string): Record<string, string> | null {
   const a = pattern.split("/"), b = path.split("/");
@@ -304,6 +326,18 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
   if (path === "/callback.js") return new Response(CALLBACK_JS, { headers: { "content-type": "text/javascript", "cache-control": "max-age=300" } });
   if (path === "/health") return new Response("ok", { headers: { "content-type": "text/plain" } });
   if (method !== "GET" && method !== "POST") return new Response("method not allowed", { status: 405 });
+  // The installable shell (manifest, icons, service worker, page script, offline page): static, public, no one's data.
+  const asset = method === "GET" ? staticRoute(path) : null;
+  if (asset) return asset;
+  const lang = readLang(req);
+  // The language choice: a cookie, no account setting. `next` must be a path on this site.
+  if (path === "/lang" && method === "GET") {
+    const to = url.searchParams.get("to");
+    const next = url.searchParams.get("next") ?? "/";
+    const h = new Headers({ location: next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/" });
+    if (to && (LANGS as readonly string[]).includes(to)) h.append("set-cookie", setCookie(LANG_COOKIE, to, 365 * 86400));
+    return new Response(null, { status: 303, headers: h });
+  }
 
   // Cross-site requests are refused before anything else (the session cookie is SameSite=Strict as well).
   if (method === "POST") {
@@ -315,12 +349,12 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
   const form = posted.fields;
 
   // ----- signed-out routes -----
-  if (path === "/sign-in" && method === "GET") return signInPage(deps, url.searchParams.get("e") === "1");
+  if (path === "/sign-in" && method === "GET") return signInPage(deps, url.searchParams.get("e") === "1", lang);
   if (path === "/sign-in" && method === "POST") return signIn(deps, form);
   if (path === "/auth/callback" && method === "GET") {
     return plain(deps, "Signing in", html`<p id="msg">One moment…</p><form id="cb" method="post" action="/auth/callback">
 <input type="hidden" name="access_token"><input type="hidden" name="type"><noscript>This page needs JavaScript to read the link.</noscript></form>
-<script src="/callback.js"></script>`);
+<script src="/callback.js"></script>`, null, lang);
   }
   if (path === "/auth/callback" && method === "POST") return callback(deps, form);
 
@@ -337,7 +371,7 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
   if (!session) return method === "GET" ? redirect("/sign-in") : new Response("signed out", { status: 401 });
   let staff: Staff | null;
   try { staff = await loadStaff(deps, session.p, session.u, session.n); }
-  catch { return plain(deps, "Database unavailable", html`<p>The database did not answer. Try again in a minute.</p>`); }
+  catch { return plain(deps, "Database unavailable", html`<p>The database did not answer. Try again in a minute.</p>`, null, lang); }
   if (!staff) return redirect("/sign-in", [clearCookie(SESSION_COOKIE)]);
 
   if (method === "POST" && !same(form._csrf ?? "", staff.csrf)) return new Response("form expired: go back, reload and try again", { status: 403 });
@@ -354,7 +388,8 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (r.method !== method) continue;
     const params = match(r.path, path);
     if (!params) continue;
-    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
+    const badges = method === "GET" ? await computeBadges(deps, staff.role).catch(() => ({} as Record<string, number>)) : {};
+    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, lang, badges, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
     if (!r.roles.includes(staff.role)) {
       const denied = render(ctx, "Not for your role", html`<p>Your role (${staff.role.replace("_", " ")}) cannot open this page.</p>`);
       return new Response(denied.body, { status: 403, headers: denied.headers });
@@ -378,13 +413,13 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
 }
 
 // ---------- sign-in pages ----------
-function signInPage(deps: Deps, failed: boolean): Response {
+function signInPage(deps: Deps, failed: boolean, lang: Lang = "en"): Response {
   return plain(deps, "Sign in", html`<form method="post" action="/sign-in">
 <p><label>Email<br><input type="email" name="email" autocomplete="username" required></label></p>
 <p><label>Password<br><input type="password" name="password" autocomplete="current-password" required></label></p>
 <p><button>Sign in</button></p></form>
 <p class="muted">Staff only. Accounts are added by the admin; a new account gets an email with a link to choose a password.</p>`,
-  failed ? { err: "Email or password is wrong, or this account has no console access." } : null);
+  failed ? { err: "Email or password is wrong, or this account has no console access." } : null, lang);
 }
 
 async function signIn(deps: Deps, form: Record<string, string>): Promise<Response> {

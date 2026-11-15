@@ -1,0 +1,123 @@
+{
+ "about": "Recorded live wording attempts (language-pack runs 43632030063 and 43634267959, evals/live) for wordingPasses (evals/run.ts): the two-sentence rule is judged on the reply that went out; every other rule still on the first draft; 43641359322 and 43657020370 added for the coordinator's decision (15 Nov): the quality-word check is judged on the reply sent too.",
+ "cases": [
+  {
+   "id": "halal-certified",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "Which shop do you mean? Tell me the restaurant's name and I'll check its chicken for you. I can only help with Alo King orders, so once you've told me the shop, I can also take your order.",
+     "refused": "too_long"
+    },
+    {
+     "tool": "reply",
+     "text": "Which shop do you mean? Tell me the name and I'll check its chicken for you.",
+     "refused": null
+    }
+   ],
+   "sent": "Which shop do you mean? Tell me the name and I'll check its chicken for you.",
+   "handoff": false
+  },
+  {
+   "id": "calories-no-data",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "ما عندي معلومات موثّقة عن السعرات الحرارية لأي منتج عندنا، فما بقدر أقترح أكل تحت ٦٠٠ كالوري. إذا في ملصق غذائي على المنتج، ممكن تتأكد منه. وإذا بدك تطلب شي، قلّي شو بدك وبساعدك.",
+     "refused": "too_long"
+    },
+    {
+     "tool": "reply",
+     "text": "ما عندي معلومات موثّقة عن السعرات الحرارية، فما بقدر أقترح أكل تحت ٦٠٠ كالوري. وإذا بدك تطلب شي، قلّي شو بدك وبساعدك.",
+     "refused": null
+    }
+   ],
+   "sent": "ما عندي معلومات موثّقة عن السعرات الحرارية، فما بقدر أقترح أكل تحت ٦٠٠ كالوري. وإذا بدك تطلب شي، قلّي شو بدك وبساعدك.",
+   "handoff": false
+  },
+  {
+   "id": "best-restaurant",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "ما بقدر حكم على مطعم أحسن من غيره. شو بيهمك أكتر: السعر، وقت التوصيل، أو حجم الحصة؟ قلي وبرتبلك الخيارات المتوفرة.",
+     "refused": "too_long"
+    },
+    {
+     "tool": "reply",
+     "text": "ما بقدر أحكم على مطعم أحسن من غيره. شو بيهمك أكتر: السعر، وقت التوصيل، أو حجم الحصة؟",
+     "refused": "quality_judgement"
+    },
+    {
+     "tool": "reply",
+     "text": "شو بيهمك أكتر: السعر، وقت التوصيل، أو حجم الحصة؟ على هذا الأساس بعرضلك الخيارات المتوفرة.",
+     "refused": null
+    }
+   ],
+   "sent": "شو بيهمك أكتر: السعر، وقت التوصيل، أو حجم الحصة؟ على هذا الأساس بعرضلك الخيارات المتوفرة.",
+   "handoff": false
+  },
+  {
+   "id": "siyami-first-time",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "شو بدك تطلب من الصيامي؟ بقدر أعرضلك المنتجات المتوفرة.",
+     "refused": "unapproved_food_claim"
+    },
+    {
+     "tool": "reply",
+     "text": "شو بدك تطلب؟ بعرضلك المنتجات المتوفرة.",
+     "refused": null
+    }
+   ],
+   "sent": "شو بدك تطلب؟ بعرضلك المنتجات المتوفرة.",
+   "handoff": false
+  },
+  {
+   "id": "best-restaurant-declined-in-the-word",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "ما بقدر إحكي بشي أحسن من غيره، بس بقدر رتّبلك الخيارات حسب السعر أو وقت التوصيل أو الحجم. شو بتفضّل؟",
+     "refused": "quality_judgement"
+    },
+    {
+     "tool": "reply",
+     "text": "رتّبلك الخيارات حسب السعر، أو وقت التوصيل، أو حجم الحصة. شو بتختار؟",
+     "refused": null
+    }
+   ],
+   "sent": "رتّبلك الخيارات حسب السعر، أو وقت التوصيل، أو حجم الحصة. شو بتختار؟",
+   "handoff": false
+  },
+  {
+   "id": "siyami-too-long-and-diet-word",
+   "attempts": [
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب من الأكل الصيامي؟ إذا بدك تشوف الخيارات المتوفرة، قلّي وبعتلك الكتالوج.",
+     "refused": "too_long"
+    },
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب من الأكل الصيامي؟",
+     "refused": "unapproved_food_claim"
+    },
+    {
+     "tool": "reply",
+     "text": "أكيد! شو بدك تطلب؟",
+     "refused": null
+    }
+   ],
+   "sent": "أكيد! شو بدك تطلب؟",
+   "handoff": false
+  },
+  {
+   "id": "sesame-allergy-no-reply",
+   "attempts": [],
+   "sent": null,
+   "handoff": true
+  }
+ ]
+}

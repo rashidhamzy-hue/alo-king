@@ -52,7 +52,7 @@ states, the stock and the ledger are all correct. Save the output under `docs/ev
 - Connect the two +961 numbers or send to a real customer.
 - Turn on marketing, or remove either marketing lock.
 - Take or move real money.
-- Message a business from `data/prospects/`.
+- Message a business from the prospect list (`research/prospects/` in the private `media` bucket).
 - Create a paid Google Cloud resource.
 
 ## Secrets

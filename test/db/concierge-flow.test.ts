@@ -6,7 +6,9 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { processTurn, runTurn, type Pending, type TurnDeps } from "../../apps/gateway/src/turn";
 import { send as gatewaySend } from "@ak/wa/gateway";
-import { CONSENT_LINE, formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
+import { formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
+import { ar, en, REPLY_RULE } from "@ak/agents/messages";
+const CONSENT_LINE = ar.card.consent;
 import { preflight } from "@ak/wa/gateway";
 import { repeatButtonId } from "@ak/agents/answers";
 import { KapsoReceived, senderKey } from "@ak/wa/kapso";
@@ -126,7 +128,7 @@ describe("parse once, then the database (1.1)", () => {
     const body: string = card.body.interactive.body.text;
     // 2 x 3.00 labneh + 2 x 0.62 bread (the default-choice rule picks the best seller) + 1.00 delivery = 8.24
     expect(body).toContain("$8.24"); expect(body).toContain("737,000");
-    expect(body).toContain("بعقلين"); expect(body).toContain("كاش عند التسليم"); expect(body).toContain("$20.00"); expect(body).toContain(CONSENT_LINE);
+    expect(body).toContain("بعقلين"); expect(body).toContain(ar.card.payName.cod); expect(body).toContain("$20.00"); expect(body).toContain(CONSENT_LINE);
 
     const order = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
     expect(order).toMatchObject({ status: "awaiting_confirmation", payment_method: "cod", village_id: BAAKLINE });
@@ -180,6 +182,9 @@ describe("parse once, then the database (1.1)", () => {
     expect(second.plan.next).toBe("ask");
     expect(second.plan.lines[0].status).toBe("ambiguous");          // labneh at 0.67 and at 5.00 are not interchangeable
     expect(second.plan.lines[0].candidates).toHaveLength(3);
+    // M1: the length rule goes with the ask loop's input only; the reading's input is unchanged.
+    expect(second.reply_rule).toBe(REPLY_RULE);
+    expect(JSON.stringify(t.seen[0]!)).not.toContain(REPLY_RULE);
     expect(t.rpcCalls.filter((c) => c.fn === "search_catalog")).toHaveLength(0);   // plan_order searched, inside the database
     expect(outbound).toHaveLength(1);
     const c = await t.customer();
@@ -370,14 +375,15 @@ describe("answers without the model (1.3)", () => {
     await t.conv.fetch(t.text("وين طلبي؟"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(0);
-    expect(outbound[0]!.body.text.body).toBe(`طلبك ${c.shortCode}: ناطر تأكيدك. اكبس «تأكيد الطلب» عالورقة لنبلّش.`);
+    expect(outbound[0]!.body.text.body).toBe(ar.answer.awaitingConfirmation(c.shortCode, null));
 
     await t.conv.fetch(t.tap(orderButtonId("confirm", c.orderId)));
     await t.conv.alarm();
     await t.conv.fetch(t.text("where is my order?"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(0);
-    expect(outbound.at(-1)!.body.text.body).toMatch(new RegExp(`^طلبك ${c.shortCode}: عم نحضّرو\\. الوقت المتوقع للوصول حوالي (19|20) دقيقة\\.$`));
+    // M1: asked in English, answered in English.
+    expect(outbound.at(-1)!.body.text.body).toMatch(new RegExp(`^📦 Order ${c.shortCode}: we're preparing it\\.\\nExpected arrival in about (19|20) minutes\\.$`));
   });
 
   it("with no open order, says so", async () => {
@@ -393,7 +399,7 @@ describe("answers without the model (1.3)", () => {
     await t.conv.fetch(t.text("قديش بتسكرو؟"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(0);
-    expect(outbound[0]!.body.text.body).toBe("منستقبل الطلبات كل يوم من 00:00 لـ 23:59:59. نحنا فاتحين هلّق.");
+    expect(outbound[0]!.body.text.body).toBe(ar.answer.hours("00:00", "23:59:59", true));
     await t.conv.fetch(t.inbound({ type: "audio", audio: { id: "m1" }, kapso: { direction: "inbound", origin: "cloud_api", media_data: { url: "u", byte_size: 12000 },
       transcript: { text: "مرحبا لأيمتى بتضلكن فاتحين اليوم" } } }));
     await t.conv.alarm();
@@ -406,7 +412,8 @@ describe("answers without the model (1.3)", () => {
     await t.conv.fetch(t.text("بتوصلو على بيت الدين؟"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);
-    expect(outbound[0]!.body.text.body).toBe("إيه منوصّل على بيت الدين. التوصيل $1.50 وبياخد عادةً حوالي 30 دقيقة.");
+    expect(outbound[0]!.body.text.body).toBe(ar.answer.inArea("بيت الدين", 1.5, 30));
+    expect(outbound[0]!.body.text.body).toContain("التوصيل: $1.50");
   });
 
   it("an order to a village we do not serve gets one answer listing where we do deliver, and no card", async () => {
@@ -416,7 +423,7 @@ describe("answers without the model (1.3)", () => {
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);
     const body: string = outbound[0]!.body.text.body;
-    expect(body.startsWith("لهلّق ما منوصّل على قرية بعيدة. منوصّل على: ")).toBe(true);
+    expect(body.startsWith("لهلّق ما منوصّل على قرية بعيدة.\n📍 منوصّل على: ")).toBe(true);
     expect(body).toContain("بعقلين"); expect(body).toContain("بيت الدين");          // from the villages table
     const c = await t.customer();
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
@@ -444,7 +451,8 @@ describe("answers without the model (1.3)", () => {
     await t.conv.alarm();
     await db.pg.query(`update stock_levels set on_hand = reserved + 500 where product_id = $1`, [BREAD]);
     expect(outbound).toHaveLength(2);
-    expect(outbound[0]!.body.text.body).toBe("من طلبك الماضي هول مش متوفّرين هلّق: Wooden Bakery Pita White Bread Big 800G. حطّينا الباقي بالورقة.");
+    // M1: asked in English, so the fixed words are English too.
+    expect(outbound[0]!.body.text.body).toBe(en.answer.someMissing(["Wooden Bakery Pita White Bread Big 800G"]));
     expect(outbound[1]!.body.interactive.body.text).toContain("$6.00");          // 5.00 labneh + 1.00 delivery
   });
 
@@ -561,7 +569,7 @@ describe("no phone number in the webhook (1.19)", () => {
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(1);
     expect(outbound[0]!.body.to).toBe("LB.1234567890abcdef");                       // replies go to the id, as Kapso accepts it
-    expect(outbound[0]!.body.text.body).toBe("قبل ما نبعتلك ورقة الطلب: شو رقم التلفون يلي فيه السائق يتّصل فيك عليه؟");
+    expect(outbound[0]!.body.text.body).toBe(ar.fixed.askPhone);
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
 
     await t.conv.fetch(t.text("03 12 34"));                                          // meant as a number, too short to be one
@@ -630,7 +638,7 @@ describe("model capacity (1.15)", () => {
     expect(r.outcome).toBe("card");
     expect(t.waits).toEqual([2000]);
     expect(outbound.map((o) => o.body.type)).toEqual(["text", "interactive"]);
-    expect(outbound[0]!.body.text.body).toBe("لحظة صغيرة وبرجعلك 🙏");
+    expect(outbound[0]!.body.text.body).toBe(ar.fixed.oneMoment);
   });
 
   it("still overloaded after every retry: a person takes over, ops is told, and the customer hears so", async () => {
@@ -639,7 +647,7 @@ describe("model capacity (1.15)", () => {
     expect(r.outcome).toBe("agent_handoff");
     expect(t.calls()).toBe(4);                                          // the first try and three retries
     expect(t.waits).toEqual([2000, 5000, 12000]);
-    expect(outbound.map((o) => o.body.text.body)).toEqual(["لحظة صغيرة وبرجعلك 🙏", "رح يتواصل معك حدا من فريقنا بأقرب وقت."]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.oneMoment, ar.fixed.handoff]);
     const c = await t.customer();
     expect(c.human_handoff).toBe(true);
     expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "model_capacity" });
@@ -654,7 +662,7 @@ describe("model capacity (1.15)", () => {
     const first = outbound.length;
     await db.pg.query(`update conversations set human_handoff = false where party_id = (select party_id from party_identities where wa_user_id = $1)`, [t.who.waUserId]);
     await processTurn(deps, pending, {});
-    expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain("لحظة صغيرة وبرجعلك 🙏");
+    expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain(ar.fixed.oneMoment);
   });
 
   it("a bad request is our bug, not capacity: no 'one moment', no retries", async () => {
@@ -663,7 +671,7 @@ describe("model capacity (1.15)", () => {
     const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
     expect(r.outcome).toBe("error");
     expect(t.waits).toEqual([]);
-    expect(outbound.map((o) => o.body.text.body)).toEqual(["صار في مشكلة صغيرة من عنا. رح يتواصل معك حدا من الفريق."]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.error]);
   });
 });
 
@@ -671,13 +679,17 @@ describe("order card", () => {
   const ORDER = "33333333-3333-4333-8333-333333333333";
   const quote: Quote = { ok: true, issues: [], subtotal_usd: 7.5, delivery_fee_usd: 1, total_usd: 8.5, fx_rate_lbp: 89500, total_lbp: 761000,
     eta_minutes: 20, pickup: false, village: "Baakline", village_ar: "بعقلين", village_id: null, lines: [] };
-  it("keeps totals, consent line and buttons inside WhatsApp's limits for a 60-line basket", () => {
+  it("keeps totals, consent line and buttons inside WhatsApp's limits for a 60-line basket, and still shows every line (M1)", () => {
     const big: Quote = { ...quote, lines: Array.from({ length: 60 }, (_, i) => ({ name: `Product with a fairly long name number ${i}`, name_ar: null, qty: 2, unit: "Each", line_total_usd: 3.25, modifiers: ["بلا كبيس"] })) };
-    const card = formatOrderCard({ orderId: ORDER, shortCode: "AK-2000", quote: big, paymentMethod: "whish" });
+    const parts = formatOrderCard({ orderId: ORDER, shortCode: "AK-2000", quote: big, paymentMethod: "whish" });
+    expect(parts).toHaveLength(2);                                      // every line first, as text; then the card
+    const lines = (parts[0] as any).text.body as string;
+    for (let i = 0; i < 60; i++) expect(lines).toContain(`Product with a fairly long name number ${i} (`);
+    const card = parts[1]!;
     const body = (card as any).interactive.body.text as string;
     expect(body.length).toBeLessThanOrEqual(1024);
-    expect(body).toContain("الإجمالي"); expect(body).toContain(CONSENT_LINE); expect(body).toContain("أغراض تانية");
-    expect(preflight({ line: "customer", partyId: ORDER, to: "x", category: "service", msg: card, dedupeKey: "t:0" })).toBeNull();
+    expect(body).toContain(`*${ar.card.total}: $8.50*`); expect(body).toContain(CONSENT_LINE);
+    for (const m of parts) expect(preflight({ line: "customer", partyId: ORDER, to: "x", category: "service", msg: m, dedupeKey: "t:0" })).toBeNull();
   });
   it("round-trips button ids", () => {
     expect(parseOrderButton(orderButtonId("cancel", ORDER))).toEqual({ action: "cancel", orderId: ORDER });

@@ -1,4 +1,4 @@
-// Server-rendered pages, built plain (BUILD_PLAN Phase 3: "no design work until the pilot shows what ops uses").
+// Server-rendered pages. The shell (head, navigation, language, install metadata) is built here; the stylesheet is style.ts.
 // Every interpolated value is escaped unless it is itself a fragment built with `html`.
 
 export class Raw { constructor(readonly s: string) {} toString() { return this.s; } }
@@ -36,41 +36,46 @@ export function form(f: FormCtx, action: string, body: Raw | Raw[], opts: { cls?
 <input type="hidden" name="_csrf" value="${f.csrf}"><input type="hidden" name="_key" value="${f.nonce()}">${body}</form>`;
 }
 
-export interface NavItem { href: string; label: string }
+import { dirOf, t, type Lang } from "./i18n";
+import type { Nav } from "./nav";
+import { badgeText } from "./nav";
+export { CSS } from "./style";
 
-export function page(opts: { title: string; staff?: { name: string; role: string; csrf: string } | null; nav?: NavItem[];
-                             flash?: { ok?: string; err?: string } | null; environment: string; body: Raw | Raw[] }): Response {
-  const nav = opts.nav?.length ? html`<nav>${opts.nav.map((n) => html`<a href="${n.href}">${n.label}</a>`)}</nav>` : "";
-  const who = opts.staff ? html`<div class="who">${opts.staff.name} (${opts.staff.role.replace("_", " ")})
-<form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button>Sign out</button></form></div>` : "";
-  const banner = opts.environment === "production" ? "" : html`<div class="env">${opts.environment.toUpperCase()}: test data only</div>`;
-  const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? html`<p class="flash ok">${opts.flash.ok}</p>` : "";
-  const doc = html`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${opts.title} · Alo King console</title><link rel="stylesheet" href="/console.css"></head>
-<body>${banner}<header><strong>Alo King console</strong>${who}</header>${nav}<main><h1>${opts.title}</h1>${flash}${opts.body}</main></body></html>`;
-  return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+export interface PageOpts {
+  title: string;
+  staff?: { name: string; role: string; csrf: string } | null;
+  nav?: Nav | null;
+  lang?: Lang;
+  /** True for a page whose words follow the language choice (the shell, Today, Orders, the hubs). Older pages stay English inside. */
+  translated?: boolean;
+  flash?: { ok?: string; err?: string } | null;
+  environment: string;
+  body: Raw | Raw[];
+  /** The address, so the language switch comes back to the same page. */
+  path?: string;
 }
 
-export const CSS = `
-body{font:15px/1.4 system-ui,sans-serif;margin:0;color:#111;background:#fff}
-header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#123;color:#fff}
-header form{display:inline;margin-left:8px}
-.env{background:#c60;color:#fff;padding:4px 16px;font-weight:bold}
-nav{padding:6px 16px;background:#eef;display:flex;flex-wrap:wrap;gap:12px}
-main{padding:12px 16px;max-width:1200px}
-table{border-collapse:collapse;margin:8px 0 16px;width:100%}
-th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
-th{background:#f4f4f4}
-.late{background:#fde2e2}
-.warn{color:#a40}
-.muted{color:#666}
-.flash{padding:8px;border-radius:4px}
-.flash.ok{background:#e3f6e3}
-.flash.err{background:#fde2e2}
-form.inline{display:inline}
-input,select,textarea,button{font:inherit;margin:2px 0}
-input[type=number]{width:7em}
-img.proof{max-width:320px;max-height:420px;border:1px solid #ccc}
-.pair{display:flex;gap:16px;flex-wrap:wrap;border:1px solid #ccc;padding:8px;margin:8px 0}
-.note{background:#fff7e0;border:1px solid #e8c96b;padding:8px;margin:8px 0}
-`;
+const badge = (n: number) => (n > 0 ? html`<span class="badge">${badgeText(n)}</span>` : "");
+
+export function page(opts: PageOpts): Response {
+  const lang: Lang = opts.lang ?? "en";
+  const nav = opts.nav;
+  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${nav.groups.map((g) => html`${g.heading ? html`<h2>${g.heading}</h2>` : ""}
+${g.links.map((l) => html`<a href="${l.href}"${l.current ? new Raw(' aria-current="page"') : ""}><span>${l.label}</span>${badge(l.badge)}</a>`)}`)}</aside>` : "";
+  const bottom = nav ? html`<nav class="bottom-nav" aria-label="${t(lang, "main_menu")}">${nav.bottom.map((l) => html`<a href="${l.href}"${l.current ? new Raw(' aria-current="page"') : ""}><span class="ic" aria-hidden="true">${l.icon}</span><span>${l.label}</span>${badge(l.badge)}</a>`)}</nav>` : "";
+  const who = opts.staff ? html`<div class="who"><span>${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
+<form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button>${t(lang, "sign_out")}</button></form></div>` : "";
+  const banner = opts.environment === "production" ? "" : html`<div class="env">${t(lang, "test_data", { env: opts.environment.toUpperCase() })}</div>`;
+  const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? html`<p class="flash ok">${opts.flash.ok}</p>` : "";
+  // A page not yet translated keeps its own language inside an Arabic shell, so assistive technology is not told English is Arabic.
+  const mainAttrs = lang === "ar" && !opts.translated ? new Raw(' lang="en" dir="ltr"') : "";
+  const doc = html`<!doctype html><html lang="${lang}" dir="${dirOf(lang)}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0f3d5e">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Alo King">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<title>${opts.title} · ${t(lang, "app_name")}</title><link rel="stylesheet" href="/console.css"></head>
+<body><a class="skip" href="#main">${t(lang, "skip")}</a>${banner}<header class="top"><strong>${t(lang, "app_name")}</strong>${who}</header>
+<div class="shell">${aside}<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${bottom}<script src="/shell.js" defer></script></body></html>`;
+  return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+}
