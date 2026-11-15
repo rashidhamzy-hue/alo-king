@@ -230,8 +230,8 @@ The 3 lost baskets: twice "edit" on a card sent it back to a draft, and the next
 once the model said "your card is on its way" with no basket at all (sim-082).
 
 **B1a second follow-up** (third pull request): "edit" on a card keeps its lines as the basket being changed (`holdDraft`), so the next
-words edit it and "where is my order?" brings it back as a card; "where is my order?" with a card waiting for the tap sends the card
-again; the Concierge's `quote_order` on a card waiting for the tap edits that card's basket instead of starting one; the guard refuses
+words edit it and "where is my order?" brings it back as a card; "where is my order?" with a card waiting for the tap gets its status line
+and the card again; the Concierge's `quote_order` on a card waiting for the tap edits that card's basket instead of starting one; the guard refuses
 "I changed / updated / «عدّلنا» / «ثواني وبحدّث»" unless `quote_order` or a card changed the basket this turn (`change_claim`); an
 ordinal from three on («تالتة», "third", «رابعة») makes that count in all; the gateway's second check of model words now receives the
 turn's tool results (a search, a change), which it did not, so "the only one we have" after a real search was refused at the gateway.

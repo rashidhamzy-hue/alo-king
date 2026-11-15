@@ -642,11 +642,13 @@ export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
     const r = await resumeBasket(ctx, soFar(ctx));
     if (r.done) return r;
   }
-  // B1a (the second run on main, sim-079 and sim-146: «I don't see the card, send it again»): a card waiting for the tap is sent
-  // again, the card itself being the answer.
+  // B1a (the second run on main, sim-079 and sim-146: «I don't see the card, send it again»): a card waiting for the tap gets its
+  // status line (1.3) and the card itself again under it.
   if (s?.status === "awaiting_confirmation") {
     const card = await cardInHand(ctx).catch(() => null);
-    if (card && (await resendCard(ctx, card.order_id).catch(() => false))) return { done: true, path: "card_again" };
+    const r = await answerStatus(ctx);
+    if (r.done && card) await resendCard(ctx, card.order_id).catch(() => false);
+    return r;
   }
   // B1a: no order and no basket, and a request with a person is open: "when will they answer?" read as "where is my order" is
   // about that request (the B1a run on main: 5 of its 6 «no open order» replies). The reminder, at most as often as HO1 allows.
