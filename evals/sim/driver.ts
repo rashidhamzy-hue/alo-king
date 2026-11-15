@@ -138,8 +138,9 @@ export class SimConversation {
   async act(action: Action, clock: string): Promise<TurnRecord> {
     const n = this.turns.length + 1;
     const mark = { kapso: this.guard.kapso.length, calls: this.meter.calls.length, texts: this.meter.modelTexts.length, refused: this.guard.refused.length };
-    const before = (await this.sql<{ human_handoff: boolean }>(`select human_handoff from conversations where id = $1`, [this.conversationId]))[0];
-    const afterHandoff = !!before?.human_handoff;
+    // HO1: "after a hand-off" is a case still open on the chat (0135), or the old lock (main before HO1). Either way a turn with
+    // no reply after it is the silence this run measures.
+    const afterHandoff = await this.handedOff();
     const afterOptOut = this.optedOut;
     const handoffsBefore = (await this.sql(`select id from handoffs where conversation_id = $1`, [this.conversationId])).length;
     const runsBefore = (await this.sql(`select id from agent_runs where conversation_id = $1`, [this.conversationId])).length;
@@ -224,7 +225,10 @@ export class SimConversation {
   }
 
   async handedOff(): Promise<boolean> {
-    return !!(await this.sql<{ human_handoff: boolean }>(`select human_handoff from conversations where id = $1`, [this.conversationId]))[0]?.human_handoff;
+    const r = (await this.sql<{ locked: boolean; open: boolean }>(`select coalesce(c.human_handoff, false) as locked,
+        exists (select 1 from handoffs h where h.conversation_id = c.id and h.status <> 'resolved') as open
+      from conversations c where c.id = $1`, [this.conversationId]))[0];
+    return !!(r?.locked || r?.open);
   }
 
   /** Facts for the judge and the report: orders now, the hand-offs and the ops exceptions this conversation raised. */

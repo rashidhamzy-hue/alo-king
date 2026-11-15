@@ -23,6 +23,10 @@ import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 import { takeCart, type CartOrder } from "@ak/agents/cart";
+import { personSignal } from "@ak/agents/person-request";
+import { CASE_KEEP, CASE_VOICE, MENU_BROWSE, MENU_ORDER, MENU_PERSON, RETRY_PREFIX, openCase, parseCallbackButton, remindCase, retryButtonId,
+         supportMessage, tellOpened, type OpenedCase } from "@ak/agents/support";
+import { buttons as buttonMsg } from "@ak/wa/kapso";
 
 interface SavedPin { place_id: string; village_id: string | null; village: string | null; village_ar?: string | null; served?: boolean | null;
   status: "located" | "unsure" | "outside"; said_village_id?: string | null; said_village_ar?: string | null;
@@ -52,7 +56,18 @@ export interface TurnDeps {
   /** A second speech-to-text provider (1.7), passed by the worker only when its key is configured. settings.stt decides use. */
   stt?: SttProvider;
 }
-export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
+/**
+ * HO1: "case" a case opened and the customer was told; "paused" a person claimed the chat and the bot stepped back (a person
+ * answers; the 2-minute alarm watches); "menu" the hourly cap's fixed menu; "technical" the fixed technical line after the
+ * turn was queued again once. Nothing locks a chat: "human" and "agent_handoff" are no longer produced.
+ */
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "paused" | "agent_ok" | "case" | "menu" | "technical" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
+
+/** HO1: the model was unavailable or the turn failed before anything was sent. The turn is queued again once, after `ms`. */
+export class RetryTurnLater extends Error {
+  constructor(public readonly ms: number, cause: unknown) { super(`RETRY_TURN_LATER ${String(cause).slice(0, 200)}`); this.name = "RetryTurnLater"; }
+}
+export const TECHNICAL_RETRY_MS = 60_000;
 
 const HISTORY_MAX = 8;
 /** How long after "edit" on a confirmed scheduled order the next basket is still its change (W1). The cut-off may end it sooner. */
@@ -61,7 +76,11 @@ const CHANGE_OPEN_MS = 2 * 3600_000;
 /** What open_turn() returns (0100): begin_turn, touch_conversation, the first contact and the stored messages, in one call. */
 export interface OpenedTurn {
   turn: "run" | "retry" | "done" | "give_up";
-  known?: boolean; party_id: string; conversation_id: string; human_handoff: boolean; blocked?: boolean;
+  known?: boolean; party_id: string; conversation_id: string; human_handoff?: boolean; blocked?: boolean;
+  /** HO1 (0135): a person claimed or answered within settings.support.pause_min: the model stays out until then. */
+  bot_paused?: boolean;
+  /** HO1 (0135): the conversation's open cases. */
+  cases?: { case_id: string; kind: string; topic: string | null; state: string }[];
   budget?: { allowed: boolean; used: number; limit: number } | null;
   customer_context?: unknown;
 }
@@ -131,14 +150,61 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const texts: string[] = [];
   const turnIds = pending.map((p) => p.event.message.id);
   const transcripts: { primary: string; secondary?: string }[] = [];
-  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false;
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false, personAsked = false, chased = false;
+  const openCases = conv.cases ?? [];
+
+  // HO1: a tap whose handler failed is a technical failure, not a hand-off: the error line with a button that repeats the tap,
+  // and an ops exception carrying the error. The bot stays in the chat.
+  const tapFailed = async (tap: string, where: string, err: unknown, orderId?: string) => {
+    await db.rpc("raise_ops_exception", { p_kind: "technical", p_ref: `${turnKey}:${where}`,
+      p_detail: { conversation_id: conv.conversation_id, where, error: String(err).slice(0, 300) } });
+    const r = await sendRaw(buttonMsg(T().support.buttonError, [{ id: retryButtonId(tap), title: T().support.retryButton }]), orderId);
+    if (r.ok) sent.push(T().support.buttonError);
+  };
+  /** A case just opened: the opened line. Already open: the reminder (asked again for a person, the customer is never ignored). */
+  const sayCase = async (c: OpenedCase) => {
+    if (c.opened) { await tellOpened(ctx, c); return; }
+    if (await remindCase(ctx, c.case_id)) return;
+    if ((await sendRaw({ type: "text", text: { body: T().support.reminder } })).ok) ctx.sent.texts.push(T().support.reminder);
+  };
+  /** The case and menu buttons (support.ts). True when the tap was one of them. */
+  const supportTap = async (tap: string): Promise<boolean> => {
+    const s = T().support;
+    const cb = parseCallbackButton(tap);
+    if (cb) {
+      const r = await call<{ ok: boolean }>(db, "request_callback", { p_case: cb, p_party: conv.party_id });
+      await ctx.send({ type: "text", text: { body: r.ok ? s.callbackNoted : s.keepOrdering } }).then((x) => { if (x.ok) ctx.sent.texts.push(r.ok ? s.callbackNoted : s.keepOrdering); });
+      return true;
+    }
+    if (tap === CASE_KEEP || tap === CASE_VOICE) {
+      const body = tap === CASE_KEEP ? s.keepOrdering : s.voiceNoteAsk;
+      if ((await ctx.send({ type: "text", text: { body } })).ok) ctx.sent.texts.push(body);
+      return true;
+    }
+    if (tap === MENU_PERSON) {
+      await sayCase(await openCase(ctx, "person_requested", "asked by button", { source: "button" }));
+      return true;
+    }
+    if (tap === MENU_ORDER) {
+      if (!(await answerQuick(ctx, "status")).done && (await ctx.send({ type: "text", text: { body: T().answer.noOpenOrder } })).ok) ctx.sent.texts.push(T().answer.noOpenOrder);
+      return true;
+    }
+    if (tap === MENU_BROWSE) {
+      const r = await makeConciergeTools(ctx).show_catalog({}) as { ok?: boolean };
+      if (r?.ok === false && (await ctx.send({ type: "text", text: { body: s.browseInWords } })).ok) ctx.sent.texts.push(s.browseInWords);
+      return true;
+    }
+    return false;
+  };
 
   for (const p of pending) {
     const m = p.event.message;
 
     // 1. Buttons never reach the model. A list row (W1: a delivery window) is a tap too, and so is a template's quick reply (M1:
     //    a code-started message sent after 24 hours carries the same button ids as payloads).
-    const tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : m.type === "button" ? templatePayload(m) : undefined;
+    let tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : m.type === "button" ? templatePayload(m) : undefined;
+    // HO1: "try again" under the error line repeats the tap that failed.
+    if (tapped?.startsWith(RETRY_PREFIX)) tapped = tapped.slice(RETRY_PREFIX.length);
     if (tapped) {
       const btn = parseOrderButton(tapped);
       if (btn) {
@@ -167,8 +233,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (r.changed && r.status === "confirmed") await deps.onOrderConfirmed?.(btn.orderId).catch(() => undefined);
           if (r.status === "draft") state.lastQuote = null;
         } catch (err) {
-          await say(String(err).includes("OUT_OF_STOCK") ? T().fixed.outOfStock : T().fixed.error, btn.orderId);
-          if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          if (String(err).includes("OUT_OF_STOCK")) await say(T().fixed.outOfStock, btn.orderId);
+          else await tapFailed(tapped, "button", err, btn.orderId);
         }
         continue;
       }
@@ -181,8 +248,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           else await basketWindowTap(ctx, win.slotId);
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
-          await say(T().fixed.error, win.orderId ?? undefined);
-          await handoff(db, conv.conversation_id, `window_error: ${String(err).slice(0, 200)}`);
+          await tapFailed(tapped, "window", err, win.orderId ?? undefined);
         }
         sent.push(...ctx.sent.texts.splice(0));
         continue;
@@ -201,9 +267,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         const r = await call<{ ok: boolean; changed?: boolean; short_code?: string }>(db, "record_feedback",
           { p_order: fb.orderId, p_party: conv.party_id, p_verdict: fb.verdict });
         if (r.ok && r.changed && fb.verdict === "problem") {
-          await handoff(db, conv.conversation_id, `delivery_problem: ${r.short_code}`);
-          await alertOps(deps, FEEDBACK_TEXT.opsAlert(r.short_code ?? ""), `fbproblem:${fb.orderId}`);
-          await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
+          // HO1: a case of kind order_problem (its ops exception alerts staff); the bot stays in the chat.
+          const c = await openCase(ctx, "order_problem", `delivery_problem: ${r.short_code ?? ""}`, { orderId: fb.orderId, source: "button" });
+          if (c.after_hours) { await tellOpened(ctx, c, fb.orderId); sent.push(...ctx.sent.texts.splice(0)); }
+          else await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
         } else if (r.ok && r.changed) await say(FEEDBACK_TEXT.fine, fb.orderId);
         continue;
       }
@@ -212,7 +279,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         try { if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id, state.lang)) { buttonsHandled++; continue; } }
         catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
-          buttonsHandled++; await say(T().fixed.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
+          buttonsHandled++; await tapFailed(tapped, "substitution", err); continue;
         }
       }
       // The village a pin is in, tapped when the pin alone was not clear (B4). The database checks it is near the pin.
@@ -235,6 +302,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         continue;
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
+      // HO1: the buttons of the case lines and of the fixed technical, cap and stalled lines. Code answers each; never the model.
+      if (await supportTap(tapped)) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
         buttonsHandled++;
         await db.from("consent_events").insert({ party_id: conv.party_id, line: "customer", kind: "marketing",
@@ -293,6 +362,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (looksLikePhoneAttempt(body)) continue;                // just the number: nothing else to read
         } else if (looksLikePhoneAttempt(body)) { await say(T().fixed.badPhone); buttonsHandled++; continue; }
       }
+      // HO1: "I want a person" in any of the four ways of writing, before any model.
+      const sig = personSignal(body);
+      if (sig === "person") personAsked = true; else if (sig === "chase") chased = true;
       texts.push(body);
       continue;
     }
@@ -307,7 +379,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       voiceSecondsThisTurn += seconds;
       // Kapso's transcript first; a second provider's too when settings.stt names one we have (1.7). Both are judged.
       const { verdict } = await readVoiceNote({ db, fetchMedia: deps.fetchMedia, stt: deps.stt }, conv.party_id, m, seconds);
-      if (verdict.usable) transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
+      if (verdict.usable) {
+        transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
+        const sig = personSignal(verdict.primary.text);
+        if (sig === "person") personAsked = true; else if (sig === "chase") chased = true;
+      }
       else audioFailed++;
       continue;
     }
@@ -336,7 +412,23 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (audioFailed > 0) { await say(T().fixed.audioUnusable); return { outcome: "audio_unusable", sent }; }
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
-  if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
+  // HO1: a person claimed or answered this chat within settings.support.pause_min: the bot steps back until then. Buttons,
+  // pins, STOP and payments were handled above. The 2-minute alarm (customer_unanswered) watches that the person answers.
+  if (conv.bot_paused) return { outcome: "paused", sent };
+  // HO1: "I want a person", recognised by code before any model: a case, the customer told, and the bot keeps answering.
+  if (personAsked) {
+    const c = await openCase(ctx, "person_requested", [...texts, ...transcripts.map((t) => t.primary)].join(" / ").slice(0, 300), { source: "customer_words" });
+    await sayCase(c);
+    sent.push(...ctx.sent.texts.splice(0));
+    await db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id, model: deps.modelName, input_tokens: 0, output_tokens: 0,
+      latency_ms: 0, outcome: "ok", trace: { path: c.opened ? "person_requested" : "case_reminder", sent } });
+    return { outcome: c.opened ? "case" : "answered", sent };
+  }
+  // A customer asking after the open request: the short "your request is open", at most every topic_reminder_min. Otherwise the
+  // Concierge answers, knowing the request is open.
+  if (chased && openCases.length && texts.length + transcripts.length === 1) {
+    if (await remindCase(ctx, openCases[0]!.case_id)) { sent.push(...ctx.sent.texts.splice(0)); return { outcome: "answered", sent }; }
+  }
   // Only a pin or a phone number arrived: the data a waiting card needed, nothing to read.
   const dataOnly = (pins > 0 || phoneSaved) && texts.length === pins && transcripts.length === 0;
 
@@ -360,14 +452,6 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
     trace: { path, intent, sent: ctx.sent.texts, calls: usage.calls,
              cache_read_input_tokens: usage.cacheRead, cache_creation_input_tokens: usage.cacheWrite } });
-  // SP2 (invariant 18): a chat the Concierge hands to a person is an open exception, so it is never left in silence: the console
-  // lists it (exceptions page) and the minute cron alerts the ops line (ops_exceptions_due, index.ts). The customer was already
-  // told by the fixed handoff message, and the handoffs row holds the reason.
-  const alertHandoff = async (reason: string) => {
-    const r = await db.rpc("raise_ops_exception", { p_kind: "agent_handoff", p_ref: turnKey,
-                                                    p_detail: { conversation_id: conv.conversation_id, reason: reason.slice(0, 200) } });
-    if (r.error) console.error("agent_handoff exception", r.error.message);
-  };
   try {
     // A pin or a number for a card that was only waiting on it: the card goes out, no model.
     if (dataOnly) {
@@ -405,14 +489,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const budget = conv.budget !== undefined ? conv.budget
       : (await db.rpc("model_turn_budget", { p_party: conv.party_id })).data as { allowed: boolean; used: number; limit: number } | null;
     if (budget && budget.allowed === false) {
+      // HO1: no model call, and no hand-off: a fixed menu (browse, my order, a person). Ops is told by the exception.
       const hour = Math.floor(Date.now() / 3_600_000);
-      await handoff(db, conv.conversation_id, "model_turn_cap");
       await db.rpc("raise_ops_exception", { p_kind: "model_turn_cap", p_ref: `${conv.party_id}:${hour}`,
         p_detail: { conversation_id: conv.conversation_id, used: budget.used, limit: budget.limit } });
       await alertOps(deps, messages(STAFF_LANG).ops.turnCap(budget.limit), `turncap:${conv.party_id}:${hour}`);
-      await say(T().fixed.handoff);
-      await record("handoff", "model_turn_cap");
-      return { outcome: "agent_handoff", sent };
+      const menu = supportMessage(state.lang, "capMenu");
+      if ((await sendRaw(menu)).ok) sent.push(T().support.capMenu);
+      await record("menu", "model_turn_cap");
+      return { outcome: "menu", sent };
     }
     const lastInbound = [...pending].reverse().find((p) => p.event.message.type === "text" || p.event.message.type === "audio");
     // Never for a staging probe: its messages exist only in our database, and nothing about them may reach Kapso (4.10).
@@ -422,6 +507,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const input = { texts, transcripts,
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
                audio_messages_unreadable: audioFailed, recent: state.history ?? [],
+               // HO1: requests a person already has. The bot keeps serving; it never hands the same request off twice.
+               ...(openCases.length ? { open_requests_with_a_person: openCases.map((c) => ({ kind: c.kind, topic: c.topic })) } : {}),
                // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
                known_customer: (conv.customer_context !== undefined ? conv.customer_context
                                 : (await db.rpc("customer_context", { p_party: conv.party_id })).data) ?? null } };
@@ -443,41 +530,40 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     }
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent, said);
-    if (routed.done && routed.path === "handoff") await alertHandoff("plan_handoff");
-    if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
+    if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? (ctx.support?.opened ? "case" : "answered") : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
-    if (res.outcome === "handoff") await alertHandoff(res.reason ?? "agent_handoff");
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();
-    await record(res.outcome, "ask");
-    return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };
+    // HO1: the loop's own "handoff" is a case opened (or recalled), a food fact not on record, or the stalled question.
+    const how = ctx.support?.stalled ? "stalled" : ctx.support?.opened ? "case" : ctx.support?.foodFact ? "not_on_record" : res.outcome;
+    await record(how, "ask");
+    return { outcome: how === "case" ? "case" : how === "stalled" ? "answered" : "agent_ok", sent };
   } catch (err) {
     // The outbox could not say whether a message is ours to send: nothing more may go out. The whole turn retries.
     if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
-    if (err instanceof ModelAccountRefused) {
-      // The account, not the message: every turn will fail until a person acts. The exception is already open (and pushed); this chat
-      // goes to a person like any other, and the customer is told so. No retry, no "one moment".
-      await handoff(db, conv.conversation_id, `model_account:${err.reason}`);
-      await alertHandoff(`model_account:${err.reason}`);
-      await say(T().fixed.handoff);
-      await record("handoff", `model_account:${err.reason}`).then(() => undefined, () => undefined);
-      return { outcome: "agent_handoff", sent };
+    // HO1: a technical failure is not a hand-off. Nothing sent yet: the turn is queued again once, a minute later. The second
+    // failure gets the fixed technical line (Browse, Talk to a person) and an ops exception; the chat stays with the bot.
+    // OPS1: a refusal for an account reason (usage limit, billing, key) is the same kind of failure, but a limit does not clear in a minute,
+    // so it is not retried: the customer gets the technical line at once. The high-priority model_account exception is already open
+    // (the model wrapper raised it); the technical exception below carries which reason it was, so each chat that met it is findable.
+    const account = err instanceof ModelAccountRefused ? err : null;
+    const capacity = err instanceof ModelUnavailable;
+    const cause = capacity ? String((err as ModelUnavailable).cause) : String(err);
+    if (!account && ctx.sent.count === 0 && state.technicalRetry !== turnKey) {
+      state.technicalRetry = turnKey;
+      throw new RetryTurnLater(TECHNICAL_RETRY_MS, err);
     }
-    if (err instanceof ModelUnavailable) {
-      // The model stayed unavailable through every retry: a person takes over, and the customer is told so.
-      await handoff(db, conv.conversation_id, "model_capacity");
-      await db.rpc("raise_ops_exception", { p_kind: "model_capacity", p_ref: turnKey, p_detail: { conversation_id: conv.conversation_id, error: String(err.cause).slice(0, 300) } });
-      await say(T().fixed.handoff);
-      await record("handoff", "model_capacity").then(() => undefined, () => undefined);
-      return { outcome: "agent_handoff", sent };
-    }
-    await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);
-    if (ctx.sent.count === 0) await say(T().fixed.error);
-    return { outcome: "error", sent };
+    state.technicalRetry = null;
+    await db.rpc("raise_ops_exception", { p_kind: "technical", p_ref: turnKey,
+      p_detail: { conversation_id: conv.conversation_id, where: account ? `model_account:${account.reason}` : capacity ? "model_capacity" : "agent_error", error: cause.slice(0, 300) } });
+    if (ctx.sent.count === 0 && (await sendRaw(supportMessage(state.lang, "technical"))).ok) sent.push(T().support.technical);
+    sent.push(...ctx.sent.texts.splice(0));
+    await record("technical", account ? `model_account:${account.reason}` : capacity ? "model_capacity" : "agent_error").then(() => undefined, () => undefined);
+    return { outcome: "technical", sent };
   }
 }
 
@@ -491,11 +577,6 @@ export const accountReport = (db: SupabaseClient) => async (reason: "usage_limit
   const r = await db.rpc("raise_model_account", { p_reason: reason, p_detail: { message } });
   if (r.error) console.error("raise_model_account", r.error.message);
 };
-
-async function handoff(db: SupabaseClient, conversationId: string, reason: string) {
-  await db.from("conversations").update({ human_handoff: true }).eq("id", conversationId);
-  await db.from("handoffs").insert({ conversation_id: conversationId, reason });
-}
 
 
 /** SHA-256 of an outbound message, first 16 hex characters. Same message, same hash, in every attempt of a turn. */

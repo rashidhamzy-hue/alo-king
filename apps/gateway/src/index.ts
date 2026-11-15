@@ -11,12 +11,13 @@ import { lineProblem, parseIdentityEvent, parsePreferenceEvent, parseStatusEvent
 import type { ModelClient } from "@ak/agents/concierge";
 import type { ConversationState } from "@ak/agents/concierge-tools";
 import Anthropic from "@anthropic-ai/sdk";
-import { accountReport, runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
+import { accountReport, RetryTurnLater, runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
 import { withAccountAlarm } from "@ak/agents/model-account";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
 import { messages } from "@ak/agents/messages";
+import { supportMessage } from "@ak/agents/support";
 import { logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 
@@ -214,6 +215,11 @@ export default {
     const back = await supa.rpc("returns_pending");
     for (const x of (back.data as { order_id: string; short_code: string }[] | null) ?? []) await alertOps(deps, `📦 أغراض الطلب #${x.short_code} لازم ترجع عالمركز وتنعدّ`, `return:${x.order_id}:${Math.floor(Date.now() / 1_800_000)}`);
 
+    // 5b. HO1 (section D): the case ladder (staff pushes at 0, 3 and 5 minutes; "still on it" to the customer; a quiet claim
+    //     gives the chat back to the bot), then the alarm for any customer message left with no reply for 2 minutes.
+    await step("case_timers", () => caseTimers(deps));
+    await step("customer_unanswered", () => unansweredAlarm(deps));
+
     // 6. learn from what was delivered
     await supa.rpc("learn_from_recent_orders");
 
@@ -289,6 +295,32 @@ async function syncTemplates(env: Env, supa: SupabaseClient): Promise<void> {
   const { data } = await supa.from("wa_templates").select("name").eq("line", "customer");
   for (const t of await templateStatuses(env, env.WABA_ID_CUSTOMER!, ((data as { name: string }[] | null) ?? []).map((x) => x.name)).catch(() => [])) {
     await supa.rpc("set_template_meta", { p_name: t.name, p_status: t.status, p_category: t.category });
+  }
+}
+
+/** HO1: what case_timers_due() (0136) asks the gateway to tell a customer. Staff alerts are its ops exceptions (pushed, and on the staff line). */
+interface CaseAction { action: "still_on_it" | "resumed"; case_id: string; kind: string; round: number; party_id: string; lang?: string }
+
+/** Exported for tests. The minute cron's case step: one customer line per case, round and step (the outbox key says so). */
+export async function caseTimers(deps: TurnDeps): Promise<void> {
+  const { data, error } = await deps.db.rpc("case_timers_due");
+  if (error) throw new Error(`case_timers_due: ${error.message}`);
+  for (const a of (data as CaseAction[] | null) ?? []) {
+    const to = await customerAddress(deps.db, a.party_id);
+    if (!to) continue;
+    const msg = supportMessage(a.lang, a.action === "still_on_it" ? "stillOnIt" : "resumed", { caseId: a.case_id });
+    await deps.send({ line: "customer", partyId: a.party_id, to, msg, category: "service", dedupeKey: `case:${a.case_id}:${a.action}:${a.round}` });
+  }
+}
+
+/** Exported for tests. Any customer message with no reply of any kind for settings.support.unanswered_min, in open hours: one
+ *  high-priority exception each (pushed, on the staff line, on Today). Target: zero. */
+export async function unansweredAlarm(deps: TurnDeps): Promise<void> {
+  const { data, error } = await deps.db.rpc("customer_unanswered", { p_minutes: null });
+  if (error) throw new Error(`customer_unanswered: ${error.message}`);
+  for (const m of (data as { wa_message_id: string; party_id: string; conversation_id: string | null; type: string; minutes: number }[] | null) ?? []) {
+    await deps.db.rpc("raise_ops_exception", { p_kind: "customer_unanswered", p_ref: m.wa_message_id,
+      p_detail: { conversation_id: m.conversation_id, party_id: m.party_id, type: m.type, minutes: m.minutes } });
   }
 }
 
@@ -562,6 +594,11 @@ export class ConversationDO implements DurableObject {
       await runTurn(deps, inflight.msgs, convState);
       await this.state.storage.delete("inflight");
     } catch (err) {
+      // HO1: the model was unavailable (or the turn failed) before anything was sent: queued again once, a minute later.
+      if (err instanceof RetryTurnLater || (err as Error)?.name === "RetryTurnLater") {
+        await this.state.storage.setAlarm(Date.now() + ((err as RetryTurnLater).ms ?? 60_000));
+        return;
+      }
       if (inflight.attempts >= MAX_TURN_ATTEMPTS) {
         // Give up loudly: a person takes over, and the customer is never left in silence.
         // The case is written to the database first. If the alert below fails too, it is still in the exception queue,

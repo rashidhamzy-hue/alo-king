@@ -1,30 +1,26 @@
 # Simulated customers: failure report, 2026-11-15
 
 Session SIM1. 500 simulated customer conversations with the real Concierge (claude-haiku-5-5), each played by claude-sonnet-5-5 and judged by claude-sonnet-5-5.
-Run: https://github.com/rashidhamzy-hue/alo-king/actions/runs/43696512658, code afc8f81c34, 2026-11-15T08:53:16.306Z to 2026-11-15T10:09:55.570Z. Database: PGlite with main's migrations and a read-only copy of staging's catalogue and settings.
+Run: https://github.com/rashidhamzy-hue/alo-king/actions/runs/43696512658 with follow-ups 43709327718 and 43711448441, code afc8f81c34 (follow-ups: 11b008d, main d113621 plus SIM1's own files), 2026-11-15T08:53:16.306Z to 2026-11-15T12:25:44.983Z. Database: PGlite with main's migrations and a read-only copy of staging's catalogue and settings.
 Voice is tested at transcript level: a voice note is the customer's words turned by code into a noisy transcript in the shape Kapso returns; no audio is made or heard.
-Kapso sends were recorded, never sent (3372 recorded). Staging requests: GET 32; refused by the guard: 0.
+Kapso sends were recorded, never sent (4472 recorded). Staging requests: GET 96; refused by the guard: 0.
 
 ## Totals
 
 |  | value |
 | --- | --- |
 | conversations (first attempt) | 500 |
-| judged | 463 |
-| passed | 77 (16.6% of judged) |
-| not judged: budget stop / error / judge gave no verdict | 0 / 37 / 0 |
-| repeat attempts (failing seeds) | 1158 |
+| judged | 500 |
+| passed | 83 (16.6% of judged) |
+| not judged: budget stop / error / judge gave no verdict | 0 / 0 / 0 |
+| repeat attempts (failing seeds) | 100 |
 | conversations where a Concierge call failed at the API (429, 5xx: capacity, not the product) | 0 |
-| customer turns | 3524 |
-| spend, total | $11.27 |
-| spend: Concierge / customer / judge | $3.41 / $4.89 / $2.96 |
-| model calls | 12317 |
-| calibration (first 20) | $0.0213 a conversation, projected $10.64 for all |
-| stopped by | the API key's own usage limit (HTTP 400: You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC.) |
-
-| conversations that ended in an error (all attempts), by cause | count |
-| --- | --- |
-| BadRequestError: 400 {"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC."},} | 1195 |
+| customer turns | 3726 |
+| spend, total | $14.98 (the 500-scenario run and its two follow-ups; with the smoke run $15.11) |
+| spend: Concierge / customer / judge | $4.59 / $6.49 / $3.89 |
+| model calls | 16414 |
+| calibration (first 20 of the first run) | $0.0213 a conversation, projected $10.64 for all |
+| stopped by | the first run: the API key's own usage limit; the follow-ups: their budget (see Spend) |
 
 A conversation **passes** when code found no hard failure on any turn and the judge found the goal reached with no wrong product, no invented fact, no rating or health word and no dead end.
 
@@ -45,83 +41,83 @@ What the run changed in its own copy (never on staging):
 
 | scenario | run | judged | passed | pass rate |
 | --- | --- | --- | --- | --- |
-| address / landmark_only | 11 | 10 | 0 | 0.0% |
+| address / landmark_only | 11 | 11 | 0 | 0.0% |
 | address / no_pin | 12 | 12 | 0 | 0.0% |
 | address / pin_outside | 12 | 12 | 0 | 0.0% |
-| cancel / after_confirm | 15 | 14 | 0 | 0.0% |
+| cancel / after_confirm | 15 | 15 | 0 | 0.0% |
 | cancel / before_confirm | 15 | 15 | 6 | 40.0% |
-| cancel / during_picking | 15 | 14 | 0 | 0.0% |
-| edit_after_card / add_item | 9 | 8 | 1 | 12.5% |
+| cancel / during_picking | 15 | 15 | 0 | 0.0% |
+| edit_after_card / add_item | 9 | 9 | 1 | 11.1% |
 | edit_after_card / change_qty | 9 | 9 | 1 | 11.1% |
 | edit_after_card / remove_item | 9 | 9 | 0 | 0.0% |
 | edit_after_card / swap_item | 8 | 8 | 0 | 0.0% |
 | food_facts / allergy | 10 | 10 | 1 | 10.0% |
-| food_facts / halal | 10 | 9 | 2 | 22.2% |
-| food_facts / ingredients | 10 | 9 | 1 | 11.1% |
+| food_facts / halal | 10 | 10 | 2 | 20.0% |
+| food_facts / ingredients | 10 | 10 | 1 | 10.0% |
 | money / change_large_note | 6 | 6 | 0 | 0.0% |
-| money / lira | 7 | 6 | 0 | 0.0% |
+| money / lira | 7 | 7 | 0 | 0.0% |
 | money / omt | 6 | 6 | 0 | 0.0% |
-| money / whish | 6 | 5 | 0 | 0.0% |
+| money / whish | 6 | 6 | 0 | 0.0% |
 | night / kept_order | 35 | 35 | 7 | 20.0% |
-| not_sold / alcohol | 6 | 5 | 4 | 80.0% |
+| not_sold / alcohol | 6 | 6 | 5 | 83.3% |
 | not_sold / medicine | 6 | 6 | 2 | 33.3% |
 | not_sold / other_shop | 6 | 6 | 4 | 66.7% |
-| not_sold / restaurant | 6 | 4 | 3 | 75.0% |
+| not_sold / restaurant | 6 | 6 | 5 | 83.3% |
 | not_sold / tobacco | 6 | 6 | 4 | 66.7% |
 | off_topic / abuse | 7 | 7 | 0 | 0.0% |
-| off_topic / injection_confirm | 4 | 3 | 0 | 0.0% |
+| off_topic / injection_confirm | 4 | 4 | 0 | 0.0% |
 | off_topic / injection_discount | 4 | 4 | 0 | 0.0% |
 | off_topic / off_topic | 8 | 8 | 5 | 62.5% |
-| off_topic / stop | 7 | 6 | 5 | 83.3% |
-| out_of_stock / alone | 20 | 16 | 2 | 12.5% |
-| out_of_stock / in_basket | 25 | 23 | 3 | 13.0% |
-| person / complaint | 15 | 14 | 0 | 0.0% |
-| person / refund | 15 | 14 | 0 | 0.0% |
-| person / wants_person | 15 | 14 | 0 | 0.0% |
-| plain_order / few_items | 25 | 22 | 11 | 50.0% |
-| plain_order / many_items | 12 | 11 | 3 | 27.3% |
-| plain_order / one_item | 18 | 16 | 0 | 0.0% |
-| same_as_last / same_as_last | 10 | 8 | 5 | 62.5% |
-| vague_items / brand_only | 13 | 11 | 1 | 9.1% |
+| off_topic / stop | 7 | 7 | 6 | 85.7% |
+| out_of_stock / alone | 20 | 20 | 2 | 10.0% |
+| out_of_stock / in_basket | 25 | 25 | 3 | 12.0% |
+| person / complaint | 15 | 15 | 0 | 0.0% |
+| person / refund | 15 | 15 | 0 | 0.0% |
+| person / wants_person | 15 | 15 | 0 | 0.0% |
+| plain_order / few_items | 25 | 25 | 12 | 48.0% |
+| plain_order / many_items | 12 | 12 | 3 | 25.0% |
+| plain_order / one_item | 18 | 18 | 0 | 0.0% |
+| same_as_last / same_as_last | 10 | 10 | 6 | 60.0% |
+| vague_items / brand_only | 13 | 13 | 1 | 7.7% |
 | vague_items / generic_word | 20 | 20 | 1 | 5.0% |
-| vague_items / size_missing | 12 | 11 | 0 | 0.0% |
-| window / later_today | 8 | 6 | 2 | 33.3% |
-| window / named_day | 9 | 8 | 1 | 12.5% |
+| vague_items / size_missing | 12 | 12 | 0 | 0.0% |
+| window / later_today | 8 | 8 | 2 | 25.0% |
+| window / named_day | 9 | 9 | 1 | 11.1% |
 | window / pick_from_list | 8 | 8 | 1 | 12.5% |
-| window / tomorrow_morning | 10 | 9 | 1 | 11.1% |
+| window / tomorrow_morning | 10 | 10 | 1 | 10.0% |
 
 | category | run | judged | passed | pass rate |
 | --- | --- | --- | --- | --- |
-| address | 35 | 34 | 0 | 0.0% |
-| cancel | 45 | 43 | 6 | 14.0% |
-| edit_after_card | 35 | 34 | 2 | 5.9% |
-| food_facts | 30 | 28 | 4 | 14.3% |
-| money | 25 | 23 | 0 | 0.0% |
+| address | 35 | 35 | 0 | 0.0% |
+| cancel | 45 | 45 | 6 | 13.3% |
+| edit_after_card | 35 | 35 | 2 | 5.7% |
+| food_facts | 30 | 30 | 4 | 13.3% |
+| money | 25 | 25 | 0 | 0.0% |
 | night | 35 | 35 | 7 | 20.0% |
-| not_sold | 30 | 27 | 17 | 63.0% |
-| off_topic | 30 | 28 | 10 | 35.7% |
-| out_of_stock | 45 | 39 | 5 | 12.8% |
-| person | 45 | 42 | 0 | 0.0% |
-| plain_order | 55 | 49 | 14 | 28.6% |
-| same_as_last | 10 | 8 | 5 | 62.5% |
-| vague_items | 45 | 42 | 2 | 4.8% |
-| window | 35 | 31 | 5 | 16.1% |
+| not_sold | 30 | 30 | 20 | 66.7% |
+| off_topic | 30 | 30 | 11 | 36.7% |
+| out_of_stock | 45 | 45 | 5 | 11.1% |
+| person | 45 | 45 | 0 | 0.0% |
+| plain_order | 55 | 55 | 15 | 27.3% |
+| same_as_last | 10 | 10 | 6 | 60.0% |
+| vague_items | 45 | 45 | 2 | 4.4% |
+| window | 35 | 35 | 5 | 14.3% |
 
 ## Pass rate by language
 
 | language | run | judged | passed | pass rate |
 | --- | --- | --- | --- | --- |
-| ar | 225 | 210 | 46 | 21.9% |
-| arabizi | 125 | 113 | 12 | 10.6% |
-| en | 75 | 70 | 13 | 18.6% |
-| fr | 50 | 49 | 4 | 8.2% |
-| mixed | 25 | 21 | 2 | 9.5% |
+| ar | 225 | 225 | 47 | 20.9% |
+| arabizi | 125 | 125 | 17 | 13.6% |
+| en | 75 | 75 | 13 | 17.3% |
+| fr | 50 | 50 | 4 | 8.0% |
+| mixed | 25 | 25 | 2 | 8.0% |
 
 | form | run | judged | passed | pass rate |
 | --- | --- | --- | --- | --- |
-| burst | 34 | 32 | 5 | 15.6% |
-| typed | 341 | 318 | 54 | 17.0% |
-| voice note | 125 | 113 | 18 | 15.9% |
+| burst | 34 | 34 | 5 | 14.7% |
+| typed | 341 | 341 | 59 | 17.3% |
+| voice note | 125 | 125 | 19 | 15.2% |
 
 ## Failure classes, ranked by count times severity
 
@@ -129,20 +125,62 @@ Severity 3: the customer was harmed, stranded, or got a wrong product or wrong m
 
 | rank | class | found by | conversations | share of judged | mean severity | score | owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | judge_goal_not_reached | judge | 320 | 69.1% | 2.76 | 883.0 | ordering lane |
-| 2 | judge_dead_end | judge | 233 | 50.3% | 2.82 | 658.0 | hand-off |
-| 3 | judge_repeated_question | judge | 222 | 47.9% | 2.71 | 601.0 | ordering lane |
-| 4 | judge_wrong_product | judge | 143 | 30.9% | 2.81 | 402.0 | ordering lane |
-| 5 | judge_unnatural_dialect | judge | 153 | 33.0% | 2.50 | 383.0 | message design |
-| 6 | silence_after_handoff | code | 89 | 19.2% | 3.00 | 267.0 | hand-off |
-| 7 | message_rules | code | 246 | 53.1% | 1.00 | 246.0 | message design |
-| 8 | judge_invented_fact | judge | 73 | 15.8% | 2.92 | 213.0 | ordering lane |
-| 9 | wrong_language | code | 69 | 14.9% | 2.00 | 138.0 | message design |
+| 1 | judge_goal_not_reached | judge | 345 | 69.0% | 2.75 | 950.0 | ordering lane |
+| 2 | judge_dead_end | judge | 255 | 51.0% | 2.81 | 717.0 | hand-off |
+| 3 | judge_repeated_question | judge | 238 | 47.6% | 2.71 | 644.0 | ordering lane |
+| 4 | judge_unnatural_dialect | judge | 173 | 34.6% | 2.46 | 425.0 | message design |
+| 5 | judge_wrong_product | judge | 151 | 30.2% | 2.81 | 425.0 | ordering lane |
+| 6 | silence_after_handoff | code | 95 | 19.0% | 3.00 | 285.0 | hand-off |
+| 7 | message_rules | code | 261 | 52.2% | 1.00 | 261.0 | message design |
+| 8 | judge_invented_fact | judge | 79 | 15.8% | 2.91 | 230.0 | ordering lane |
+| 9 | wrong_language | code | 76 | 15.2% | 2.00 | 152.0 | message design |
 | 10 | no_reply | code | 2 | 0.4% | 3.00 | 6.0 | ordering lane |
 | 11 | turn_error | code | 2 | 0.4% | 3.00 | 6.0 | ordering lane |
 | 12 | judge_rating_or_health_word | judge | 1 | 0.2% | 2.00 | 2.0 | message design |
 
-### judge_goal_not_reached (320 conversations, severity 2.76)
+### judge_goal_not_reached (345 conversations, severity 2.75)
+
+**sim-051** (seed 10050; plain_order/one_item; ar, voice, burst): The shop replied that Gharifeh is not yet served and stopped, so the customer got no card and no way forward. The refusal may be policy-correct, but nothing was offered next (a notify option, a human, or a different address). (no order card was produced; customer left with no next step after the refusal; no alternative or human hand-off offered; no acknowledgment of the greeting or the garlic request)
+
+```
+CUSTOMER 1: [voice note, transcript as received: "مرحبا كيفك بدي طلب توصيل ايه ع غريفة بدي ثنتين ثوم لو سمحت"]
+SHOP:
+  غريفة مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.
+```
+
+**sim-073** (seed 10072; same_as_last/same_as_last; ar, burst): The shop failed to find the customer's prior order, repeated the same canned reply when challenged, offered no human hand-off, and no order card was ever produced. (said no previous completed order found though customer had one 5 days ago; repeated the identical reply after the customer pushed back; no hand-off or alternative offered; customer stranded with no way to reorder)
+
+```
+CUSTOMER 1: (1) مرحبا  (2) بدي نفس الطلبية يلي المرة الماضية لو سمحت
+SHOP:
+  ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟
+
+CUSTOMER 2: بس أنا طلبت من خمس أيام، آخر طلبية. ما بتطلعلك؟
+SHOP:
+  ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟
+```
+
+**sim-471** (seed 10470; out_of_stock/alone; mixed): The shop correctly said the mayonnaise was out of stock and carded nothing wrong, but the only alternative was ketchup, which isn't similar, so the customer declined and no order resulted; the reply was also in English and not natural for the customer. (replied in English to a mixed Arabizi/French customer; offered ketchup as a 'similar product' to mayonnaise; first line over the length rule (138 chars); no order card, customer left with nothing)
+
+```
+CUSTOMER 1: Bonjour, baddi 2 mayonnaise Plein Soleil 250ml please, la jarte (neighbour) 3am bte3mol commande
+SHOP:
+  Plein Soleil mayonnaise 250ml is out of stock, and no other mayonnaise is available. Would you like one of these Dolly's ketchups instead?
+  Dolly's Tomato Ketchup 330G
+  $0.88
+  Dolly's Ketchup 900G
+  $2.78
+  Buttons:
+    [b1] Dolly's 330g
+    [b2] Dolly's 900g
+    [b3] No thanks
+
+CUSTOMER 2: [taps "No thanks"]
+SHOP:
+  No problem, we won't add the mayonnaise or the ketchup. Message us anytime you want to place a new order.
+```
+
+### judge_dead_end (255 conversations, severity 2.81)
 
 **sim-051** (seed 10050; plain_order/one_item; ar, voice, burst): The shop replied that Gharifeh is not yet served and stopped, so the customer got no card and no way forward. The refusal may be policy-correct, but nothing was offered next (a notify option, a human, or a different address). (no order card was produced; customer left with no next step after the refusal; no alternative or human hand-off offered; no acknowledgment of the greeting or the garlic request)
 
@@ -180,45 +218,7 @@ SHOP:
   (The shop sent nothing.)
 ```
 
-### judge_dead_end (233 conversations, severity 2.82)
-
-**sim-051** (seed 10050; plain_order/one_item; ar, voice, burst): The shop replied that Gharifeh is not yet served and stopped, so the customer got no card and no way forward. The refusal may be policy-correct, but nothing was offered next (a notify option, a human, or a different address). (no order card was produced; customer left with no next step after the refusal; no alternative or human hand-off offered; no acknowledgment of the greeting or the garlic request)
-
-```
-CUSTOMER 1: [voice note, transcript as received: "مرحبا كيفك بدي طلب توصيل ايه ع غريفة بدي ثنتين ثوم لو سمحت"]
-SHOP:
-  غريفة مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.
-```
-
-**sim-073** (seed 10072; same_as_last/same_as_last; ar, burst): The shop failed to find the customer's prior order, repeated the same canned reply when challenged, offered no human hand-off, and no order card was ever produced. (said no previous completed order found though customer had one 5 days ago; repeated the identical reply after the customer pushed back; no hand-off or alternative offered; customer stranded with no way to reorder)
-
-```
-CUSTOMER 1: (1) مرحبا  (2) بدي نفس الطلبية يلي المرة الماضية لو سمحت
-SHOP:
-  ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟
-
-CUSTOMER 2: بس أنا طلبت من خمس أيام، آخر طلبية. ما بتطلعلك؟
-SHOP:
-  ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟
-```
-
-**sim-005** (seed 10004; person/refund; ar, burst): The shop handed off to a person with a single brief message, then stayed completely silent on both follow-ups, leaving the older customer without any answer about her refund. (silence after hand-off on customer turn 2; silence after hand-off on customer turn 3; customer's question about when someone will call went unanswered; no clear next step or timeframe given; customer stranded after hand-off)
-
-```
-CUSTOMER 1: (1) مساء الخير  (2) بدي إرجع المصاري تبع اللحمة المفرومة، وصلت من يومين وما كانت منيحة  (3) الله يخليكن
-SHOP:
-  رح يتواصل معك حدا من فريقنا بأقرب وقت.
-
-CUSTOMER 2: يعطيكن العافية، بتقدروا تخبروني أيمتى رح يتصل فيي حدا؟
-SHOP:
-  (The shop sent nothing.)
-
-CUSTOMER 3: لو سمحتوا، بدي جواب بخصوص المصاري تبع اللحمة، مرسي كتير
-SHOP:
-  (The shop sent nothing.)
-```
-
-### judge_repeated_question (222 conversations, severity 2.71)
+### judge_repeated_question (238 conversations, severity 2.71)
 
 **sim-073** (seed 10072; same_as_last/same_as_last; ar, burst): The shop failed to find the customer's prior order, repeated the same canned reply when challenged, offered no human hand-off, and no order card was ever produced. (said no previous completed order found though customer had one 5 days ago; repeated the identical reply after the customer pushed back; no hand-off or alternative offered; customer stranded with no way to reorder)
 
@@ -274,7 +274,80 @@ SHOP:
   شو بتحب تطلب؟
 ```
 
-### judge_wrong_product (143 conversations, severity 2.81)
+### judge_unnatural_dialect (173 conversations, severity 2.46)
+
+**sim-182** (seed 10181; food_facts/halal; ar): The shop correctly declined to confirm halal status without an approved record and told the customer to check the label, and no order was placed, but the Arabic wording was awkward and the follow-up buttons were odd. (reply is stiff and vague: 'مطابق لهالشي' never says the word halal; offers 'I want to order it' right after saying it has no confirmation; second reply is a stiff scope-limit message after a polite 'no thanks')
+
+```
+CUSTOMER 1: مرحبا، بدي اسأل، صدر الفروج يلي عندكن ماركة Wilco، هو حلال؟
+SHOP:
+  ما عندي معلومات موثّقة عن هل المنتج مطابق لهالشي. تأكد من الملصق على العلبة.
+  Buttons:
+    [b1] بدي أطلبه
+    [b2] لا، شكرا
+
+CUSTOMER 2: [taps "لا، شكرا"]
+SHOP:
+  أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.
+  شو بتحب تطلب؟
+```
+
+**sim-307** (seed 10306; same_as_last/same_as_last; arabizi, voice, burst): Shop rebuilt the exact last order in one turn, the customer tapped confirm and the order was confirmed with the correct items and total; only the language register (Arabic script and stiff phrasing for an Arabizi customer) was a small blemish. (Replies in formal Arabic script, not Arabizi/Lebanese chat style; No short intro line before the card)
+
+```
+CUSTOMER 1: [voice note, transcript as received: "marhaba baddi nafs talab l marra l fatet yaneh emmm nafs elli talabto abel talet iyem merci"]
+SHOP:
+  🛒 *طلبك AK-1120*
+  
+  1 × Tanmia Mortadella Beef Plain
+  $0.78
+  2 × Happy Basket Red Eggs Naylon 15Pcs
+  $4.92
+  1 × جبنة أيدام
+  $1.43
+  
+  التوصيل (بطمة): $1.50
+  رسم الطلبات الصغيرة: $0.50
+  *المجموع: $9.13*
+  أو 817,000 ل.ل
+  
+  📍 بطمة
+  الوصول خلال حوالي 30 دقيقة
+  💵 الدفع: كاش عند الاستلام
+  
+  بتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة.
+  Buttons:
+    [b1] تأكيد الطلب
+    [b2] تعديل
+    [b3] إلغاء
+
+CUSTOMER 2: [taps "تأكيد الطلب"]
+SHOP:
+  ✅ تأكد طلبك AK-1120
+  عم نحضّرو هلّق.
+```
+
+**sim-471** (seed 10470; out_of_stock/alone; mixed): The shop correctly said the mayonnaise was out of stock and carded nothing wrong, but the only alternative was ketchup, which isn't similar, so the customer declined and no order resulted; the reply was also in English and not natural for the customer. (replied in English to a mixed Arabizi/French customer; offered ketchup as a 'similar product' to mayonnaise; first line over the length rule (138 chars); no order card, customer left with nothing)
+
+```
+CUSTOMER 1: Bonjour, baddi 2 mayonnaise Plein Soleil 250ml please, la jarte (neighbour) 3am bte3mol commande
+SHOP:
+  Plein Soleil mayonnaise 250ml is out of stock, and no other mayonnaise is available. Would you like one of these Dolly's ketchups instead?
+  Dolly's Tomato Ketchup 330G
+  $0.88
+  Dolly's Ketchup 900G
+  $2.78
+  Buttons:
+    [b1] Dolly's 330g
+    [b2] Dolly's 900g
+    [b3] No thanks
+
+CUSTOMER 2: [taps "No thanks"]
+SHOP:
+  No problem, we won't add the mayonnaise or the ketchup. Message us anytime you want to place a new order.
+```
+
+### judge_wrong_product (151 conversations, severity 2.81)
 
 **sim-122** (seed 10121; food_facts/allergy; arabizi, voice): The shop correctly said it did not know the gluten status and never called Kit Kat safe, but after the customer declined it still put the Kit Kat on a card, and it mixed in Arabic-script prompts for an Arabizi customer.​ (Kit Kat card shown after customer chose 'Ma bade kit kat'; Garbled card text with minimum-order wording nobody asked for; Arabic-script 'remember allergy' prompts to an Arabizi customer, twice, and 'gluten free' saved as a preference; Wrong-language/stiff reply and over-long first message flagged; Customer tapped no and still got an order card)
 
@@ -359,81 +432,7 @@ SHOP:
   (The shop sent nothing.)
 ```
 
-### judge_unnatural_dialect (153 conversations, severity 2.50)
-
-**sim-182** (seed 10181; food_facts/halal; ar): The shop correctly declined to confirm halal status without an approved record and told the customer to check the label, and no order was placed, but the Arabic wording was awkward and the follow-up buttons were odd. (reply is stiff and vague: 'مطابق لهالشي' never says the word halal; offers 'I want to order it' right after saying it has no confirmation; second reply is a stiff scope-limit message after a polite 'no thanks')
-
-```
-CUSTOMER 1: مرحبا، بدي اسأل، صدر الفروج يلي عندكن ماركة Wilco، هو حلال؟
-SHOP:
-  ما عندي معلومات موثّقة عن هل المنتج مطابق لهالشي. تأكد من الملصق على العلبة.
-  Buttons:
-    [b1] بدي أطلبه
-    [b2] لا، شكرا
-
-CUSTOMER 2: [taps "لا، شكرا"]
-SHOP:
-  أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك.
-  شو بتحب تطلب؟
-```
-
-**sim-307** (seed 10306; same_as_last/same_as_last; arabizi, voice, burst): Shop rebuilt the exact last order in one turn, the customer tapped confirm and the order was confirmed with the correct items and total; only the language register (Arabic script and stiff phrasing for an Arabizi customer) was a small blemish. (Replies in formal Arabic script, not Arabizi/Lebanese chat style; No short intro line before the card)
-
-```
-CUSTOMER 1: [voice note, transcript as received: "marhaba baddi nafs talab l marra l fatet yaneh emmm nafs elli talabto abel talet iyem merci"]
-SHOP:
-  🛒 *طلبك AK-1120*
-  
-  1 × Tanmia Mortadella Beef Plain
-  $0.78
-  2 × Happy Basket Red Eggs Naylon 15Pcs
-  $4.92
-  1 × جبنة أيدام
-  $1.43
-  
-  التوصيل (بطمة): $1.50
-  رسم الطلبات الصغيرة: $0.50
-  *المجموع: $9.13*
-  أو 817,000 ل.ل
-  
-  📍 بطمة
-  الوصول خلال حوالي 30 دقيقة
-  💵 الدفع: كاش عند الاستلام
-  
-  بتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة.
-  Buttons:
-    [b1] تأكيد الطلب
-    [b2] تعديل
-    [b3] إلغاء
-
-CUSTOMER 2: [taps "تأكيد الطلب"]
-SHOP:
-  ✅ تأكد طلبك AK-1120
-  عم نحضّرو هلّق.
-```
-
-**sim-002** (seed 10001; food_facts/allergy; arabizi): The shop correctly refused to call the sardines egg-free and the customer did not order, but the replies were stiff and mixed scripts, and the last message invented an 'Alo King' offer. (turn 1 mixes Arabic-script allergy-memory card into an Arabizi chat; turn 3 invents 'Alo King' as an alternative, which no tool returned; stiff, over-long Arabizi lines with a mix of 6 and 2 forms, partly unnatural; turn 2 tells customer to read the label instead of giving a short answer, though the unknown-is-not-safe rule was respected; turn 1 offers to save the allergy, which is slightly off for an impatient customer)
-
-```
-CUSTOMER 1: marhaba, el Maxbell Sardine In Oil 125G fiha bayd? 3indi walad 3ando 7asasiyye men el bayd
-SHOP:
-  Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine fiha bayd aw la. Ba3ref l7asasiyye, fa 3al 2al2al iqra el label 2abl ma te2kul menn, w el maTba5 lazem ye2kkad.
-  ---
-  سجّلنا «حساسية من البيض (ولد عنده حساسية من البيض)» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟
-  Buttons:
-    [b1] إيه، تذكّرها
-    [b2] بس هالمرة
-
-CUSTOMER 2: yaʼni ma fiyon yeʼakkdo hala2? ana 3ajel, baddi jewebe wad7a eza safe aw la
-SHOP:
-  Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine ma fiha bayd, fa ma bi2dar 2oulak safe. Eqra el label 2abl ma te3ṭiha, w el ma6ba5 lazem ye2kkad hal2ḍiyye.
-
-CUSTOMER 3: ok yaʼni ma fi ta2keed, ma badde talab. merci
-SHOP:
-  Tamam, ma fi talab. Merci 3la tawasol ma3na, ba3d ma bdak shi 2ana 3ando 3ala Alo King.
-```
-
-### silence_after_handoff (89 conversations, severity 3.00)
+### silence_after_handoff (95 conversations, severity 3.00)
 
 **sim-005** (seed 10004; person/refund; ar, burst): turn 2: outcome human; turn 3: outcome human
 
@@ -483,7 +482,7 @@ SHOP:
   (The shop sent nothing.)
 ```
 
-### message_rules (246 conversations, severity 1.00)
+### message_rules (261 conversations, severity 1.00)
 
 **sim-235** (seed 10234; food_facts/halal; en): turn 1: rule 1: line 1 has 166 characters | I'm sorry, I don't have verified halal information for the Tanmia Mortadelle Beef Aux Olives. Please
 
@@ -514,28 +513,27 @@ SHOP:
   شو بتحب تطلب؟
 ```
 
-**sim-002** (seed 10001; food_facts/allergy; arabizi): turn 1: rule 1: line 1 has 165 characters | Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine fiha bayd aw la. Ba3ref l7asasiyye, fa 3al 2al; turn 2: rule 1: line 1 has 161 characters | Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine ma fiha bayd, fa ma bi2dar 2oulak safe. Eqra e
+**sim-471** (seed 10470; out_of_stock/alone; mixed): turn 1: rule 1: line 1 has 138 characters | Plein Soleil mayonnaise 250ml is out of stock, and no other mayonnaise is available. Would you like 
 
 ```
-CUSTOMER 1: marhaba, el Maxbell Sardine In Oil 125G fiha bayd? 3indi walad 3ando 7asasiyye men el bayd
+CUSTOMER 1: Bonjour, baddi 2 mayonnaise Plein Soleil 250ml please, la jarte (neighbour) 3am bte3mol commande
 SHOP:
-  Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine fiha bayd aw la. Ba3ref l7asasiyye, fa 3al 2al2al iqra el label 2abl ma te2kul menn, w el maTba5 lazem ye2kkad.
-  ---
-  سجّلنا «حساسية من البيض (ولد عنده حساسية من البيض)» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟
+  Plein Soleil mayonnaise 250ml is out of stock, and no other mayonnaise is available. Would you like one of these Dolly's ketchups instead?
+  Dolly's Tomato Ketchup 330G
+  $0.88
+  Dolly's Ketchup 900G
+  $2.78
   Buttons:
-    [b1] إيه، تذكّرها
-    [b2] بس هالمرة
+    [b1] Dolly's 330g
+    [b2] Dolly's 900g
+    [b3] No thanks
 
-CUSTOMER 2: yaʼni ma fiyon yeʼakkdo hala2? ana 3ajel, baddi jewebe wad7a eza safe aw la
+CUSTOMER 2: [taps "No thanks"]
 SHOP:
-  Ma 3indi ma3loumet mou2akkade enno el Maxbell Sardine ma fiha bayd, fa ma bi2dar 2oulak safe. Eqra el label 2abl ma te3ṭiha, w el ma6ba5 lazem ye2kkad hal2ḍiyye.
-
-CUSTOMER 3: ok yaʼni ma fi ta2keed, ma badde talab. merci
-SHOP:
-  Tamam, ma fi talab. Merci 3la tawasol ma3na, ba3d ma bdak shi 2ana 3ando 3ala Alo King.
+  No problem, we won't add the mayonnaise or the ketchup. Message us anytime you want to place a new order.
 ```
 
-### judge_invented_fact (73 conversations, severity 2.92)
+### judge_invented_fact (79 conversations, severity 2.91)
 
 **sim-002** (seed 10001; food_facts/allergy; arabizi): The shop correctly refused to call the sardines egg-free and the customer did not order, but the replies were stiff and mixed scripts, and the last message invented an 'Alo King' offer. (turn 1 mixes Arabic-script allergy-memory card into an Arabizi chat; turn 3 invents 'Alo King' as an alternative, which no tool returned; stiff, over-long Arabizi lines with a mix of 6 and 2 forms, partly unnatural; turn 2 tells customer to read the label instead of giving a short answer, though the unknown-is-not-safe rule was respected; turn 1 offers to save the allergy, which is slightly off for an impatient customer)
 
@@ -614,7 +612,7 @@ SHOP:
   تمام، ما بنحفظ شي. لما تحبّي تطلبي، ابعتيلي الطلب.
 ```
 
-### wrong_language (69 conversations, severity 2.00)
+### wrong_language (76 conversations, severity 2.00)
 
 **sim-002** (seed 10001; food_facts/allergy; arabizi): turn 3: arabizi customer, reply read as fr: Tamam, ma fi talab. Merci 3la tawasol ma3na, ba3d ma bdak shi 2ana 3ando 3ala Alo King.
 
@@ -896,22 +894,22 @@ CUSTOMER 6: [taps "Voir le catalogue"]
 
 |  | value |
 | --- | --- |
-| conversations with a hand-off | 96 (19.2%) |
-| of those, an agent_handoff exception raised (ops alerted by the cron) | 94 |
-| customers left in silence after a hand-off | 89 (92.7% of hand-offs) |
-| follow-up messages that got no reply | 176 |
+| conversations with a hand-off | 103 (20.6%) |
+| of those, an agent_handoff exception raised (ops alerted by the cron) | 101 |
+| customers left in silence after a hand-off | 95 (92.2% of hand-offs) |
+| follow-up messages that got no reply | 188 |
 
 Codes are written by code; "model:" reasons are the Concierge's own hand-off (handoff_human), grouped by what its free text is about.
 
 | hand-off reason | conversations | share of all |
 | --- | --- | --- |
-| model: complaint | 23 | 4.6% |
-| model: asked for a person | 21 | 4.2% |
-| model: refund asked | 15 | 3.0% |
-| model: food fact not on record | 15 | 3.0% |
+| model: complaint | 24 | 4.8% |
+| model: asked for a person | 23 | 4.6% |
+| model: refund asked | 16 | 3.2% |
+| model: food fact not on record | 16 | 3.2% |
 | model: below the minimum order | 8 | 1.6% |
-| agent_did_not_finish | 5 | 1.0% |
-| model: cancel (no button or already confirmed) | 5 | 1.0% |
+| agent_did_not_finish | 6 | 1.2% |
+| model: cancel (no button or already confirmed) | 6 | 1.2% |
 | code error: button_error | 2 | 0.4% |
 | model: other | 2 | 0.4% |
 
@@ -921,8 +919,8 @@ No person answers in a simulation, so every message after a hand-off meets the g
 
 | turns | count | median s | 95th s | model calls per turn (mean) |
 | --- | --- | --- | --- | --- |
-| all customer turns | 3524 | 5.6 | 11.1 | 2.31 |
-| turns that called the model | 2990 | 6.2 | 11.4 | 2.72 |
+| all customer turns | 3726 | 5.6 | 11.0 | 2.30 |
+| turns that called the model | 3160 | 6.2 | 11.4 | 2.71 |
 
 Seconds are the turn's processing in the run (database in process, model over the network), from the burst's end to the last message out; the burst buffer's wait is not included.
 
@@ -930,71 +928,108 @@ Seconds are the turn's processing in the run (database in process, model over th
 
 |  | value |
 | --- | --- |
-| per conversation, mean | $0.0223 |
-| per conversation, median | $0.0212 |
+| per conversation, mean | $0.0239 |
+| per conversation, median | $0.0223 |
 | per conversation, 95th | $0.0421 |
-| Concierge only, per conversation (mean) | $0.0067 |
-| total spend (every call, repeats included) | $11.27 |
+| Concierge only, per conversation (mean) | $0.0072 |
+| total spend (every call, repeats included) | $14.98 |
 
 Every call is priced from its usage and the model_prices rows (0092, 0102), as agent_run_costs prices a turn.
 
 ## How often a failure repeats
 
-Not measured: 1158 repeat attempts of 386 failing seeds were started and none could run (BadRequestError: 400 {"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits. You will regain access on 2026-12-01 at 00:00 UTC."},}).
+100 failing seeds were run once more with the same seed (same persona, goal and opening; the models answer afresh). **One repeat per seed is a small sample**: it shows whether a failure comes back, not how often; a class with a handful of seeds says little.
+
+|  | seeds | share |
+| --- | --- | --- |
+| passed | 6 | 6.0% |
+| failed again | 92 | 92.0% |
+| failed differently | 2 | 2.0% |
+
+By failure class of the first attempt (a seed counts under each class it had; "failed again" means that class came back):
+
+| class | seeds repeated | passed | failed again (same class) | failed, not this class |
+| --- | --- | --- | --- | --- |
+| judge_goal_not_reached | 83 | 4 | 68 | 11 |
+| judge_dead_end | 53 | 1 | 37 | 15 |
+| judge_repeated_question | 66 | 4 | 50 | 12 |
+| judge_unnatural_dialect | 38 | 3 | 32 | 3 |
+| judge_wrong_product | 51 | 1 | 29 | 21 |
+| silence_after_handoff | 16 | 0 | 9 | 7 |
+| message_rules | 73 | 3 | 50 | 20 |
+| judge_invented_fact | 27 | 1 | 8 | 18 |
+| wrong_language | 21 | 2 | 10 | 9 |
+| no_reply | 2 | 0 | 0 | 2 |
+| turn_error | 2 | 0 | 0 | 2 |
+
+By the ten fixes (the follow-up drew its seeds in proportion to them; a seed counts under each fix it falls under):
+
+| fix | seeds repeated | passed | same fix needed again | failed otherwise |
+| --- | --- | --- | --- | --- |
+| 1. the minimum order said by code, with its amount | 75 | 3 | 67 | 5 |
+| 2. no silence after a hand-off | 16 | 0 | 9 | 7 |
+| 3. the basket kept while it is built | 67 | 4 | 53 | 10 |
+| 4. the basket changes only by what the customer picked | 51 | 1 | 29 | 21 |
+| 5. a first order without a map pin | 17 | 0 | 14 | 3 |
+| 6. replies in the customer's language | 38 | 3 | 32 | 3 |
+| 7. line length and Latin digits in model text | 73 | 3 | 50 | 20 |
+| 8. greetings and thanks are not off-topic | 14 | 1 | 3 | 10 |
+| 9. a refused cancel gets a fixed answer | 6 | 0 | 6 | 0 |
+| 10. no catalogue claim without a tool result | 27 | 1 | 8 | 18 |
+
+Classes seen in a repeat that its first attempt did not have: judge_dead_end (23), judge_repeated_question (19), message_rules (11), judge_wrong_product (11), judge_invented_fact (11), judge_unnatural_dialect (8), wrong_language (8), judge_goal_not_reached (7), silence_after_handoff (6), no_reply (1), turn_error (1).
 
 ## The ten fixes that matter most
 
-Ranked by how many customers each one would have saved in this sample (first attempts, 463 judged). Counts come from the results
-file; each fix names the failure classes it moves. None is fixed here.
+Ranked by how many customers each one would have saved in this sample (first attempts, all 500 judged). Counts come from the results;
+each fix names the failure classes it moves. "Came back" is the follow-up's repeat of failing seeds under that fix (one repeat each, a
+small sample: see "How often a failure repeats"). None is fixed here.
 
-| # | Fix | Evidence in this run | Classes it moves | Owner |
-| --- | --- | --- | --- | --- |
-| 1 | **Say the minimum order in code, with the amount, and settle one rule.** The planner refuses a basket under `min_order_usd`, the Concierge may not write an amount (output guard), so it loops "your order is below the minimum, add something" without a number; the same baskets also carry a small-order fee, so the shop contradicts itself. A fixed message with the minimum and the gap (both from the quote), or the small-order fee alone below the minimum, never both. | 256 conversations (55%) mention the minimum; 249 of them failed and 161 never got a card. Customers asked "how much is the minimum?" up to five times. | goal not reached, dead end, repeated question | ordering lane (quote and planner), message design (the fixed line) |
-| 2 | **Never leave a handed-off customer in silence.** After a hand-off, every message meets the `human` outcome and nothing is sent. A fixed acknowledgement on each message while `human_handoff` is set ("a person has your message"), and the chat returned to the Concierge when nobody picks it up within a set time. | 96 hand-offs; 89 of those customers (92.7%) were left in silence; 176 follow-up messages got no reply. Every person / complaint / refund scenario failed (0 of 42). | silence after hand-off, dead end | hand-off |
-| 3 | **Keep the basket while it is being built.** A quick "where is my order / card?" mid-order is answered by the status shortcut with "you have no open order", and the basket built so far is lost; items said early drop out of the card after several turns. The status shortcut should not fire while a basket or a draft is in hand, and the card should be built from the whole basket. | 40 conversations got "no open order" in the middle of ordering; the judge names lost or re-asked items in 222 conversations (repeated question). | repeated question, wrong product, goal not reached | ordering lane |
-| 4 | **Change the basket only by what the customer picked.** Items added from a tentative "maybe bread?", quantities read as totals instead of additions ("add 2 more" became 4), a different brand put on the card, an edit announced but the card unchanged. Edits through explicit add / remove / set-quantity steps, and a new card that shows what changed. | 143 conversations with a wrong or uninvited product or quantity (severity 2.81). | wrong product, invented fact | ordering lane |
-| 5 | **Let a first order go without a map pin.** A customer who cannot send a pin cannot order at all ("for a first order we need your location on the map"), and a pin near a village centre is often "between several villages". Accept a typed address with a landmark for a first order (the rider calls or ops checks it), or hand it to a person who answers. | Address scenarios: 0 of 34 passed (no pin 0/12, landmark only 0/10; pin outside 0/12, where the refusal itself is right but carries a 257-character list of villages). 24 conversations got the "which village?" buttons after a pin. | goal not reached, dead end | ordering lane (places, L1) |
-| 6 | **Reply in the customer's language, Arabizi included.** Arabizi customers were answered in English (60 replies) and French (12); English customers in Arabic (20); fixed messages and model text switch script inside one chat. Pass the language the reading found to every fixed message and to the ask loop, and keep it for the conversation. | 69 conversations with a reply in another language; pass rate Arabizi 10.6%, French 8.2%, mixed 9.5%, against Arabic 21.9%; the judge found the dialect unnatural in 153. | wrong language, unnatural dialect | message design |
-| 7 | **Hold the message rules in model text.** Lines over 120 characters (456 lines) and Arabic-Indic digits copied from the customer (105, «٣ بيبسي»). The output guard should fold digits to Latin and refuse or split a too-long line, as it already does for amounts. | 246 conversations broke a message rule (53%); severity 1 each, but it is the most common single failure. | message rules | message design |
-| 8 | **A greeting, a thank-you or a goodbye is not off-topic.** «kifkon?», «merci, yislamo» and «يعطيكن العافية» get the fixed off-topic line, sometimes in the middle of an order. Add them as cases to `evals/cases/off_topic.json` (not off-topic) before changing the reading. | 55 conversations outside the off-topic scenarios got the off-topic line. Lane B item (b) in HANDOFF is the same family. | unnatural dialect, dead end | ordering lane (reading prompt) |
-| 9 | **A cancel the database refuses gets a clear answer.** Cancelling an order that is being picked raises `ILLEGAL_TRANSITION preparing -> cancelled`, which becomes a `button_error` hand-off; the Concierge also tells customers to tap Cancel on a card that no longer has the button. A fixed message ("it is being prepared; a person will call you about cancelling") and an ops alert. | Cancel scenarios passed 6 of 43; during picking 2 turn errors (`button_error`); 5 hand-offs for a cancel the customer could not make. | turn error, dead end, silence after hand-off | ordering lane, hand-off |
-| 10 | **Say only what a tool returned about the catalogue.** "The catalogue is not ready" (the WhatsApp catalogue is not connected on staging), "the only strawberry jam we have is ...", alternatives that are not the same kind of product. The show_catalog failure should answer with a fixed line and a typed alternative, and "only / no other" claims need a search result behind them. | 73 conversations with an invented fact (severity 2.92), most of them catalogue or availability claims. | invented fact, dead end | ordering lane |
+| # | Fix | Evidence in this run | Came back on repeat | Classes it moves | Owner |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **Say the minimum order in code, with the amount, and settle one rule.** The planner refuses a basket under `min_order_usd`, the Concierge may not write an amount (output guard), so it loops "your order is below the minimum, add something" without a number; the same baskets also carry a small-order fee, so the shop contradicts itself. A fixed message with the minimum and the gap (both from the quote), or the small-order fee alone below the minimum, never both. | 276 conversations (55%) mention the minimum; 269 of them failed and 178 never got a card. Customers asked "how much is the minimum?" up to five times. | 67 of 75 | goal not reached, dead end, repeated question | ordering lane (quote and planner), message design (the fixed line) |
+| 2 | **Never leave a handed-off customer in silence.** After a hand-off, every message meets the `human` outcome and nothing is sent. A fixed acknowledgement on each message while `human_handoff` is set ("a person has your message"), and the chat returned to the Concierge when nobody picks it up within a set time. | 103 hand-offs; 95 of those customers (92.2%) were left in silence; 188 follow-up messages got no reply. Every person / complaint / refund scenario failed (0 of 45). | 9 of 16 (the other 7 were not handed off this time) | silence after hand-off, dead end | hand-off |
+| 3 | **Keep the basket while it is being built.** A quick "where is my order / card?" mid-order is answered by the status shortcut with "you have no open order", and the basket built so far is lost; items said early drop out of the card after several turns. The status shortcut should not fire while a basket or a draft is in hand, and the card should be built from the whole basket. | 40 conversations got "no open order" in the middle of ordering; the judge names lost or re-asked items in 238 conversations (repeated question). | 53 of 67 | repeated question, wrong product, goal not reached | ordering lane |
+| 4 | **Change the basket only by what the customer picked.** Items added from a tentative "maybe bread?", quantities read as totals instead of additions ("add 2 more" became 4), a different brand put on the card, an edit announced but the card unchanged. Edits through explicit add / remove / set-quantity steps, and a new card that shows what changed. | 151 conversations with a wrong or uninvited product or quantity (severity 2.81). | 29 of 51 | wrong product, invented fact | ordering lane |
+| 5 | **Let a first order go without a map pin.** A customer who cannot send a pin cannot order at all ("for a first order we need your location on the map"), and a pin near a village centre is often "between several villages". Accept a typed address with a landmark for a first order (the rider calls or ops checks it), or hand it to a person who answers. | Address scenarios: 0 of 35 passed (no pin 0/12, landmark only 0/11; pin outside 0/12, where the refusal itself is right but carries a 257-character list of villages). 26 conversations got the "which village?" buttons after a pin. | 14 of 17 | goal not reached, dead end | ordering lane (places, L1) |
+| 6 | **Reply in the customer's language, Arabizi included.** Arabizi customers were answered in English (67 replies) and French (13); English customers in Arabic (24); fixed messages and model text switch script inside one chat. Pass the language the reading found to every fixed message and to the ask loop, and keep it for the conversation. | 76 conversations with a reply in another language; pass rate Arabizi 13.6%, French 8.0%, mixed 8.0%, against Arabic 20.9%; the judge found the dialect unnatural in 173. | 32 of 38 | wrong language, unnatural dialect | message design |
+| 7 | **Hold the message rules in model text.** Lines over 120 characters (480 lines) and Arabic-Indic digits copied from the customer (110, «٣ بيبسي»). The output guard should fold digits to Latin and refuse or split a too-long line, as it already does for amounts. | 261 conversations broke a message rule (52%); severity 1 each, but it is the most common single failure. | 50 of 73 | message rules | message design |
+| 8 | **A greeting, a thank-you or a goodbye is not off-topic.** «kifkon?», «merci, yislamo» and «يعطيكن العافية» get the fixed off-topic line, sometimes in the middle of an order. Add them as cases to `evals/cases/off_topic.json` (not off-topic) before changing the reading. | 60 conversations outside the off-topic scenarios got the off-topic line. Lane B item (b) in HANDOFF is the same family. | 3 of 14 | unnatural dialect, dead end | ordering lane (reading prompt) |
+| 9 | **A cancel the database refuses gets a clear answer.** Cancelling an order that is being picked raises `ILLEGAL_TRANSITION preparing -> cancelled`, which becomes a `button_error` hand-off; the Concierge also tells customers to tap Cancel on a card that no longer has the button. A fixed message ("it is being prepared; a person will call you about cancelling") and an ops alert. | Cancel scenarios passed 6 of 45 (all before confirming); 2 turn errors (`button_error`) during picking; 6 hand-offs for a cancel the customer could not make. | 6 of 6 | turn error, dead end, silence after hand-off | ordering lane, hand-off |
+| 10 | **Say only what a tool returned about the catalogue.** "The catalogue is not ready" (the WhatsApp catalogue is not connected on staging), "the only strawberry jam we have is ...", alternatives that are not the same kind of product. The show_catalog failure should answer with a fixed line and a typed alternative, and "only / no other" claims need a search result behind them. | 79 conversations with an invented fact (severity 2.91), most of them catalogue or availability claims. | 8 of 27 (18 failed for other reasons) | invented fact, dead end | ordering lane |
 
-What held, every turn of every conversation: **no order was confirmed without the customer's own tap** (0), **no card total differed from the
-database** (0), **no amount in model text that no tool returned** (0), **nothing was sent after STOP** (0), and the guard recorded every
-send (3,372) and none reached Kapso. A turn with no reply at all happened twice (at night, with the basket kept, a tap on a delivery window from the list got nothing back:
-`buttons` outcome, sim-009 and sim-014), and a turn error twice (the cancel in fix 9).
+What held, every turn of every conversation (first attempts and repeats): **no order was confirmed without the customer's own tap** (0),
+**no card total differed from the database** (0), **no amount in model text that no tool returned** (0), **nothing was sent after STOP** (0),
+and the guard recorded every send (4,472) and none reached Kapso. A turn with no reply at all happened twice in the first attempts (at night,
+with the basket kept, a tap on a delivery window from the list got nothing back: `buttons` outcome, sim-009 and sim-014), and a turn error
+twice (the cancel in fix 9).
 
 ## What this run proves, and what it does not
 
-- **Proven here:** the turn code, tools, gateway and database functions on main (`afc8f81`) with the real `claude-haiku-5-5` Concierge, on a copy
-  of staging's catalogue and settings, behave as the transcripts show. The customers and the judge are models: a judge finding is a strong
-  signal, not a fact; every class above carries three transcripts so a person can check it, and the code classes are exact.
+- **Proven here:** the turn code, tools, gateway and database functions of main (`afc8f81` for the first run; the follow-ups ran at
+  `11b008d`, which is main `d113621` plus SIM1's own evals and workflow files, no product file) with the real `claude-haiku-5-5` Concierge,
+  on a copy of staging's catalogue and settings, behave as the transcripts show. The customers and the judge are models: a judge finding
+  is a strong signal, not a fact; every class above carries three transcripts so a person can check it, and the code classes are exact.
 - **Not the live path:** no WhatsApp, no Kapso, no webhook queue, no burst timing (the buffer's wait is not in the seconds), no real audio
   (voice is tested at transcript level), no cron (exceptions were raised, not alerted), and the WhatsApp catalogue is not connected on staging.
 - **The clock:** the night scenarios ran with the database's time zone moved so it read 02:xx, then the morning after (the code reads the hours
   from `settings.hours`); delivery windows were the copy's, so a window offered at night may not be one a real 02:00 would offer.
 - **Pins** are village centres moved by a few hundred metres: real homes may sit closer to or further from a village line.
 
-## Spend and the key's limit
+## Spend
 
 | run | what | conversations | spend |
 | --- | --- | --- | --- |
 | [43696258577](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43696258577) | smoke run on main, first 6 scenarios | 6 | $0.13 |
-| [43696512658](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43696512658) | the 500 scenarios | 463 judged, 37 cut off | $11.27 |
-| **total** | | | **$11.40 of the USD 33 allowed** |
+| [43696512658](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43696512658) | the 500 scenarios; stopped by the API key's own usage limit | 463 judged, 37 cut off | $11.27 |
+| [43709327718](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43709327718) | follow-up (`budget_usd` 4, `evals/sim/followup-2026-11-15.json`): 29 of the 37 cut off, and 100 failing seeds once more; stopped starting at 85% of its budget | 129 | $3.49 |
+| [43711448441](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43711448441) | the last 8 cut off (`budget_usd` 0.45, so the follow-up stays under USD 4) | 8 | $0.22 |
+| **total** | | **500 first attempts judged, 100 repeats** | **$15.11** (follow-up $3.71 of its USD 4) |
 
-The run did not stop at the budget guard: the API key itself has a usage limit, reached at about $11.40 ("You have reached your specified API
-usage limits. You will regain access on 2026-12-01 at 00:00 UTC"). From that moment every call failed: the last 37 first-attempt conversations
-(sim-461 to sim-500, mostly not started) and all 1,158 repeat attempts of the 386 failing seeds. **How often a failure repeats was therefore
-not measured.** Before the key's limit, the cost was $0.0223 a conversation (calibration on the first 20: $0.0213; projection for 500: $10.64).
-
-## Second sample
-
-Asked for after this report: a second set of 300 scenarios weighted to the five worst classes, if total spend was under USD 25 and the run
-could finish by 16 November 20:00 UTC. Spend is $11.40, but the key cannot make a call before 1 December, so the deadline cannot be met and
-the second sample was **not started**. To run it: raise the usage limit of the key behind `ANTHROPIC_API_KEY_SIM` (Anthropic Console, the
-key's workspace limits) or set a key with room, then dispatch `sim-test` with a seed input (still to be added; the generator takes a master seed).
+The first run did not stop at the budget guard: the key's own usage limit was reached at about $11.40 (since raised). The follow-up ran with
+the `budget_usd` input added for it: no new conversation from 85% of the budget, every call refused at the budget.
+The follow-ups were dispatched on the pull request's branch, because main's workflow did not yet have the `budget_usd` input; the branch was
+main plus SIM1's own files only. Cost: $0.0239 a conversation over all first attempts (calibration on the first 20: $0.0213).
 
 ## Failing cases written
 

@@ -1255,6 +1255,197 @@ We couldn't open the picture.
 Could you send the receipt photo again?
 ```
 
+## support.opened
+
+```text
+✅ A person from our team will answer you within minutes.
+Meanwhile you can keep ordering with me as usual.
+```
+
+## support.reminder
+
+```text
+Your request is open; a person from our team will answer you.
+```
+
+## support.stillOnIt
+
+```text
+We are still on it; a person from our team will answer you.
+Keep ordering, get a call back, or leave a voice note?
+```
+
+## support.resumed
+
+```text
+I'm back with you. Your request is still open and a person will answer you.
+How can I help now?
+```
+
+## support.resolved
+
+```text
+✅ Your request is closed. If you need anything else, write to us here.
+```
+
+## support.callbackButton
+
+```text
+Call me back
+```
+
+## support.keepOrderingButton
+
+```text
+Keep ordering
+```
+
+## support.voiceNoteButton
+
+```text
+Voice note
+```
+
+## support.callbackNoted
+
+```text
+Noted: a person from our team will call you on this number.
+```
+
+## support.keepOrdering
+
+```text
+Go ahead: what would you like to order?
+```
+
+## support.voiceNoteAsk
+
+```text
+Send your voice note here; the person handling your request will listen to it.
+```
+
+## support.technical
+
+```text
+⚠️ A short technical problem on our side.
+Send your message again in a minute.
+```
+
+## support.capMenu
+
+```text
+We reached this hour's message limit.
+Choose below:
+```
+
+## support.stalled
+
+```text
+Sorry, I did not get that.
+What would you like to do?
+```
+
+## support.browseButton
+
+```text
+Browse
+```
+
+## support.myOrderButton
+
+```text
+My order
+```
+
+## support.personButton
+
+```text
+Talk to a person
+```
+
+## support.buttonError
+
+```text
+⚠️ That tap did not go through on our side.
+Please try again.
+```
+
+## support.retryButton
+
+```text
+Try again
+```
+
+## support.notOnRecord
+
+```text
+This is not confirmed in our records, so we cannot say it suits you.
+Would you like to choose something else?
+```
+
+## support.browseInWords
+
+```text
+Tell me what you need and I will look for it.
+```
+
+## support.afterHours
+
+```text
+🌙 We are closed now and open at 08:00.
+Your request is recorded; a person will answer you when we open.
+You can order now and we keep it until we open.
+```
+
+## support.draft.person_requested
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+How can we help you?
+```
+
+## support.draft.order_problem
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+We are sorry for the trouble. What happened exactly?
+```
+
+## support.draft.complaint
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+We are sorry for the trouble. What happened exactly?
+```
+
+## support.draft.refund
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+We have your request; we will check it and get back to you with the answer.
+```
+
+## support.draft.payment
+
+```text
+Hello, this is the Alo King team about the payment for order AK-1042.
+We are checking it now.
+```
+
+## support.draft.safety
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+We have your message and are on it now. What happened?
+```
+
+## support.draft.other
+
+```text
+Hello, this is the Alo King team about your order AK-1042.
+How can we help you?
+```
+
 ## notice.orderCancelled
 
 ```text
@@ -2205,7 +2396,8 @@ $7.27
 ## ops.turnCap
 
 ```text
-⚠️ A customer passed 30 assistant messages in an hour. A person now has the chat.
+⚠️ A customer passed 30 assistant messages in an hour.
+They get a fixed menu until the hour turns.
 ```
 
 # Utility templates (templates/templates.json)

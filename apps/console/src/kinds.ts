@@ -29,6 +29,12 @@ export const KIND: Record<string, Info> = {
   "heartbeat:probe_stuck": { en: "The hourly test order is stuck", ar: "طلب التجربة كل ساعة واقف", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   "heartbeat:inbound_silent": { en: "No customer message for hours", ar: "ما وصلت رسالة زبون من ساعات", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   model_account: { en: "The AI provider refused calls", ar: "مزوّد الذكاء الاصطناعي رفض الطلبات", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
+  // HO1: the case ladder (0136) and the 2-minute alarm; each opens the Inbox.
+  support_case: { en: "A customer is waiting for a person", ar: "زبون بانتظار شخص", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
+  support_case_unclaimed: { en: "Nobody has claimed a customer for 3 minutes", ar: "زبون بلا مستلم من 3 دقائق", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
+  support_case_founder: { en: "A customer has waited 5 minutes for a person", ar: "زبون ينتظر شخصاً من 5 دقائق", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
+  customer_unanswered: { en: "A customer message got no reply for 2 minutes", ar: "رسالة زبون بلا رد من دقيقتين", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
+  technical: { en: "A technical failure on the customer line", ar: "عطل تقني على خط الزبائن", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   probe_handoff_released: { en: "A test chat was handed back", ar: "أُعيدت محادثة اختبار", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
 };
 

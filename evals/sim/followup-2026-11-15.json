@@ -1,0 +1,1152 @@
+{
+ "about": "SIM1 follow-up: the 37 first attempts the key's limit cut off, and 100 failing seeds run once more (attempt 1, same seed), drawn in proportion to the ten fixes of docs/SIM_REPORT_2026-11-15.md (evals/sim/fixes.ts, seed 20261115).",
+ "failing_by_fix": {
+  "minimum_order": 249,
+  "handoff_silence": 89,
+  "lost_basket": 222,
+  "basket_changes": 143,
+  "first_order_pin": 53,
+  "language": 144,
+  "message_rules": 246,
+  "greeting_off_topic": 42,
+  "refused_cancel": 28,
+  "catalogue_claim": 73
+ },
+ "quota": {
+  "minimum_order": 20,
+  "handoff_silence": 7,
+  "lost_basket": 17,
+  "basket_changes": 11,
+  "first_order_pin": 4,
+  "language": 11,
+  "message_rules": 19,
+  "greeting_off_topic": 3,
+  "refused_cancel": 2,
+  "catalogue_claim": 6
+ },
+ "cut_off": [
+  "sim-461",
+  "sim-463",
+  "sim-464",
+  "sim-466",
+  "sim-467",
+  "sim-468",
+  "sim-469",
+  "sim-470",
+  "sim-471",
+  "sim-472",
+  "sim-473",
+  "sim-474",
+  "sim-475",
+  "sim-476",
+  "sim-477",
+  "sim-478",
+  "sim-479",
+  "sim-480",
+  "sim-481",
+  "sim-483",
+  "sim-484",
+  "sim-485",
+  "sim-486",
+  "sim-487",
+  "sim-488",
+  "sim-489",
+  "sim-490",
+  "sim-491",
+  "sim-492",
+  "sim-493",
+  "sim-494",
+  "sim-495",
+  "sim-496",
+  "sim-497",
+  "sim-498",
+  "sim-499",
+  "sim-500"
+ ],
+ "again": [
+  {
+   "id": "sim-002",
+   "seed": 10001,
+   "fix": "language",
+   "fixes": [
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-009",
+   "seed": 10008,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-014",
+   "seed": 10013,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "first_order_pin"
+   ]
+  },
+  {
+   "id": "sim-017",
+   "seed": 10016,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-021",
+   "seed": 10020,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-022",
+   "seed": 10021,
+   "fix": "lost_basket",
+   "fixes": [
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-028",
+   "seed": 10027,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "greeting_off_topic",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-029",
+   "seed": 10028,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-031",
+   "seed": 10030,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-036",
+   "seed": 10035,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-039",
+   "seed": 10038,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence"
+   ]
+  },
+  {
+   "id": "sim-040",
+   "seed": 10039,
+   "fix": "greeting_off_topic",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-043",
+   "seed": 10042,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-055",
+   "seed": 10054,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "first_order_pin",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-058",
+   "seed": 10057,
+   "fix": "greeting_off_topic",
+   "fixes": [
+    "handoff_silence",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-067",
+   "seed": 10066,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-078",
+   "seed": 10077,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-083",
+   "seed": 10082,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-097",
+   "seed": 10096,
+   "fix": "basket_changes",
+   "fixes": [
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-107",
+   "seed": 10106,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-108",
+   "seed": 10107,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-112",
+   "seed": 10111,
+   "fix": "refused_cancel",
+   "fixes": [
+    "handoff_silence",
+    "refused_cancel"
+   ]
+  },
+  {
+   "id": "sim-113",
+   "seed": 10112,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-122",
+   "seed": 10121,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-124",
+   "seed": 10123,
+   "fix": "lost_basket",
+   "fixes": [
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-133",
+   "seed": 10132,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-138",
+   "seed": 10137,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "refused_cancel"
+   ]
+  },
+  {
+   "id": "sim-139",
+   "seed": 10138,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-142",
+   "seed": 10141,
+   "fix": "refused_cancel",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "message_rules",
+    "refused_cancel"
+   ]
+  },
+  {
+   "id": "sim-144",
+   "seed": 10143,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-145",
+   "seed": 10144,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-151",
+   "seed": 10150,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-152",
+   "seed": 10151,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-154",
+   "seed": 10153,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-155",
+   "seed": 10154,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-159",
+   "seed": 10158,
+   "fix": "greeting_off_topic",
+   "fixes": [
+    "language",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-162",
+   "seed": 10161,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-164",
+   "seed": 10163,
+   "fix": "lost_basket",
+   "fixes": [
+    "handoff_silence",
+    "lost_basket",
+    "first_order_pin"
+   ]
+  },
+  {
+   "id": "sim-167",
+   "seed": 10166,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-170",
+   "seed": 10169,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-172",
+   "seed": 10171,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-175",
+   "seed": 10174,
+   "fix": "language",
+   "fixes": [
+    "language",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-176",
+   "seed": 10175,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence"
+   ]
+  },
+  {
+   "id": "sim-177",
+   "seed": 10176,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-191",
+   "seed": 10190,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-194",
+   "seed": 10193,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-206",
+   "seed": 10205,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "refused_cancel",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-215",
+   "seed": 10214,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "handoff_silence",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "refused_cancel"
+   ]
+  },
+  {
+   "id": "sim-220",
+   "seed": 10219,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket"
+   ]
+  },
+  {
+   "id": "sim-226",
+   "seed": 10225,
+   "fix": "first_order_pin",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-231",
+   "seed": 10230,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence"
+   ]
+  },
+  {
+   "id": "sim-245",
+   "seed": 10244,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-251",
+   "seed": 10250,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-258",
+   "seed": 10257,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-260",
+   "seed": 10259,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-264",
+   "seed": 10263,
+   "fix": "message_rules",
+   "fixes": [
+    "handoff_silence",
+    "language",
+    "message_rules",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-272",
+   "seed": 10271,
+   "fix": "message_rules",
+   "fixes": [
+    "message_rules",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-278",
+   "seed": 10277,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence"
+   ]
+  },
+  {
+   "id": "sim-279",
+   "seed": 10278,
+   "fix": "lost_basket",
+   "fixes": [
+    "lost_basket",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-287",
+   "seed": 10286,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-289",
+   "seed": 10288,
+   "fix": "lost_basket",
+   "fixes": [
+    "handoff_silence",
+    "lost_basket",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-298",
+   "seed": 10297,
+   "fix": "message_rules",
+   "fixes": [
+    "handoff_silence",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-301",
+   "seed": 10300,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-306",
+   "seed": 10305,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-310",
+   "seed": 10309,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "refused_cancel"
+   ]
+  },
+  {
+   "id": "sim-313",
+   "seed": 10312,
+   "fix": "first_order_pin",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-315",
+   "seed": 10314,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-322",
+   "seed": 10321,
+   "fix": "lost_basket",
+   "fixes": [
+    "handoff_silence",
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-336",
+   "seed": 10335,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-342",
+   "seed": 10341,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-344",
+   "seed": 10343,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-347",
+   "seed": 10346,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-351",
+   "seed": 10350,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-352",
+   "seed": 10351,
+   "fix": "language",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-353",
+   "seed": 10352,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "language",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-355",
+   "seed": 10354,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes"
+   ]
+  },
+  {
+   "id": "sim-357",
+   "seed": 10356,
+   "fix": "basket_changes",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "greeting_off_topic"
+   ]
+  },
+  {
+   "id": "sim-364",
+   "seed": 10363,
+   "fix": "message_rules",
+   "fixes": [
+    "handoff_silence",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-365",
+   "seed": 10364,
+   "fix": "first_order_pin",
+   "fixes": [
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-367",
+   "seed": 10366,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-375",
+   "seed": 10374,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-382",
+   "seed": 10381,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-389",
+   "seed": 10388,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-392",
+   "seed": 10391,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence",
+    "lost_basket",
+    "first_order_pin"
+   ]
+  },
+  {
+   "id": "sim-393",
+   "seed": 10392,
+   "fix": "lost_basket",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-395",
+   "seed": 10394,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-404",
+   "seed": 10403,
+   "fix": "first_order_pin",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "first_order_pin",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-406",
+   "seed": 10405,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-407",
+   "seed": 10406,
+   "fix": "catalogue_claim",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-409",
+   "seed": 10408,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes",
+    "message_rules",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-412",
+   "seed": 10411,
+   "fix": "language",
+   "fixes": [
+    "lost_basket",
+    "language"
+   ]
+  },
+  {
+   "id": "sim-414",
+   "seed": 10413,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-416",
+   "seed": 10415,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-422",
+   "seed": 10421,
+   "fix": "message_rules",
+   "fixes": [
+    "minimum_order",
+    "basket_changes",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-430",
+   "seed": 10429,
+   "fix": "language",
+   "fixes": [
+    "lost_basket",
+    "language",
+    "greeting_off_topic",
+    "catalogue_claim"
+   ]
+  },
+  {
+   "id": "sim-434",
+   "seed": 10433,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-440",
+   "seed": 10439,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "first_order_pin",
+    "language",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-443",
+   "seed": 10442,
+   "fix": "handoff_silence",
+   "fixes": [
+    "minimum_order",
+    "handoff_silence",
+    "lost_basket",
+    "basket_changes",
+    "first_order_pin",
+    "message_rules"
+   ]
+  },
+  {
+   "id": "sim-453",
+   "seed": 10452,
+   "fix": "minimum_order",
+   "fixes": [
+    "minimum_order",
+    "lost_basket",
+    "basket_changes"
+   ]
+  },
+  {
+   "id": "sim-459",
+   "seed": 10458,
+   "fix": "handoff_silence",
+   "fixes": [
+    "handoff_silence"
+   ]
+  }
+ ]
+}

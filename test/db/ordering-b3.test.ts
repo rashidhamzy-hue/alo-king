@@ -49,7 +49,7 @@ describe("typing indicator and a cap on model turns (1.8)", () => {
     expect(r.outcome).toBe("card");
   });
 
-  it("past the hourly cap a person takes over: no model call, the customer is told, ops are alerted once an hour", async () => {
+  it("past the hourly cap: no model call, a fixed menu, ops are alerted once an hour; nobody locks the chat (HO1)", async () => {
     await db.pg.exec(`update settings set value = '{"per_customer_per_hour": 2}' where key = 'model_turns'`);
     const t = flow(db, [read(ORDER)]);
     const c = await pinned(db, t, ids.BAAKLINE);
@@ -59,8 +59,8 @@ describe("typing indicator and a cap on model turns (1.8)", () => {
     expect(await db.rpc("model_turn_budget", { p_party: c.party_id })).toEqual({ allowed: false, used: 2, limit: 2 });
     await t.text("بدي كمان لبنة");
     expect(t.seen).toHaveLength(0);
-    expect(outbound.map((o) => o.body.text?.body)).toContain(ar.fixed.handoff);
-    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+    expect(outbound.map((o) => o.body.interactive?.body?.text)).toContain(ar.support.capMenu);
+    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(false);
     expect(await db.all(`select kind from ops_exceptions where kind = 'model_turn_cap' and ref like $1`, [`${c.party_id}:%`])).toHaveLength(1);
     await db.pg.exec(`update settings set value = '{"per_customer_per_hour": 20}' where key = 'model_turns'`);
   });
@@ -238,13 +238,14 @@ describe("one tap after delivery (2.9)", () => {
     expect(outbound.filter((o) => JSON.stringify(o.body).includes(c.code))).toEqual([]);
   });
 
-  it("«a problem» hands the chat to a person and alerts ops; «fine» thanks once; a repeat tap does nothing", async () => {
+  it("«a problem» opens a case and alerts ops; «fine» thanks once; a repeat tap does nothing", async () => {
     await db.pg.query(`insert into parties(role, display_name) values ('ops_lead', 'Ops lead 2.9')`);
     const t = flow(db, []);
     const c = await delivered(t);
     await t.tap(`fb:problem:${c.orderId}`, "في مشكلة");
     expect(outbound.map((o) => o.body.text?.body)).toContain(`آسفين عالإزعاج. حدا من الفريق رح يحكيك عن الطلب ${c.code} بأقرب وقت. فيك تكتبلنا شو صار هون.`);
-    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(false);
+    expect(await db.all(`select kind, order_id from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual([{ kind: "order_problem", order_id: c.orderId }]);
     expect(await db.all(`select 1 from ops_exceptions where kind = 'delivery_problem' and ref = $1`, [c.orderId])).toHaveLength(1);
     outbound.length = 0;
     await t.tap(`fb:fine:${c.orderId}`, "وصل تمام");
@@ -275,6 +276,7 @@ describe("substitute taps on the customer line (C2's request)", () => {
     await t.tap("sub:keep:00000000-0000-4000-8000-000000000001", "خليه");
     expect(t.rpcCalls.map((c: any) => c.fn)).toContain("answer_substitution");
     expect(t.seen).toHaveLength(0);
-    expect(outbound.map((o) => o.body.text?.body)).toEqual([ar.fixed.error]);         // an offer that does not exist: a person looks
+    // an offer that does not exist: the error line with a retry button, and an ops exception (HO1: not a hand-off)
+    expect(outbound.map((o) => o.body.interactive?.body?.text)).toEqual([ar.support.buttonError]);
   });
 });

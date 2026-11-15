@@ -165,6 +165,31 @@ export interface Messages {
     late: (code: S, total: number) => S;
   };
 
+  /**
+   * HO1 (docs/strategy/05 section D): a person is added to a chat; the bot is never removed from it. The six customer lines of a
+   * case (opened, reminder, still on it, resumed, after hours, resolved), the answers to their buttons, the fixed lines for a
+   * technical failure (never a hand-off), and the reply a person starts from in the Inbox (`draft`, edited before it is sent).
+   */
+  support: {
+    opened: S; reminder: S; stillOnIt: S; resumed: S; afterHours: (opens: S) => S; resolved: S;
+    callbackButton: S; keepOrderingButton: S; voiceNoteButton: S;
+    callbackNoted: S; keepOrdering: S; voiceNoteAsk: S;
+    /** The model stayed unavailable (or the turn failed) twice, a minute apart: buttons Browse and Talk to a person. */
+    technical: S;
+    /** The hourly cap on model turns: a fixed menu, no model call. */
+    capMenu: S;
+    /** The ask loop ended with nothing for the customer (agent_did_not_finish): one question with buttons. */
+    stalled: S;
+    browseButton: S; myOrderButton: S; personButton: S;
+    /** A tap whose handler failed: the error line and a button that repeats the tap. */
+    buttonError: S; retryButton: S;
+    /** A food fact the records do not hold (invariant 15: unknown is never safe). Not a case. */
+    notOnRecord: S;
+    /** Browse tapped while the WhatsApp catalog cannot be shown. */
+    browseInWords: S;
+    draft: (kind: "person_requested" | "order_problem" | "complaint" | "refund" | "payment" | "safety" | "other", code: S | null) => S;
+  };
+
   /** The ops line: pickers, riders and the ops lead. Staff read Arabic today (STAFF_LANG); en and fr are kept in step. */
   ops: {
     newPick: (code: S) => S;
