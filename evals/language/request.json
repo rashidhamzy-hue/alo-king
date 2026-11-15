@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run on the same final code (43675197868: g0752 wrong and an off-topic miss, both main's, recorded in HANDOFF)." }
+{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header); add \"live\" for evals/live" }

@@ -48,7 +48,7 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ### Where the build stands (14 November 2026, after H1)
 - **On `main`:** Phase 0 (A1), ordering B1 to B4, hub C1 to C4, console D1 to D4, infra A2, A4, A5 and A6, pictures P1 and P2, product data N1, catalog K1, audit S1, reply speed SP1, G1 fixes F1, research R1 to R4, delivery windows W1, intake I1 and the commerce core C4 (pull requests 1 to 57). Per-session records: `docs/history/HANDOFF_sessions_2026-11-13_14.md`.
-- **Open pull requests at the time of writing:** M1 (message design, #54: built and tested; merges on the coordinator's condition of 15 Nov, see "Session M1" below) and an A5 follow-up (#51). Nothing else waits to merge.
+- **Open pull requests at the time of writing:** M1 (message design, #54: built and tested; the coordinator's merge condition of 15 Nov met by language-pack run 43677251482, see "Session M1" below) and an A5 follow-up (#51). Nothing else waits to merge.
 - **Wave order** is in `docs/BUILD_PLAN.md` ("Waves"): waves 1 and 2 are done, H1 is this hygiene pass, wave 3 is M1, I1 (merged) and C4 (merged).
 - **Tests:** `npx tsc --noEmit` clean; `npx vitest run` 1,202 passed and 43 live-only skipped on 14 November (local, before H1's last edits; CI runs the suite on every pull request). `TEST_REPORT.txt` is gone: CI is the record.
 - **Everything live is staging only.** Nothing has run with real customers, real money or the two +961 numbers.
@@ -66,7 +66,7 @@ Done: the repository is public (founder's choice, until the build is done), so p
 H1 read the database through the read-only workflow `data-coverage` before deleting anything. Result on staging: 291 research files loaded; **nothing approved yet**: 0 approved pictures (20 proposed, 18 of them from public pages), 0 approved web-page facts (258 fact proposals waiting), 0 approved Open Food Facts facts (212 proposals), the 282 name proposals still await the founder. So no file backs an approved record, and **none was deleted**: every `data/research/AK-nnnn.json` still backs a pending proposal or an unapplied reading, and the research loader and the intake pipeline reuse them. In `data/proposals`, `names.json` backs the pending name proposals and is read by a console test, `categories.json` is read by `test/db/catalog-k1.test.ts`, and `product-facts-summary.json` is a report that the `product-data` workflow rewrites. Delete a research file only after its picture or facts are approved on the console; rerun a coverage read first (the workflow was removed after use; its script is in git history at `scripts/ci/data-coverage.mjs`).
 
 ### Session M1 (message design), 14 November 2026: SYSTEM_PLAN 14, G1-23, the lira answer, W1's request; migrations 0120-0121, 0133
-Opus 5.5, ordering lane, branch `claude/amazing-brahmagupta-jd523b`, PR rashidhamzy-hue/alo-king#54 (merge condition set by the coordinator on 15 Nov, see "Coordinator decision" under the gate table). Migration 0133 (the mixed word) is M1's too. Main's I1 and C4
+Opus 5.5, ordering lane, branch `claude/amazing-brahmagupta-jd523b`, PR rashidhamzy-hue/alo-king#54 (merge condition set by the coordinator on 15 Nov, met by run 43677251482; see "Coordinator decision" under the gate table). Migration 0133 (the mixed word) is M1's too. Main's I1 and C4
 were merged into the branch (no conflict; no later migration redefines a 0120/0121 function). Locally on the merged code: `npx tsc --noEmit` clean;
 `npx vitest run` 1243 passed, 43 skipped (live-only), 0 failed. CI green on every push.
 
@@ -152,7 +152,13 @@ Neither failure of 43675197868 is M1's. **g0752** «baddi zet Lina 3abbed shams,
 the size-only line «l 2annine l z8ire» ("the small bottle") matched AK-0121 (7Up 330 ml): main's planner (`plan_order_core_0078`)
 returns exactly the same as M1's wrapper for that reading (checked locally; the wrapper acts only on a mixed word). **«بدي أغراض لمجدرة»**
 is the reading call, whose prompt, schema and tools M1 left byte-identical to main; it failed in 3 of the last 4 runs. Both are
-recorded for lane B below. One more gate run on the same code follows.
+recorded for lane B below. One more gate run on the same code followed:
+
+| Run | Code | What changed | item F1 | wrong products | demo | live misses |
+| --- | --- | --- | --- | --- | --- | --- |
+| **43677251482** | 7d0008b (code as 4eb4567) | the same final code | **0.914** | **0** | **right** | **none (41/41)** |
+
+**The coordinator's merge condition is met by 43677251482** (0 wrong products, F1 0.914, the demo right, no live miss). M1 merges.
 
 **For the ordering lane (found here, not fixed: `concierge.ts` is outside M1's files):** in 2 of the last 4 live runs one ask call
 stopped at `max_tokens` (1024, `request()` in `concierge.ts`) with no text and no tool call, so the turn handed off with nothing sent
