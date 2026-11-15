@@ -25,6 +25,11 @@ describe("the extraction contract on the live model (1.22)", () => {
     const js = JSON.stringify(z.toJSONSchema(OrderIntent, { io: "input" }));
     expect(js).toContain('"half_kg"');
   });
+  it("the intent alone as a bare word is that reading (B1b, language-pack run 43746499760: «merci, yislamo» -> \"greeting\")", async () => {
+    const r = await extractOrder(answering({ intent: "greeting" }), "m", { texts: ["merci, yislamo"], transcripts: [], state: {} });
+    expect(r.intent?.intent).toBe("greeting");
+    expect(r.intent?.lines).toEqual([]);
+  });
   it("a string that is not JSON is still refused", async () => {
     const r = await extractOrder(answering({ intent: "order: bread" }), "m", { texts: ["x"], transcripts: [], state: {} });
     expect(r.intent).toBeNull();

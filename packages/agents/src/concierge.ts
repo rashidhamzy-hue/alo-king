@@ -116,6 +116,8 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
   let raw = (call.input as { intent?: unknown } | null)?.intent;
   let note: string | undefined;
+  // B1b (language-pack run 43746499760, «merci, yislamo»): the intent alone as a bare word ("greeting") is that reading, with nothing else.
+  if (typeof raw === "string" && (OrderIntent.shape.intent.options as readonly string[]).includes(raw.trim())) raw = { intent: raw.trim() };
   if (typeof raw === "string") {
     const fixed = parseLooseJson(raw);
     if (fixed !== undefined) raw = fixed;
