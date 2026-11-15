@@ -75,11 +75,47 @@ export type LinkCode = { ok: true; code: string; expires_at: string } | { ok: fa
 export type ClaimStatus = "linked" | "not_a_code" | "unknown" | "used" | "expired" | "not_customer";
 export interface ClaimResult { ok: boolean; status: ClaimStatus; again?: boolean; session_id?: string }
 
-/** The functions the database role web_channel may execute (migration 0132), in the order the client lists them. */
-export const WEB_CHANNEL_FUNCTIONS = [
+/** The cart, checkout and session functions web_channel may execute (migration 0132), in the order the client lists them. */
+export const WEB_SESSION_FUNCTIONS = [
   "web_session_start", "web_session_state", "web_session_end", "web_link_code",
   "cart_set_line", "cart_view", "checkout_quote", "checkout_order", "web_confirm_order",
 ] as const;
+/** The catalog read functions (migrations 0154 and 0155, session WEB1): public, no token, no party. */
+export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category", "web_catalog_product", "web_catalog_search"] as const;
+/** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS] as const;
+
+// ---------- the catalog pages' shapes ----------
+export interface CatalogPicture {
+  /** Key in the public `catalog` bucket: <SUPABASE_URL>/storage/v1/object/public/catalog/<path>. Only a picture a customer may see and the bucket holds. */
+  path: string; licence: "cc_by_sa" | "brand_own" | "own_photo"; source_kind: string; attribution: string | null; source_url: string | null;
+  width_px: number | null; height_px: number | null;
+}
+export interface CatalogCard {
+  sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string; price_usd: number; in_stock: boolean;
+  picture: CatalogPicture | null;
+}
+export interface ServedVillage { name_en: string; name_ar: string | null; fee_usd: number; eta_minutes: number }
+export interface CatalogHome {
+  service: { open: string | null; close: string | null; tz: string | null; open_now: boolean | null; served: ServedVillage[] };
+  categories: { code: string; name_en: string; name_ar: string; count: number }[];
+  whatsapp: { home: string | null; product: string | null };
+}
+export type CatalogCategory =
+  | { ok: false; error: "unknown_category" }
+  | { ok: true; category: { code: string; name_en: string; name_ar: string };
+      sections: { title_en: string | null; title_ar: string | null; items: CatalogCard[] }[]; whatsapp: string | null };
+export interface CatalogFact {
+  attribute: string; kind: "allergen" | "diet" | "ingredients" | "nutrition"; name_en: string; name_ar: string | null;
+  /** false: no current approved, unexpired fact with a checked status. Value, detail and source are then null: say "not verified". */
+  verified: boolean; value: string | null; detail: { text?: string; values?: Record<string, unknown>; per?: string; units?: unknown; ar?: string; lang?: string } | null;
+  status: "certified" | "declared" | "calculated" | "not_verified"; source: string | null; reviewed_at: string | null;
+}
+export type CatalogProduct =
+  | { ok: false; error: "unknown_product" }
+  | { ok: true; product: Omit<CatalogCard, "picture">; category: { code: string; name_en: string; name_ar: string };
+      picture: CatalogPicture | null; facts: CatalogFact[]; credit_open_food_facts: boolean; whatsapp: string | null };
+export interface CatalogSearch { ok: boolean; q: string; matches: CatalogCard[]; reason: "too_short" | "no_match" | null }
 
 // ---------- the website (role web_channel) ----------
 export function webCommerce(db: RpcSource) {
@@ -102,6 +138,18 @@ export function webCommerce(db: RpcSource) {
   };
 }
 export type WebCommerce = ReturnType<typeof webCommerce>;
+
+// ---------- the website's catalog pages (role web_channel; no token, the catalog is public) ----------
+export function webCatalog(db: RpcSource) {
+  return {
+    home: () => call<CatalogHome>(db, "web_catalog_home", {}),
+    category: (code: string) => call<CatalogCategory>(db, "web_catalog_category", { p_code: code }),
+    product: (sku: string) => call<CatalogProduct>(db, "web_catalog_product", { p_sku: sku }),
+    /** The chat's matcher. A search that finds nothing is logged as demand by the database. */
+    search: (text: string, limit = 12) => call<CatalogSearch>(db, "web_catalog_search", { p_text: text, p_limit: limit }),
+  };
+}
+export type WebCatalog = ReturnType<typeof webCatalog>;
 
 // ---------- the gateway and the console (service role) ----------
 export function channelCommerce(db: RpcSource) {

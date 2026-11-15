@@ -357,6 +357,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
     trace: { path, intent, sent: ctx.sent.texts, calls: usage.calls,
              cache_read_input_tokens: usage.cacheRead, cache_creation_input_tokens: usage.cacheWrite } });
+  // SP2 (invariant 18): a chat the Concierge hands to a person is an open exception, so it is never left in silence: the console
+  // lists it (exceptions page) and the minute cron alerts the ops line (ops_exceptions_due, index.ts). The customer was already
+  // told by the fixed handoff message, and the handoffs row holds the reason.
+  const alertHandoff = async (reason: string) => {
+    const r = await db.rpc("raise_ops_exception", { p_kind: "agent_handoff", p_ref: turnKey,
+                                                    p_detail: { conversation_id: conv.conversation_id, reason: reason.slice(0, 200) } });
+    if (r.error) console.error("agent_handoff exception", r.error.message);
+  };
   try {
     // A pin or a number for a card that was only waiting on it: the card goes out, no model.
     if (dataOnly) {
@@ -432,12 +440,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     }
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent, said);
+    if (routed.done && routed.path === "handoff") await alertHandoff("plan_handoff");
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
+    if (res.outcome === "handoff") await alertHandoff(res.reason ?? "agent_handoff");
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();
     await record(res.outcome, "ask");

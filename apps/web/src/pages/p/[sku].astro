@@ -1,0 +1,69 @@
+---
+import Base from "../../layouts/Base.astro";
+import Unavailable from "../../components/Unavailable.astro";
+import { nameIn, t, unitLabel, usd } from "../../lib/i18n";
+import { pictureUrl } from "../../lib/db";
+import { groupFacts } from "../../lib/facts";
+const { lang, catalog, env } = Astro.locals;
+let r; let failed = false;
+const sku = String(Astro.params.sku ?? "");
+try { r = /^[a-z0-9_-]{1,40}$/i.test(sku) ? await catalog().product(sku) : { ok: false as const, error: "unknown_product" as const }; } catch { failed = true; Astro.response.status = 503; }
+if (r && !r.ok) Astro.response.status = 404;
+const ok = r && r.ok ? r : null;
+const name = ok ? nameIn(lang, ok.product.name_en, ok.product.name_ar) : t(lang, "not_found");
+const unit = ok ? unitLabel(lang, ok.product.sell_unit) : "";
+const groups = ok ? groupFacts(lang, ok.facts) : [];
+const nothingVerified = groups.every((g) => g.empty);
+const pic = ok?.picture ?? null;
+const ask = ok?.whatsapp ? ok.whatsapp.replaceAll("{sku}", encodeURIComponent(ok.product.sku)) : null;
+---
+<Base title={name} lang={lang} path={Astro.url.pathname}>
+  {failed ? <Unavailable lang={lang} /> : !ok ? <Unavailable lang={lang} notFound /> : <>
+    <p class="small"><a href="/">{t(lang, "home")}</a> › <a href={`/c/${ok.category.code}`}>{nameIn(lang, ok.category.name_en, ok.category.name_ar)}</a></p>
+    <div class="product">
+      <div>
+        {pic
+          ? <img class="pic" src={pictureUrl(env, pic.path, 1200)} alt={name} width={pic.width_px ?? 1200} height={pic.height_px ?? 1200} decoding="async" fetchpriority="high" />
+          : <div class="ph" role="img" aria-label={t(lang, "no_picture")}></div>}
+        {pic?.attribution && <p class="muted small">{pic.attribution}{pic.source_url && <> · <a href={pic.source_url} rel="noopener nofollow">{new URL(pic.source_url).hostname}</a></>}</p>}
+      </div>
+      <div>
+        <h1>{name}</h1>
+        {ok.product.name_ar && ok.product.name_en && lang !== "ar" ? <p class="muted" lang="ar" dir="rtl">{ok.product.name_ar}</p> : null}
+        {ok.product.name_ar && ok.product.name_en && lang === "ar" ? <p class="muted" lang="en" dir="ltr">{ok.product.name_en}</p> : null}
+        <p class="price big"><bdi>{usd(ok.product.price_usd)}</bdi></p>
+        <p><span class={ok.product.in_stock ? "badge" : "badge out"}>{ok.product.in_stock ? t(lang, "in_stock") : t(lang, "out_of_stock")}</span></p>
+        <p class="muted small">
+          {ok.product.brand && <span>{t(lang, "brand")}: {ok.product.brand}</span>}
+          {ok.product.brand && unit && " · "}
+          {unit && <span>{t(lang, "size_unit")}: {unit}</span>}
+        </p>
+        {ask && <p><a class="btn" href={ask} rel="noopener">{t(lang, "order_whatsapp")}</a></p>}
+
+        <h2>{t(lang, "facts_title")}</h2>
+        <p class="notice small">{t(lang, "facts_intro")}</p>
+        <div class="facts">
+          {nothingVerified && <p>{t(lang, "nothing_verified")}</p>}
+          {groups.map((g) => (
+            <section>
+              <h3>{g.title}</h3>
+              {g.lines.length > 0 && g.kind !== "nutrition" && (
+                <ul>{g.lines.map((l) => <li>{l.text} <span class="muted small">({l.how})</span></li>)}</ul>
+              )}
+              {g.kind === "nutrition" && g.panel && g.panel.length > 0 && <>
+                <table class="panel">{g.panel.map((p) => <tr><th scope="row">{p.name}</th><td><bdi>{p.value}</bdi></td></tr>)}</table>
+                <p class="muted small">({g.lines[0]?.how})</p>
+              </>}
+              {g.notVerified.length > 0 && (
+                g.kind === "allergen" || g.kind === "diet"
+                  ? <p class="muted small">{t(lang, "not_verified_list", { list: g.notVerified.join(lang === "ar" ? "، " : ", ") })}</p>
+                  : <p class="muted small">{t(lang, "not_verified")}</p>
+              )}
+            </section>
+          ))}
+        </div>
+        {ok.credit_open_food_facts && <p class="muted small credit">{t(lang, "credit_off")}</p>}
+      </div>
+    </div>
+  </>}
+</Base>
