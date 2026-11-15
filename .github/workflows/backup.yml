@@ -1,0 +1,146 @@
+# BK0. Nightly encrypted copy of the database, and the check that the newest copy is not stale.
+#
+# 01:30 UTC every night (and by hand): dump the public schema and the migration record through the session pooler, from one exported
+#   snapshot (so the manifest of row counts and the ledger total match the dump exactly), encrypt it with gpg (symmetric, AES-256, the
+#   secret BACKUP_PASSPHRASE) and store it in the private Cloudflare R2 bucket `ak-backups`. If the Cloudflare token has no R2 rights
+#   (or R2 is not switched on) the copy goes to the private Supabase bucket `media`, folder `backups/`, and the run says so in its
+#   summary (docs/HANDOFF.md "Founder actions" has the exact token change). 14 nightly copies and 8 weekly copies are kept.
+# 14:00 UTC every day: the freshness check alone. A newest copy older than 36 hours raises the ops exception `backup_stale` and sends a
+#   Sentry event, and fails the run. After a nightly copy the same check runs, so a green run proves a fresh, readable copy exists.
+# The copy is never uploaded as a workflow artifact, never printed, and never leaves the runner unencrypted. The passphrase exists
+# only with the founder; the workflow stops with a clear message when the secret is missing or short.
+#
+# The environment is a parameter. Staging is the default. Production uses the same file: set the repository variables
+# BACKUP_ENVIRONMENTS ("staging,production" once production exists), SUPABASE_PROJECT_REF_PRODUCTION and SENTRY_DSN_PRODUCTION, and the
+# secrets SUPABASE_ACCESS_TOKEN_PRODUCTION, SUPABASE_DB_PASSWORD_PRODUCTION, SUPABASE_SERVICE_KEY_PRODUCTION,
+# CLOUDFLARE_API_TOKEN_PRODUCTION and BACKUP_PASSPHRASE_PRODUCTION. A production run never falls back to a staging secret.
+#
+# Secrets used for staging (repository secrets, never printed): BACKUP_PASSPHRASE, SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD,
+# SUPABASE_SERVICE_KEY, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+name: backup
+on:
+  schedule:
+    - cron: "30 1 * * *"      # the copy (then the freshness check)
+    - cron: "0 14 * * *"      # the freshness check only
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which environment to copy
+        type: choice
+        options: [staging, production]
+        default: staging
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      environments: ${{ steps.p.outputs.environments }}
+      copy: ${{ steps.p.outputs.copy }}
+    steps:
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          PICKED: ${{ inputs.environment }}
+          LISTED: ${{ vars.BACKUP_ENVIRONMENTS }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then list="$PICKED"; copy=true
+          else list="${LISTED:-staging}"; if [ "$SCHEDULE" = "30 1 * * *" ]; then copy=true; else copy=false; fi; fi
+          envs=$(tr ',' '\n' <<<"$list" | sed 's/[[:space:]]//g' | grep -v '^$' | jq -R . | jq -sc .)
+          [ "$(jq -r 'all(.[]; . == "staging" or . == "production")' <<<"$envs")" = true ] || { echo "::error::BACKUP_ENVIRONMENTS may only name staging and production, got: $list"; exit 1; }
+          echo "environments=$envs" >> "$GITHUB_OUTPUT"; echo "copy=$copy" >> "$GITHUB_OUTPUT"
+          echo "- environments: $envs; make a copy: $copy" >> "$GITHUB_STEP_SUMMARY"
+
+  backup:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(needs.plan.outputs.environments) }}
+    concurrency:
+      group: backup-${{ matrix.environment }}
+      cancel-in-progress: false      # never cut a copy or a prune in half
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
+      COPY: ${{ needs.plan.outputs.copy }}
+      SUPABASE_PROJECT_REF: ${{ fromJSON('{"staging":"lhgkvvdckwbfpdsftzqp"}')[matrix.environment] || vars.SUPABASE_PROJECT_REF_PRODUCTION }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets[format('SUPABASE_ACCESS_TOKEN{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      SUPABASE_DB_PASSWORD: ${{ secrets[format('SUPABASE_DB_PASSWORD{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      PGPASSWORD: ${{ secrets[format('SUPABASE_DB_PASSWORD{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      SUPABASE_SERVICE_KEY: ${{ secrets[format('SUPABASE_SERVICE_KEY{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets[format('CLOUDFLARE_API_TOKEN{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets[format('BACKUP_PASSPHRASE{0}', matrix.environment == 'production' && '_PRODUCTION' || '')] }}
+      SENTRY_DSN: ${{ matrix.environment == 'production' && vars.SENTRY_DSN_PRODUCTION || '' }}
+      BACKUP_SOURCE: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the secrets first (stops with a clear message, prints nothing secret)
+        run: |
+          sfx=""; [ "$ENVIRONMENT" = production ] && sfx=_PRODUCTION
+          missing=""
+          [ -n "$SUPABASE_PROJECT_REF" ] || missing="$missing SUPABASE_PROJECT_REF_PRODUCTION (a repository variable)"
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN$sfx"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD$sfx"
+          [ -n "$SUPABASE_SERVICE_KEY" ] || missing="$missing SUPABASE_SERVICE_KEY$sfx"
+          if [ -n "$missing" ]; then
+            echo "::error::The $ENVIRONMENT backup is not set up. Missing:$missing. Add them under Settings, Secrets and variables, Actions. Nothing was dumped."; exit 1
+          fi
+          if [ "$COPY" = true ]; then
+            node --input-type=module -e 'import { passphraseProblem } from "./scripts/backup/lib.mjs"; const p = passphraseProblem(process.env.BACKUP_PASSPHRASE); if (p) { console.log("::error::" + p); process.exit(1); }'
+          fi
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler, because runners have no IPv6)
+        id: link
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          test -s supabase/.temp/pooler-url || { echo "no pooler url after link"; exit 1; }
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+
+      - name: Which Postgres, and a matching pg_dump
+        if: env.COPY == 'true'
+        run: |
+          num=$(psql "$DATABASE_URL" -At -c "show server_version_num")
+          major=$(( num / 10000 ))
+          echo "server version $num: major $major"
+          echo "PG_BIN=$(scripts/backup/pgclient.sh "$major")" >> "$GITHUB_ENV"
+      - name: Dump, one snapshot, manifest, encrypt
+        if: env.COPY == 'true'
+        run: node scripts/backup/dump.mjs --out "$RUNNER_TEMP/backup-out" > "$RUNNER_TEMP/dump.json"
+      - name: Store it, read it back, prune to 14 nightly and 8 weekly
+        if: env.COPY == 'true'
+        run: |
+          node scripts/backup/store.mjs publish --file "$(jq -r .file "$RUNNER_TEMP/dump.json")" --meta "$(jq -c .meta "$RUNNER_TEMP/dump.json")" > "$RUNNER_TEMP/published.json"
+          jq -r '"- **\(.store)**: `\(.key)` (\(.bytes) bytes, Postgres \(.pg_major), \(.tables) tables, \(.rows) rows, \(.migrations) migrations, ledger total \(.ledger_total_usd)); week copy: \(.weekly); kept \(.kept) copies (\(.weekly_copies) week copies), removed \(.removed)"' "$RUNNER_TEMP/published.json" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$(jq -r .store "$RUNNER_TEMP/published.json")" != r2 ]; then
+            echo "::warning::This copy went to the private Supabase bucket, not R2: the Cloudflare token has no R2 rights. See docs/HANDOFF.md, Founder actions."
+            echo "- **Fallback store used (private Supabase bucket media/backups/).** Give the Cloudflare token R2 rights to move to R2: docs/HANDOFF.md, Founder actions." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Remove the local copy
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/backup-out" "$RUNNER_TEMP/dump.json"
+
+      - name: Freshness (the newest copy must be younger than 36 hours)
+        id: fresh
+        if: ${{ !cancelled() && steps.link.outcome == 'success' }}
+        run: |
+          rc=0; node scripts/backup/store.mjs fresh > "$RUNNER_TEMP/fresh.json" || rc=$?
+          cat "$RUNNER_TEMP/fresh.json"
+          age=$(jq -r '.age // "unknown"' "$RUNNER_TEMP/fresh.json"); newest=$(jq -r '.newest // "none"' "$RUNNER_TEMP/fresh.json"); store=$(jq -r '.store // "none"' "$RUNNER_TEMP/fresh.json")
+          echo "- freshness ($ENVIRONMENT): newest copy $newest in $store, age $age (limit 36 hours)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" = 0 ]; then
+            scripts/backup/alert.sh clear backup_stale "$ENVIRONMENT"
+          else
+            scripts/backup/alert.sh raise backup_stale "$ENVIRONMENT" "the newest $ENVIRONMENT database copy is $age old (limit 36 hours); newest: $newest in $store"
+            echo "::error::The newest $ENVIRONMENT copy is $age old. An ops exception and a Sentry event were raised."
+            exit 1
+          fi
