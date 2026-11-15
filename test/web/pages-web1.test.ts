@@ -281,6 +281,14 @@ describe("weight and the installable shell", () => {
     expect(sw.headers.get("cache-control")).toBe("no-cache");
     const code = await sw.text();
     expect(code).toContain("PAGE_PATH");
+    // A phone that visited before the redesign must not keep the old look: the cache names are versioned (v2 for the redesign), every
+    // older ak- cache is deleted when the new worker takes over, and the icons and the manifest (same names, new content) come from
+    // the network first. Only the hashed files under /_astro are served from the phone first.
+    expect(code).toContain('SHELL = "ak-shell-v2", PAGES = "ak-pages-v2"');
+    expect(code).toMatch(/k\.indexOf\("ak-"\) === 0 && k !== SHELL && k !== PAGES[\s\S]*caches\.delete\(k\)/);
+    expect(code).toMatch(/\^\\\/icons\\\/[\s\S]{0,80}manifest\.webmanifest[\s\S]{0,40}fresh\(req\)/);
+    expect(code).toMatch(/function fresh\(req\) \{\s*return fetch\(req\)/);
+    expect(code).toMatch(/\^\\\/_astro\\\/\/\.test\(url\.pathname\)\) \{ e\.respondWith\(shell\(req\)\)/);
     expect(code).not.toMatch(/PAGE_PATH = [^\n]*(search|cart|checkout|orders|account)/);   // it caches the catalog pages and nothing else
     expect((await get("/offline")).status).toBe(200);
   });

@@ -2,7 +2,10 @@
 // read with no signal. It never caches search, the language switch, or anything that is not a page of the catalog; ordering always needs
 // the network, and a page is always fetched from the network first, so price and stock are never older than the visitor's last visit
 // to that page while online.
-var SHELL = "ak-shell-v1", PAGES = "ak-pages-v1", MAX_PAGES = 60;
+// The cache names carry a version. Raise it whenever the look, the icons or the manifest change (v2: the redesign of 15 November):
+// a new name changes this file, so browsers install the new worker, and its activate step below deletes every older ak- cache.
+// Without that, a phone that visited before kept the old manifest, icons and pages for ever.
+var SHELL = "ak-shell-v2", PAGES = "ak-pages-v2", MAX_PAGES = 60;
 var PAGE_PATH = /^\/(?:$|c\/[^/]+$|p\/[^/]+$|privacy$|terms$)/;
 var LANG_KEY = "/__lang";
 
@@ -24,7 +27,9 @@ self.addEventListener("fetch", function (e) {
   if (url.origin !== location.origin) return;
   if (req.mode === "navigate" && PAGE_PATH.test(url.pathname) && !url.search) { e.respondWith(page(e, req, url)); return; }
   if (req.mode === "navigate") { e.respondWith(fetch(req).catch(function () { return caches.match("/offline"); })); return; }
-  if (/^\/(?:_astro|icons)\//.test(url.pathname)) { e.respondWith(shell(req)); }
+  if (/^\/_astro\//.test(url.pathname)) { e.respondWith(shell(req)); return; }
+  // Icons and the manifest keep their names when their content changes: the network first, the kept copy only with no signal.
+  if (/^\/icons\//.test(url.pathname) || url.pathname === "/manifest.webmanifest") { e.respondWith(fresh(req)); }
 });
 
 // Network first. A page that came back is kept under its path and its language (the same address differs by language).
@@ -56,6 +61,14 @@ function page(e, req, url) {
       });
     });
   });
+}
+
+// Network first, keeping a copy for when there is no signal.
+function fresh(req) {
+  return fetch(req).then(function (res) {
+    if (res.ok) { var copy = res.clone(); caches.open(SHELL).then(function (c) { return c.put(req, copy); }).catch(function () {}); }
+    return res;
+  }).catch(function () { return caches.match(req); });
 }
 
 // Cache first for the shell's own files (the stylesheet's name changes with its content).

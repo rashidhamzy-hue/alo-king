@@ -93,7 +93,7 @@ const ar: Dict = {
   check_title: "هل نوصّل إليك؟", check_label: "قريتك", check_choose: "اختر قريتك", check_go: "تحقّق",
   check_yes: "نوصّل إلى {village}.", check_fee: "التوصيل {fee}", check_time: "حوالي {n} دقيقة", check_other: "قريتك غير موجودة في القائمة؟ اسألنا عبر واتساب.",
   trust_cash: "الدفع نقدًا عند الاستلام", trust_cash_text: "بالدولار، أو بالليرة بسعر اليوم.",
-  trust_rider: "رسم التوصيل كله للمندوب", trust_rider_text: "رسم التوصيل وأي إكرامية يذهبان كاملين إلى من يوصل طلبك.",
+  trust_rider: "رسم التوصيل كله للسائق", trust_rider_text: "رسم التوصيل وأي إكرامية يذهبان كاملين إلى من يوصل طلبك.",
   trust_hours: "ساعات العمل", trust_person: "شخص يجيبك على واتساب", trust_person_text: "عندما تحتاج إلى مساعدة، يجيبك أحد أفراد فريقنا.",
   filter_brand: "الماركة", filter_unit: "يُباع بـ", filter_stock: "المتوفر فقط", filter_all: "الكل", filter_show: "اعرض", filter_clear: "إزالة التصفية",
   sort: "الترتيب", sort_default: "ترتيب القسم", sort_price_asc: "السعر: من الأقل إلى الأعلى", sort_price_desc: "السعر: من الأعلى إلى الأقل",
