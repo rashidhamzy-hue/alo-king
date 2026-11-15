@@ -1,0 +1,90 @@
+# Manual. Session SIM1: about 500 simulated customer conversations with the real Concierge, and a ranked failure report.
+# What runs: evals/sim (see evals/sim/README.md). A throwaway database in the job (PGlite, every migration on this ref), then a
+# read-only copy of staging's catalogue and settings, read with GET through PostgREST (SUPABASE_SERVICE_KEY over the staging URL,
+# the secrets product-data.yml uses). No parties, chats, orders or media are read. Kapso is never called: every send is recorded.
+# The real turn code drives each conversation; the Concierge is MODEL_FAST from wrangler.jsonc; the customer and the judge are
+# MODEL_SMART (Sonnet 5.5). Budget: no new conversation above USD 27, every model call refused at USD 33 (evals/sim/budget.ts).
+# Key: secrets.ANTHROPIC_API_KEY_SIM only. The job stops at once if it is missing; it never falls back to another key, and the
+# key is never printed (it is passed to the one step that needs it, as an environment variable).
+# Output: the artifact sim-results (report.md, cases/sim_<class>.json, results.jsonl, summary.json), the head of the report in
+# the job summary, and the same files as a base64 tar.gz in the last step's log (lines starting SIMBUNDLE) for a session to read.
+name: sim-test
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Only the first N scenarios (empty = all 500)
+        type: string
+        default: ""
+      only:
+        description: Comma-separated scenario ids, e.g. sim-001,sim-042 (empty = all)
+        type: string
+        default: ""
+      concurrency:
+        description: Conversations at a time
+        type: string
+        default: "6"
+      repeats:
+        description: Times each failing seed is run again while money is left
+        type: string
+        default: "3"
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: sim-test
+  cancel-in-progress: false
+jobs:
+  simulate:
+    if: github.repository == 'rashidhamzy-hue/alo-king'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+    steps:
+      - name: The simulation key is set
+        env:
+          ANTHROPIC_API_KEY_SIM: ${{ secrets.ANTHROPIC_API_KEY_SIM }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY_SIM" ]; then
+            echo "::error::The repository secret ANTHROPIC_API_KEY_SIM is not set. The simulation uses that key only and never falls back to another; add it and run again."
+            exit 1
+          fi
+          echo "ANTHROPIC_API_KEY_SIM is set (not printed)."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Tests of the simulator (no key, no network; includes the proof that nothing is written to staging or sent)
+        run: npx vitest run evals/sim/test
+      - name: Simulate
+        env:
+          ALO_SIM: "1"
+          ANTHROPIC_API_KEY_SIM: ${{ secrets.ANTHROPIC_API_KEY_SIM }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SIM_OUT: out/sim
+          SIM_LIMIT: ${{ inputs.limit }}
+          SIM_ONLY: ${{ inputs.only }}
+          SIM_CONCURRENCY: ${{ inputs.concurrency }}
+          SIM_REPEATS: ${{ inputs.repeats }}
+          SIM_SOFT: "27"
+          SIM_HARD: "33"
+          SIM_MAX_MINUTES: "280"
+        run: |
+          export MODEL_FAST="$(node scripts/ci/wrangler-var.mjs MODEL_FAST)"
+          export MODEL_SMART="$(node scripts/ci/wrangler-var.mjs MODEL_SMART)"
+          [ -z "$SIM_LIMIT" ] && unset SIM_LIMIT
+          [ -z "$SIM_ONLY" ] && unset SIM_ONLY
+          echo "- concierge ${MODEL_FAST}, customer and judge ${MODEL_SMART}; limit ${SIM_LIMIT:-all}; only ${SIM_ONLY:-all}; concurrency ${SIM_CONCURRENCY}" >> "$GITHUB_STEP_SUMMARY"
+          npx vitest run evals/sim/sim.live.test.ts --silent=false
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: sim-results, path: out/sim, retention-days: 30, if-no-files-found: ignore }
+      - name: Report head in the job summary
+        if: always()
+        run: |
+          if [ -f out/sim/report.md ]; then head -n 80 out/sim/report.md >> "$GITHUB_STEP_SUMMARY"; else echo "- no report written" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Results bundle (base64 tar.gz, lines starting SIMBUNDLE)
+        if: always()
+        run: |
+          if [ -d out/sim ]; then tar czf - -C out sim | base64 -w 4000 | sed 's/^/SIMBUNDLE /'; fi

@@ -62,6 +62,18 @@ A5 itself (K1's lane A request, G1-15, 17, 18, 24, audit points 8 and 11; migrat
 - **Usage** (`usage-check`, run 43624875274, both jobs green). Supabase, free plan: database **35.1 MB of 500 MB (7.0%)**, storage **1.3 MB of 1 GB (0.1%)**; **egress left off** (see the open requests). Cloudflare, Workers Paid limits (10,000,000 requests and 400,000 GB-s of Durable Object duration a month), whole account, month to date: **17,055 requests (0.17%, projected 0.4%)** and **18,154 GB-s (4.54%, projected 9.9%)**. The deploy token **can read analytics**, so no new permission was needed; if it is ever cut the job says "LEFT OFF" and names "Account > Account Analytics > Read" instead of failing. The account also runs two other Workers (`cupsy-coffee-dream` 11,604 requests, `kabsi-go` 2,115): the check counts the whole account because the plan bills it. Figures are Cloudflare's analytics, not its invoice.
 - **Not live yet:** Meta steps A to C and approved pictures, so no picture has been copied; the first real status webhook for `outbox_mark_from_status`; the first real inbound picture or voice note (where Kapso redirects media).
 
+### SIM1: simulated customers, 15 November 2026 (Opus 5.5)
+Evals lane, branch `claude/gallant-feynman-yhrzow`. No migration; no product file changed. Files: `evals/sim/**`, `.github/workflows/sim-test.yml`,
+`docs/SIM_REPORT_2026-11-15.md`, `evals/cases/sim_*.json`, this section and the SIM1 row of `docs/BUILD_PLAN.md`.
+- **Built and tested (CI, no key):** 500 seeded scenarios (`evals/sim/scenarios.json`, the brief's mix: 14 categories, ar 225, Arabizi 125,
+  en 75, fr 50, mixed 25; 125 with a voice note, 50 with a burst; five seeds regenerate the same scripts); the copy of staging's catalogue
+  and settings (GET only, no parties, chats, orders or media); the fetch guard (staging GET-only and closed after the copy, Kapso recorded
+  and never called); the driver (the real conversation object, turn code, tools and gateway, as `test/db/flow-kit.ts`); the per-turn checks;
+  the budget guard (priced from `model_prices`, no new conversation above USD 27, every call refused at USD 33); the report. `evals/sim/test`
+  (23 tests) includes a whole run with stand-in models against a fake staging: GET only during the copy, nothing sent.
+- **The run:** pending at the time of writing (needs the workflow on main and `ANTHROPIC_API_KEY_SIM`); results, spend and the report
+  follow in `docs/SIM_REPORT_2026-11-15.md`.
+
 ### SP2: no-reply turns, 15 November 2026 (Opus 5.5)
 Ordering lane, branch `claude/tender-clarke-zfo77t`, PR rashidhamzy-hue/alo-king#63. No migration (0200-0201 held, unused).
 **The bug** (M1's finding; once on staging, 14 Nov 08:13 Beirut, an address-only message with no basket): a turn of the open-question loop
