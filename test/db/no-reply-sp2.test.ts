@@ -105,23 +105,24 @@ describe("every customer turn ends in a reply (SP2)", () => {
     expect(await handoffState(t)).toEqual({ handoffs: [], exceptions: [], runs: ["ok"] });
   });
 
-  it("a model that never answers: the last call is forced to reply; then a person takes it, the customer is told, ops is alerted", async () => {
+  it("a model that never answers: the last call is forced to reply; then one fixed question with buttons, never a case (HO1)", async () => {
     const t = setup([reading({ intent: "question", lines: [] }), ...Array.from({ length: 6 }, (): Step => ({ stop: "end_turn", text: "thinking" }))]);
     await t.say("lal yom shu fi?");
     expect(t.seen).toHaveLength(7);
     expect(t.seen.at(-1)!.tool_choice).toEqual({ type: "tool", name: "reply" });
-    expect(bodies()).toEqual([ar.fixed.handoff]);                       // never silent: the fixed handoff message
-    const h = await handoffState(t);
-    expect(h).toEqual({ handoffs: ["agent_did_not_finish"], exceptions: [{ kind: "agent_handoff", reason: "agent_did_not_finish" }], runs: ["handoff"] });
-    // the minute cron alerts the ops line for it (index.ts, ops_exceptions_due); the console's exceptions page lists it
-    expect((await db.all(`select kind from ops_exceptions_due() where kind = 'agent_handoff'`)).length).toBeGreaterThanOrEqual(1);
+    expect(bodies()).toEqual([ar.support.stalled]);                     // never silent: a fixed question with buttons
+    expect(outbound[0]!.body.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["menu:browse", "menu:order", "menu:person"]);
+    // HO1: the loop stalling is ours, not the customer's request: no case, and the chat keeps answering
+    expect(await handoffState(t)).toEqual({ handoffs: [], exceptions: [], runs: ["stalled"] });
   });
 
-  it("the model hands off by itself: the same alert, and the turn counts as a handoff", async () => {
+  it("the model hands off by itself: a case opens, ops is alerted by its exception, the customer is told and keeps the bot (HO1)", async () => {
     const t = setup([reading({ intent: "complaint", lines: [] }), { stop: "tool_use", tools: [["handoff_human", { reason: "complaint about a delivery" }]] }]);
     await t.say("el talabiye wosle ghalat");
-    expect(bodies()).toEqual([ar.fixed.handoff]);
-    expect(await handoffState(t)).toEqual({ handoffs: ["complaint about a delivery"],
-      exceptions: [{ kind: "agent_handoff", reason: "complaint about a delivery" }], runs: ["handoff"] });
+    expect(bodies()).toEqual([ar.support.opened]);
+    expect(await handoffState(t)).toEqual({ handoffs: ["complaint: complaint about a delivery"], exceptions: [], runs: ["case"] });
+    const c = await t.customer();
+    expect(await db.all(`select h.kind, e.kind as alert from handoffs h join ops_exceptions e on e.ref = h.id::text where h.conversation_id = $1`, [c.conversation_id]))
+      .toEqual([{ kind: "complaint", alert: "support_case" }]);
   });
 });

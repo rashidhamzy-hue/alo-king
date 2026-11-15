@@ -94,13 +94,13 @@ describe("money guardrail (1.5)", () => {
       .toEqual({ trace: { code: "money_in_free_text", match: "$2.50" } });
   });
 
-  it("a pin request with an amount is refused too, and a model that keeps writing prices ends with a person, never silence", async () => {
+  it("a pin request with an amount is refused too, and a model that keeps writing prices ends with a fixed question, never silence", async () => {
     const bad = [use("reply", { text: "التوصيل 1$" })];
     const t = flow(db, [read({ intent: "question", lines: [] }), [use("ask_location_pin", { text: "التوصيل لعندك حقو 2 دولار، بعتلي موقعك" })], bad, bad, bad, bad, bad]);
     const c = await t.customer();
     await t.text("قديش التوصيل؟");
-    expect(outbound.map((o) => o.body.text?.body)).toEqual(["رح يتواصل معك حدا من فريقنا بأقرب وقت."]);
-    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+    expect(outbound.map((o) => o.body.text?.body ?? o.body.interactive?.body?.text)).toEqual([ar.support.stalled]);   // HO1: not a hand-off
+    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(false);
   });
 });
 

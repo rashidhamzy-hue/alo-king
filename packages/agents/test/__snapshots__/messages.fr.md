@@ -1255,6 +1255,197 @@ Nous n'avons pas pu ouvrir l'image.
 Pouvez-vous renvoyer la photo du reçu ?
 ```
 
+## support.opened
+
+```text
+✅ Une personne de notre équipe vous répond dans quelques minutes.
+En attendant, vous pouvez continuer à commander avec moi.
+```
+
+## support.reminder
+
+```text
+Votre demande est ouverte ; une personne de notre équipe va vous répondre.
+```
+
+## support.stillOnIt
+
+```text
+Nous nous en occupons ; une personne de notre équipe va vous répondre.
+Continuer la commande, être rappelé, ou laisser un vocal ?
+```
+
+## support.resumed
+
+```text
+Je suis de retour. Votre demande est toujours ouverte et une personne va vous répondre.
+Comment puis-je vous aider ?
+```
+
+## support.resolved
+
+```text
+✅ Votre demande est close. Pour autre chose, écrivez-nous ici.
+```
+
+## support.callbackButton
+
+```text
+Rappelez-moi
+```
+
+## support.keepOrderingButton
+
+```text
+Continuer
+```
+
+## support.voiceNoteButton
+
+```text
+Message vocal
+```
+
+## support.callbackNoted
+
+```text
+C'est noté : une personne de notre équipe vous appelle sur ce numéro.
+```
+
+## support.keepOrdering
+
+```text
+Allez-y : que voulez-vous commander ?
+```
+
+## support.voiceNoteAsk
+
+```text
+Envoyez votre message vocal ici ; la personne qui suit votre demande l'écoutera.
+```
+
+## support.technical
+
+```text
+⚠️ Un petit problème technique de notre côté.
+Renvoyez votre message dans une minute.
+```
+
+## support.capMenu
+
+```text
+Nous avons atteint la limite de messages de cette heure.
+Choisissez ci-dessous :
+```
+
+## support.stalled
+
+```text
+Désolé, je n'ai pas bien compris.
+Que voulez-vous faire ?
+```
+
+## support.browseButton
+
+```text
+Parcourir
+```
+
+## support.myOrderButton
+
+```text
+Ma commande
+```
+
+## support.personButton
+
+```text
+Parler à quelqu'un
+```
+
+## support.buttonError
+
+```text
+⚠️ Ce bouton n'a pas fonctionné de notre côté.
+Réessayez.
+```
+
+## support.retryButton
+
+```text
+Réessayer
+```
+
+## support.notOnRecord
+
+```text
+Ce n'est pas confirmé dans nos registres, nous ne pouvons donc pas dire que cela vous convient.
+Voulez-vous choisir autre chose ?
+```
+
+## support.browseInWords
+
+```text
+Dites-moi ce qu'il vous faut et je le cherche.
+```
+
+## support.afterHours
+
+```text
+🌙 Nous sommes fermés et ouvrons à 08:00.
+Votre demande est enregistrée ; une personne vous répond à l'ouverture.
+Vous pouvez commander maintenant, nous la gardons jusqu'à l'ouverture.
+```
+
+## support.draft.person_requested
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Comment pouvons-nous vous aider ?
+```
+
+## support.draft.order_problem
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Désolés pour le désagrément. Que s'est-il passé exactement ?
+```
+
+## support.draft.complaint
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Désolés pour le désagrément. Que s'est-il passé exactement ?
+```
+
+## support.draft.refund
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Nous avons votre demande ; nous la vérifions et revenons vers vous avec la réponse.
+```
+
+## support.draft.payment
+
+```text
+Bonjour, ici l'équipe Alo King au sujet du paiement de la commande AK-1042.
+Nous le vérifions.
+```
+
+## support.draft.safety
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Nous avons votre message et nous nous en occupons. Que s'est-il passé ?
+```
+
+## support.draft.other
+
+```text
+Bonjour, ici l'équipe Alo King au sujet de votre commande AK-1042.
+Comment pouvons-nous vous aider ?
+```
+
 ## notice.orderCancelled
 
 ```text
@@ -2205,7 +2396,8 @@ $7.27
 ## ops.turnCap
 
 ```text
-⚠️ Un client a dépassé 30 messages à l'assistant en une heure. Une personne a repris la conversation.
+⚠️ Un client a dépassé 30 messages à l'assistant en une heure.
+Il reçoit un menu fixe jusqu'à l'heure suivante.
 ```
 
 # Utility templates (templates/templates.json)

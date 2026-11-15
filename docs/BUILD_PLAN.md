@@ -623,7 +623,7 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 0, now | DOC1 strategy into the repository | Sonnet, medium | Nothing | None | Done (this change) |
 | 0 | PUB1 public-repository hygiene | Sonnet, medium | Nothing | None | Not started |
 | 0 | BK0 free backups and restore check | Sonnet, medium | The founder's passphrase secret | None | Not started |
-| 1 | HO1 never-stranded hand-off | Opus, high | SIM1's report merged | 0135 to 0138 | Not started; waits for SIM1's report to be merged |
+| 1 | HO1 never-stranded hand-off | Opus, high | SIM1's report merged | 0135 to 0137 (0138 unused) | Done: built, tested in CI, and sim-test run 43711132002 shows zero silences after a hand-off (`docs/HANDOFF.md`, HO1) |
 | 1 | COST1 cost recorded, capped | Sonnet, medium | SIM1's report merged | 0139 | Not started; waits for SIM1's report to be merged |
 | 1 | OPS1 alerts that wake someone | Sonnet, high | Nothing | 0140 to 0142 | Not started |
 | 2 | B1 ordering fixes from SIM1 | Opus, high | HO1 merged | None | Not started |

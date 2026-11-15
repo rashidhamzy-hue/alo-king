@@ -11,6 +11,7 @@ import { cardInHand, cardWhen, pickWindow, readWhen, schedules, windowsFor, type
 import type { QuickIntent } from "./quick-intent";
 import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
+import { handoffToCase } from "./support";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -435,10 +436,9 @@ export async function sendKept(ctx: ToolContext, opts: { pin?: boolean } = {}): 
   return r.ok;
 }
 
+// HO1: the planner's hand-off opens a case with its topic; the bot stays in the chat (support.ts).
 async function handoff(ctx: ToolContext, reason: string) {
-  await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
-  await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason });
-  await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.handoff } }, T(ctx).fixed.handoff);
+  await handoffToCase(ctx, reason, "planner", ctx.support ??= {});
 }
 
 // ---------- W1: windows for the basket in hand ----------
