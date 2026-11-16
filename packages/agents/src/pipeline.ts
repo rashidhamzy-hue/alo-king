@@ -16,7 +16,7 @@ import { handoffToCase, remindCase, supportMessage } from "./support";
 import { courtesyOf, stillOffTopic } from "./courtesy";
 import { packSizeCount } from "./reading";
 import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, itemsOf, minimumGap, namesOf, underMinimumOnly } from "./basket";
-import { askableLine, askChoice, questionsFor } from "./choice";
+import { askableLine, askChoice, questionsFor, quoted } from "./choice";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -291,7 +291,8 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
   // B1c: the house default given for a generic word is said, with the product's name, so the customer can change it.
   const house = plan.lines.filter((l) => l.status === "matched" && l.pick === "house" && l.chosen && plan.quote_lines.some((q) => q.product_id === l.chosen!.product_id))
-    .map((l) => T(ctx).basket.houseDefault((intent.lines[l.idx]?.raw ?? l.raw).trim().slice(0, 60), productName(l.chosen!, ctx.state.lang ?? "ar")));
+    // B1d (run 43824481535, message rule 7): the customer's words quoted as the question quotes them: Latin digits, no amount, short.
+    .map((l) => T(ctx).basket.houseDefault(quoted(intent.lines[l.idx]?.raw ?? l.raw), productName(l.chosen!, ctx.state.lang ?? "ar")));
   // What goes before the card: a shop not on Alo King yet, and what changed in the basket. The house default is said where the reply
   // does not list the basket (the pin request); the minimum line and the card name every product.
   const before = [unavailable, changed].filter(Boolean).join("\n") || undefined;

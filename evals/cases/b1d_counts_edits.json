@@ -1,5 +1,5 @@
 {
- "about": "B1d (16 Nov 2026): the 25 wrong-product conversations of sim-test 43781701377 (CX1's run on main, the latest; 18 in B1c's run 43776071899 before it), read one by one, with what must happen instead and the test that holds it. `readings`: the model's reading against the customer's words, tidied by code (evals/test/b1d-counts.test.ts); `packs`: a count against the chosen pack (packSizeCount); the flows are in test/db/ordering-b1d.test.ts. Invented customers.",
+ "about": "B1d (16 Nov 2026): the 25 wrong-product conversations of sim-test 43781701377 (CX1's run on main, the latest; 18 in B1c's run 43776071899 before it), read one by one, with what must happen instead and the test that holds it. `readings`: the model's reading against the customer's words, tidied by code (evals/test/b1d-counts.test.ts); `packs`: a count against the chosen pack (packSizeCount); the flows are in test/db/ordering-b1d.test.ts. The `run3-` cases are from B1d's own run on main (sim-test 43824481535), fixed in the follow-up. Invented customers.",
  "run": 43781701377,
  "cases": [
   {
@@ -885,6 +885,75 @@
      }
     ]
    }
+  },
+  {
+   "id": "run3-sim-051-what-to-add",
+   "text": "ما فيك توصّلن هيك؟ بدي بس اتنين ثوم، شو فيني زيد؟",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "اتنين ثوم",
+      "query": "ثوم",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "set"
+     }
+    ]
+   }
+  },
+  {
+   "id": "run3-sim-036-also",
+   "text": "كمان بدي علبتين شاي مايسترو سيلان ١٤٠ غرام",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "علبتين شاي مايسترو سيلان ١٤٠ غرام",
+      "query": "شاي مايسترو سيلان 140 غرام",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "set"
+     }
+    ]
+   }
+  },
+  {
+   "id": "keep-kamen-after",
+   "text": "بدي كمان علبتين شاي",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "علبتين شاي",
+      "query": "شاي",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   }
   }
  ],
  "packs": [
@@ -941,6 +1010,24 @@
    },
    "product": "Vimax Trash Bags Large Blue 30 Pieces",
    "expect": 3
+  },
+  {
+   "id": "run3-sim-140-bottles",
+   "line": {
+    "raw": "Rim 2L, 6 2anenne",
+    "qty": 6
+   },
+   "product": "Rim Mineral Water 2L X 6",
+   "expect": 1
+  },
+  {
+   "id": "run3-sim-043-cans",
+   "line": {
+    "raw": "تونا أبيض سيبلو بالزيت تلات علب (١٨٥ غ)",
+    "qty": 3
+   },
+   "product": "تونا أبيض سيبلو بالزيت 3 × 185 غ",
+   "expect": 1
   }
  ]
 }

@@ -101,7 +101,35 @@ F1 0.909, the demo right, live evals 103 of 103, but **two wrong products**: hz0
 («التاني تبع الخمس رغفان») joins the line before; both readings are in `zero-wrong.json`. **The gate holds** on the second run
 ([43813545023](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43813545023), head d9b0317): 990 readings, **F1 0.908, wrong products
 0**, the 0.13 demo right, the live evals **103 of 103**.
-**The simulated customers on `main`:** run after the merge (sim-test, limit 150); the result is added here by the follow-up.
+**The simulated customers on `main`, run 1** ([sim-test 43824481535](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43824481535),
+limit 150, budget USD 4, spent **$3.47**; main at 78e2011, #97 on top of PD1's #99), first attempts, against CX1's run and PD1's run on the
+code just before B1d ([43819301131](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43819301131)):
+
+| class | CX1 (43781701377) | PD1 (43819301131) | B1d run 1 | target |
+| --- | --- | --- | --- | --- |
+| wrong or uninvited product (judge) | 29 | 26 | **21** | at most 8: **not met** |
+| goal not reached | 49 | 49 | **42** | no worse: held |
+| unnatural dialect | 24 | 25 | **21** | held |
+| repeated question | 13 | 20 | **13** | held |
+| dead end | 15 | 17 | **10** | held |
+| invented fact | 8 | 8 | **6** | held |
+| wrong language (code) | 1 | 1 | **0** | held |
+| message rules (code) | 2 | 2 | **4** | **not held**: three are B1c's house-default line quoting the customer's «٣ ربطات خبز» in Arabic-Indic digits (sim-069, sim-143, sim-045; CX1's run had one, sim-029), fixed in the follow-up; one is the restriction line at 126 characters (sim-002), an existing line PD1's run also had |
+| passed | 89 | 87 | **93** | |
+
+The 21, read: count doublings where a question or "also" was read as more (sim-051 «بدي بس اتنين ثوم، شو فيني زيد؟», 4 garlic; sim-036
+«كمان بدي علبتين شاي», 4 tea), and a count of bottles or cans that is the pack's own («Rim 2L, 6 2anenne» became 6 six-packs, sim-140;
+«تلات علب» of the three-can tuna pack became 3 packs, sim-043): all four fixed in the follow-up with failing cases first (`run3-` in
+`b1d_counts_edits.json`). The customer's own additions the judge counted (sim-054 «كمان تنتين», sim-080, sim-052), a brand with one product
+(sim-016, sim-047), swaps and edits the model read across several lines (sim-057, sim-021, sim-010, sim-079), night and window handling
+(sim-067, sim-110, sim-139), a cancel during picking (sim-149) and sim-082 (the tenders now said out of stock; a later «not on Alo King»
+line twice) make up the rest. **Wrong products 29 to 21 is not the target of 8**: about a third of each run is the customer's own additions
+and readings spread over several lines that no code rule sees whole.
+
+**B1d follow-up** (second pull request): «شو فيني زيد؟» ("what can I add?") and «كمان بدي X» ("also I want X") are not more of X, and «بدي بس»
+wins over a "more" elsewhere in the message; bottles and cans of a pack of that many are one pack; the house default's line quotes the
+customer's words as the question does (Latin digits, no amount, at most 40 characters; B1c's test that held the Arabic-Indic digits now holds
+the Latin ones). Run 2 on main after it: below.
 
 ### PD1: the product data standard, 16 November 2026 (Opus 5.5); migrations 0202 to 0211
 Session PD1, branch `claude/eager-cannon-m6mq4n`. Source: `docs/PRODUCT_DATA_STANDARD.md` (the founder's document of 16 November) and the

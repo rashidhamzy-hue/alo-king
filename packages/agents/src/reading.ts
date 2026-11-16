@@ -127,13 +127,15 @@ function addOrSet(intent: OrderIntent, said: string): OrderIntent {
   const total = num(TOTAL_AFTER.exec(t)?.[1]) ?? num(TOTAL_BEFORE.exec(t)?.[1]);
   if (total != null && total > 0) return { ...intent, lines: [{ ...l, qty: total, change: "set" }] };
   // «ما بدي زيد شي، بس غيّر ...» ("I don't want to add anything, just change ..."): a "more" word said in the negative asks for no more.
-  const moreSaid = MORE.test(t.replace(/(?:^| )(?:ما|مش|ma|mish|mesh|msh) (?:بدي |بدنا |baddi |badde |bade )?(?:زيد|زيدلي|ضيف|كمان|zid|zidli|kaman|kamen)(?= |$)/gu, " "));
+  const moreSaid = MORE.test(t.replace(/(?:^| )(?:ما|مش|ma|mish|mesh|msh) (?:بدي |بدنا |baddi |badde |bade )?(?:زيد|زيدلي|ضيف|كمان|zid|zidli|kaman|kamen)(?= |$)/gu, " ").replace(NOT_MORE_OF_IT, " "));
   const setTo = setCountIn(t);
   if (setTo != null && setTo > 0 && !moreSaid) return { ...intent, lines: [{ ...l, qty: setTo, change: "set" }] };
   const notJust = num(NOT_JUST.exec(t)?.[1]);
   if (notJust != null && notJust !== l.qty && l.qty > 0) return { ...intent, lines: [{ ...l, change: "set" }] };
-  if (MORE.test(t) && (l.change === "set" || l.change == null) && intent.intent !== "order") return { ...intent, lines: [{ ...l, change: "add" }] };
-  if (MORE.test(t) && l.change === "set") return { ...intent, lines: [{ ...l, change: "add" }] };
+  // B1d: «بدي بس ...» ("I only want") says the count, whatever else the message says (sim-051).
+  if (ONLY_WANT.test(t)) return intent;
+  if (moreSaid && (l.change === "set" || l.change == null) && intent.intent !== "order") return { ...intent, lines: [{ ...l, change: "add" }] };
+  if (moreSaid && l.change === "set") return { ...intent, lines: [{ ...l, change: "add" }] };
   return intent;
 }
 
@@ -262,9 +264,12 @@ function countsSaid(intent: OrderIntent, said: string): OrderIntent {
 // What says "more": the line is added to what is there. Without one of these, a count said for an item already in the basket is its count.
 const MORE_ANY = /(?:^| )و?(?:كمان|زياده|زيدلي|زيد|زيدو|زيدها|زيدهن|ضيف|ضيفلي|ضيفو|ضيفي|ضيفها|ضيفهن|kman|kaman|kamen|kamein|zyede|ziyade|zid|zidli|zidle|zidlo|zidla|dif|difli|difle|add|adding|more|another|extra|encore|ajoute|ajoutez|ajouter|rajoute|rajoutez|de plus|en plus|tene|tenye|tenyeh|tanye|tani|تانيه|تاني|autre)(?: |$)/u;
 const NOT_MORE = /(?:^| )(?:ما|مش|ma|mish|mesh|msh|don'?t|do not|no|pas|ne)(?: (?:بدي|بدنا|baddi|badde|bade|want|veux|need))? (?:زيد|زيدلي|ضيف|كمان|zid|zidli|zidle|kaman|kamen|add|ajouter)(?: (?:شي|shi|anything|rien|more))?(?= |$)/gu;
+// «شو فيني زيد؟», "what can I add?" asks what to add, and «كمان بدي X», "w kamen baddi X" is "also I want X": neither is more of X
+// (run 43824481535: sim-051 «بدي بس اتنين ثوم، شو فيني زيد؟» made 4 garlic; sim-036 «كمان بدي علبتين شاي» made 4 tea).
+const NOT_MORE_OF_IT = /(?:^| )(?:(?:شو|شي|ايش|shu|sho|chou|what)(?: (?:فيني|فيي|فينا|بقدر|بقدرو|منقدر|fiyye|fiye|fini|ba2der|can i|can we|could i|should i))? (?:زيد|ازيد|نزيد|ضيف|zid|ziid|add)|(?:و ?)?(?:كمان|kamen|kaman|kman) (?:بدي|بدنا|baddi|badde|bade|bidde|i want|je veux))(?= |$)/gu;
 /** True when the message asks for more of something, said in the positive. */
 export function saysMore(said: string): boolean {
-  return MORE_ANY.test(fold(said).replace(NOT_MORE, " "));
+  return MORE_ANY.test(fold(said).replace(NOT_MORE, " ").replace(NOT_MORE_OF_IT, " "));
 }
 // «ناقص 3 بامبرز», "it's missing", «il manque»: what is missing goes on the card, it is never taken off (sim-135 took the diapers off).
 const MISSING_ITEM = /(?:^| )و?(?:ناقص|ناقصني|ناقصه|ناقصين|نقصان|na2es|na2s|naa2es|missing|manque|il manque|manquent)(?: |$)/u;
@@ -317,6 +322,7 @@ export function tidyReading(intent: OrderIntent, said: string): OrderIntent {
 
 // ---------- pieces that are the pack's size ----------
 const PIECES = "حبه|حبات|حبة|قطعه|قطع|pieces|piece|pcs|pc|pièces|morceaux|wa2it|7abbe|7abbet";
+const CONTAINERS_OF_PACK = "قناني|قنينه|قنينات|2anenne|2anene|2annine|2nanine|ananine|bottles|bottle|bouteilles|علب|علبات|3elab|3lab|cans|canettes|tins";
 /**
  * "32 pieces" said of a product sold as a pack of 32 is one pack (sim-147: «حفاضات وي وي مقاس 6، 32 حبة» became 32 packs). True when
  * the line's count is said in pieces and the chosen product's own name carries the same count of pieces.
@@ -335,10 +341,12 @@ export function packSizeCount(line: { raw: string; qty: number }, productNames: 
   const words = fold(line.raw).split(" ");
   // the count is said in pieces: "30 pieces", "thirty pieces", «٣٠ حبة»
   const pieces = new RegExp(`^(?:${PIECES})$`, "u");
-  const at = words.findIndex((w, i) => num(w) === n && pieces.test(words[i + 1] ?? ""));
+  // B1d (run 43824481535): bottles and cans of a pack of that many («Rim 2L, 6 2anenne» of "2L X 6", sim-140; «تلات علب» of "185G X3", sim-043)
+  const units = new RegExp(`^(?:${PIECES}|${CONTAINERS_OF_PACK})$`, "u");
+  const at = words.findIndex((w, i) => num(w) === n && units.test(words[i + 1] ?? ""));
   const glued = new RegExp(`(?:^|[^\\d.])${n} ?(?:${PIECES})(?:$|[^\\p{L}])`, "u").test(fold(line.raw));
   const pack = new RegExp(`(?:^|[^\\d.])${n} ?(?:${PIECES}|sheets|wipes|count|ct|x|rolls|loaves)(?:$|[^\\p{L}])|(?:^| )x ?${n}(?:$|[^\\d])`, "iu");
-  const namePack = productNames.some((p) => !!p && pack.test(fold(p)));
+  const namePack = productNames.some((p) => !!p && pack.test(fold(p.replace(/×/g, " x "))));
   // B1d (sim-135): a number that is one end of a range the product's name carries («١٦-٣٠ كيلو» of the "16-30Kg" diapers) is a size.
   const rangeOf = new RegExp(`(?:^|[^\\d.])(?:${n} ?[-–] ?\\d+|\\d+ ?[-–] ?${n})(?:$|[^\\d])`, "u");
   const inRange = rangeOf.test(DIGITS(line.raw)) && productNames.some((p) => !!p && rangeOf.test(DIGITS(p)));
@@ -346,7 +354,7 @@ export function packSizeCount(line: { raw: string; qty: number }, productNames: 
   // (never a size: «مقاس 6», "size 4", "N8", nor a weight or a volume: "400 g", nor the other end of a range)
   const sizeWord = /^(?:مقاس|المقاس|قياس|نمره|رقم|size|taille|no|n|numero|number|ma2as|mi2as)$/u, unit = /^(?:g|gr|kg|ml|cl|l|lt|ltr|غ|غرام|كغ|كيلو|مل|ليتر|لتر|grams?|kilos?|litres?|liters?)$/u;
   const rangeEnds = new Set([...DIGITS(line.raw).matchAll(/(\d+) ?[-–] ?(\d+)/gu)].flatMap((m) => [Number(m[1]), Number(m[2])]));
-  const other = words.map((w) => num(w)).find((x, i) => x != null && x !== n && x > 0 && x < 100 && i !== at && !pieces.test(words[i + 1] ?? "")
+  const other = words.map((w) => num(w)).find((x, i) => x != null && x !== n && x > 0 && x < 100 && i !== at && !units.test(words[i + 1] ?? "")
     && !sizeWord.test(words[i - 1] ?? "") && !unit.test(words[i + 1] ?? "") && !rangeEnds.has(x));
   if (inRange) return other ?? 1;
   if ((at >= 0 || glued) && namePack) return other ?? 1;
