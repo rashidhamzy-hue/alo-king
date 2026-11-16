@@ -34,7 +34,7 @@ export interface Deps {
   supabaseUrl: string;
   now(): Date;
   /** 5.15: the label reader (src/label.ts), when the console has a model key; absent, intake is typed by hand. */
-  readLabel?: (images: import("./label").LabelImage[]) => Promise<import("./label").LabelReading | null>;
+  readLabel?: (images: import("./label").LabelImage[], hint?: string) => Promise<import("./label").LabelReading | null>;
   /** The model the label reader uses, recorded with each reading. */
   labelModel?: string;
   /** The VAPID public key (a Worker secret's public half) when web push is set up; absent, the alerts switch says so. */

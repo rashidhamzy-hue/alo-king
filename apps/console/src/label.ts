@@ -22,6 +22,31 @@ export const LabelReading = z.object({
     quote: z.string().describe("The printed words this rests on, copied exactly"),
   })),
   diet: z.array(z.object({ code: z.enum(DIETS), value: z.enum(["yes", "no"]), quote: z.string().describe("The printed claim or logo text, copied exactly") })),
+  // PD1 (0203, 0207): the template's own fields, as printed. A field the item's template does not have is dropped by record_label_scan.
+  fields: z.object({
+    hazard_warnings: z.array(z.string()).nullable().describe("Cleaning products: each hazard warning exactly as printed (\"Causes serious eye irritation\"); [\"none printed\"] only if the back of pack is fully visible and has none"),
+    pictograms: z.array(z.enum(["corrosive", "flammable", "irritant", "toxic", "environment", "oxidising", "gas_under_pressure", "health_hazard", "explosive"])).nullable(),
+    active_ingredient: z.string().nullable().describe("Cleaning products: the active ingredient as printed, e.g. 'Sodium hypochlorite 4.5%'"),
+    keep_from_children: z.boolean().nullable().describe("True only if 'keep out of reach of children' is printed"),
+    scent: z.string().nullable(), use_surface: z.string().nullable(), dilution: z.string().nullable(),
+    inci_ingredients: z.string().nullable().describe("Beauty and personal care: the INCI ingredient list exactly as printed"),
+    age_group: z.enum(["adult", "kids", "baby", "all"]).nullable().describe("Beauty: the age printed (kids, baby), else null"),
+    age_range: z.object({ from_months: z.number().nullable(), to_months: z.number().nullable() }).nullable().describe("Baby items and baby food: the age range printed, in months"),
+    size_weight_range: z.string().nullable().describe("Nappies: the size and weight range printed, e.g. 'Size 5, 12-25 kg'"),
+    species: z.enum(["cat", "dog", "bird", "fish", "small_animal"]).nullable().describe("Pet items: the animal printed"),
+    life_stage: z.enum(["baby", "young", "adult", "senior", "all", "not_food"]).nullable().describe("Pet food: kitten/puppy is young; not_food for litter and accessories"),
+    analytical_constituents: z.string().nullable().describe("Pet food: protein %, fat % ... exactly as printed"),
+    volume_ml: z.number().nullable().describe("Water: the volume of one bottle in ml"),
+    water_type: z.enum(["mineral", "drinking", "sparkling"]).nullable(),
+    count: z.number().nullable().describe("Pieces, sheets or rolls printed"),
+  }).partial().nullable().optional(),
+  claims: z.array(z.object({
+    code: z.enum(["no_added_sugar", "sugar_free", "low_sugar", "high_protein", "source_of_fibre", "gluten_free", "lactose_free", "low_fat", "fat_free", "low_salt",
+                  "unsalted", "caffeine_free", "wholegrain", "organic", "made_in", "fragrance_free", "paraben_free", "spf", "tear_free", "hypoallergenic",
+                  "dermatologically_tested", "for_sensitive_skin", "anti_dandruff", "antibacterial"]),
+    value: z.string().nullable().describe("SPF number, or the place for made_in"),
+    quote: z.string().describe("The printed words, copied exactly"),
+  })).optional().describe("Printed claims only, each with the printed words; never one you infer"),
   nutrition_per_100g: z.object({
     energy_kcal: z.number().nullable(), fat: z.number().nullable(), saturated_fat: z.number().nullable(), carbohydrates: z.number().nullable(),
     sugars: z.number().nullable(), fiber: z.number().nullable(), proteins: z.number().nullable(), salt: z.number().nullable(),
@@ -34,7 +59,7 @@ const TOOL: Anthropic.Tool = {
   description: "Record what the label photos show. Use null or an empty list for anything not clearly printed. Never guess, never fill in what such a product usually contains.",
   input_schema: (() => { const { $schema: _d, ...s } = z.toJSONSchema(LabelReading, { io: "input" }) as Record<string, unknown>; return s as Anthropic.Tool["input_schema"]; })(),
 };
-const PROMPT = "You read food packaging photos for the person who checks each field against the pack at intake. Report only what is printed on the photos. " +
+const PROMPT = "You read packaging photos (food, cleaning, beauty, baby and pet products) for the person who checks each field against the pack at intake. Report only what is printed on the photos. " +
   "Do not infer anything from the product's name, kind or brand. An allergen that is not printed is not listed. Use 'free' only for a printed free-from claim. " +
   "A halal, vegetarian or vegan entry needs a printed claim or logo. You never decide what is published; a person does.";
 
@@ -53,9 +78,25 @@ export function readingFacts(r: LabelReading): { attribute: string; value?: stri
   return out;
 }
 
+/** PD1: the template fields of a reading, as record_label_scan takes them ({key: value}); empty values left out. */
+export function readingFields(r: LabelReading): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(r.fields ?? {}).filter(([, v]) => v !== null && v !== undefined && !(typeof v === "string" && !v.trim())
+    && !(Array.isArray(v) && v.length === 0)));
+}
+/** PD1: the printed claims of a reading, each with its printed words. */
+export function readingClaims(r: LabelReading): { code: string; value: string | null; quote: string }[] {
+  return (r.claims ?? []).filter((c) => c.quote.trim()).map((c) => ({ code: c.code, value: c.value?.trim() || null, quote: c.quote.trim() }));
+}
+/** What the reader is told about the item, so it reads its template's fields (never food facts for a non-food item). */
+export function templateHint(template: string | null | undefined, isFood: boolean): string {
+  return `This item follows the template "${template ?? "unknown"}". ` + (isFood
+    ? "Read the food facts (ingredients, allergens, the per-100 g panel) and any printed claims."
+    : "It is not food: leave ingredients_text, allergens, diet and nutrition_per_100g empty; read only its own fields and printed claims.");
+}
+
 export function labelReader(opts: { apiKey: string; model: string; baseURL?: string }) {
   const client = new Anthropic({ apiKey: opts.apiKey, maxRetries: 1, ...(opts.baseURL ? { baseURL: opts.baseURL } : {}) });
-  return async (images: LabelImage[]): Promise<LabelReading | null> => {
+  return async (images: LabelImage[], hint?: string): Promise<LabelReading | null> => {
     try {
       const content: Anthropic.ContentBlockParam[] = images.filter((i) => i.mime.startsWith("image/") && i.bytes.byteLength <= 5 * 1024 * 1024).slice(0, 3).map((i) => {
         let bin = "";
@@ -63,7 +104,7 @@ export function labelReader(opts: { apiKey: string; model: string; baseURL?: str
         return { type: "image", source: { type: "base64", media_type: i.mime as "image/jpeg", data: btoa(bin) } };
       });
       if (!content.length) return null;
-      content.push({ type: "text", text: "Read these label photos." });
+      content.push({ type: "text", text: `Read these label photos.${hint ? ` ${hint}` : ""}` });
       const res = await client.messages.create({ model: opts.model, max_tokens: 2000, system: PROMPT, tools: [TOOL], tool_choice: { type: "tool", name: TOOL.name },
         messages: [{ role: "user", content }] });
       const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");

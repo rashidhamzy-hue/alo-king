@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { formatOrderCard, orderButtonId, type Quote } from "@ak/agents/order-card";
 import type { TestDb } from "./harness";
 import { bucket, expectLedgerBalanced, flow, openFlowDb, pinned, read, recordKapso, use, type Ids, type Sent } from "./flow-kit";
+import { makeFactComplete } from "./fact-kit";
 
 let db: TestDb, ids: Ids;
 beforeAll(async () => { ({ db, ids } = await openFlowDb()); }, 120_000);
@@ -243,8 +244,8 @@ describe("neutral and factual (1.10)", () => {
 
   it("a fact approved under 1.11 lets the Concierge state it, with its status; the same words with no record stay refused", async () => {
     const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Facts') returning id`)).id;
-    const fact = await db.rpc("propose_product_fact", { p_product: ids.LABNEH, p_attribute: "sesame", p_value: "free", p_status: "declared", p_source: "label", p_by: ops });
-    await db.rpc("approve_product_fact", { p_fact: fact, p_by: ops });
+    // PD1 (0206): a fact is stated only for a fact-complete item (ingredients, the 14 allergens and the nutrition panel approved).
+    await makeFactComplete(db, ids.LABNEH, ops, { allergens: { sesame: "free", milk: "contains" } });
     const claim = "اللبنة ما فيها سمسم، حسب الملصق (مصرّح من الشركة المصنّعة)";
 
     const without = flow(db, [read({ intent: "question", lines: [] }), [use("reply", { text: claim })], [use("reply", { text: "ما عندي معلومات موثّقة، فيني اسأل؟" })]]);
@@ -258,8 +259,10 @@ describe("neutral and factual (1.10)", () => {
     await t.text("اللبنة فيها سمسم؟ عندي حساسية");
     expect(outbound.at(-1)!.body.text.body).toBe(claim);
     const told = JSON.parse(JSON.parse(JSON.stringify(t.seen[2]!.messages.at(-1))).content[0].content);
-    expect(told.products[0].facts).toMatchObject([{ attribute: "sesame", value: "free", status: "declared", source: "label" }]);
-    expect(told.products[0].restrictions).toMatchObject({ meets: false, checks: [{ restriction: "milk", result: "unknown" }, { restriction: "sesame", result: "pass" }] });
+    expect(told.products[0].facts).toEqual(expect.arrayContaining([expect.objectContaining({ attribute: "sesame", value: "free", status: "declared", source: "label" })]));
+    expect(told.products[0]).toMatchObject({ applies: true, level: "fact_complete" });
+    expect(told.products[0].restrictions).toMatchObject({ meets: false, checks: [{ restriction: "milk", result: "fails" }, { restriction: "sesame", result: "pass" }] });
+    await db.pg.query(`update products set name_ar = null where id = $1`, [ids.LABNEH]);   // the later tests read its English name
   });
 });
 

@@ -232,16 +232,26 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const codes = (restrictions ?? []).map((r) => r.trim().toLowerCase()).filter(Boolean);
       const out = [];
       for (const id of ids) {
-        const facts = await rpc<FoodFact[]>(ctx.db, "product_food_facts", { p_product: id });
+        // PD1 (0206): whether food facts apply to this item at all, its level, and its facts by level. Only a fact-complete item's
+        // facts are usable; a sellable item's read "not_confirmed_yet"; a non-food item has none ("doesn't apply").
+        const chat = await rpc<{ applies: boolean; level: string; template: string | null; facts: FoodFact[]; nutrition: unknown; claims: { claim: string }[]; note: string }>(
+          ctx.db, "product_facts_for_chat", { p_product: id });
+        const facts = chat.facts ?? [];
         // PD1 (e): per product. The record unlocks that attribute for this product only, never for every product of the turn.
         for (const f of facts) if (!f.expired && USABLE.has(f.status)) {
           const m = (ctx.approvedByProduct ??= new Map());
           m.set(id, (m.get(id) ?? new Set<string>()).add(guardAttribute(f.attribute, f.kind)));
         }
+        for (const c of chat.claims ?? []) {
+          const m = (ctx.approvedByProduct ??= new Map());
+          m.set(id, (m.get(id) ?? new Set<string>()).add(CLAIM_ATTRIBUTE[c.claim] ?? "nutrition"));
+        }
         const check = codes.length ? await rpc<unknown>(ctx.db, "product_meets_restrictions", { p_product: id, p_restrictions: codes }) : null;
-        out.push({ product_id: id, facts: facts.filter((f) => !f.expired), no_approved_facts: facts.every((f) => f.expired), restrictions: check });
+        out.push({ product_id: id, applies: chat.applies, level: chat.level, facts: facts.filter((f) => !f.expired),
+                   no_approved_facts: facts.every((f) => f.expired || !USABLE.has(f.status)), nutrition: chat.nutrition ?? null, claims: chat.claims ?? [],
+                   note: chat.note, restrictions: check });
       }
-      return { products: out, rule: "State only these facts, each with its status. Anything not listed is not verified: say so and offer to ask." };
+      return { products: out, rule: "State only these facts, each with its status and source (\"the pack says ...\"). not_confirmed_yet means not confirmed yet: say so. applies false means food facts do not apply to that item: say so. Anything not listed is not verified: say so and offer to ask." };
     },
 
     async ask_location_pin({ text: drafted }) {
@@ -326,6 +336,8 @@ export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: fa
 
 interface FoodFact { attribute: string; kind: string; value: string; status: string; source: string | null; expired: boolean }
 const USABLE = new Set(["certified", "declared", "calculated"]);
+/** PD1: the guard's attribute for an approved printed claim (0204). */
+const CLAIM_ATTRIBUTE: Record<string, string> = { gluten_free: "gluten", lactose_free: "allergens" };
 /** The output guard's attribute for a food-fact code of 0021: gluten and the four diets by name, other allergens together. */
 export function guardAttribute(code: string, kind: string): string {
   if (["gluten", "halal", "vegetarian", "vegan", "fasting"].includes(code)) return code;

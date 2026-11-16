@@ -135,4 +135,18 @@ describe("Product readiness", () => {
     expect((await b.get("/readiness")).status).toBe(403);
     expect((await b.get("/")).text).not.toContain('href="/readiness"');
   });
+
+  it("PD1: both levels and the missing fields show per item, with a filter for each level", async () => {
+    const x = await ready("AK-0161");
+    expect(x).toMatchObject({ level: "not_sellable", template: "packaged_food", missing_sellable: ["name_ar"] });
+    expect(x.missing_fact_complete).toEqual(expect.arrayContaining(["allergens", "ingredients", "nutrition"]));
+    const lead = await r.staff("ops_lead", "Lina");
+    const b = r.browser();
+    await b.signIn(lead);
+    const page = (await b.get("/readiness?show=not_sellable&q=AK-0161")).text;
+    expect(page).toContain("not sellable");
+    expect(page).toContain("needs: name ar");
+    expect(page).toContain("packaged food");
+    expect((await b.get("/readiness?show=fact_complete&q=AK-0161")).text).toContain("Nothing here.");
+  });
 });
