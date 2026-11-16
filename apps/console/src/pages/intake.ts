@@ -8,7 +8,7 @@
 import { act, can, html, render, text, upload, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, when } from "../html";
 import { ALL, LEADS } from "../roles";
-import { readingFacts, type LabelImage, type LabelReading } from "../label";
+import { readingClaims, readingFacts, readingFields, templateHint, type LabelImage, type LabelReading } from "../label";
 import { basisWords } from "../basis";
 import { conflictsOf, conflictWords, factsOf, factText, NUTRIENTS, type Fact } from "./foodfacts";
 
@@ -54,13 +54,16 @@ async function scan(c: Ctx) {
     let reading: LabelReading | null = null;
     if (c.deps.readLabel) {
       const images: LabelImage[] = await Promise.all(fields.map(async (f) => ({ bytes: new Uint8Array(await c.files[f]!.arrayBuffer()), mime: c.files[f]!.type })));
-      reading = await c.deps.readLabel(images);
+      // PD1: the reader is told the item's template, so it reads that template's fields and no food facts for a non-food item.
+      const st = await c.deps.db.rpc<{ template: string | null; is_food: boolean } | null>("product_template_status", { p_product: p.id }).catch(() => null);
+      reading = await c.deps.readLabel(images, templateHint(st?.template, st?.is_food ?? true));
     }
-    const r = await c.deps.db.rpc<{ proposed: Record<string, string>; dropped: unknown[] }>("record_label_scan", {
-      p_product: p.id, p_photos: photos, p_reading: reading ? { ...reading, facts: readingFacts(reading) } : null,
+    const r = await c.deps.db.rpc<{ proposed: Record<string, string>; fields?: Record<string, string>; claims?: string[]; dropped: unknown[] }>("record_label_scan", {
+      p_product: p.id, p_photos: photos,
+      p_reading: reading ? { ...reading, facts: readingFacts(reading), fields: readingFields(reading), claims: readingClaims(reading) } : null,
       p_model: reading ? c.deps.labelModel ?? null : null, p_by: c.staff.partyId,
     });
-    const n = Object.keys(r.proposed ?? {}).length;
+    const n = Object.keys(r.proposed ?? {}).length + Object.keys(r.fields ?? {}).length + (r.claims ?? []).length;
     if (!c.deps.readLabel) return `Photos saved for ${p.name_en}. Type the fields from the pack.`;
     if (!reading) return `Photos saved for ${p.name_en}. The label could not be read: type the fields from the pack.`;
     return `Photos saved for ${p.name_en}; ${n} field${n === 1 ? "" : "s"} read from the label, each waiting to be checked against the pack.`;

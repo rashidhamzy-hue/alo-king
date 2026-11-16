@@ -3,6 +3,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, read, recordKapso, type Sent } from "./flow-kit";
+import { makeFactComplete } from "./fact-kit";
 import cases from "../../evals/cases/pd1_honest_answer.json";
 import { factsAsked, kindOf, audienceOf } from "@ak/agents/honest";
 
@@ -51,10 +52,7 @@ describe("PD1 (g): the two voice notes get the honest answer and a demand row", 
   it("with an approved record for a product of that kind, the usual path answers (no honest answer)", async () => {
     const kinder = (await db.one(`select id from products where name_en = 'Kinder Chocolate Barrette Maxi 21G'`)).id;
     const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops PD1') returning id`)).id;
-    const ev = (await db.one(`insert into evidence_documents(kind, product_id, reference) values ('label_photo', $1, 'test-label') returning id`, [kinder])).id;
-    const f = await db.rpc("propose_product_fact", { p_product: kinder, p_attribute: "nutrition", p_value: null, p_status: "declared", p_source: "label",
-      p_by: ops, p_evidence: ev, p_detail: { sugars_g: 50 } });
-    await db.rpc("approve_product_fact", { p_fact: f, p_by: ops });
+    await makeFactComplete(db, kinder, ops, { nutrition: { energy_kcal: 550, fat: 33, carbohydrates: 53, proteins: 9, sugars: 52 } });
     const t = flow(db, [read(order([line({ raw: "snacks with no sugar", query: "snacks", qty: 1, modifiers: [] })], "en"))]);
     const party = (await t.customer()).party_id;
     await t.text("snacks with no sugar");

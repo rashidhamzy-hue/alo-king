@@ -24,8 +24,9 @@ type Listed = { job_id: string; sku: string; name_en: string; step: string; atte
 type Overview = { rules: Rule[]; never_automatic: string[]; arabic_reader: { passed?: boolean; sample_needed?: number; checked?: number; errors?: number; at?: string } | null;
   spot_checks: Check[]; recent: Recent[]; review_list: Listed[]; intake: { items?: number; live?: number; listed?: number; researched?: number; research_spend_usd?: number; steps?: Record<string, Record<string, number>> } };
 
-export const FIELDS = ["picture", "name_size_category", "search_words", "ingredients_nutrition"] as const;
-const LABEL: Record<string, string> = { picture: "Pictures", name_size_category: "Names and size", search_words: "Search words", ingredients_nutrition: "Ingredients and nutrition" };
+export const FIELDS = ["picture", "name_size_category", "search_words", "ingredients_nutrition", "two_published_sources", "printed_claims", "rule_fields"] as const;
+const LABEL: Record<string, string> = { picture: "Pictures", name_size_category: "Names and size", search_words: "Search words", ingredients_nutrition: "Ingredients and nutrition",
+  two_published_sources: "Two published sources agree", printed_claims: "Printed claims", rule_fields: "Fields set by rules" };
 const STEPS = ["new_item", "identity", "search_words", "picture", "food_facts", "price_cost", "person_approves", "live"];
 const safeHref = (u: string | null | undefined) => (u && /^https:\/\//i.test(u) ? u : null);
 const words = (k: string) => k.replace(/_/g, " ");
@@ -43,7 +44,8 @@ async function page(c: Ctx) {
   return render(c, "Automatic approvals", html`
 <p>A rule approves only what code can check, never on a model's confidence. Each rule starts <strong>off</strong>: while it is off it only logs what it would
 approve. Each day a random tenth of the log comes here for a spot check. When every check of a rule's first sample is right, that rule switches on; one wrong
-answer switches it off at once and undoes that approval.</p>
+answer switches it off at once and undoes that approval. Two rules started on by decision (16 November): two published sources that agree exactly, and fields set
+by rules; either can be switched off here.</p>
 <p class="note"><strong>Never automatic:</strong> ${o.never_automatic.join(", ")}. Allergens and diet labels are always one tap, against the real pack.</p>
 
 <h2>Rules</h2>

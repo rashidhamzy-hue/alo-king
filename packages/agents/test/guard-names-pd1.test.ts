@@ -59,7 +59,8 @@ describe("PD1: the Concierge's tools record names and records per product", () =
         if (fn === "search_catalog") return { data: { reason: null, matches: [
           { product_id: "p1", name_en: "Balance Protein Crackers Sour Cream & Onion 70G", name_ar: null, available: 3, price_usd: 0.69 },
           { product_id: "p5", name_en: "Y Biscuits 40G", name_ar: null, available: 3, price_usd: 0.5 }] }, error: null };
-        if (fn === "product_food_facts") return { data: facts[String(args.p_product)] ?? [], error: null };
+        if (fn === "product_facts_for_chat") return { data: { applies: true, level: facts[String(args.p_product)] ? "fact_complete" : "sellable",
+          facts: facts[String(args.p_product)] ?? [], claims: [], note: "" }, error: null };
         return { data: null, error: null };
       },
       from: () => ({ insert: async () => ({ error: null }) }),

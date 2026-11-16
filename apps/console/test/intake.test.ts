@@ -116,4 +116,26 @@ describe("Label intake", () => {
     expect(flashOf(res.text)).toBe("Photos saved for Leen Taanayel Labneh Premium. Type the fields from the pack.");
     expect((await r.db.one(`select read_by from label_scans order by created_at desc limit 1`)).read_by).toBe("none");
   });
+
+  it("PD1: a cleaning product's label is read into its own fields; the reader is told it is not food, and no food fact is recorded", async () => {
+    const cleaner = (await r.db.one(`select id, sku, name_en from products where category = 'Cleaning & Household' order by sku limit 1`));
+    let hint = "";
+    r.deps.readLabel = async (_images, h) => { hint = h ?? ""; return { name_en: null, name_ar: null, brand: null, size: null, barcode: null,
+      ingredients_text: "should not be kept", allergens: [], diet: [], nutrition_per_100g: null,
+      fields: { hazard_warnings: ["Causes serious eye irritation"], active_ingredient: "Sodium hypochlorite 4.5%", scent: null },
+      claims: [{ code: "fragrance_free", value: null, quote: "Fragrance free" }] }; };
+    const picker = await r.staff("picker", "Pia");
+    const p = r.browser();
+    await p.signIn(picker);
+    await p.get("/intake");
+    const res = await p.postFiles("/intake/scan", { code: cleaner.sku }, { photo_1: PHOTO });
+    expect(flashOf(res.text)).toBe(`Photos saved for ${cleaner.name_en}; 3 fields read from the label, each waiting to be checked against the pack.`);
+    expect(hint).toContain("cleaning_household");
+    expect(hint).toContain("It is not food");
+    expect(await r.db.all(`select field_key, status from product_field_values where product_id = $1 order by field_key`, [cleaner.id]))
+      .toEqual([{ field_key: "active_ingredient", status: "proposed" }, { field_key: "hazard_warnings", status: "proposed" }]);
+    expect(await r.db.all(`select 1 from product_facts where product_id = $1`, [cleaner.id])).toEqual([]);
+    expect(await r.db.one(`select claim_code, status from product_claims where product_id = $1`, [cleaner.id])).toEqual({ claim_code: "fragrance_free", status: "proposed" });
+    delete r.deps.readLabel;
+  });
 });

@@ -24,9 +24,10 @@ describe("Automatic approvals page", () => {
     const b = r.browser();
     await b.signIn(lead);
     let page = (await b.get("/auto-approvals")).text;
-    expect(page).toContain("<strong>Never automatic:</strong> allergens, diet labels, price, cost.");
+    expect(page).toContain("<strong>Never automatic:</strong> allergens, diet labels, halal and every certificate, hazard warnings, claims that sound medical, fields where sources disagree, price, cost.");
     for (const l of ["Pictures", "Names and size", "Search words", "Ingredients and nutrition"]) expect(page).toContain(`<strong>${l}</strong>`);
-    expect(page.match(/waiting for its first passing spot check/g)).toHaveLength(4);
+    // PD1 (0207): printed claims start off like the four rules of 0124; two published sources and fields set by rules start on (16 Nov).
+    expect(page.match(/waiting for its first passing spot check/g)).toHaveLength(5);
 
     // Switching on before a passing sample is refused by the database.
     page = (await b.post("/auto-approvals/rule/picture", { enabled: "on" })).text;
