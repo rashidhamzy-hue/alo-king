@@ -17,11 +17,22 @@ Roadmap rows are in `docs/BUILD_PLAN.md`, "Strategy revision, 15 November 2026";
 9. Do not change vendor tables, village names or locations.
 10. **Design is paused on Claude (founder, 15 and 16 November; `docs/DECISIONS.md`).** No visual work on the website or the console. Rashid designs elsewhere and sends a reference; one session, **DS2**, applies it to `packages/ui` and the DS1 pages, and un-parks UX2, WEB2 and UX3. No Lovable code is imported. FX1 is closed (PD1 and LD1 build it). Console work in any session stays functional, on the existing components.
 11. Finish by updating HANDOFF Status (built, tested, not proven), the session's row in BUILD_PLAN, and NEXT_SESSIONS.
+12. **Testing and model spend (coordinator, 16 November; `docs/DECISIONS.md`, "Coordinator decisions, 16 November 2026").** Fifteen full
+    simulations cost about USD 43 in two days and no longer measure anything: the judge moves by about eight wrong products between runs
+    of the same code. So:
+    1. Every pull request: free tests only (unit tests, flow tests with a scripted model, the offline replay of recorded readings,
+       zero-wrong). USD 0.
+    2. The live language gate: once per session, and only when the session changed reading, planner or prompt code.
+    3. Simulated customers: at most one run per session, limit 50, only for sessions that change ordering code. Never a second run to
+       check variance. Limit 150 only at a gate check (T1 for gate A, then gate B).
+    4. Data and product-intake sessions run no simulation.
+    5. `sim-test` refuses to start above a monthly ceiling (the setting `sim_monthly_cap_usd`).
+    6. `intake` runs by hand only.
 
 ## Gates
 | Gate | Opens | Needs |
 |---|---|---|
-| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1a, B1b, CX1, DS1, D4b, **PD1, SR1**, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off; **the two failed requests ("snacks with no sugar for 5 kids", "protein bars with no sugar") answered correctly on staging; every active item at least "sellable"** (16 November; B1d is not a gate item, its number is the friends' test's first measure) |
+| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1a, B1b, CX1, DS1, D4b, **PD1, SR1**, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off; **the two failed requests ("snacks with no sugar for 5 kids", "protein bars with no sugar") answered correctly on staging; every active item at least "sellable"; every stocked item photographed and read; allergens, halal and hazard warnings decided by a person** (16 November; B1d is not a gate item, its number is the friends' test's first measure) |
 | **B** | The shadow run (staff and family, cash only, 7 days, 100 orders) | WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15% |
 | **C** | The paid pilot | The SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the numbers; auto-reload on with a limit |
 
@@ -79,6 +90,7 @@ founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 | 3 | **D4b** pick queue and rider jobs on the console (**built**, 16 Nov, see HANDOFF) | Sonnet, high | DS1 merged | CX1 | `apps/console/src/pages/` (new pages) | 0147 to 0148 used | A picker completes an order with no WhatsApp; ops can act for a rider; rider incident pages |
 | 4a, now | **PD1** product data standard (16 Nov) | Opus, high | Nothing | B1d | `supabase/` (templates, facts, readiness, intake), `packages/agents/src/` (output guard, honest answer, facts tool), `apps/console/src/label.ts` and the readiness page (functional), the intake, product-data and research-load workflows, `evals/`, `docs/PRODUCT_DATA_STANDARD.md` | 0202 to 0211 | Three pull requests merged; the two voice-note cases get the honest answer and a demand row; templates, two readiness levels and intake rules tested; the enrichment run finished inside USD 15; language gate holds; 150 simulated customers show no new failure class |
 | 4a, now | **B1d** counts and edits (16 Nov) | Opus, high | Nothing | PD1 | `packages/agents/src/` (reading, planner; not `output-guard.ts`, the facts tools or PD1's messages), `evals/cases/b1d_counts_edits.json` | 0217 | Wrong products at most 8 of 150; language gate holds |
+| 4a, now | **LB1** label day tooling and test budget (16 Nov) | Sonnet, high | PD1 merged (0209 on staging) | SR1, T1, LD1 | `.github/workflows/sim-test.yml`, `intake.yml`, `evals/sim/` (budget, judge), `apps/console/src/` (capture page, label reader, approval queue; functional), the label-reading workflow and `scripts/label/`, `docs/` | 0210 to 0211 | Test budget in code (sim ceiling, limit 50, intake by hand); the judge sees the basket; directions and warnings as template fields; a phone capture page (scan or pick, three photos, next item, counter by aisle); one batch reading run (Batch API, MODEL_FAST, cap USD 5, in `model_costs`); the approval queue in one sitting's order; no simulation run |
 | 4b | **SR1** search by meaning and facts (16 Nov) | Opus, high | PD1 merged | T1, LD1 | `supabase/` (pgvector, hybrid search), `packages/agents/src/concierge-tools.ts`, `apps/web/` search (functional), `evals/search/` | 0212 to 0216 | The request set (100 or more, four languages, plus 50 basket requests) scored before and after; no item that fails a fact filter is ever returned; chat and website use one function |
 | 4b | **LD1** website product data (16 Nov) | Sonnet, medium | PD1 merged | SR1, T1 | `apps/web/` product page (functional only) | None | JSON-LD (price, stock, approved facts only) on every product page; the page shows only its template's fields, with "not confirmed yet"; no visual change |
 | When the reference arrives | **DS2** apply the design reference (16 Nov) | Fable, high | Rashid's screenshots, tokens, motion | Any one | `packages/ui/`, the DS1 pages | None | Tokens and shared components match; DS1 pages restyled; data, rules and tests unchanged; UX2, WEB2, UX3 un-parked |
@@ -661,6 +673,13 @@ at least 0.90); sim-test with limit 150 shows wrong products at
 most 8 and no class worse than CX1's run. Rules: the block at the
 top of docs/NEXT_SESSIONS.md; never ask Rasheed.
 ```
+
+### LB1 (Sonnet, high). Label day tooling and test budget (16 November). Runs beside SR1, T1 and LD1.
+Prompt as given by the coordinator on 16 November: first commit documents only (the testing rules above, gate A, this row, the decisions);
+then, each behaviour with a failing test first: (1) the test budget in code; (2) the simulator's judge is given the basket; (3) migration 0210,
+"directions as printed" and "warnings as printed" as core template fields; (4) the console capture page for a phone; (5) one reading run
+through the Batch API; (6) the approval queue in one sitting's order. Migrations 0210 and 0211. No simulation run. Done when and the
+founder actions: `docs/HANDOFF.md`, "LB1" and "Founder actions (LB1)".
 
 ### LD1, DS2, WEB3 (16 November)
 Each uses the standard text below ("WEB2, UX2, ...") with its row in the table above.
