@@ -116,6 +116,28 @@ measure of real customers. The live reading model's run (below) and the friends'
 (m001 to m024, paraphrases with no catalogue word, added after the set was scored, to measure the meaning list): words alone 8 of 24,
 today's search 8 of 24.
 
+**The live reading model, once before and once after** (`evals/search/live.search.test.ts`, workflow `search-eval`; claude-haiku-5-5 reads
+each request with the real prompt and schema, then the search runs on each line it reads; seeded test facts in PGlite; each run USD 0.0314,
+recorded in `model_costs`, workflow `search-eval`, runs 43892126352-1 and 43895057208-1, both far under their USD 1 caps):
+
+| | before: the reading, then `search_catalog` | after: the reading, then the reading step and `find_products` |
+| --- | --- | --- |
+| right item in the first five | 85 of 135 (0.630) | **119 of 135 (0.881)** |
+| Arabic | 29/42 (0.690) | 36/42 (0.857) |
+| Latin letters | 10/23 (0.435) | 16/23 (0.696) |
+| English | 29/43 (0.674) | 40/43 (0.930) |
+| French | 17/27 (0.630) | 27/27 (1.000) |
+| returned items failing a fact filter | 153 | **0** |
+| "nothing fits" | 9 of 19 | **19 of 19** |
+| meaning subset (m001 to m024) | 8 of 24 | 8 of 24 |
+
+Every one of the 16 misses after is a request the live model read with **no item line at all**: eight short requests for an item («مي», "mayy",
+"bayd", "3adas", "zeit zeitoun", "7alib", «أكل قطط», "3asir lal wled") and eight fact requests ("drinks with no sugar", "vegan snacks",
+"snacks under 5 g of sugar", "zebde bala mele7", «معكرونة خالية من الغلوتين» ...). The model read them the same way before. In the chat such a turn goes to
+the Concierge's ask loop, whose `search_catalog` tool reads the customer's own words with the same reading step (free score on those
+words: right); this harness runs no ask loop, so 0.881 is a floor for the chat, not its measure. The Latin-letter share (0.696) is below
+0.85 for that reason only: six of its seven misses are bare one-word requests. Not tuned further on this set: the friends' test measures it.
+
 **Changed expectations in older tests, and why.** `test/db/honest-answer-pd1.test.ts`: an approved record for a product of the kind used
 to let the usual path answer; now the record must show the product fits (Kinder's panel says 52 g sugar, so it never passes "no sugar"),
 and the honest answer runs. `test/db/web-catalog-web1.test.ts` holds unchanged: equal matches share a rank, so the same words in three
