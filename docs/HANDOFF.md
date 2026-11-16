@@ -194,8 +194,19 @@ main at 2d10ca1 (#96), limit 150, budget USD 4, spent **$3.47**), against CX1's 
 | judge: unnatural dialect, wrong product, invented fact | 24, 29, 8 | 23, **26**, **6** | |
 
 ### Founder actions (PD1)
-Nothing here is needed before the next session starts; items 1 to 3 are needed for gate A ("every active item at least sellable", the facts
-the friends will ask about). The enrichment run's report (below, "PD1: the enrichment run on staging") gives the counts and the lists.
+0. **First, today: renew the Supabase access token. Staging is at migration 0159 (read 16 November, 06:40): none of PD1's migrations are there.** Both deploys after PD1's
+   merges (deploy-staging runs 43814172694 and 43817508007) stopped at `supabase link` with "Invalid access token": the repository secret
+   `SUPABASE_ACCESS_TOKEN` has expired or was revoked. Until it is renewed, staging has none of 0202 onward, and PD1's enrichment run
+   cannot start. The clicks:
+   1. supabase.com, sign in, your avatar (top right), **Account preferences**, **Access Tokens**, **Generate new token**; name it
+      `github-actions-deploy`; copy it (it is shown once).
+   2. GitHub, the repository, **Settings**, **Secrets and variables**, **Actions**, **Repository secrets**, `SUPABASE_ACCESS_TOKEN`, the
+      pencil (**Update**), paste, **Update secret**.
+   3. **Actions**, **deploy-staging**, **Run workflow**, branch `main`, **Run workflow** (tick "Make new Kapso webhook signing secrets" too
+      if you want to do founder action 10 of the coordinator's list at the same time). It should end green.
+   4. Then tell the planning chat "staging deployed": a session dispatches the `enrich` workflow on `main` (PD1's run, cap USD 15).
+Items 1 to 3 below are needed for gate A ("every active item at least sellable", the facts the friends will ask about). The enrichment
+run's report gives the counts and the lists.
 1. **Arabic names: every active item needs one to be sellable.** Console, **Names**: read the proposals, then "Approve all shown" (the
    Arabic ones need an Arabic reader). The readiness page (**Readiness**, filter "not sellable") lists every item and what it misses.
 2. **Approve product facts, in this order** (console, **Food facts** or **Intake**, one item at a time, against the pack or the page):
