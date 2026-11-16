@@ -111,10 +111,31 @@ export interface CatalogFact {
   verified: boolean; value: string | null; detail: { text?: string; values?: Record<string, unknown>; per?: string; units?: unknown; ar?: string; lang?: string } | null;
   status: "certified" | "declared" | "calculated" | "not_verified"; source: string | null; reviewed_at: string | null;
 }
+/** A template field kept as a value (0203, `product_field_values`): the value only when it is approved and current, with where it came from. */
+export interface CatalogField {
+  key: string; group: string; type: "text" | "number" | "boolean" | "enum" | "list" | "range" | "evidence" | "facts"; unit: string | null;
+  verified: boolean; value: unknown; source: string | null; reviewed_at: string | null;
+}
+/** Nutrition per 100 g or 100 ml (product_nutrition, 0204): present only for a fact-complete item of a template with a nutrition field. A number not printed is null. */
+export interface CatalogNutrition {
+  per: string; energy_kcal: number | null; fat_g: number | null; saturated_fat_g: number | null; carbohydrate_g: number | null; sugars_g: number | null;
+  added_sugars_g: number | null; protein_g: number | null; fibre_g: number | null; salt_g: number | null; serving_size_g: number | null;
+  status: string; source: string | null; reviewed_at: string | null;
+}
+/** An approved, unexpired printed claim with the printed words; only for a fact-complete item. */
+export interface CatalogClaim { claim: string; name_en: string; name_ar: string; value: string | null; quote: string; source: string; reviewed_at: string | null }
+export interface CatalogTemplate {
+  code: string; name_en: string; name_ar: string; is_food: boolean; level: "not_sellable" | "sellable" | "fact_complete";
+  /** The food groups this item's template has. A template without them (produce, water, cleaning, beauty, baby care, pet) has none. */
+  groups: ("ingredients" | "allergens" | "diet" | "nutrition")[];
+}
+/** What the product page and its JSON-LD are both built from (web_catalog_product, 0218): one read, so they cannot disagree. */
 export type CatalogProduct =
   | { ok: false; error: "unknown_product" }
-  | { ok: true; product: Omit<CatalogCard, "picture">; category: { code: string; name_en: string; name_ar: string };
-      picture: CatalogPicture | null; facts: CatalogFact[]; credit_open_food_facts: boolean; whatsapp: string | null };
+  | { ok: true; product: Omit<CatalogCard, "picture"> & { name_fr: string | null; gtin: string | null; size: string | null };
+      category: { code: string; name_en: string; name_ar: string }; template: CatalogTemplate;
+      picture: CatalogPicture | null; facts: CatalogFact[]; nutrition: CatalogNutrition | null; claims: CatalogClaim[]; fields: CatalogField[];
+      certificates: { kind: string; valid_until: string | null }[]; credit_open_food_facts: boolean; whatsapp: string | null };
 export interface CatalogSearch { ok: boolean; q: string; matches: CatalogCard[]; reason: "too_short" | "no_match" | "none_pass" | null; filters?: Record<string, unknown> }
 
 // ---------- the website (role web_channel) ----------

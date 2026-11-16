@@ -156,7 +156,8 @@ describe("food facts: approved, checked and with their status; everything else i
 
   it("a product with no records shows every attribute as not verified, with no value", async () => {
     const f = await factsOf("AK-0042");
-    expect(Object.keys(f)).toEqual(expect.arrayContaining(["milk", "gluten", "halal", "vegan", "ingredients", "nutrition"]));
+    expect(Object.keys(f)).toEqual(expect.arrayContaining(["milk", "gluten", "halal", "vegan", "ingredients"]));
+    expect(f).not.toHaveProperty("nutrition");            // LD1 (0218): the panel comes once, typed, as `nutrition` (null until the item is fact-complete)
     for (const x of Object.values(f)) expect(x).toMatchObject({ verified: false, value: null, detail: null, status: "not_verified", source: null });
   });
 

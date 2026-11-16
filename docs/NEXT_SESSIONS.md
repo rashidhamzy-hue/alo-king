@@ -63,7 +63,7 @@ Live reading model: right item in the first five 0.630 to 0.881, fact failures 1
 only if it beats words alone. (2) The limit-50 sim-test (run 43900749787) stopped before any conversation: `evals/sim/world.ts` empties
 `approved_by` on staging's approved food facts but keeps `approved_at`, which 0021's check refuses. LB1 (owner of `evals/sim`) or the next
 session that runs a sim-test fixes the copy first (HANDOFF, SR1, "The sim-test"), then one limit-50 run measures SR1's last gate.
-**BK1** may start (SR1 merged); it still waits for gate A. **T1** and **LD1** may start.
+**BK1** may start (SR1 merged); it still waits for gate A. **T1** may start. **LD1 is built** (16 November; `docs/HANDOFF.md`, LD1; migration 0218; WEB3 now reserves 0219 to 0220): product page by template, JSON-LD, Arabic and French strings wait for a reader (`docs/ARABIC_REVIEW.md`, LD1).
 
 **Design pause (15 November, `docs/DECISIONS.md`).** The founder paused all website and console design for a full redesign later. UX2, UX3, WEB2 and the new FX1 are parked until he restarts design; PAY1 now waits for CX1. Console work in other sessions stays functional, on the existing components, with no visual work.
 
@@ -127,7 +127,7 @@ founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 | 9 | **WH1b** warehouse, second part | Opus, high | Two weeks of shadow or pilot data | Any two | `supabase/`, console Stock | 0183 to 0185 | Camera scanning, invoice reading, the evening purchase proposal |
 | 9 | **RET1** retention | Sonnet, medium | The lawyer's periods | Any two | `supabase/`, a cron | 0181 | Voice, pictures and chat deleted on schedule, logged |
 | 6 | **BK1** list photo to basket (moved up, 16 Nov) | Opus, high | SR1 merged; gate A open | RD1, AN1 | A narrow reading function, `supabase/` | 0195 to 0197 | A photo of a handwritten list becomes a card the customer confirms |
-| After WEB2 and gate B | **WEB3** the assistant on the website (16 Nov) | Opus, high | WEB2 merged; gate B passed | Any one | `apps/web/` chat panel, the same turn pipeline | 0218 to 0219 | The same Concierge in a chat panel; confirmation is the signed-in session's own button; one order placed there equals a WhatsApp order in price and ledger |
+| After WEB2 and gate B | **WEB3** the assistant on the website (16 Nov) | Opus, high | WEB2 merged; gate B passed | Any one | `apps/web/` chat panel, the same turn pipeline | 0219 to 0220 (LD1 used 0218) | The same Concierge in a chat panel; confirmation is the signed-in session's own button; one order placed there equals a WhatsApp order in price and ledger |
 | Later | LOY1 stamp card and "the usual"; E1 to E3 vendors | Opus | Four clean pilot weeks; a signed vendor | | | | |
 | Last | **PRIV** make the repository private | Founder, with a Sonnet check | The build finished | | | | Private; Actions usage checked against the free allowance; the history question closed |
 

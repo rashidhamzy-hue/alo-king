@@ -10,6 +10,7 @@ import Button from "@ak/ui-astro/Button.astro";
 import Icon from "@ak/ui-astro/Icon.astro";
 import Empty from "@ak/ui-astro/Empty.astro";
 import { chatBase, nameIn, t, unitLabel } from "../../lib/i18n";
+import { categoryJsonLd } from "../../lib/jsonld";
 const { lang, catalog, env } = Astro.locals;
 let r; let failed = false;
 const code = String(Astro.params.code ?? "");
@@ -37,8 +38,10 @@ const anyCredit = sections.some((s) => s.items.some((i) => i.picture?.licence ==
 const title = r && r.ok ? nameIn(lang, r.category.name_en, r.category.name_ar) : t(lang, "not_found");
 const whatsapp = r && r.ok ? r.whatsapp : null;
 if (filtered) Astro.response.headers.set("Cache-Control", "no-store");
+// The list data for search engines: what this page lists, in its order (LD1).
+const jsonld = r && r.ok ? [categoryJsonLd(lang, { name: title, path: Astro.url.pathname, cards: sections.flatMap((s) => s.items) }, Astro.url.origin)] : [];
 ---
-<Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(whatsapp)}>
+<Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(whatsapp)} jsonld={jsonld}>
   {failed ? <Unavailable lang={lang} /> : !r || !r.ok ? <Unavailable lang={lang} notFound /> : <>
     <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li>{title}</li></ol>
     <h1>{title}</h1>
