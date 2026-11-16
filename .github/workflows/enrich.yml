@@ -1,0 +1,77 @@
+# Manual. Session PD1 (docs/PRODUCT_DATA_STANDARD.md), part (h): one enrichment run over the catalogue, on STAGING, inside one dollar cap.
+# Sources in order: Open Food Facts by barcode, the research files in data/research (one per item), label scans where they exist (the
+# approval rules read them). Everything lands as proposals; the approval rules of 0124 and 0207 approve what they may; a person approves
+# the rest (allergens, halal, certificates, hazard warnings, anything where sources disagree).
+#   1 facts      Open Food Facts (scripts/product-data/fetch-product-data.mjs): proposals, source open_food_facts. Cap: off_usd.
+#   2 research   the research files' facts (scripts/product-data/load-research.mjs --parts facts): proposals, source web_page. No model.
+#   3 enrich     scripts/product-data/enrich.mjs: the rules pass, the kind and shopping tags of each item from the fast model (checked by
+#                rules in SQL), substitute groups by rule, every approval rule, the search documents, Open Food Facts front pictures as
+#                candidate rows, and the report (artifact `enrichment`: JSON, Markdown with the shelf-visit list by aisle, candidates-off.csv).
+# The caps add up to max_usd: step 1 gets off_usd, step 2 gets 0.5 (it calls no model), step 3 gets the rest. Every call is counted in
+# model_costs (COST1, 0139) and each step stops at its cap. Run from main only: staging must already have migrations 0202 to 0209.
+# Secrets used (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+name: enrich
+on:
+  workflow_dispatch:
+    inputs:
+      max_usd:
+        description: Dollar cap for the whole run's model calls (all steps together)
+        type: string
+        default: "15"
+      off_usd:
+        description: Of max_usd, the cap of the Open Food Facts step (its model maps allergen text and writes an Arabic ingredient list)
+        type: string
+        default: "4"
+      steps:
+        description: "Comma-separated: facts, research, enrich"
+        type: string
+        default: "facts,research,enrich"
+permissions: { contents: read }
+concurrency:
+  group: enrich
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  run:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RUN_ID: ${{ github.run_id }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STEPS: ${{ inputs.steps }}
+      MAX_USD: ${{ inputs.max_usd }}
+      OFF_USD: ${{ inputs.off_usd }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Tests (the run against the real migrations, with a scripted model)
+        run: npx vitest run scripts/product-data/test/enrich.test.mjs
+      - name: Caps
+        run: |
+          echo "MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
+          caps=$(node -e 'const t=Number(process.env.MAX_USD), o=Number(process.env.OFF_USD); if(!(t>0)||!(o>=0)||o+0.5>t){console.error("max_usd must be positive and above off_usd + 0.5");process.exit(1)} console.log(`${o} ${(t-o-0.5).toFixed(2)}`)')
+          echo "OFF_CAP=${caps% *}" >> "$GITHUB_ENV"
+          echo "ENRICH_CAP=${caps#* }" >> "$GITHUB_ENV"
+          echo "- steps: ${STEPS}; caps: Open Food Facts ${caps% *}, research 0.5, enrich ${caps#* } (total ${MAX_USD}); staging ${SUPABASE_URL}" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p out/enrich
+      - name: 1 Open Food Facts, as proposals
+        if: contains(format(',{0},', inputs.steps), ',facts,')
+        env: { MODEL_COST_CAP_USD: "${{ env.OFF_CAP }}" }
+        run: node scripts/product-data/fetch-product-data.mjs --summary-out out/enrich/off-summary.json
+      - name: 2 The research files' facts, as proposals
+        if: contains(format(',{0},', inputs.steps), ',research,')
+        env: { MODEL_COST_CAP_USD: "0.5" }
+        run: node scripts/product-data/load-research.mjs --dir data/research --parts facts --report-out out/enrich/research-load-report.json
+      - name: 3 Rules, kinds and tags, approvals, search documents, pictures, the report
+        if: contains(format(',{0},', inputs.steps), ',enrich,')
+        env: { MODEL_COST_CAP_USD: "${{ env.ENRICH_CAP }}", MODEL_COST_OUT: out/enrich/enrich-cost.json }
+        run: node scripts/product-data/enrich.mjs --out-dir out/enrich
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: enrichment, path: out/enrich, retention-days: 30, if-no-files-found: ignore }
