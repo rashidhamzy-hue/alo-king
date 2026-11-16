@@ -206,6 +206,16 @@ also needs "every stocked item photographed and read; allergens, halal and hazar
 
 Screenshots at 390 px, English and Arabic: `docs/screens/lb1/` (the capture page, a photo saved, the next item, the list, waiting offline, refused, the approvals).
 
+**The one simulation of 16 November evening (coordinator's closing step), and what it measured: nothing.** After #105 merged and deploy-staging applied
+0210 and 0211 ("Applying migration 0210 ... 0211 ... migration files: 136, applied: 136"), `sim-test` was started once on main with limit 50, budget USD 2
+and `repeats` 0 ([run 43921657944](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43921657944), main at 0807bf5). Its monthly-ceiling step passed,
+which also shows `sim_monthly_cap_usd` is on staging (the check fails closed without it). The run then **stopped while loading its copy of staging, before any
+conversation: USD 0 spent, no silence, failure class or judge figure measured.** Cause: the copy kept `approved_by` pointing at the new stand-in staff party
+(coordinator's step 2), but a fact the automatic rule approved (`source = 'published_sources'`, 0207) must name the rule party, and 0207's check
+`product_facts_published_sources_by_the_rule` refused it. Fixed with a failing test first (`evals/sim/test/world-copy-lb1.test.ts`): a who-decided column holding
+the rule party keeps it; any other person becomes the stand-in; a scan of every check constraint on the copied tables finds no other that names such a column.
+Per the coordinator's rule (no second run, whatever the result) **no second run was started**: the fix is on the branch and waits for a decision.
+
 **Decisions made inside the brief, to confirm or change.**
 - *63, not 34.* The brief says 34 items have no barcode. The seed has 34 with none and 29 more that carry the store's own weighed-goods code (`2200...`), which a manufacturer's pack never prints, so a scan cannot find them either: the list holds all 63. Scanning a real barcode for an item that has none on file finds nothing: pick it from the list (the label reader reads the digits off the photo, and a person can add the barcode to the item later; no code does it yet).
 - *Directions are "automatic" in the template but no rule reads them off a label,* so a person approves them too (queue group 5). Say if directions should wait for a rule.
