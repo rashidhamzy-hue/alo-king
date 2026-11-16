@@ -422,7 +422,9 @@ export function strayLine(l: PlanLine): boolean {
   const tied = (l.tied ?? []).map((t) => t.product_id);
   if (!tied.length || l.pick === "house") return false;
   if (l.status === "matched") return !!l.chosen && !tied.includes(l.chosen.product_id);
-  return l.status === "ambiguous" && (l.candidates ?? []).length > 0 && !(l.candidates ?? []).some((c) => tied.includes(c.product_id));
+  // Asked about others only when the words fit one product: on the 2,970 recorded readings of the language gate, eight lines asked
+  // about the right product while `tied` held two others (hz0817 «كيس بازيلا»), so a question is never replaced by several fits.
+  return l.status === "ambiguous" && tied.length === 1 && (l.candidates ?? []).length > 0 && !(l.candidates ?? []).some((c) => tied.includes(c.product_id));
 }
 
 /**
