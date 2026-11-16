@@ -1,0 +1,422 @@
+{
+ "about": "SR1 (4): the reading step for search (packages/agents/src/search-reading.ts): the customer's words become the filters as structured data, and what is left is the kind asked for. Code, no model. Every reading bug found on the request set becomes a case here before its fix ('bug' says what was wrong). expect.filters is matched as a subset (keys not listed may be absent); expect.query, when given, must equal the query; expect.absent lists filter keys that must not be read.",
+ "cases": [
+  {
+   "id": "voice-note-snacks-en",
+   "text": "snacks with no sugar for 5 kids",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "sugar": "none",
+     "audience": "kids"
+    },
+    "count": 5
+   }
+  },
+  {
+   "id": "voice-note-snacks-ar",
+   "text": "بدي سناكات بلا سكر ل ٥ ولاد",
+   "expect": {
+    "query": "سناكات",
+    "filters": {
+     "sugar": "none",
+     "audience": "kids"
+    },
+    "count": 5
+   }
+  },
+  {
+   "id": "voice-note-snacks-arabizi",
+   "text": "baddi snacks bala sekkar la 5 wled",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "sugar": "none",
+     "audience": "kids"
+    },
+    "count": 5
+   }
+  },
+  {
+   "id": "voice-note-snacks-fr",
+   "text": "des snacks sans sucre pour 5 enfants",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "sugar": "none",
+     "audience": "kids"
+    },
+    "count": 5
+   }
+  },
+  {
+   "id": "voice-note-protein-en",
+   "text": "protein bars with no sugar",
+   "expect": {
+    "query": "protein bars",
+    "filters": {
+     "sugar": "none"
+    },
+    "absent": [
+     "protein"
+    ]
+   }
+  },
+  {
+   "id": "voice-note-protein-ar",
+   "text": "ألواح بروتين بدون سكر",
+   "expect": {
+    "query": "ألواح بروتين",
+    "filters": {
+     "sugar": "none"
+    }
+   }
+  },
+  {
+   "id": "high-protein",
+   "text": "un snack riche en protéines",
+   "expect": {
+    "query": "snack",
+    "filters": {
+     "protein": "high"
+    }
+   }
+  },
+  {
+   "id": "under-5g-sugar",
+   "text": "snacks under 5 g of sugar",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "nutrients": [
+      {
+       "key": "sugars_g",
+       "max": 5
+      }
+     ]
+    },
+    "absent": [
+     "sugar"
+    ]
+   }
+  },
+  {
+   "id": "under-5g-sugar-fr",
+   "text": "des snacks avec moins de 5 g de sucre",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "nutrients": [
+      {
+       "key": "sugars_g",
+       "max": 5
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "lactose-free",
+   "text": "du lait sans lactose",
+   "expect": {
+    "query": "lait",
+    "filters": {
+     "claims": [
+      "lactose_free"
+     ]
+    },
+    "absent": [
+     "free_of"
+    ]
+   }
+  },
+  {
+   "id": "fragrance-free-kids",
+   "text": "fragrance-free shampoo for kids",
+   "expect": {
+    "query": "shampoo",
+    "filters": {
+     "claims": [
+      "fragrance_free"
+     ],
+     "audience": "kids"
+    }
+   }
+  },
+  {
+   "id": "peanut-allergy-en",
+   "text": "chips, my son is allergic to peanuts",
+   "expect": {
+    "query": "chips",
+    "filters": {
+     "free_of": [
+      "peanuts"
+     ]
+    }
+   }
+  },
+  {
+   "id": "peanut-allergy-fr",
+   "text": "des chips, mon fils est allergique aux cacahuètes",
+   "expect": {
+    "query": "chips",
+    "filters": {
+     "free_of": [
+      "peanuts"
+     ]
+    }
+   }
+  },
+  {
+   "id": "sesame-allergy-ar",
+   "text": "بدي حمص بس عندي حساسية سمسم",
+   "expect": {
+    "query": "حمص",
+    "filters": {
+     "free_of": [
+      "sesame"
+     ]
+    }
+   }
+  },
+  {
+   "id": "vegan",
+   "text": "vegan snacks",
+   "expect": {
+    "query": "snacks",
+    "filters": {
+     "diet": [
+      "vegan"
+     ]
+    }
+   }
+  },
+  {
+   "id": "halal",
+   "text": "halal chicken",
+   "expect": {
+    "query": "chicken",
+    "filters": {
+     "diet": [
+      "halal"
+     ]
+    }
+   }
+  },
+  {
+   "id": "puppy",
+   "text": "dog food for a puppy",
+   "expect": {
+    "filters": {
+     "species": "dog",
+     "life_stage": [
+      "baby",
+      "young"
+     ]
+    }
+   }
+  },
+  {
+   "id": "kitten",
+   "text": "food for my kitten",
+   "expect": {
+    "filters": {
+     "species": "cat",
+     "life_stage": [
+      "baby",
+      "young"
+     ]
+    }
+   }
+  },
+  {
+   "id": "diapers-2-years",
+   "text": "diapers for my 2 year old",
+   "expect": {
+    "query": "diapers",
+    "filters": {
+     "age_months": 24
+    }
+   }
+  },
+  {
+   "id": "diapers-2-years-ar",
+   "text": "حفاضات لابني عمرو سنتين",
+   "expect": {
+    "query": "حفاضات",
+    "filters": {
+     "age_months": 24
+    }
+   }
+  },
+  {
+   "id": "unsalted-butter-arabizi",
+   "text": "zebde bala mele7",
+   "expect": {
+    "query": "zebde",
+    "filters": {
+     "salt": "none"
+    }
+   }
+  },
+  {
+   "id": "plain-labneh",
+   "text": "لبنة",
+   "expect": {
+    "query": "لبنة",
+    "filters": {}
+   }
+  },
+  {
+   "id": "lunchbox-tag",
+   "text": "2 packs of rice cakes without sugar for the lunchbox",
+   "expect": {
+    "query": "rice cakes",
+    "filters": {
+     "sugar": "none",
+     "prefer_tags": [
+      "lunchbox"
+     ]
+    },
+    "count": 2
+   }
+  },
+  {
+   "id": "dish-for-6",
+   "text": "mjadra for 6",
+   "expect": {
+    "basket": {
+     "type": "dish",
+     "people": 6
+    }
+   }
+  },
+  {
+   "id": "dish-for-2-ar",
+   "text": "فول مدمس لشخصين",
+   "expect": {
+    "basket": {
+     "type": "dish",
+     "people": 2
+    }
+   }
+  },
+  {
+   "id": "lunchbox-week-2-kids",
+   "text": "lunchbox snacks for 2 kids for the week",
+   "expect": {
+    "basket": {
+     "type": "lunchbox",
+     "children": 2,
+     "days": 5
+    }
+   }
+  },
+  {
+   "id": "budget-basket",
+   "text": "a basket under $20",
+   "expect": {
+    "basket": {
+     "type": "budget",
+     "max_usd": 20
+    }
+   }
+  },
+  {
+   "id": "count-not-people",
+   "text": "3 juices for the kids with no added sugar",
+   "expect": {
+    "basket": null,
+    "count": 3,
+    "filters": {
+     "sugar": "none"
+    }
+   }
+  },
+  {
+   "id": "gluten-free-feminine-ar",
+   "bug": "«خالية من الغلوتين» (feminine) was not read: the gluten-free pattern had only «خالي». Fact failures on s023: Barilla (contains gluten) came back.",
+   "text": "معكرونة خالية من الغلوتين",
+   "expect": {
+    "query": "معكرونة",
+    "filters": {
+     "free_of": [
+      "gluten"
+     ]
+    }
+   }
+  },
+  {
+   "id": "age-out-of-3ando",
+   "bug": "«3ando» (he has) was read as an age of 3 years ('3' then 'an'), so the chips had to be for a 3-year-old and none passed; and «fosto2» lost its 2 and left it in the query.",
+   "text": "chips bas ibni 3ando 7asasiye 3al fosto2",
+   "expect": {
+    "query": "chips",
+    "filters": {
+     "free_of": [
+      "peanuts"
+     ]
+    },
+    "absent": [
+     "age_months"
+    ]
+   }
+  },
+  {
+   "id": "oeufs-ligature",
+   "bug": "«œufs» with the œ ligature matched nothing; the language pack writes «oeufs».",
+   "text": "des œufs",
+   "expect": {
+    "query": "oeufs",
+    "filters": {}
+   }
+  },
+  {
+   "id": "salt-plural-fr",
+   "bug": "«pauvres en sel» (plural) was not read as low salt: every chips item came back, none fact-checked.",
+   "text": "des chips pauvres en sel",
+   "expect": {
+    "query": "chips",
+    "filters": {
+     "salt": "low"
+    }
+   }
+  },
+  {
+   "id": "dish-people-ar",
+   "bug": "«تبولة ل ٤»: the people phrase starting with «ل» was checked with \\b, which never matches after an Arabic letter, so 4 was read as a count of items and no basket was built (b006, b014, b019, b022, b025).",
+   "text": "تبولة ل ٤",
+   "expect": {
+    "basket": {
+     "type": "dish",
+     "people": 4
+    },
+    "count": null
+   }
+  },
+  {
+   "id": "lunchbox-week-ar-prefix",
+   "bug": "«للجمعة» (for the week, with its prefix) was not read as a week, so «زوادة المدرسة لولدين للجمعة» built no lunchbox basket (b033, b037).",
+   "text": "زوادة المدرسة لولدين للجمعة",
+   "expect": {
+    "basket": {
+     "type": "lunchbox",
+     "children": 2,
+     "days": 5
+    }
+   }
+  },
+  {
+   "id": "budget-ar-prefix",
+   "bug": "«بأقل من ١٥ دولار»: the budget was read but its «ب» stayed in the query, and the dish's people were missed (b049).",
+   "text": "ترويقة ل ٤ بأقل من ١٥ دولار",
+   "expect": {
+    "basket": {
+     "type": "dish",
+     "people": 4,
+     "max_usd": 15
+    }
+   }
+  }
+ ]
+}

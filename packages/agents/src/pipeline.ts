@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
-import { honestAnswer } from "./honest";
+import { basketAnswer, honestAnswer } from "./honest";
 import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName } from "./messages";
@@ -127,6 +127,9 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // PD1 (g): a kind of product asked with a fact («snacks with no sugar for 5 kids», "protein bars with no sugar") that no approved record
   // can answer: code says what we do not carry yet, what we cannot confirm yet, and up to three real items by name and price, and logs
   // the request (honest.ts). Staging, 15 Nov 22:20: the model offered the catalogue, which is not connected.
+  // SR1 (6): a basket said in words («mjadra for 6», "lunchbox snacks for the week", "a basket under $20"): built by code (0215), priced by
+  // quote_order and sent as the card the customer confirms.
+  if (said && !ctx.state.editing && await basketAnswer(ctx, intent, said)) return { done: true, path: "basket_built" };
   if (said && await honestAnswer(ctx, intent, said)) return { done: true, path: "honest_answer" };
   // W1: a time said with no new item ("بكرا الصبح", "can you bring it friday afternoon?") is for what is in hand: the card waiting
   // on the tap, the basket waiting on us, or the order being changed.

@@ -19,7 +19,11 @@ export interface Request {
   id: string; lang: Lang; kind: string; text: string; filters?: Filters; count?: number; prefer_tags?: string[]; note?: string;
   expect: { type: "products" | "kind" | "nothing"; skus?: string[]; kind?: string };
 }
-export const REQUESTS = (requests as unknown as { requests: Request[] }).requests;
+export const ALL_REQUESTS = (requests as unknown as { requests: Request[] }).requests;
+/** The request set (s001-s135): the gate and the baseline. */
+export const REQUESTS = ALL_REQUESTS.filter((r) => r.kind !== "meaning");
+/** The 24 paraphrases (m001-m024) that use no catalogue word: they measure the meaning list, scored apart. */
+export const MEANING = ALL_REQUESTS.filter((r) => r.kind === "meaning");
 export interface Basket {
   id: string; lang: Lang; text: string; filters?: Filters;
   basket: { type: "dish" | "lunchbox" | "budget"; dish?: string; people?: number; children?: number; days?: number; theme?: string; max_usd?: number };
@@ -130,7 +134,7 @@ export function scoreRequest(r: Request, returned: string[]): Scored {
   return { id: r.id, lang: r.lang, kind: r.kind, right, returned, factFails };
 }
 export interface Summary { n: number; right: number; share: number; fact_fails: number; nothing_right: string }
-export function summarise(xs: Scored[], reqs: Request[] = REQUESTS): Summary & { by_lang: Record<string, Summary>; by_kind: Record<string, Summary> } {
+export function summarise(xs: Scored[], reqs: Request[] = ALL_REQUESTS): Summary & { by_lang: Record<string, Summary>; by_kind: Record<string, Summary> } {
   const one = (ys: Scored[]): Summary => {
     const nothing = ys.filter((y) => reqs.find((r) => r.id === y.id)?.expect.type === "nothing");
     return { n: ys.length, right: ys.filter((y) => y.right).length, share: ys.length ? Math.round((ys.filter((y) => y.right).length / ys.length) * 1000) / 1000 : 0,

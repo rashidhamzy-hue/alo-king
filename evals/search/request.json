@@ -1,0 +1,1 @@
+{ "steps": ["before"], "max_usd": 1, "note": "SR1: the live reading model scored once before (on origin/main, today's search), capped at USD 1, recorded in model_costs (search-eval)." }

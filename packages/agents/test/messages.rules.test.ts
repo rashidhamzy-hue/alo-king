@@ -161,6 +161,12 @@ function render(m: Messages): Rendered[] {
   for (const f of ["sugar", "protein", "gluten", "lactose", "fat", "salt", "fragrance"] as const) add(`honest.fact.${f}`, h.cannotConfirm(h.fact[f], ["snacks"]));
   add("honest.named", [h.named(["Zero Sugar", "No Sugar"]), m.fixed.priced("Lipton Ice Tea Tropical Zero Sugar 320Ml", 0.69, true), h.closeItems].join("\n"));
   add("honest.closeItems", h.closeItems); add("honest.closeNone", h.closeNone);
+  // SR1: what fits (each item priced, then its facts with their source, written by search.ts), and the baskets built by code
+  add("honest.fits", [h.fits(["snacks"]), m.fixed.priced("Crunchy Kids Rice Cakes Apple No Added Sugar 30G", 0.85, true), h.closeFits].join("\n"));
+  add("honest.noneFits", h.noneFits(["juice"])); add("honest.closeFits", h.closeFits);
+  const b = m.built;
+  add("built.dish", b.dish("Mjadra", 6)); add("built.lunchbox", b.lunchbox(10)); add("built.budget", b.budget(20));
+  add("built.missing", b.missing(["burghul"])); add("built.overBudget", b.overBudget(15)); add("built.tooMany", b.tooMany(50)); add("built.none", b.none);
   // CX1: the welcome (the one other place 👑 may appear: it is a greeting), the card's choices, cancel, the handover code, pickup.
   const cx = m.cx;
   add("cx.welcome", cx.welcome("08:00", "22:00"), { greeting: true }); add("cx.welcome.noHours", cx.welcome(null, null), { greeting: true });

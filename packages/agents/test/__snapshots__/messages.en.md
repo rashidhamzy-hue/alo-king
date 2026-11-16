@@ -1466,6 +1466,71 @@ Tell me if you want one of these, or something else.
 Tell me what else you need.
 ```
 
+## honest.fits
+
+```text
+What fits (snacks), with what the pack says:
+Crunchy Kids Rice Cakes Apple No Added Sugar 30G
+$0.85
+Tell me which one and how many.
+```
+
+## honest.noneFits
+
+```text
+None of our juice fits that, by what their packs say.
+```
+
+## honest.closeFits
+
+```text
+Tell me which one and how many.
+```
+
+## built.dish
+
+```text
+Mjadra for 6: everything it needs, by the quantity per person.
+```
+
+## built.lunchbox
+
+```text
+Lunchbox snacks: 10 in all, a few different ones.
+```
+
+## built.budget
+
+```text
+A basket for your budget (items only, delivery apart).
+Budget: $20.00
+```
+
+## built.missing
+
+```text
+Not included: burghul (we can't add it now).
+```
+
+## built.overBudget
+
+```text
+This comes to more than your budget; tell me what to take out.
+Budget: $15.00
+```
+
+## built.tooMany
+
+```text
+I can build a basket for up to 50 people. Tell me what you need and I'll add it.
+```
+
+## built.none
+
+```text
+I couldn't build this basket from what we have now. Tell me what you need and I'll add it.
+```
+
 ## cx.welcome
 
 ```text

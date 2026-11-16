@@ -5,6 +5,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
   "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+  // SR1: Workers AI for query embeddings (search by meaning). Off until settings.search.embeddings is 'on'; capped by settings.search.daily_cap_usd.
+  "ai": { "binding": "AI" },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ConversationDO"] }],
   "queues": {
     "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
@@ -23,6 +25,7 @@
     "staging": {
       "name": "alo-king-gateway-staging",
       "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+      "ai": { "binding": "AI" },
       "queues": {
         "producers": [{ "binding": "INBOUND", "queue": "ak-inbound-staging" }],
         "consumers": [{ "queue": "ak-inbound-staging", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-staging-dlq" }, { "queue": "ak-inbound-staging-dlq", "max_batch_size": 10, "max_batch_timeout": 0 }]
@@ -33,6 +36,7 @@
     "production": {
       "name": "alo-king-gateway",
       "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+      "ai": { "binding": "AI" },
       "queues": {
         "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
         "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }, { "queue": "ak-inbound-dlq", "max_batch_size": 10, "max_batch_timeout": 0 }]

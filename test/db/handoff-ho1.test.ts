@@ -7,6 +7,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { PGlite } from "@electric-sql/pglite";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { vector } from "@electric-sql/pglite-pgvector";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { RetryTurnLater, runTurn, type Pending, type TurnDeps } from "../../apps/gateway/src/turn";
@@ -430,7 +431,7 @@ describe("safe automatic credit: a missing item on a prepaid order, within three
 describe("the migration clears every existing lock (0135)", () => {
   it("a chat locked before 0135 answers after it; its open hand-off becomes a case a person still sees", async () => {
     const root = fileURLToPath(new URL("../../supabase/", import.meta.url));
-    const pg = new PGlite({ extensions: { pg_trgm, pgcrypto } });
+    const pg = new PGlite({ extensions: { pg_trgm, pgcrypto, vector } });
     const files = readdirSync(root + "migrations").sort();
     for (const f of files.filter((x) => x < "0135")) await pg.exec(readFileSync(root + "migrations/" + f, "utf8"));
     const party = (await pg.query<{ id: string }>(`insert into parties(role) values ('customer') returning id`)).rows[0]!.id;
