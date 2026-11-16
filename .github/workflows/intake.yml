@@ -1,5 +1,5 @@
-# Session I1 (SYSTEM_PLAN 4): the product intake pipeline, on STAGING. Every two hours (not every 30 minutes: the GitHub plan's
-# minutes are unconfirmed), and by hand. Each run (scripts/intake/run.mjs):
+# Session I1 (SYSTEM_PLAN 4): the product intake pipeline, on STAGING. By hand only (LB1, 16 Nov: the schedule is removed; the
+# label day and the reading run fill the facts, docs/NEXT_SESSIONS.md rule 12). Each run (scripts/intake/run.mjs):
 #   1. puts a random tenth of each finished day's automatic approvals on the spot-check list (console: /auto-approvals);
 #   2. moves the steps the database moves and runs the approval rules (a rule that has not passed a spot check only logs);
 #   3. takes at most 15 jobs from product_intake_jobs, one at a time: identity (the item's research file: an earlier session's
@@ -15,8 +15,6 @@
 # Staging is deployed only from main (deploy-staging); this workflow never deploys anything.
 name: intake
 on:
-  schedule:
-    - cron: "23 */2 * * *"
   workflow_dispatch:
     inputs:
       max_jobs:
@@ -49,7 +47,7 @@ jobs:
       RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       MAX_JOBS: ${{ inputs.max_jobs || '15' }}
       MAX_SPEND: ${{ inputs.max_spend_usd || '0.75' }}
-      REUSE: ${{ github.event_name == 'schedule' && 'true' || inputs.reuse_research_files }}
+      REUSE: ${{ inputs.reuse_research_files }}
     steps:
       - name: Start the clock
         run: echo "JOB_STARTED=$(date +%s)" >> "$GITHUB_ENV"
