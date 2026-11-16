@@ -89,7 +89,8 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     if (r.done) return r;
   }
   // B1a: "cancel" or "I don't want it" with no order yet: the basket is let go, by code. (A card or an order is the card's buttons.)
-  if (intent.intent === "cancel" && intent.lines.length === 0 && heldLines(ctx)) {
+  // B1d (sim-042): «Lek el sukkar lessa bel basle! Shilo» ("take it off") is not "cancel": only words that let the whole basket go clear it.
+  if (intent.intent === "cancel" && intent.lines.length === 0 && heldLines(ctx) && (!said?.trim() || BASKET_CANCEL.test(said))) {
     return (await clearBasket(ctx)) ? { done: true, path: "basket_cleared" } : { done: false, plan: null };
   }
   // B1a: the basket waits on the minimum and nothing new was said: the minimum, the basket and the gap again, from a fresh quote.
@@ -144,7 +145,10 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const changing = !!ctx.state.replacing && intent.lines.length > 0 && (intent.intent === "add_to_order" || intent.intent === "change_order");
   // B1a (SIM1 fixes 3 and 4): with a basket in hand, or a card waiting on the tap, the items said are edits to it: added, re-counted
   // or taken off, never a new basket that forgets what came before.
-  const held = !changing && !intent.repeat_last && intent.lines.length > 0 && EDIT_INTENTS.has(intent.intent) ? await heldBasket(ctx) : null;
+  // B1d (sim-042): a complaint or a question that says what to change («Ma talabt sukkar! ... shil el sukkar») is an edit to the basket in
+  // hand; before, it went to the loop, which said "removed" and left the sugar in the basket four times.
+  const editing = EDIT_INTENTS.has(intent.intent) || (SAYS_EDIT_INTENTS.has(intent.intent) && intent.lines.some((l) => !!(l as { change?: string | null }).change));
+  const held = !changing && !intent.repeat_last && intent.lines.length > 0 && editing ? await heldBasket(ctx) : null;
   if (intent.intent !== "order" && !changing && !held) return { done: false, plan: null };
   if (intent.repeat_last && intent.lines.length === 0) {
     const r = await repeatLast(ctx);
@@ -169,13 +173,22 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const n = said ? packSizeCount({ raw: said.raw, qty: Number(said.qty) }, [l.chosen!.name, l.chosen!.name_ar]) : null;
     return n == null ? [] : [{ idx: l.idx, qty: n }];
   });
+  let used = planned;
   if (packs.length) {
     const qtyOf = (i: number) => packs.find((p) => p.idx === i)?.qty;
     const fixed = { ...planned, lines: planned.lines.map((l, i) => (qtyOf(i) != null ? { ...l, qty: qtyOf(i)! } : l)) };
     intent = { ...intent, lines: intent.lines.map((l, i) => (qtyOf(i) != null ? { ...l, qty: qtyOf(i)! } : l)) };
+    used = fixed;
     plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...fixed, _message: said.slice(0, 2000) } : fixed,
                                                   p_village: ctx.state.villageId ?? null, p_choices: {} });
   }
+  // B1d: the product the customer's own words fit, when the planner chose or offered another (out of stock, or a best seller of the
+  // same brand), and the product named in full (a button's title sent back as words).
+  const own = ownChoices(plan, used, said ?? "");
+  if (Object.keys(own).length)
+    plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...used, _message: said.slice(0, 2000) } : used,
+                                                  p_village: ctx.state.villageId ?? null, p_choices: own });
+  plan = await ownProducts(ctx, plan, used);
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   // B1c: a question asked by code that these words answer (a product it offered, now chosen) waits no more, and the next one waits.
@@ -238,6 +251,9 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     if (placeId) ctx.state.placeId = placeId;
     if (villageId) ctx.state.villageId = villageId;
     if (held.draft && !ctx.state.pending) ctx.state.pending = held.terms;
+    // B1d (sim-032): the basket now replaces the card it was edited from; "can I keep it like this?" answers with this basket, never the
+    // card it came from (that card still had the Pepsi taken off).
+    if (held.draft && !ctx.state.editing) ctx.state.editing = held.draft;
     // B1c: what still needs a question, asked by code (one short question, at most three buttons), the rest kept in the basket.
     const waiting = [...questionsFor(unresolved, intent), ...(ctx.state.asking ?? [])];
     if (unresolved.length && unresolved.every(askableLine) && !intent.restrictions.length && !intent.needs_clarification.length) {
@@ -381,12 +397,84 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   return routed.done ? routed : { done: false, plan };
 }
 
+/** Lower case, Western digits, letters and digits only, one space: for comparing a customer's words with a product's whole name. */
+const nameFold = (t: string) => t.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه")
+  .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * B1d (sim-137): the whole message is one product's full English name («Toulkarem Pepperoni», a button's title sent back as words):
+ * that product, chosen for the planner, never the same question again.
+ */
+export function ownChoices(plan: Pick<Plan, "lines">, intent: Pick<OrderIntent, "lines">, said: string): Record<number, string> {
+  const out: Record<number, string> = {};
+  const whole = nameFold(said);
+  if (intent.lines.length !== 1 || whole.split(" ").length < 2) return out;
+  for (const l of plan.lines) {
+    if (l.status !== "ambiguous") continue;
+    const exact = (l.candidates ?? []).filter((c) => nameFold(c.name) === whole);
+    if (exact.length === 1) out[l.idx] = exact[0]!.product_id;
+  }
+  return out;
+}
+
+/** A line the planner matched to, or asks about, products the customer's words do not fit (`tied`). */
+export function strayLine(l: PlanLine): boolean {
+  const tied = (l.tied ?? []).map((t) => t.product_id);
+  if (!tied.length || l.pick === "house") return false;
+  if (l.status === "matched") return !!l.chosen && !tied.includes(l.chosen.product_id);
+  return l.status === "ambiguous" && (l.candidates ?? []).length > 0 && !(l.candidates ?? []).some((c) => tied.includes(c.product_id));
+}
+
+/**
+ * B1d (sim-test 43781701377): the product the customer's own words fit, when the planner chose or offered another.
+ *  - The words fit one product: that product is the line's. It was out of stock («Tanmia Chicken Tender Loose» was asked as «which
+ *    one? • Chicken Legs», sim-082; «طحين درة دومو 200غ» became Gold Medal flour, sim-145): the quote now says so, and the loop offers
+ *    what is like it, as for any item out of stock. Nothing is chosen or offered in its place by code.
+ *  - The words fit several («Deroni 3adas ahmar ... 900g»: the red and the green lentils; the planner chose Deroni's sugar, sim-042):
+ *    the line is asked, with those products.
+ */
+async function ownProducts(ctx: ToolContext, plan: Plan, intent: Pick<OrderIntent, "lines">): Promise<Plan> {
+  const strays = plan.lines.filter(strayLine);
+  if (!strays.length) return plan;
+  const ids = [...new Set(strays.flatMap((l) => (l.tied ?? []).map((t) => t.product_id)))];
+  const villageId = plan.pickup ? null : plan.village_id ?? ctx.state.villageId ?? null;
+  const info = await rpc<Quote>(ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: villageId, p_pickup: !!plan.pickup })
+    .catch(() => null);
+  if (!info?.lines?.length) return plan;
+  const short = new Set(info.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock").map((i) => String((i as { product_id?: string }).product_id)));
+  const product = (id: string) => {
+    const x = info.lines.find((q) => q.product_id === id);
+    return x ? { product_id: id, name: x.name, name_ar: x.name_ar, price_usd: Math.round((Number(x.line_total_usd) / (Number(x.qty) || 1)) * 100) / 100, in_stock: !short.has(id) } : null;
+  };
+  const dropped = new Set(strays.flatMap((l) => (l.status === "matched" && l.chosen ? [l.chosen.product_id] : [])));
+  let quote_lines = plan.quote_lines.filter((q) => !dropped.has(q.product_id));
+  const lines = plan.lines.map((l): PlanLine => {
+    if (!strays.includes(l)) return l;
+    const own = (l.tied ?? []).map((t) => product(t.product_id)).filter((x): x is NonNullable<typeof x> => !!x);
+    if (own.length === 1) {
+      const p = own[0]!;
+      const qty = Number(intent.lines[l.idx]?.qty ?? l.qty) || 1;
+      quote_lines = [...quote_lines, { product_id: p.product_id, qty }];
+      return { ...l, status: "matched", candidates: null, chosen: { product_id: p.product_id, name: p.name, name_ar: p.name_ar, brand: null, price_usd: p.price_usd ?? 0, in_stock: p.in_stock } };
+    }
+    return own.length ? { ...l, status: "ambiguous", chosen: null, candidates: own.slice(0, 3).map((x) => ({ ...x, price_usd: x.price_usd ?? 0 })) } : l;
+  });
+  const quote = quote_lines.length ? await rpc<Quote>(ctx.db, "quote_order", { p_lines: quote_lines, p_village: villageId, p_pickup: !!plan.pickup }).catch(() => null) : null;
+  const other = plan.issues.filter((i) => !QUOTE_ISSUES.has(i.code));
+  const issues = quote ? [...quote.issues, ...other] : other;
+  const asks = lines.some((l) => l.status !== "matched" && l.status !== "merchant_not_onboarded");
+  return { ...plan, lines, quote_lines, quote: quote ?? plan.quote, issues, next: asks || !quote?.ok ? (plan.next === "card" ? "ask" : plan.next) : plan.next };
+}
+
 export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
 /** Issues quote_order itself raises: after an edit they are the new quote's, never the planner's for the lines it was given. */
 const QUOTE_ISSUES = new Set(["unknown_product", "out_of_stock", "insufficient_stock", "empty_order", "no_delivery_village", "village_not_served",
   "below_minimum", "closed", "no_exchange_rate", "fx_paused"]);
 /** Readings whose items edit the basket in hand. */
 const EDIT_INTENTS = new Set(["order", "add_to_order", "change_order", "cancel"]);
+const SAYS_EDIT_INTENTS = new Set(["complaint", "question"]);
+/** Words that let the whole basket go: cancel, «الغي», «بطّلت», «ما بدي شي». A "take it off" alone is not one (sim-042). */
+const BASKET_CANCEL = /لغ[يىاء]|بط[ّ]?لت|ما\s*بد[يى]\s*(?:شي|الطلب|ياه|ياها|ياهن)(?:\s|$|[.،!؟?])|مش\s*بد[يى]\s*(?:شي|الطلب)|\bcancel|\bannul|\b(?:e|i)?lgh?[ie]\b|\bbatalt|\b(?:ma|mish|mesh)\s*badd?(?:e|i)\s*(?:shi|el\s*talab|ya(?:h|ha|hon)?)\b|forget it|laisse tomber|never ?mind/iu;
 /** With the basket waiting on the minimum, these readings with no item get the minimum again (a greeting or a thank-you does not). */
 const MINIMUM_AGAIN = new Set(["order", "add_to_order", "change_order", "question"]);
 /** What a window can answer: where (the pin follows), closed now, or fresh goods bought for the order. */
@@ -821,7 +909,7 @@ export async function heldBasket(ctx: ToolContext): Promise<Held | null> {
  */
 export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
   const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
-  if (heldLines(ctx) && (!s || s.status === "delivered")) {
+  if (heldLines(ctx) && (!s || s.status === "delivered" || (s.status === "awaiting_confirmation" && !!ctx.state.editing))) {
     const r = await resumeBasket(ctx, soFar(ctx));
     if (r.done) return r;
   }

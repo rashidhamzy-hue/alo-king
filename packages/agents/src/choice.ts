@@ -41,7 +41,8 @@ export const askableLine = (l: PlanLineLike): boolean => l.status === "ambiguous
 export function questionsFor(lines: PlanLineLike[], intent: Pick<OrderIntent, "lines">): AskingLine[] {
   return lines.filter(askableLine).flatMap((l) => {
     const line = intent.lines[l.idx];
-    if (!line) return [];
+    // B1d (sim-093): a line that is a question («ما فيكن تجيبوها إلي هيك هيك؟») is not an item to choose: the loop answers it.
+    if (!line || /[?؟]\s*$/u.test(line.raw ?? "")) return [];
     const candidates = (l.candidates ?? []).filter((c) => c.in_stock !== false).slice(0, 3)
       .map((c) => ({ product_id: c.product_id, name: c.name ?? "", name_ar: c.name_ar ?? null, price_usd: c.price_usd == null ? null : Number(c.price_usd) }));
     return candidates.length ? [{ raw: quoted(line.raw || l.raw || line.query), line, candidates }] : [];
