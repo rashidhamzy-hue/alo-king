@@ -107,7 +107,7 @@ budget USD 4, spent **$3.53**; main at 5d43392, #90), against B1c's run on the c
 | class | B1c (before CX1) | CX1 on main | what it was |
 | --- | --- | --- | --- |
 | wrong_language (code) | 1 | **15** | **New, CX1's**: all 15 were the welcome in Arabic to an English (12) or French (3) customer whose first message was a voice note. The welcome was sent before the note was read. Fixed in the follow-up pull request (the welcome now goes once the turn's words, typed or spoken, are read); tests: the first voice note in English and in French |
-| message_rules (code) | 4 | 8 | B1c's «...»: أي واحد بدك؟ question quoting the customer's Arabic-Indic digits (sim-147, sim-099, sim-014); not CX1's code. For B1c: fold the quoted words through `latinDigits` |
+| message_rules (code) | 4 | 8 | B1c's «...»: أي واحد بدك؟ question quoting the customer's Arabic-Indic digits (sim-147, sim-099, sim-014); not CX1's code; B1c fixed it in #93 |
 | turn_error, no_reply (code) | 1, 1 | 0, 1 | |
 | judge: goal not reached, repeated question, dead end | 50, 28, 25 | 45, 18, 15 | |
 | judge: unnatural dialect, wrong product, invented fact | 33, 23, 10 | 37, 25, 13 | model variance on the same code paths (CX1 changed no reading, planner or model text) |
