@@ -237,18 +237,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     return false;
   };
 
-  // CX1: the first-ever welcome, before anything else is said. Asked of the database once per conversation; a first message that is
-  // STOP or START gets none (the consent line answers it).
   let welcome: string | null = null;
-  if (!state.welcomed) {
-    const firstTexts = pending.map((p) => p.event.message.type === "text" ? p.event.message.text?.body ?? "" : "").filter(Boolean);
-    if (conv.welcome_due && !firstTexts.some((b) => detectConsentSignal(b))) {
-      learnLang(firstTexts);
-      welcome = await sendWelcome(ctx, turnIds);
-      if (welcome) sent.push(welcome);
-    }
-    state.welcomed = true;
-  }
 
   for (const p of pending) {
     const m = p.event.message;
@@ -519,6 +508,18 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`);
       continue;
     }
+  }
+
+  // CX1: the first-ever welcome, before the answer to the customer's words. Sent once the turn's messages are read, so it is in the
+  // language of what they said or spoke (sim-test 43772497024: a first English voice note got it in Arabic when it went before the
+  // note was read). STOP and START returned above, so a first message that is either gets none. Asked of the database once per
+  // conversation (open_turn's welcome_due); claim_welcome records it.
+  if (!state.welcomed) {
+    if (conv.welcome_due) {
+      welcome = await sendWelcome(ctx, turnIds);
+      if (welcome) sent.push(welcome);
+    }
+    state.welcomed = true;
   }
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
