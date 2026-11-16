@@ -1,5 +1,5 @@
 // M1: every fixed message in English. Same messages, same shapes as ar.ts.
-import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
+import { grouped, list, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} LBP`;
 const join = (xs: string[]) => xs.join(", ");
@@ -253,6 +253,14 @@ export const en: Messages = {
     },
   },
 
+  honest: {
+    notCarried: (kinds) => `We don't carry ${list(kinds, "and")} yet. I've noted your request.`,
+    cannotConfirm: (fact, kinds) => `I can't confirm ${fact} for our ${list(kinds, "and")} yet.`,
+    fact: { sugar: "the sugar", protein: "the protein", gluten: "gluten-free", lactose: "lactose-free", fat: "the fat", salt: "the salt", fragrance: "fragrance-free" },
+    named: (phrases) => `Items with ${phrases.map((p) => `“${p}”`).join(" or ")} in their name:`,
+    closeItems: "Tell me if you want one of these, or something else.",
+    closeNone: "Tell me what else you need.",
+  },
   ops: {
     newPick: (code) => `📦 New order to pick #${code}`,
     startButton: (code) => `Start #${code}`,

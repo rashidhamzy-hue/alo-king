@@ -659,3 +659,24 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | Last | PRIV make the repository private | Founder, with a Sonnet check | The build finished | - | Not started; last step |
 
 Files each session owns, what it runs beside, and its "done when" are in the table of `docs/NEXT_SESSIONS.md`.
+
+## Revision of 16 November 2026: product data first
+
+Source: the founder's document of 16 November (`docs/PRODUCT_DATA_STANDARD.md`) and the coordinator's note of the same morning; the
+decisions are in `docs/DECISIONS.md`, "Founder decisions, 16 November 2026"; the prompts in `docs/NEXT_SESSIONS.md`. These rows change
+the table above; every other row stands. **Gate A from today:** HO1, B1a, B1b, CX1, DS1, D4b, **PD1, SR1**, T1 merged; pictures approved;
+Arabic read by a person; zero silences after a hand-off; the two failed requests answered correctly on staging; every active item at least
+"sellable". At most three sessions at once: PD1 and B1d now; then SR1, T1 and LD1.
+
+| Wave | Session | Model, effort | Waits for | Runs beside | Migrations | Status |
+|---|---|---|---|---|---|---|
+| 4a, now | **PD1** product data standard: (1) the narrowed safety check and the honest answer; (2) templates, two readiness levels, intake and auto-approval; (3) recommendation data and the enrichment run | Opus, high | Nothing | B1d | 0202 to 0211 | In progress |
+| 4a, now | **B1d** counts and edits (the wrong products left after B1c) | Opus, high | Nothing | PD1 | 0217 | Not started |
+| 4b | **SR1** search by meaning and facts (pgvector plus word search, filters by approved facts, one function for chat and website) | Opus, high | PD1 merged | T1, LD1 | 0212 to 0216 | Not started |
+| 4b | **T1** friends' test set-up (checks the new gate A) | Opus, medium | PD1 merged; Arabic read | SR1, LD1 | 0134 | Waits |
+| 4b | **LD1** website product data (JSON-LD, facts by template, functional only) | Sonnet, medium | PD1 merged | SR1, T1 | None | Not started |
+| When the reference arrives | **DS2** apply the design reference to `packages/ui` and the DS1 pages | Fable, high | Rashid's screenshots, tokens, motion | Any one | None | Waits; un-parks UX2, WEB2, UX3 |
+| 4, parked | WEB2, UX2, UX3 | As before | **DS2** (was "the founder restarts design") | | As before | Parked |
+| Closed | FX1 | | Absorbed by PD1 (data and chat) and LD1 (product page) | | | Closed |
+| 6 | **BK1** list photo to basket (moved up from "Later") | Opus, high | SR1 merged; gate A open | RD1, AN1 | 0195 to 0197 | Not started |
+| After WEB2 and gate B | **WEB3** the assistant on the website (the same Concierge, same turn pipeline) | Opus, high | WEB2 merged; gate B passed | Any one | 0218 to 0219 | Not started |

@@ -193,3 +193,18 @@ that later customers agree to. List rows are cut by WhatsApp at 24 characters an
 
 ## D4b, the pick queue, rider jobs and rider incidents (console, written by a model)
 The pages choose a line with `pick(lang, English, Arabic)` in `apps/console/src/pages/pick.ts`, `riderjobs.ts` and `riderincidents.ts` (about 120 short lines: buttons, warnings, the refusals' explanations), and the packing steps are in the `packing_checklist` setting (migration 0147): «المنتجات المبرّدة والمجمّدة والطازجة في الحقيبة الباردة.», «البيض والخبز في الأعلى ولا شيء ثقيل فوقهما.», «ملصق الكيس عليه رمز الطلب واسم القرية.» The customer messages are the existing ones (`messages/`). A reader should check: the picker's words (التقاط، ناقص، تجهيز), the rider words (مندوب), and that the long warnings read as an instruction to a person at work.
+
+## PD1, the honest answer when nothing fits (16 November 2026)
+Written by code (`packages/agents/src/messages/ar.ts`, `honest`), sent when a customer asks for a kind of product with a fact that no
+approved record can answer («بدي سناكس بلا سكر لخمس ولاد», «بروتين بار بلا سكر»). The kinds are the customer's own words; the items are
+product names as printed, each with its price on the next line. A reader should check that «ما فينا نأكّد السكر» reads as "we cannot
+confirm" and never as "it has no sugar", and the joined «بـ» before a Latin word.
+
+| Key | Arabic | English | Read |
+| --- | --- | --- | --- |
+| `honest.notCarried(["بروتين بار"])` | ما عنا بروتين بار بعد. سجّلنا طلبك. | We don't carry protein bars yet. I've noted your request. | |
+| `honest.cannotConfirm("السكر", ["سناكس"])` | ما فينا نأكّد السكر بـسناكس يلي عنا بعد. | I can't confirm the sugar for our snacks yet. | |
+| `honest.fact` | السكر، البروتين، إنّو بلا غلوتين، إنّو بلا لاكتوز، الدهون، الملح، إنّو بلا ريحة | the sugar, the protein, gluten-free, lactose-free, the fat, the salt, fragrance-free | |
+| `honest.named(["Zero Sugar", "No Sugar"])` | أغراض باسمها «Zero Sugar» أو «No Sugar»: | Items with “Zero Sugar” or “No Sugar” in their name: | |
+| `honest.closeItems` | قلّي إذا بدك شي منهن، أو شي تاني. | Tell me if you want one of these, or something else. | |
+| `honest.closeNone` | قلّي شو بدك غير هيك. | Tell me what else you need. | |

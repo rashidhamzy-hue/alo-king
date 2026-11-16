@@ -256,3 +256,32 @@ any earlier line that disagrees; the minimum-order and no-pin decisions may be o
 | 2 | **Minimum order: $5. No small-order fee at launch.** The amount and the gap are stated by code, from the quote, never by the model (invariant 7). One rule, never the minimum and the fee together. The founder may overrule the amount. This replaces the 14 November approval of a 0.50 fee on baskets under 10 USD (R4 answer 2; `docs/SYSTEM_PLAN.md`); the fee stays supported as a setting, off. | B1a (report fix 1): `packages/agents/src/basket.ts`; `supabase/seed/proposed_pilot_settings.sql` (no fee) and `supabase/seed/minimum_order_2026_11_15.sql` (applied once per database by `scripts/ci/load-seeds.sh`, so staging gets it on its next deploy) |
 | 3 | **A first order without a map pin is accepted** with a typed village and landmark, and **marked for a rider call** (the rider or ops phones the customer before the order goes out). A pin outside the service area is still refused. | B1b (report fix 5); L1 for the places data |
 | 4 | **DS1 converts the founder's brief to `docs/DESIGN_BRIEF.md` first**, from its attachment, before any design work. | DS1 prompt; resolves the item "Not done by DOC1" in `docs/HANDOFF.md` once DS1 runs |
+
+## Founder decisions, 16 November 2026
+Recorded by session PD1 (step 0, documents only) from the coordinator's note of 16 November (morning), which read `main` at 13c64b8,
+the founder's document "Alo King: product data, search and 2026-27 practices" (now `docs/PRODUCT_DATA_STANDARD.md`) and staging
+read-only. Each supersedes any earlier line that disagrees.
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | **Design stays paused on Claude.** Rashid designs elsewhere and sends screenshots, tokens and a motion recording as a reference. One session, **DS2**, applies them to `packages/ui` and the DS1 pages. No Lovable code is imported. DS2 un-parks UX2, WEB2 and UX3. | `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md` |
+| 2 | **PD1 runs before the friends' test, and so does SR1.** PD1 goes first. SR1 runs beside T1's set-up. The friends start when PD1, SR1 and T1 are all merged. | Gate A |
+| 3 | **PD1 ships as three pull requests in order:** (1) the narrowed safety check and the honest answer; (2) the standard, templates, readiness and intake; (3) recommendation data and the enrichment run. | PD1 |
+| 4 | **FX1 is closed.** PD1 builds its data and chat parts; LD1 builds its product-page part. | `docs/NEXT_SESSIONS.md` |
+| 5 | **SR1 does not cut most of the remaining wrong products.** They are the model's reading of counts and edits (HANDOFF, B1c), not search. A new session, **B1d**, fixes them and runs beside PD1. | B1d |
+| 6 | **Facts before stock arrives.** Nutrition numbers and ingredients may go live when two independent published sources for the same market agree exactly. Printed claims need a label photo or the brand's own page. Allergens, halal, certificates and hazard warnings always wait for a person. This is one rule row in `auto_approval_rules` the founder can switch off. | PD1 (pull request 2) |
+| 7 | **Website.** JSON-LD and facts by template on the product page: session **LD1**, straight after PD1, functional only. The assistant in a chat panel: session **WEB3**, after WEB2 and gate B, the same Concierge through the same turn pipeline. | LD1, WEB3 |
+| 8 | **BK1** (a photo of a handwritten list becomes a basket) moves from "Later" to wave 6, after gate A opens. | `docs/NEXT_SESSIONS.md` |
+| 9 | **Migration numbers.** 0190 to 0201 are held by older rows (MK1, BK1, AN1b, two unused). PD1: 0202 to 0211. SR1: 0212 to 0216. B1d: 0217. WEB3: 0218 to 0219. | Every session's row |
+
+**Gate A from 16 November:** HO1, B1a, B1b, CX1, DS1, D4b, **PD1, SR1**, T1 merged; pictures approved; Arabic read by a person; zero
+silences after a hand-off; **the two failed requests ("snacks with no sugar for 5 kids", "protein bars with no sugar") answered correctly on
+staging; every active item at least "sellable"**. B1d is not a gate item: its number is the friends' test's first measure.
+
+**One mismatch, resolved.** The coordinator noted that the copy of the founder's document attached to the planning chat had no section on
+recommendation data and no two readiness levels. The copy attached to PD1 has both ("The product data standard" and "Data that makes
+recommendations good"), so `docs/PRODUCT_DATA_STANDARD.md` is complete and PD1's parts (c) and (f) follow it.
+
+**Read on staging, 15 November 22:20** (coordinator): the safety check refused the draft for the words "sugar free"; the customer got
+"I found no snacks with these specifications, shall I show you the catalogue?"; the catalogue button then answered "write what you want",
+because the catalogue is not connected on the test number. PD1's pull request 1 stops offering it.

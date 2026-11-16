@@ -1,5 +1,5 @@
 // M1: every fixed message in French. Same messages, same shapes as ar.ts.
-import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
+import { grouped, list, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} LBP`;
 const join = (xs: string[]) => xs.join(", ");
@@ -253,6 +253,14 @@ export const fr: Messages = {
     },
   },
 
+  honest: {
+    notCarried: (kinds) => `Nous n'avons pas encore ${list(kinds, "et")}. J'ai noté votre demande.`,
+    cannotConfirm: (fact, kinds) => `Je ne peux pas encore confirmer ${fact} pour nos ${list(kinds, "et")}.`,
+    fact: { sugar: "le sucre", protein: "les protéines", gluten: "l'absence de gluten", lactose: "l'absence de lactose", fat: "les matières grasses", salt: "le sel", fragrance: "l'absence de parfum" },
+    named: (phrases) => `Articles avec ${phrases.map((p) => `« ${p} »`).join(" ou ")} dans leur nom :`,
+    closeItems: "Dites-moi si vous en voulez un, ou autre chose.",
+    closeNone: "Dites-moi ce qu'il vous faut d'autre.",
+  },
   ops: {
     newPick: (code) => `📦 Nouvelle commande à préparer #${code}`,
     startButton: (code) => `Commencer #${code}`,

@@ -15,17 +15,25 @@ Roadmap rows are in `docs/BUILD_PLAN.md`, "Strategy revision, 15 November 2026";
 7. A model is called only through a workflow that records its cost and has a dollar cap.
 8. Screen work: screenshots at 390 and 1440 px, Arabic and English, light and dark, attached to the pull request.
 9. Do not change vendor tables, village names or locations.
-10. **Design is paused (founder, 15 November; `docs/DECISIONS.md`, "design paused").** No visual work on the website or the console: UX2, UX3, WEB2 and FX1 are parked until he restarts design. Console work in any session stays functional, on the existing components.
+10. **Design is paused on Claude (founder, 15 and 16 November; `docs/DECISIONS.md`).** No visual work on the website or the console. Rashid designs elsewhere and sends a reference; one session, **DS2**, applies it to `packages/ui` and the DS1 pages, and un-parks UX2, WEB2 and UX3. No Lovable code is imported. FX1 is closed (PD1 and LD1 build it). Console work in any session stays functional, on the existing components.
 11. Finish by updating HANDOFF Status (built, tested, not proven), the session's row in BUILD_PLAN, and NEXT_SESSIONS.
 
 ## Gates
 | Gate | Opens | Needs |
 |---|---|---|
-| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1a, B1b, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off |
+| **A** | The friends' test (Rashid and three friends on the US number) | HO1, B1a, B1b, CX1, DS1, D4b, **PD1, SR1**, T1 merged; pictures approved; Arabic strings read by a person; the simulated customers show zero silences after a hand-off; **the two failed requests ("snacks with no sugar for 5 kids", "protein bars with no sugar") answered correctly on staging; every active item at least "sellable"** (16 November; B1d is not a gate item, its number is the friends' test's first measure) |
 | **B** | The shadow run (staff and family, cash only, 7 days, 100 orders) | WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15% |
 | **C** | The paid pilot | The SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the numbers; auto-reload on with a limit |
 
 Stop conditions: `docs/strategy/01-verdict-gates.md`.
+
+**Product data first (16 November, `docs/DECISIONS.md`, "Founder decisions, 16 November 2026").** Two voice notes ("snacks with no sugar
+for 5 kids", "protein bars with no sugar") failed on staging: nothing in stock fits, no item has an approved food fact, the safety check
+refused the words themselves, there are no fields for what was asked, and search cannot filter by facts (`docs/PRODUCT_DATA_STANDARD.md`).
+**PD1** (the product data standard, three pull requests) and **B1d** (counts and edits) run now; **SR1** (search by meaning and facts),
+**T1** and **LD1** (JSON-LD on the product page) follow PD1. **DS2** applies the design reference when it arrives. **FX1 is closed**
+(PD1 and LD1). **BK1** moves to wave 6. **WEB3** (the assistant on the website) comes after WEB2 and gate B. At most three sessions at once:
+PD1 and B1d now; then SR1, T1 and LD1.
 
 **Design pause (15 November, `docs/DECISIONS.md`).** The founder paused all website and console design for a full redesign later. UX2, UX3, WEB2 and the new FX1 are parked until he restarts design; PAY1 now waits for CX1. Console work in other sessions stays functional, on the existing components, with no visual work.
 
@@ -61,16 +69,21 @@ founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 | 2 | **PIX** pictures (built 15 Nov; **PIX2, 15 Nov: no search service**, pictures come from `data/pictures/candidates.csv` through the `images` workflow's from-list mode; HANDOFF, PIX2) | Sonnet, medium | Nothing | B1a, B1b, DS1 | Picture scripts and workflow only | None | A candidate for every item; the 20 fastest sellers first in the queue; duplicate and wrong-pack checks |
 | 3 | **CX1** customer pack (**built and merged**, 16 Nov, #90 and #94, see HANDOFF) | Opus, high | B1b merged (B1a before it) | D4b | `packages/agents/src/`, `packages/commerce/`, card and order functions | 0143 to 0146 | Welcome with the privacy line; missing-item choice; "which note" and keep-the-change; self-service cancel until picking; handover code; pickup |
 | 3 | **D4b** pick queue and rider jobs on the console (**built**, 16 Nov, see HANDOFF) | Sonnet, high | DS1 merged | CX1 | `apps/console/src/pages/` (new pages) | 0147 to 0148 used | A picker completes an order with no WhatsApp; ops can act for a rider; rider incident pages |
-| 4 | **T1** friends' test set-up | Opus, medium | CX1, D4b, DS1 merged; pictures approved; Arabic read | WEB2, UX2 | Test accounts, the daily test report, `docs/` | 0134 | Four testers and one rider phone work end to end on staging; the report arrives nightly |
-| 4 | **WEB2** cart, checkout, tracking (**PARKED**, design pause 15 Nov; waits for the founder to restart design) | Opus, high | CX1 merged | T1, UX2 | `apps/web/`, the web functions | 0178 to 0180 | One order placed on the site and one on WhatsApp are identical in price and ledger |
-| 4 | **UX2** every remaining console page (**PARKED**, design pause 15 Nov) | Sonnet, high | DS1, D4b merged | T1, WEB2 | `apps/console/src/pages/` | None | All pages on the components, bilingual; the navigation of `05`, section A |
-| 4 | **FX1** product facts by kind (**PARKED**, design pause 15 Nov) | Opus, medium | The founder restarts design; CX1 merged | None | `packages/agents/src/` (the facts tool, the chat answer), `apps/console/src/pages/` (kind approval, functional only), `supabase/` | Next free number when it starts | Each item has a kind (food, drink, household, personal care, baby, pet) proposed by AI and approved in the console; a kind shows only its own facts; no nutrition, allergen, diet or Open Food Facts lines on non-food; unconfirmed facts collapse to one "ask us on WhatsApp" line; the chat answers "doesn't apply" to a food question about a non-food item |
+| 4a, now | **PD1** product data standard (16 Nov) | Opus, high | Nothing | B1d | `supabase/` (templates, facts, readiness, intake), `packages/agents/src/` (output guard, honest answer, facts tool), `apps/console/src/label.ts` and the readiness page (functional), the intake, product-data and research-load workflows, `evals/`, `docs/PRODUCT_DATA_STANDARD.md` | 0202 to 0211 | Three pull requests merged; the two voice-note cases get the honest answer and a demand row; templates, two readiness levels and intake rules tested; the enrichment run finished inside USD 15; language gate holds; 150 simulated customers show no new failure class |
+| 4a, now | **B1d** counts and edits (16 Nov) | Opus, high | Nothing | PD1 | `packages/agents/src/` (reading, planner; not `output-guard.ts`, the facts tools or PD1's messages), `evals/cases/b1d_counts_edits.json` | 0217 | Wrong products at most 8 of 150; language gate holds |
+| 4b | **SR1** search by meaning and facts (16 Nov) | Opus, high | PD1 merged | T1, LD1 | `supabase/` (pgvector, hybrid search), `packages/agents/src/concierge-tools.ts`, `apps/web/` search (functional), `evals/search/` | 0212 to 0216 | The request set (100 or more, four languages, plus 50 basket requests) scored before and after; no item that fails a fact filter is ever returned; chat and website use one function |
+| 4b | **LD1** website product data (16 Nov) | Sonnet, medium | PD1 merged | SR1, T1 | `apps/web/` product page (functional only) | None | JSON-LD (price, stock, approved facts only) on every product page; the page shows only its template's fields, with "not confirmed yet"; no visual change |
+| When the reference arrives | **DS2** apply the design reference (16 Nov) | Fable, high | Rashid's screenshots, tokens, motion | Any one | `packages/ui/`, the DS1 pages | None | Tokens and shared components match; DS1 pages restyled; data, rules and tests unchanged; UX2, WEB2, UX3 un-parked |
+| 4b | **T1** friends' test set-up | Opus, medium | PD1 merged; CX1, D4b, DS1 merged; pictures approved; Arabic read | SR1, LD1 | Test accounts, the daily test report, `docs/` | 0134 | Four testers and one rider phone work end to end on staging; the report arrives nightly; it checks the new gate A (16 Nov) |
+| 4 | **WEB2** cart, checkout, tracking (**PARKED** until DS2, 16 Nov) | Opus, high | CX1 merged; **DS2** | T1, UX2 | `apps/web/`, the web functions | 0178 to 0180 | One order placed on the site and one on WhatsApp are identical in price and ledger |
+| 4 | **UX2** every remaining console page (**PARKED** until DS2, 16 Nov) | Sonnet, high | DS1, D4b merged; **DS2** | T1, WEB2 | `apps/console/src/pages/` | None | All pages on the components, bilingual; the navigation of `05`, section A |
+| Closed | **FX1** product facts by kind (**CLOSED** 16 Nov: absorbed by PD1, data and chat, and LD1, the product page) | | | | | | |
 | 5 | **L1** event log, timeline, measured times, places | Opus, high | Gate A open | WH1a, N2 | `supabase/`, gateway rider steps, console proposals tab | 0149 to 0152 | `events` and `log_event()`; an order timeline; proposals for times and landmarks |
 | 5 | **WH1a** warehouse basics | Opus, high | D4b merged | L1, N2 | `supabase/`, console Stock pages | 0153, 0156, 0157, 0188, 0189 (0154 and 0155 are WEB1's, on `main`) | Lots and first-to-expire; bins; temperature log by photo; packing checklist; simple purchase orders |
 | 5 | **N2** nightly checks and learning | Sonnet, medium | COST1 merged | L1, WH1a | `.github/workflows/nightly.yml`, statistics views | 0186 | The full language run nightly within its cap; "what the system learned" |
 | 6 | **RD1** rider pack | Opus, high | L1 merged | AN1, UX3 | Staff-line flow, `supabase/`, console Riders | 0160 to 0163 | Application, terms by tap, training job, guarantee report, rounds, village pause, plain cash-cap message |
 | 6 | **AN1** reports and the daily summary | Sonnet, high | L1, UX2 merged | RD1, UX3 | Report views, console Reports | 0164 to 0166 | The nine reports with comparisons and CSV; the daily summary replaces the nightly message |
-| 6 | **UX3** remaining website pages (**PARKED**, design pause 15 Nov) | Sonnet, medium | WEB2 merged | RD1, AN1 | `apps/web/` | 0187 | How it works, sign-up forms, privacy and terms shells, vendor pages hidden behind a switch |
+| 6 | **UX3** remaining website pages (**PARKED** until DS2, 16 Nov) | Sonnet, medium | WEB2 merged; **DS2** | RD1, AN1 | `apps/web/` | 0187 | How it works, sign-up forms, privacy and terms shells, vendor pages hidden behind a switch |
 | 7 | **PAY1** payment core and adapters | Opus, high | CX1 merged (was WEB2; design pause 15 Nov) | RCPT1, AUD1 | `packages/commerce/`, `supabase/`, a webhook route | 0167 to 0171 | Intents, webhooks stored first, MontyPay and areeba adapters and a Whish shell against fakes; everything off by a switch |
 | 7 | **RCPT1** receipts and lira display | Sonnet, medium | CX1 merged | PAY1, AUD1 | Card and receipt messages, `supabase/` | 0172 to 0173 | Lira total, rate, date and time on the card and receipt as a setting; receipt numbers; tax per line |
 | 7 | **AUD1** audit of what the planning chat could not reach | Sonnet, high | Nothing | PAY1, RCPT1 | `docs/AUDIT-2026-11.md`, small migrations | 0176 to 0177 | GitHub settings, Supabase advisors, Cloudflare secrets and routes, Kapso settings read and listed; row security on every table; the indexes that matter |
@@ -82,7 +95,9 @@ founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 | 9 | **AN1b** founder assistant | Sonnet, high | AN1 merged | G2, V1 | A narrow function, console panel | 0182 | Six read-only tools; amounts placed by code; a role that can only read |
 | 9 | **WH1b** warehouse, second part | Opus, high | Two weeks of shadow or pilot data | Any two | `supabase/`, console Stock | 0183 to 0185 | Camera scanning, invoice reading, the evening purchase proposal |
 | 9 | **RET1** retention | Sonnet, medium | The lawyer's periods | Any two | `supabase/`, a cron | 0181 | Voice, pictures and chat deleted on schedule, logged |
-| Later | LOY1 stamp card and "the usual"; BK1 basket builder and list photo; E1 to E3 vendors | Opus | Four clean pilot weeks; a signed vendor | | | | |
+| 6 | **BK1** list photo to basket (moved up, 16 Nov) | Opus, high | SR1 merged; gate A open | RD1, AN1 | A narrow reading function, `supabase/` | 0195 to 0197 | A photo of a handwritten list becomes a card the customer confirms |
+| After WEB2 and gate B | **WEB3** the assistant on the website (16 Nov) | Opus, high | WEB2 merged; gate B passed | Any one | `apps/web/` chat panel, the same turn pipeline | 0218 to 0219 | The same Concierge in a chat panel; confirmation is the signed-in session's own button; one order placed there equals a WhatsApp order in price and ledger |
+| Later | LOY1 stamp card and "the usual"; E1 to E3 vendors | Opus | Four clean pilot weeks; a signed vendor | | | | |
 | Last | **PRIV** make the repository private | Founder, with a Sonnet check | The build finished | | | | Private; Actions usage checked against the free allowance; the history question closed |
 
 ## The staff line during testing
@@ -397,6 +412,250 @@ functions. Done when: one order is picked and delivered on staging
 with no staff-line message; tests and screenshots. Rules: the block
 at the top of docs/NEXT_SESSIONS.md.
 ```
+
+<!-- Prompts of 16 November (coordinator's note), recorded by PD1. -->
+### PD1 (Opus, high). Attach the founder's document and this note.
+```
+You are session PD1 (product data standard), Opus, high effort.
+Attached: the founder's document "Alo King: product data, search and
+2026-27 practices" (16 Nov) and COORDINATOR-STATE-2026-11-16.md.
+Read CLAUDE.md and HANDOFF Status. Then read what already exists,
+because you extend it and do not rebuild it: migrations 0021, 0049,
+0073, 0111, 0114 and 0123 to 0127 (facts, evidence, label scans,
+proposals, readiness, label beats web, intake, auto-approval), 0022
+(demand_signals, log_demand, unmet_demand),
+packages/agents/src/output-guard.ts and pack-rules.ts,
+apps/console/src/label.ts, the workflows intake, product-data and
+research-load, and data/research/README.md. Migrations 0202 to 0211.
+FX1 is closed: you build its data and chat parts.
+
+Step 0, documents only, first commit: record the note's decisions
+in docs/DECISIONS.md ("Founder decisions, 16 November 2026"), its
+gate A and wave table in docs/NEXT_SESSIONS.md and
+docs/BUILD_PLAN.md, and convert the founder's document to
+docs/PRODUCT_DATA_STANDARD.md. Where the document and this prompt
+differ on a field list, the document wins; on scope, this prompt
+wins.
+
+Three pull requests, in this order, each merged green before the
+next. Every behaviour starts with a failing test.
+
+PULL REQUEST 1: the chat stops failing today (e, g).
+e) The narrowed safety check. Before the food-term and quality
+   checks run, take out of the model's text (1) the exact name of
+   every product or dish a tool returned this turn, and (2) the
+   customer's own words from this turn where they are said back as
+   the request ("you asked for ...", "we don't carry ... yet").
+   Check what is left exactly as today. Failing tests first; must
+   pass: "We have Balance Protein Crackers", "X Protein Bar", a
+   dish called "Protein Chicken Wrap", "Lipton Ice Tea Zero Sugar",
+   "you asked for protein bars" and the same in Arabic and in
+   Lebanese written in Latin letters. Must stay refused with no
+   approved record: "this bar has 20 g of protein", "it's
+   sugar-free", "good for kids", "healthy", and an echo that
+   confirms (the customer asks «هيدا بدون سكر؟» and the draft says
+   «إيه، بدون سكر»). With an approved record returned this turn
+   for that product, the fact is stated with its source ("the pack
+   says no added sugar"); the unlock is per product, not per
+   attribute group. Invariants 14, 15 and 16 are unchanged.
+g) The honest answer when nothing fits, written by code in Arabic,
+   English and French: what we do not carry yet (noted), what we
+   cannot confirm yet, and at most three real items by their exact
+   name and price from the tool. It logs the request with
+   log_demand: the kind asked, the facts asked, audience, quantity
+   and language. It never offers the catalogue button while
+   settings.catalog has no catalogue (staging, 15 Nov 22:20: the
+   bot offered it and the tap answered "write what you want").
+   Eval cases first: the two voice notes ("snacks with no sugar for
+   5 kids", "protein bars with no sugar") on today's seed, with the
+   answer the document gives. New Arabic lines go to
+   docs/ARABIC_REVIEW.md.
+
+PULL REQUEST 2: the standard (a, b, c, d).
+a) Templates as data: tables for templates, their fields (key,
+   type, unit, required for "sellable" or for "fact-complete",
+   allowed sources, approved automatically or by a person) and the
+   category-to-template map. Seed the common core and every
+   template of the document: packaged food and drinks, fresh
+   produce, meat and poultry, bakery, water, cleaning and
+   household, beauty and personal care, baby and child, pet, and
+   gas (future, no items). Food fields exist only on food
+   templates: the database refuses a food fact on a non-food
+   template, and the chat answers "doesn't apply" to a food
+   question about a non-food item. A category with no template
+   cannot hold an active item (a trigger, with a test).
+b) Nutrition per 100 g or 100 ml as numbers built from approved
+   facts (energy, fat, saturated fat, carbohydrate, sugars, added
+   sugars where printed, protein, fibre, salt, serving size);
+   printed claims as a list with evidence; caffeine;
+   certifications with evidence; audience and occasion tags, which
+   are shopping tags and never a health or safety claim; hazard
+   warnings and pictograms as printed; the supply fields. The
+   vendor dish standard of the document as schema, functions and
+   tests on invented data only: every food fact "declared by the
+   vendor" with its date. No existing vendor row changes (rule 9);
+   invariant 11 holds.
+c) Two readiness levels, by extending product_readiness (0111):
+   "sellable" (core complete) and "fact-complete" (template
+   complete). Only a fact-complete item can be returned by a fact
+   filter or have a fact stated; a sellable item's facts read "not
+   confirmed yet" in the chat and in product_food_facts. The
+   catalogue must not freeze: this migration pauses no item that
+   is active today. The rule applies on insert and on activation
+   from now on; existing items that fail the core are listed with
+   what is missing. Both levels and the missing fields show per
+   item on the console's existing readiness page, functional only
+   (rule 10).
+d) The intake pipeline of the document on the existing
+   intake_advance steps, for every current and future item, vendor
+   and dish: start (barcode, supplier line or an unmet-demand
+   row), barcode lookup, the label read into the template's own
+   fields (extend the label reader: hazards and active ingredient
+   for cleaning, the ingredient list and age for beauty, age range
+   for baby, species and life stage for pet), compare sources,
+   propose the rest, approve, re-check (facts expire after 12
+   months). Auto-approval as rows in auto_approval_rules: identity
+   and pictures on an exact barcode and printed-name match;
+   nutrition numbers and ingredients when the label photo and the
+   barcode record agree, or when two independent published sources
+   for the same market agree exactly (coordinator's rule, one row
+   the founder can switch off); printed claims only from a label
+   photo or the brand's own page; kind, tags, storage and search
+   words by rules. Always a person, enforced in SQL and never in a
+   prompt: allergens, halal and every certificate, hazard
+   warnings, anything that sounds medical, and any disagreement
+   between sources. Test that the automatic party cannot approve
+   those. The vendor path (menu read into dishes, the vendor
+   confirms, ops approves) as functions and tests only; no new
+   send path (invariants 1, 2, 20).
+
+PULL REQUEST 3: recommendation data and the run (f, h).
+f) Substitute groups, complements, Lebanese dishes as baskets (a
+   dish, its kinds and the quantity per person), portions per
+   person, pack format, unit price (computed in SQL from price and
+   size, never by a model), taste and type, local origin, seasons,
+   and one search document per item in a table SR1 will read.
+   Proposed by a model, checked by rules: a substitute has the
+   same template and kind; quantities are numbers code can
+   multiply; nothing crosses a stated restriction. None of it is a
+   health claim and the chat never says it as advice (invariant
+   14).
+h) One enrichment run over the 291 through COST1's recording,
+   max_usd 15, stopping at the cap. Sources in order: Open Food
+   Facts, the files in data/research (every item has one), label
+   scans where they exist. Everything lands as proposals; the
+   rules of (d) approve what they may. Open Food Facts front
+   pictures go to data/pictures/candidates.csv and through the
+   images workflow's from-list mode (max_usd 3). The report, in
+   HANDOFF and the run summary: items sellable and fact-complete
+   per template; per item what is missing and which route fills
+   it: a page already on file, the supplier sheet, a label photo
+   at a shop shelf before stock arrives (a printable list by
+   aisle), or the label photo at first receiving. The 34 items
+   with no barcode are filled by their template's rules and the
+   supplier's or bakery's declaration; expect no nutrition for
+   them.
+
+Done when: all tests pass; the language gate holds (wrong products
+0, F1 at least 0.90); sim-test with limit 150 shows zero silences
+after a hand-off and no new failure class; the two voice-note
+cases get the honest answer and a demand row; the run finished
+inside its cap with its dollars recorded; HANDOFF has the
+readiness report and "Founder actions (PD1)" with exact clicks
+(what to approve first: allergens, halal, hazards). Say plainly
+what is built, what is tested and what only staging can prove. If
+(f) is not finished, say so and leave baskets and complements to
+SR1; do not claim it. Rules: the block at the top of
+docs/NEXT_SESSIONS.md; never ask Rasheed.
+```
+
+### SR1 (Opus, high). Start when PD1's third pull request is merged.
+```
+You are session SR1 (search by meaning and facts), Opus, high
+effort. Read CLAUDE.md, HANDOFF Status (PD1 above all),
+docs/PRODUCT_DATA_STANDARD.md, migrations 0053 (the language pack
+and search_catalog), 0080, PD1's migrations 0202 to 0211, and
+packages/agents/src/concierge-tools.ts. Migrations 0212 to 0216.
+
+Build, each with a failing test first:
+1. The request set, before any code: evals/search/requests.json
+   with at least 100 Lebanese requests spread over Arabic, Lebanese
+   in Latin letters, English and French, each with what must come
+   back (products, a kind, or "nothing fits"). It includes the two
+   that failed ("snacks with no sugar for 5 kids", "protein bars
+   with no sugar"), non-food ones ("fragrance-free shampoo for
+   kids", "dog food for a puppy") and requests that mix a fact, an
+   audience and a count. Add the 50 basket requests ("mjadra for
+   6", "lunchbox snacks for the week", "a basket under $20").
+   Score today's search on it first and write the baseline down.
+2. Hybrid search inside Postgres: pgvector in the extensions
+   schema; one embedding per item from PD1's search document; the
+   built word search and language pack; the two ranked lists
+   merged; then hard filters. One SQL function, used by the
+   Concierge's tool and by the website's search page (invariant
+   19). Sort by measurable facts only (invariant 14).
+3. Filters by approved facts only: sugars, protein, salt, printed
+   claims, diet, allergens (through product_meets_restrictions),
+   audience and occasion, and each template's own fields (scent,
+   age range, species and life stage). Only fact-complete items
+   can pass a fact filter. Unknown never passes (invariant 15). A
+   stated allergy is a restriction, never a preference (16).
+4. The reading step returns the filters as structured data (a
+   ceiling or floor on a nutrient, a claim, an audience, people,
+   budget, a dish). Every reading bug becomes a case in evals/
+   before its fix.
+5. Embeddings: test Cloudflare Workers AI bge-m3 on the request
+   set against the baseline before trusting it; if it does not
+   beat word search alone on the Arabic and Latin-letter requests,
+   try one other multilingual model and record both. Every call is
+   recorded with its cost; a daily cap is a setting; query
+   embeddings are cached. If the embedding call fails or the cap
+   is reached, search falls back to word search and the turn still
+   answers.
+6. Baskets: a dish for N people, a budget basket and a week of
+   lunchbox snacks are built by code from PD1's dishes, portions
+   and unit prices and priced by the quote tool (invariant 7); the
+   customer still confirms the card (invariant 4).
+7. When facts exist the chat states them with their source ("the
+   pack says ..."); when nothing passes, PD1's honest answer runs
+   and the demand row is logged.
+8. The website's search uses the same function and filters,
+   functional only (rule 10).
+
+Done when: on the request set, no returned item fails a fact
+filter (zero, a hard gate); the share of requests with a right
+item in the first five is at least 0.85 and clearly above the
+baseline, reported per language; every "nothing fits" request gets
+the honest answer; median added time per search is under 150 ms on
+staging; the language gate holds (wrong products 0, F1 at least
+0.90); sim-test with limit 150 shows zero silences and no new
+failure class. Report the wrong-product count before and after:
+cutting it is B1d's target, not yours, but say what search
+changed. Update HANDOFF, BUILD_PLAN and NEXT_SESSIONS. Rules: the
+block at the top of docs/NEXT_SESSIONS.md; never ask Rasheed.
+```
+
+### B1d (Opus, high). Runs beside PD1.
+```
+You are session B1d (counts and edits), Opus, high effort. Read
+HANDOFF "B1c" (what the 18 were) and the sim-test runs 43776071899
+and 43781701377. Migration 0217 if the planner needs one. Do not
+touch output-guard.ts, the facts tools or the messages PD1 owns.
+Read the wrong-product conversations of the latest run one by one
+into evals/cases/b1d_counts_edits.json, then fix by class, each on
+its failing cases: a count against a pack's weight («٣ كيلو» sugar
+is not three 5 kg bags); «wa7de tene» is one more, not two; a
+complaint or a question («sar 5?») is not an edit; a swap or a
+correction never doubles a line; an out-of-stock path never drops
+or adds an item unasked; a product picker that loops. Done when:
+the new cases pass; the language gate holds (wrong products 0, F1
+at least 0.90); sim-test with limit 150 shows wrong products at
+most 8 and no class worse than CX1's run. Rules: the block at the
+top of docs/NEXT_SESSIONS.md; never ask Rasheed.
+```
+
+### LD1, DS2, WEB3 (16 November)
+Each uses the standard text below ("WEB2, UX2, ...") with its row in the table above.
 
 ### T1 (Opus, medium)
 ```
