@@ -66,12 +66,11 @@ async function decide(c: Ctx) {
   if (!(KINDS as readonly string[]).includes(kind) || !decision) throw new UserError(pick(L, "Unknown decision.", "قرار غير معروف."));
   const rid = id(c, "id");
   const note = text(c, "note", 200) || null;
-  const by = c.staff.partyId;
   const db = c.deps.db;
   return attempt(c, `label_queue_${decision}`, { kind, id: rid }, async () => {
     if (kind === "fact") {
-      if (decision === "reject") await db.rpc("review_proposed_fact", { p_fact: rid, p_by: by, p_decision: "reject", p_note: note });
-      else await db.rpc("review_proposed_fact", { p_fact: rid, p_by: by, p_decision: "confirm", p_value: text(c, "value", 20) || null, p_status: "declared", p_detail: null, p_evidence: null, p_note: null, p_expires_at: null });
+      if (decision === "reject") await db.rpc("review_proposed_fact", { p_fact: rid, p_by: c.staff.partyId, p_decision: "reject", p_note: note });
+      else await db.rpc("review_proposed_fact", { p_fact: rid, p_by: c.staff.partyId, p_decision: "confirm", p_value: text(c, "value", 20) || null, p_status: "declared", p_detail: null, p_evidence: null, p_note: null, p_expires_at: null });
     } else if (kind === "field") {
       let corrected: { value: unknown } | null = null;
       if (decision === "confirm" && c.form.corrected !== undefined) {
@@ -84,9 +83,9 @@ async function decide(c: Ctx) {
           if (v && v !== now) corrected = { value: v };
         }
       }
-      await db.rpc("review_field_value", { p_value: rid, p_by: by, p_decision: decision, p_note: note, p_corrected: corrected });
-    } else if (kind === "claim") await db.rpc("review_claim", { p_claim: rid, p_by: by, p_decision: decision, p_note: note });
-    else await db.rpc("review_certificate", { p_certificate: rid, p_by: by, p_decision: decision, p_note: note });
+      await db.rpc("review_field_value", { p_value: rid, p_by: c.staff.partyId, p_decision: decision, p_note: note, p_corrected: corrected });
+    } else if (kind === "claim") await db.rpc("review_claim", { p_claim: rid, p_by: c.staff.partyId, p_decision: decision, p_note: note });
+    else await db.rpc("review_certificate", { p_certificate: rid, p_by: c.staff.partyId, p_decision: decision, p_note: note });
     return decision === "confirm" ? pick(L, "Confirmed against the pack and published.", "تم التأكيد مقابل العبوة والنشر.") : pick(L, "Rejected: nothing is published from it.", "رُفض: لا يُنشر منه شيء.");
   }).then((r) => flashRedirect(c.deps, "/label-queue", r.logged ? r.msg : { err: pick(L, "Not done: the action log could not be written. Try again in a minute.", "لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة.") }));
 }
