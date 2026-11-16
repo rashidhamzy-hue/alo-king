@@ -222,7 +222,7 @@ function restrictionWords(f: SearchFilters, lang: string): string {
   const names: Record<string, Record<string, string>> = {
     en: { peanuts: "peanuts", tree_nuts: "nuts", sesame: "sesame", gluten: "gluten", milk: "milk", eggs: "eggs", soy: "soy", fish: "fish" },
     fr: { peanuts: "arachides", tree_nuts: "fruits à coque", sesame: "sésame", gluten: "gluten", milk: "lait", eggs: "œufs", soy: "soja", fish: "poisson" },
-    ar: { peanuts: "فول سوداني", tree_nuts: "مكسرات", sesame: "سمسم", gluten: "غلوتين", milk: "حليب", eggs: "بيض", soy: "صويا", fish: "سمك" },
+    ar: { peanuts: "فستق عبيد", tree_nuts: "مكسرات", sesame: "سمسم", gluten: "غلوتين", milk: "حليب", eggs: "بيض", soy: "صويا", fish: "سمك" },
   };
   const l = lang === "en" || lang === "fr" ? lang : "ar";
   const free = (f.free_of ?? []).map((a) => names[l]![a] ?? a);

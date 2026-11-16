@@ -64,7 +64,7 @@ async function page(c: Ctx) {
   const slotName: Record<Shot, string> = { front: pick(L, "Front", "الواجهة"), back: pick(L, "Back", "الخلف"), side: pick(L, "Side", "الجانب") };
   const slotHelp: Record<Shot, string> = {
     front: pick(L, "The whole front of the pack.", "واجهة العبوة كاملة."),
-    back: pick(L, "The whole back: ingredients, allergens, warnings.", "ظهر العبوة كاملاً: المكوّنات والمسبّبات والتحذيرات."),
+    back: pick(L, "The whole back: ingredients, allergens, warnings.", "ظهر العبوة كاملاً: المكوّنات ومسبّبات الحساسية والتحذيرات."),
     side: pick(L, "Optional: the side with the nutrition panel or the directions.", "اختياري: الجانب الذي فيه جدول القيم الغذائية أو طريقة الاستعمال."),
   };
   const slot = (s: Shot) => {

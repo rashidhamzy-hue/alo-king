@@ -82,7 +82,7 @@ const GLUTEN_FREE = w("gluten[- ]?free|no gluten|without gluten|sans gluten|بد
 
 // ---------- allergies and diets: restrictions, never preferences ----------
 const ALLERGEN_WORDS: [RegExp, Allergen][] = [
-  [/peanuts?|arachides?|cacahu[eè]tes?|فستق(?! حلبي)|fost[ou]2|fostok|fistok|فول سوداني/iu, "peanuts"],
+  [/peanuts?|arachides?|cacahu[eè]tes?|فستق(?! حلبي)|fost[ou]2|fostok|fistok|فستق عبيد|فول سوداني/iu, "peanuts"],
   [/tree ?nuts?|\bnuts?\b|noix|fruits à coque|مكسرات|جوز|لوز|بندق|kaju|mkassarat|amandes?|noisettes?|pistachios?|فستق حلبي/iu, "tree_nuts"],
   [/sesame|sésame|سمسم|simsim|semsom|tahini|طحينة/iu, "sesame"],
   [/gluten|wheat|blé|قمح|غلوتين|5am7|2am7/iu, "gluten"],
@@ -220,7 +220,7 @@ export function readSearch(text: string): SearchReading {
   const people = said.match(PEOPLE) ?? said.match(DISH_PEOPLE);
   const nPeople = has(TWO_PEOPLE, said) ? 2 : people ? numberOf(people[1]) : null;
   const week = has(WEEK, said), days = said.match(DAYS);
-  const lunch = has(LUNCHBOX, said) || /goûters?|سناكات للزوادة|lal madrase|للمدرسة/iu.test(said);
+  const lunch = has(LUNCHBOX, said) || /goûters?|سناكات للزوادة|سناكس للزوادة|lal madrase|للمدرسة/iu.test(said);
   if (lunch && (week || days)) {
     const kids = said.match(new RegExp(`(${NUM})\\s*(?:kids?|children|enfants?|ولاد|أولاد|اولاد|wl[ae]d|wled)(?![\\p{L}])`, "iu"));
     const children = /ولدين|لولدين/u.test(said) ? 2 : kids ? numberOf(kids[1]) ?? 1 : 1;
