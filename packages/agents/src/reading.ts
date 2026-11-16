@@ -185,7 +185,8 @@ function measureOnlyLines(intent: OrderIntent): OrderIntent {
   for (const l of intent.lines as Line[]) {
     const raw = fold(l.raw);
     const prev = out[out.length - 1];
-    const measure = MEASURE_ONLY.test(raw) || (HUNDRED.test(raw) && raw.split(" ").every((w) => new RegExp(`^(?:${MEASURE_NUM}|${MEASURE_FILLER}|${MEASURE_UNIT}|و\\S+)$`, "u").test(w)));
+    const measure = MEASURE_ONLY.test(raw) || (HUNDRED.test(raw) && raw.split(" ").every((w) => new RegExp(`^(?:${MEASURE_NUM}|${MEASURE_FILLER}|${MEASURE_UNIT}|و\\S+)$`, "u").test(w)))
+      || packOfPrevious(raw);
     if (prev && measure && !l.brand_hint && l.change !== "remove") {
       out[out.length - 1] = { ...prev, raw: `${prev.raw} ${l.raw.trim()}`.trim() };
       continue;
@@ -193,6 +194,19 @@ function measureOnlyLines(intent: OrderIntent): OrderIntent {
     out.push(l);
   }
   return out.length === intent.lines.length ? intent : { ...intent, lines: out };
+}
+
+// «التاني تبع الخمس رغفان» ("the other one, the five-loaf one", gate run 43812039544, hz0377): a line that only points back and says the
+// pack (a number of loaves or pieces) describes the line before it.
+const POINT_BACK = "التاني|الثاني|تاني|التانيه|الاول|الاولى|تبع|تبعون|تبعو|يلي|اللي|هيدا|هيدي|هيداك|هيديك|منو|منها|the|other|one|ones|with|of|that|el|l|tene|tenye|teneh|tabe3|yalli|le|la|autre|celui|celle|avec|de|du";
+const PACK_UNIT = "رغيف|رغفان|ارغفه|رغيفات|loaf|loaves|ra8ifs?|r8ifs?|rghifs?|pains?|حبه|حبات|قطع|قطعه|pieces?|pcs";
+function packOfPrevious(raw: string): boolean {
+  const w = raw.split(" ");
+  const strip = (x: string) => x.replace(/^ال(?=\p{L})/u, "");
+  const isNum = (x: string) => new RegExp(`^(?:${MEASURE_NUM})$`, "u").test(strip(x)) || new RegExp(`^(?:${MEASURE_NUM})$`, "u").test(x);
+  const isUnit = (x: string) => new RegExp(`^(?:${PACK_UNIT})$`, "u").test(strip(x)) || new RegExp(`^(?:${PACK_UNIT})$`, "u").test(x);
+  return w.some(isNum) && w.some(isUnit) && w.some((x) => new RegExp(`^(?:${POINT_BACK})$`, "u").test(x))
+    && w.every((x) => isNum(x) || isUnit(x) || new RegExp(`^(?:${POINT_BACK})$`, "u").test(x));
 }
 
 // «3tine», «a3tini», «عطيني» is "give me", never a count (sim-046: «3tine rabtet khebez 3arabi» put two breads on the card).
@@ -280,10 +294,24 @@ function editMarks(intent: OrderIntent, said: string): OrderIntent {
   return touched ? { ...intent, lines } : intent;
 }
 
+// «مش الكبير», "not the big one", «mish el kbir» read as a modifier (gate run 43812039544, hz0377 and g0377: the large loaf chosen): a size
+// ruled out says which product, so it goes into the line's own words, where the planner reads sizes.
+const NOT_SIZE = new RegExp(`(?:^| )(?:مش|مو|ما|بلا|mish|mesh|msh|mush|ma|bala|not|no|pas|sans)(?: (?:${ARTICLE}))? ?(?:${SIZE})(?: |$)`, "u");
+function sizeModifiers(intent: OrderIntent): OrderIntent {
+  let touched = false;
+  const lines = (intent.lines as Line[]).map((l) => {
+    const ruled = (l.modifiers ?? []).filter((m) => NOT_SIZE.test(fold(m)) && !fold(l.raw).includes(fold(m)));
+    if (!ruled.length) return l;
+    touched = true;
+    return { ...l, raw: `${l.raw.trim()} ${ruled.join(" ")}`.trim() };
+  });
+  return touched ? { ...intent, lines } : intent;
+}
+
 /** The reading after code's corrections. `said`: the customer's own words of the turn (texts and transcripts). */
 export function tidyReading(intent: OrderIntent, said: string): OrderIntent {
   if (!said.trim()) return intent;
-  const tidy = addOrSet(wholeMessageChanges(sizeOnlyLines(measureOnlyLines(buildingColour(intent, said))), said), said);
+  const tidy = addOrSet(wholeMessageChanges(sizeOnlyLines(measureOnlyLines(sizeModifiers(buildingColour(intent, said)))), said), said);
   return editMarks(countsSaid(tidy, said), said);
 }
 
