@@ -1,0 +1,134 @@
+{
+ "at": "2026-11-16T15:50:41.597Z",
+ "words": {
+  "set": {
+   "n": 135,
+   "right": 135,
+   "share": 1,
+   "fact_fails": 0,
+   "nothing_right": "19/19",
+   "by_lang": {
+    "ar": {
+     "n": 42,
+     "right": 42,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "5/5"
+    },
+    "arabizi": {
+     "n": 23,
+     "right": 23,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "2/2"
+    },
+    "en": {
+     "n": 43,
+     "right": 43,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "10/10"
+    },
+    "fr": {
+     "n": 27,
+     "right": 27,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "2/2"
+    }
+   },
+   "by_kind": {
+    "allergy": {
+     "n": 7,
+     "right": 7,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "1/1"
+    },
+    "fact": {
+     "n": 32,
+     "right": 32,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "mixed": {
+     "n": 10,
+     "right": 10,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "nonfood": {
+     "n": 22,
+     "right": 22,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "nothing": {
+     "n": 18,
+     "right": 18,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "18/18"
+    },
+    "plain": {
+     "n": 46,
+     "right": 46,
+     "share": 1,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    }
+   }
+  },
+  "meaning": {
+   "n": 24,
+   "right": 8,
+   "share": 0.333,
+   "fact_fails": 0,
+   "nothing_right": "0/0",
+   "by_lang": {
+    "ar": {
+     "n": 6,
+     "right": 3,
+     "share": 0.5,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "arabizi": {
+     "n": 5,
+     "right": 1,
+     "share": 0.2,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "en": {
+     "n": 8,
+     "right": 2,
+     "share": 0.25,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    },
+    "fr": {
+     "n": 5,
+     "right": 2,
+     "share": 0.4,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    }
+   },
+   "by_kind": {
+    "meaning": {
+     "n": 24,
+     "right": 8,
+     "share": 0.333,
+     "fact_fails": 0,
+     "nothing_right": "0/0"
+    }
+   }
+  }
+ },
+ "@cf/baai/bge-m3:error": "workers_ai_401: Authentication error",
+ "@cf/qwen/qwen3-embedding-0.6b:error": "workers_ai_401: Authentication error"
+}
