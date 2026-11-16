@@ -34,4 +34,17 @@ describe("the copy keeps what a person approved, approved by a stand-in", () => 
     // and no other column that points at a person was filled
     expect(w.adjustments.join("\n")).toMatch(/approved_by.*stand-in/i);
   }, 180_000);
+
+  it("a fact the automatic rule approved (0207's published_sources) keeps the rule party as its approver: 0207's check names it", async () => {
+    const AUTO = "00000000-0000-4000-8000-0000000000a1";
+    const src = await openTestDb();
+    const product = (await src.one(`select id from products where is_active order by sku limit 1`)).id as string;
+    await src.pg.query(`insert into product_facts(product_id, attribute, value, detail, status, source, proposed_by, approved_by, approved_at)
+      values ($1, 'ingredients', null, '{"text": "water, salt", "automatic": true}', 'declared', 'published_sources', $2, $2, now())`, [product, AUTO]);
+    const copy: Record<string, Record<string, unknown>[]> = {};
+    for (const t of COPY_TABLES) copy[t.table] = JSON.parse(JSON.stringify(await src.all(`select * from ${t.table}${t.filter ? " where approved_at is not null and superseded_at is null" : ""}`)));
+    await src.pg.close();
+    const w = await openWorld({ label: "copy", copy, oosSkus: [], log: () => {} });
+    expect(await w.db.one(`select approved_by, proposed_by, source from product_facts where source = 'published_sources'`)).toEqual({ approved_by: AUTO, proposed_by: AUTO, source: "published_sources" });
+  }, 180_000);
 });

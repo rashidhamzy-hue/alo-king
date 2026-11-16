@@ -28,6 +28,8 @@ const arrLiteral = (a: unknown[]) => `{${a.map((x) => (x === null ? "NULL" : `"$
 
 /** The one staff party the copy's "who decided" columns point at (created in the throwaway database; no real party is ever copied). */
 export const STAND_IN_STAFF = "00000000-0000-4000-8000-0000000000c1";
+/** The rule party (0124): created by the migrations, so it exists in every throwaway database; 0207's check names it as the approver of a published_sources fact. */
+const AUTO_PARTY = "00000000-0000-4000-8000-0000000000a1";
 /** A column that records who proposed, approved, reviewed or decided: kept, pointing at the stand-in, so what a person approved stays approved. */
 const isDecider = (col: string) => /_by$/.test(col);
 
@@ -57,7 +59,7 @@ async function loadCopy(db: TestDb, copy: Copy, log: (s: string) => void): Promi
       const names = usable.map((c) => c.column_name).filter((c) => rows!.some((r) => c in r));
       let skipped = 0;
       const enc = (c: (typeof usable)[number], v: unknown): unknown => {
-        if (standIn.has(c.column_name)) return v === null || v === undefined ? null : STAND_IN_STAFF;
+        if (standIn.has(c.column_name)) return v === null || v === undefined ? null : v === AUTO_PARTY ? AUTO_PARTY : STAND_IN_STAFF;
         if (blank.has(c.column_name) || v === null || v === undefined) return null;
         if (jsonTypes.has(c.data_type)) return JSON.stringify(v);
         if (c.data_type === "ARRAY" && Array.isArray(v)) return arrLiteral(v);
