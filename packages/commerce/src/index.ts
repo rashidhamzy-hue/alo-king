@@ -115,7 +115,7 @@ export type CatalogProduct =
   | { ok: false; error: "unknown_product" }
   | { ok: true; product: Omit<CatalogCard, "picture">; category: { code: string; name_en: string; name_ar: string };
       picture: CatalogPicture | null; facts: CatalogFact[]; credit_open_food_facts: boolean; whatsapp: string | null };
-export interface CatalogSearch { ok: boolean; q: string; matches: CatalogCard[]; reason: "too_short" | "no_match" | null }
+export interface CatalogSearch { ok: boolean; q: string; matches: CatalogCard[]; reason: "too_short" | "no_match" | "none_pass" | null; filters?: Record<string, unknown> }
 
 // ---------- the website (role web_channel) ----------
 export function webCommerce(db: RpcSource) {
@@ -145,8 +145,10 @@ export function webCatalog(db: RpcSource) {
     home: () => call<CatalogHome>(db, "web_catalog_home", {}),
     category: (code: string) => call<CatalogCategory>(db, "web_catalog_category", { p_code: code }),
     product: (sku: string) => call<CatalogProduct>(db, "web_catalog_product", { p_sku: sku }),
-    /** The chat's matcher. A search that finds nothing is logged as demand by the database. */
-    search: (text: string, limit = 12) => call<CatalogSearch>(db, "web_catalog_search", { p_text: text, p_limit: limit }),
+    /** The chat's search (find_products, 0214, through web_catalog_search, 0216) with the filters read from the box by the chat's reading
+     *  step. Only items whose approved facts pass come back. A search that finds nothing is logged as demand by the database. */
+    search: (text: string, limit = 12, filters: Record<string, unknown> = {}) =>
+      call<CatalogSearch>(db, "web_catalog_search", { p_text: text, p_limit: limit, p_filters: filters }),
   };
 }
 export type WebCatalog = ReturnType<typeof webCatalog>;

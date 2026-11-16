@@ -7,12 +7,16 @@ import Card from "../components/Card.astro";
 import Unavailable from "../components/Unavailable.astro";
 import Button from "@ak/ui-astro/Button.astro";
 import { t, withGreeting } from "../lib/i18n";
+import { readSearch } from "@ak/search/reading";
 const { lang, catalog, env } = Astro.locals;
 const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80);
 let r; let failed = false; let ask: string | null = null; let product: string | null = null;
 if (q.length >= 2) {
   try {
-    r = await catalog().search(q);
+    // SR1: the box is read as the chat reads a message: "snacks with no sugar" searches "snacks" with the filter, so only items whose approved
+    // facts pass come back (functional only, no visual change).
+    const reading = readSearch(q);
+    r = await catalog().search(reading.query || q, 12, reading.filters as Record<string, unknown>);
     // The chat's address: for the door on every page, for one item's own button, and for a search that found nothing.
     try { const w = (await catalog().home()).whatsapp; ask = w.home; product = w.product; } catch { /* the page is complete without it */ }
   } catch { failed = true; Astro.response.status = 503; }

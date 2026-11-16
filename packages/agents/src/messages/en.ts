@@ -260,6 +260,18 @@ export const en: Messages = {
     named: (phrases) => `Items with ${phrases.map((p) => `“${p}”`).join(" or ")} in their name:`,
     closeItems: "Tell me if you want one of these, or something else.",
     closeNone: "Tell me what else you need.",
+    fits: (kinds) => `What fits (${list(kinds, "and")}), with what the pack says:`,
+    noneFits: (kinds) => `None of our ${list(kinds, "and")} fits that, by what their packs say.`,
+    closeFits: "Tell me which one and how many.",
+  },
+  built: {
+    dish: (dish, people) => `${dish} for ${people}: everything it needs, by the quantity per person.`,
+    lunchbox: (units) => `Lunchbox snacks: ${units} in all, a few different ones.`,
+    budget: (max) => `A basket for your budget (items only, delivery apart).\nBudget: ${usd(max)}`,
+    missing: (kinds) => `Not included: ${list(kinds, "and")} (we can't add it now).`,
+    overBudget: (max) => `This comes to more than your budget; tell me what to take out.\nBudget: ${usd(max)}`,
+    tooMany: (max) => `I can build a basket for up to ${max} people. Tell me what you need and I'll add it.`,
+    none: "I couldn't build this basket from what we have now. Tell me what you need and I'll add it.",
   },
   ops: {
     newPick: (code) => `📦 New order to pick #${code}`,

@@ -1,5 +1,5 @@
 {
- "note": "SR1 basket requests: built by code from PD1's dishes, portions and unit prices (and data tables of SR1), priced by quote_order, confirmed by the customer on the card. expect.kinds: every kind must have a line with enough of it; max_usd: the items' subtotal (delivery apart) at most this; min_items: units in the basket; tag: every line carries this shopping tag; missing_kinds: kinds that must be left out and said (a restriction no item of that kind passes); refused: the request is refused with this reason.",
+ "note": "SR1 basket requests: built by code from PD1's dishes, portions and unit prices (and data tables of SR1), priced by quote_order, confirmed by the customer on the card. expect.kinds: every kind must have a line with enough of it; max_usd: the items' subtotal (delivery apart) at most this; min_items: units in the basket; tag: every line carries this shopping tag; missing_kinds: kinds that must be left out and said (a restriction no item of that kind passes); refused: the request is refused with this reason. Tabbouleh: the seed's burghul has no price, so it is left out and said (missing_kinds). Hummus with a sesame allergy: no item of any of its kinds is fact-complete and free of sesame in the test facts, so every kind is left out and said: unknown never passes.",
  "baskets": [
   {
    "id": "b001",
@@ -86,9 +86,11 @@
     "kinds": [
      "parsley",
      "tomato",
-     "burghul",
      "lemon",
      "olive oil"
+    ],
+    "missing_kinds": [
+     "burghul"
     ]
    }
   },
@@ -105,9 +107,11 @@
     "kinds": [
      "parsley",
      "tomato",
-     "burghul",
      "lemon",
      "olive oil"
+    ],
+    "missing_kinds": [
+     "burghul"
     ]
    }
   },
@@ -124,9 +128,11 @@
     "kinds": [
      "parsley",
      "tomato",
-     "burghul",
      "lemon",
      "olive oil"
+    ],
+    "missing_kinds": [
+     "burghul"
     ]
    }
   },
@@ -143,9 +149,11 @@
     "kinds": [
      "parsley",
      "tomato",
-     "burghul",
      "lemon",
      "olive oil"
+    ],
+    "missing_kinds": [
+     "burghul"
     ]
    }
   },
@@ -474,14 +482,12 @@
     "people": 3
    },
    "expect": {
-    "kinds": [
+    "kinds": [],
+    "missing_kinds": [
      "chickpeas",
      "tahini",
      "lemon",
      "arabic bread"
-    ],
-    "missing_kinds": [
-     "tahini"
     ]
    },
    "filters": {

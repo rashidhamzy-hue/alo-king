@@ -49,16 +49,20 @@ describe("PD1 (g): the two voice notes get the honest answer and a demand row", 
     expect(await db.all(`select 1 from demand_signals where party_id = $1 and origin = 'honest_answer'`, [party])).toEqual([]);
   });
 
-  it("with an approved record for a product of that kind, the usual path answers (no honest answer)", async () => {
+  // SR1 changed this case (docs/HANDOFF.md, SR1, "Changed expectations"): before SR1 an approved record for any product of the kind let the
+  // usual path answer; now the record must show that the product fits. Kinder's panel says 52 g sugar, so it never passes "no sugar"; the
+  // other snacks are unknown, so the honest answer runs and the request is logged.
+  it("an approved record that shows the product does not fit lets nothing through: the honest answer runs (SR1)", async () => {
     const kinder = (await db.one(`select id from products where name_en = 'Kinder Chocolate Barrette Maxi 21G'`)).id;
     const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops PD1') returning id`)).id;
     await makeFactComplete(db, kinder, ops, { nutrition: { energy_kcal: 550, fat: 33, carbohydrates: 53, proteins: 9, sugars: 52 } });
     const t = flow(db, [read(order([line({ raw: "snacks with no sugar", query: "snacks", qty: 1, modifiers: [] })], "en"))]);
     const party = (await t.customer()).party_id;
     await t.text("snacks with no sugar");
-    // The usual path answers (here the planner's own question); the honest answer is not sent and nothing is logged as unconfirmed.
-    expect(outbound.map(bodyOf).join("\n")).not.toContain("I can't confirm");
-    expect(await db.all(`select 1 from demand_signals where party_id = $1 and origin = 'honest_answer'`, [party])).toEqual([]);
+    const body = outbound.map(bodyOf).join("\n");
+    expect(body).toContain("I can't confirm the sugar for our snacks yet.");
+    expect(body).not.toContain("Kinder");
+    expect(await db.all(`select 1 from demand_signals where party_id = $1 and origin = 'honest_answer'`, [party])).toHaveLength(1);
     await db.pg.query(`update product_facts set superseded_at = now() where product_id = $1`, [kinder]);
   });
 });

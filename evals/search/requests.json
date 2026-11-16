@@ -1,5 +1,5 @@
 {
- "note": "SR1 request set (search). Each request: what the customer says, and what must come back: products (any of skus in the first five), a kind (any of its skus in the first five), or nothing (the honest answer). filters: the facts the request asks for, as find_products takes them; every returned item must pass them (scored against evals/search/facts.json, not against the search's own code). prefer_tags: shopping tags the request leans to (never a hard filter on food). Written 16 Nov 2026 by SR1.",
+ "note": "SR1 request set (search). Each request: what the customer says, and what must come back: products (any of skus in the first five), a kind (any of its skus in the first five), or nothing (the honest answer). filters: the facts the request asks for, as find_products takes them; every returned item must pass them (scored against evals/search/facts.json, not against the search's own code). prefer_tags: shopping tags the request leans to (never a hard filter on food). Written 16 Nov 2026 by SR1. The 24 'meaning' requests (m001-m024) were added after the word search was scored on s001-s135, to measure the meaning list: none of them uses a word of the catalogue or the language pack for what it wants. They are scored apart (kind 'meaning') and are not in the s-set's share.",
  "requests": [
   {
    "id": "s001",
@@ -2242,6 +2242,424 @@
    "text": "sushi",
    "expect": {
     "type": "nothing"
+   }
+  },
+  {
+   "id": "m001",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something fizzy to drink",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m002",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي مشروب غازي",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m003",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi mashroub 8azi",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m004",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "une boisson gazeuse",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m005",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to spread on bread for breakfast",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m006",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "quelque chose à tartiner pour le petit déjeuner",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m007",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi n7ottou 3al khebez lal terwi2a",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m008",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي ندهنه عالخبز للترويقة",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m009",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "stuff to wash the dishes",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m010",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي لجلي الصحون",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m011",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi la jali el s7oun",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m012",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "de quoi faire la vaisselle",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m013",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something sweet with chocolate",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m014",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي حلو بالشوكولا",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m015",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "un truc sucré au chocolat",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m016",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi 7elo bel chocolat",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m017",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to wake me up in the morning",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0130",
+     "AK-0131",
+     "AK-0133",
+     "AK-0134",
+     "AK-0135",
+     "AK-0136",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "m018",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي يفيقني الصبح",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0130",
+     "AK-0131",
+     "AK-0133",
+     "AK-0134",
+     "AK-0135",
+     "AK-0136",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "m019",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to clean the floor",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0262",
+     "AK-0249",
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "m020",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "de quoi nettoyer le sol",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0262",
+     "AK-0249",
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "m021",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "wipes for the baby",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0283",
+     "AK-0284",
+     "AK-0269"
+    ]
+   }
+  },
+  {
+   "id": "m022",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "محارم مبللة للبيبي",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0283",
+     "AK-0284",
+     "AK-0269"
+    ]
+   }
+  },
+  {
+   "id": "m023",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something quick for dinner from the freezer",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0242",
+     "AK-0243",
+     "AK-0236",
+     "AK-0245",
+     "AK-0246"
+    ]
+   }
+  },
+  {
+   "id": "m024",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi sari3 lal 3asha men el frizer",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0242",
+     "AK-0243",
+     "AK-0236",
+     "AK-0245",
+     "AK-0246"
+    ]
    }
   }
  ]

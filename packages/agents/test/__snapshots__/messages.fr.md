@@ -1466,6 +1466,71 @@ Dites-moi si vous en voulez un, ou autre chose.
 Dites-moi ce qu'il vous faut d'autre.
 ```
 
+## honest.fits
+
+```text
+Ce qui convient (snacks), avec ce qu'indique l'emballage :
+Crunchy Kids Rice Cakes Apple No Added Sugar 30G
+$0.85
+Dites-moi lequel et combien.
+```
+
+## honest.noneFits
+
+```text
+Aucun de nos juice ne convient, d'après leurs emballages.
+```
+
+## honest.closeFits
+
+```text
+Dites-moi lequel et combien.
+```
+
+## built.dish
+
+```text
+Mjadra pour 6 : tout ce qu'il faut, selon la quantité par personne.
+```
+
+## built.lunchbox
+
+```text
+Goûters pour la boîte à lunch : 10 en tout, de plusieurs sortes.
+```
+
+## built.budget
+
+```text
+Un panier selon votre budget (articles seulement, livraison à part).
+Budget : $20.00
+```
+
+## built.missing
+
+```text
+Pas inclus : burghul (impossible de l'ajouter maintenant).
+```
+
+## built.overBudget
+
+```text
+Cela dépasse votre budget ; dites-moi quoi retirer.
+Budget : $15.00
+```
+
+## built.tooMany
+
+```text
+Je peux préparer un panier jusqu'à 50 personnes. Dites-moi ce qu'il vous faut et je l'ajoute.
+```
+
+## built.none
+
+```text
+Je n'ai pas pu préparer ce panier avec ce que nous avons. Dites-moi ce qu'il vous faut et je l'ajoute.
+```
+
 ## cx.welcome
 
 ```text

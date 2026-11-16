@@ -1,5 +1,5 @@
 {
- "at": "2026-11-16T13:59:56.213Z",
+ "at": "2026-11-16T14:35:07.350Z",
  "summary": {
   "n": 135,
   "right": 96,
@@ -76,6 +76,52 @@
     "n": 46,
     "right": 45,
     "share": 0.978,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   }
+  }
+ },
+ "meaning": {
+  "n": 24,
+  "right": 8,
+  "share": 0.333,
+  "fact_fails": 0,
+  "nothing_right": "0/0",
+  "by_lang": {
+   "ar": {
+    "n": 6,
+    "right": 3,
+    "share": 0.5,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "arabizi": {
+    "n": 5,
+    "right": 1,
+    "share": 0.2,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "en": {
+    "n": 8,
+    "right": 2,
+    "share": 0.25,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "fr": {
+    "n": 5,
+    "right": 2,
+    "share": 0.4,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   }
+  },
+  "by_kind": {
+   "meaning": {
+    "n": 24,
+    "right": 8,
+    "share": 0.333,
     "fact_fails": 0,
     "nothing_right": "0/0"
    }
@@ -2414,6 +2460,280 @@
    "lang": "en",
    "kind": "nothing",
    "right": true,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m001",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m002",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0112",
+    "AK-0113",
+    "AK-0117",
+    "AK-0121",
+    "AK-0116",
+    "AK-0115"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m003",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m004",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0112",
+    "AK-0113",
+    "AK-0117",
+    "AK-0121",
+    "AK-0116",
+    "AK-0115"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m005",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m006",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m007",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0082",
+    "AK-0080",
+    "AK-0081",
+    "AK-0086"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m008",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0082",
+    "AK-0080",
+    "AK-0081",
+    "AK-0086"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m009",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0142",
+    "AK-0143",
+    "AK-0140"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m010",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m011",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m012",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m013",
+   "lang": "en",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0144",
+    "AK-0150",
+    "AK-0145",
+    "AK-0149",
+    "AK-0148",
+    "AK-0146"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m014",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0144",
+    "AK-0150",
+    "AK-0145",
+    "AK-0149",
+    "AK-0148",
+    "AK-0146"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m015",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0144",
+    "AK-0150",
+    "AK-0145",
+    "AK-0149",
+    "AK-0148",
+    "AK-0146"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m016",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0144",
+    "AK-0150",
+    "AK-0145",
+    "AK-0149",
+    "AK-0148",
+    "AK-0146"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m017",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0142",
+    "AK-0143",
+    "AK-0140"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m018",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m019",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0142",
+    "AK-0143",
+    "AK-0140"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m020",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": []
+  },
+  {
+   "id": "m021",
+   "lang": "en",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0284",
+    "AK-0283",
+    "AK-0269",
+    "AK-0142",
+    "AK-0143",
+    "AK-0140"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m022",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0284",
+    "AK-0283",
+    "AK-0269",
+    "AK-0253",
+    "AK-0250",
+    "AK-0254"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m023",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0142",
+    "AK-0143",
+    "AK-0140"
+   ],
+   "factFails": []
+  },
+  {
+   "id": "m024",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
    "returned": [],
    "factFails": []
   }

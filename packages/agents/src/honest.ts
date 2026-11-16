@@ -12,9 +12,12 @@
 // answers instead, with the record (food_facts) and its source.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deliver, noteReturned, type ToolContext } from "./concierge-tools";
-import { guardAttribute } from "./concierge-tools";
 import { messages, productName } from "./messages";
 import type { OrderIntent } from "./schemas";
+import type { QuoteLineInput } from "./concierge-tools";
+import type { Quote } from "./order-card";
+import { asksFacts, mergeFilters, readSearch, type SearchFilters } from "./search-reading";
+import { factLine, searchProducts, type Found } from "./search";
 
 export type FactKey = "sugar" | "protein" | "gluten" | "lactose" | "fat" | "salt" | "fragrance";
 
@@ -76,85 +79,193 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 
 const fold = (x: string | null | undefined) => String(x ?? "").toLowerCase();
 const ASK_INTENTS = new Set(["order", "add_to_order", "question"]);
-const USABLE = new Set(["certified", "declared", "calculated"]);
 
-interface Ask { idx: number; kind: string; facts: FactKey[]; qty: number; words: string }
+interface Ask { idx: number; kind: string; facts: FactKey[]; qty: number; words: string; filters: SearchFilters }
 interface Match { product_id: string; name_en?: string | null; name_ar?: string | null }
 
 /**
- * The honest answer, when every line the customer said asks for a fact that no approved record can answer. Returns true when it was
- * sent (the turn is answered), false when the turn goes on as before: no fact asked, an item whose own name holds the words (an order
- * for that item), or a product of that kind with an approved record (the Concierge answers with it).
+ * SR1: the answer to a kind of product asked with a fact or a restriction, from find_products (0214) and the approved facts only.
+ *   - items that pass: code lists them (at most three a kind), each with its facts and their source ("the pack says “No added sugar”") and
+ *     its price from quote_order: the chat states a fact only from an approved record of that item (invariants 14, 15);
+ *   - nothing passes: PD1's honest answer: the kinds we do not carry yet (noted), the kinds whose fact we cannot confirm yet, and at most
+ *     three real items whose own name holds the words; the request is logged with log_demand.
+ * Returns true when it answered (the turn is done), false when the turn goes on as before: no fact asked, a plain item beside it, or an
+ * item whose own name holds the words (an order for that item).
  */
 export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: string): Promise<boolean> {
   if (!ASK_INTENTS.has(intent.intent) || intent.lines.length === 0 || intent.repeat_last) return false;
   const one = intent.lines.length === 1;
+  const said_ = readSearch(said);
+  const stated = readSearch((intent.restrictions ?? []).join(". "));
   const asks: Ask[] = [];
   for (const [idx, l] of intent.lines.entries()) {
     const words = [l.raw, l.query, ...(l.modifiers ?? []), ...(one ? [said, ...(intent.restrictions ?? [])] : [])].join(" \n ");
-    const facts = factsAsked(words);
-    if (!facts.length) return false;                                 // a plain item beside it: the usual path answers the whole message
-    const kind = kindOf(l.query || l.raw) || kindOf(l.raw);
+    const own = readSearch([l.raw, ...(l.modifiers ?? [])].join(" "));
+    // the line's own facts; with one line, the whole message's; allergies and diets said anywhere hold for every line (invariant 16)
+    let filters = mergeFilters(own.filters, one ? said_.filters : {});
+    filters = mergeFilters(filters, { ...(said_.filters.free_of ? { free_of: said_.filters.free_of } : {}), ...(said_.filters.diet ? { diet: said_.filters.diet } : {}),
+                                      ...(stated.filters.free_of ? { free_of: stated.filters.free_of } : {}), ...(stated.filters.diet ? { diet: stated.filters.diet } : {}) });
+    if (!asksFacts(filters)) return false;                           // a plain item beside it: the usual path answers the whole message
+    const facts = [...new Set([...factsAsked(words), ...(own.asked as FactKey[]), ...(one ? (said_.asked as FactKey[]) : [])])].filter((f) => f in NAME_PHRASES) as FactKey[];
+    const kind = own.query || kindOf(l.query || l.raw) || kindOf(l.raw);
     if (!kind) return false;
-    asks.push({ idx, kind, facts, qty: Number(l.qty) || 1, words });
+    asks.push({ idx, kind, facts, qty: Number(l.qty) || said_.count || 1, words, filters });
   }
-  const notCarried: Ask[] = [], unconfirmed: Ask[] = [];
+  const notCarried: Ask[] = [], unconfirmed: Ask[] = [], failing: Ask[] = [];
+  const fits: { ask: Ask; found: Found[] }[] = [];
   for (const a of asks) {
     const phrases = a.facts.flatMap((f) => NAME_PHRASES[f]);
-    const found = await rpc<{ matches: Match[]; reason: string | null }>(ctx.db, "search_catalog", { p_query: a.kind, p_source_hint: null, p_limit: 12 })
-      .catch(() => ({ matches: [] as Match[], reason: "error" }));
-    const matches = found.reason ? [] : found.matches;
     // An item whose own name holds the words the customer said ("Lipton Ice Tea Zero Sugar"): an order for that item, not a fact.
-    if (matches.some((m) => phrases.some((p) => fold(m.name_en).includes(fold(p)) || (m.name_ar ?? "").includes(p)))) return false;
-    const category = await rpc<{ code: string; product_ids: string[] } | null>(ctx.db, "kind_in_catalog", { p_query: a.kind }).catch(() => null);
-    const ids = [...new Set([...matches.map((m) => String(m.product_id)), ...(category?.product_ids ?? [])])];
-    if (!ids.length) { notCarried.push(a); continue; }
-    // A product of that kind with an approved, current record that can answer the fact: the Concierge answers with it.
-    for (const id of ids.slice(0, 40)) {
-      const facts = await rpc<{ attribute: string; kind: string; status: string; expired: boolean }[]>(ctx.db, "product_food_facts", { p_product: id }).catch(() => []);
-      const usable = facts.filter((f) => !f.expired && USABLE.has(f.status));
-      if (a.facts.some((k) => { const r = FACT_RECORD[k]; return !!r && usable.some((f) => guardAttribute(f.attribute, f.kind) === guardAttribute(r.attribute, r.kind)); })) return false;
+    if (phrases.length) {
+      const named = await rpc<{ matches: Match[]; reason: string | null }>(ctx.db, "search_catalog", { p_query: a.kind, p_source_hint: null, p_limit: 12 })
+        .catch(() => ({ matches: [] as Match[], reason: "error" }));
+      if (!named.reason && named.matches.some((m) => phrases.some((p) => fold(m.name_en).includes(fold(p)) || (m.name_ar ?? "").includes(p)))) return false;
     }
-    unconfirmed.push(a);
+    const r = await searchProducts(ctx.db, ctx.embedder, a.kind, a.filters, 3).catch(() => null);
+    if (!r) return false;                                            // the search failed: the usual path answers, never a guess
+    if (r.matches.length) { fits.push({ ask: a, found: r.matches }); continue; }
+    // only an allergy or a diet, and nothing confirmed to pass: the usual ordering path, which puts the restriction on the card and checks
+    // the item named (1.14); a product the customer named is never blocked by code for lack of a record
+    if (onlyRestrictions(a.filters)) return false;
+    if (r.reason === "no_match") {
+      // the kind may still be carried under a category's name ("snacks"): PD1's check
+      const category = await rpc<{ code: string; product_ids: string[] } | null>(ctx.db, "kind_in_catalog", { p_query: a.kind }).catch(() => null);
+      if (!category?.product_ids?.length) { notCarried.push(a); continue; }
+    }
+    // items of that kind were checked against approved facts and failed (none is merely unknown): say they do not fit
+    const failed = Object.entries(r.failed ?? {});
+    if (failed.length && failed.every(([why]) => why !== "not_fact_complete")) failing.push(a);
+    else unconfirmed.push(a);
   }
 
   const lang = ctx.state.lang ?? "ar";
-  const T = messages(lang).honest;
-  const facts = [...new Set(asks.flatMap((a) => a.facts))];
+  const M = messages(lang);
+  const T = M.honest;
   const out: string[] = [];
+  // what fits, each item with its facts and their source, priced by quote_order
+  if (fits.length) {
+    out.push(T.fits(fits.map((f) => f.ask.kind)));
+    const ids = fits.flatMap((f) => f.found.slice(0, 3).map((m) => m.product_id));
+    const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(ctx.db, "quote_order",
+      { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true }).catch(() => ({ lines: [] }));
+    for (const f of fits) for (const m of f.found.slice(0, 3)) {
+      const l = q.lines.find((x) => x.product_id === m.product_id);
+      if (!l) continue;
+      out.push(M.fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok));
+      const said = [...new Set(m.evidence.map((e) => factLine(e, lang)).filter((x): x is string => !!x))];
+      if (said.length) out.push(`   ${said.join("; ")}`);
+      noteReturned(ctx, m.product_id, l.name, l.name_ar);
+    }
+  }
+  const facts = [...new Set([...notCarried, ...unconfirmed, ...failing].flatMap((a) => a.facts))];
   if (notCarried.length) out.push(T.notCarried(notCarried.map((a) => a.kind)));
+  if (failing.length) out.push(T.noneFits(failing.map((a) => a.kind)));
   for (const f of facts) {
     const kinds = unconfirmed.filter((a) => a.facts.includes(f)).map((a) => a.kind);
     if (kinds.length) out.push(T.cannotConfirm(T.fact[f], kinds));
   }
-  // At most three real items whose own name holds the words, priced by quote_order (one each, at the hub).
-  const named = await rpc<{ product_id: string; name_en: string; name_ar: string | null; phrase: string | null }[]>(ctx.db, "items_named_with",
-    { p_phrases: facts.flatMap((f) => NAME_PHRASES[f]), p_limit: 3 }).catch(() => []);
-  if (named.length) {
-    const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(ctx.db, "quote_order",
-      { p_lines: named.map((n) => ({ product_id: n.product_id, qty: 1 })), p_village: null, p_pickup: true }).catch(() => ({ lines: [] }));
-    if (q.lines.length) {
-      const said = [...new Set(named.map((n) => n.phrase).filter((x): x is string => !!x))];
-      out.push(T.named(said.length ? said : facts.flatMap((f) => NAME_PHRASES[f]).slice(0, 1)));
-      for (const l of q.lines.slice(0, 3)) {
-        out.push(messages(lang).fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok));
-        noteReturned(ctx, l.product_id, l.name, l.name_ar);
-      }
-      out.push(T.closeItems);
+  // a restriction with no fact word (an allergy): the kinds we carry and cannot confirm free of it
+  const plain = unconfirmed.filter((a) => !a.facts.length);
+  if (plain.length) out.push(T.cannotConfirm(restrictionWords(plain[0]!.filters, lang), plain.map((a) => a.kind)));
+  if (!fits.length) {
+    // At most three real items whose own name holds the words, priced by quote_order (one each, at the hub).
+    const named = facts.length ? await rpc<{ product_id: string; name_en: string; name_ar: string | null; phrase: string | null }[]>(ctx.db, "items_named_with",
+      { p_phrases: facts.flatMap((f) => NAME_PHRASES[f]), p_limit: 3 }).catch(() => []) : [];
+    if (named.length) {
+      const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(ctx.db, "quote_order",
+        { p_lines: named.map((n) => ({ product_id: n.product_id, qty: 1 })), p_village: null, p_pickup: true }).catch(() => ({ lines: [] }));
+      if (q.lines.length) {
+        const phr = [...new Set(named.map((n) => n.phrase).filter((x): x is string => !!x))];
+        out.push(T.named(phr.length ? phr : facts.flatMap((f) => NAME_PHRASES[f]).slice(0, 1)));
+        for (const l of q.lines.slice(0, 3)) {
+          out.push(M.fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok));
+          noteReturned(ctx, l.product_id, l.name, l.name_ar);
+        }
+        out.push(T.closeItems);
+      } else out.push(T.closeNone);
     } else out.push(T.closeNone);
-  } else out.push(T.closeNone);
+  } else out.push(notCarried.length || unconfirmed.length || failing.length ? T.closeItems : T.closeFits);
 
   const body = out.join("\n");
   const sent = await deliver(ctx, { type: "text", text: { body } }, body);
   if (!sent.ok) return false;
-  // The request, for purchasing (unmet_demand): one row per kind asked. Logging never breaks the turn.
+  // The request, for purchasing (unmet_demand): one row per kind asked that nothing fits. Logging never breaks the turn.
   const audience = audienceOf(said);
-  for (const a of asks) {
+  for (const a of [...notCarried, ...unconfirmed, ...failing]) {
     const carried = !notCarried.includes(a);
     await ctx.db.rpc("log_demand", {
       p_kind: carried ? "facts_unconfirmed" : "unknown_product", p_origin: "honest_answer", p_party: ctx.partyId, p_query: a.kind,
-      p_detail: { kind_asked: a.kind, facts_asked: a.facts, audience, quantity: a.qty, language: intent.language, carried, said: a.words.split(" \n ")[0] },
+      p_detail: { kind_asked: a.kind, facts_asked: a.facts, restrictions: [...(a.filters.free_of ?? []), ...(a.filters.diet ?? [])], audience, quantity: a.qty,
+                  language: intent.language, carried, said: a.words.split(" \n ")[0] },
     }).then(() => undefined, () => undefined);
   }
   return true;
+}
+
+/** Only an allergy or a diet: no nutrient, claim, animal or age asked. */
+function onlyRestrictions(f: SearchFilters): boolean {
+  const { free_of, diet, audience, prefer_tags, tags, ...rest } = f;
+  return !!(free_of?.length || diet?.length) && !asksFacts(rest);
+}
+
+/** What a restriction is called in "I can't confirm ... for our ...": "free of peanuts", «بلا فستق», "sans arachides". */
+function restrictionWords(f: SearchFilters, lang: string): string {
+  const names: Record<string, Record<string, string>> = {
+    en: { peanuts: "peanuts", tree_nuts: "nuts", sesame: "sesame", gluten: "gluten", milk: "milk", eggs: "eggs", soy: "soy", fish: "fish" },
+    fr: { peanuts: "arachides", tree_nuts: "fruits à coque", sesame: "sésame", gluten: "gluten", milk: "lait", eggs: "œufs", soy: "soja", fish: "poisson" },
+    ar: { peanuts: "فول سوداني", tree_nuts: "مكسرات", sesame: "سمسم", gluten: "غلوتين", milk: "حليب", eggs: "بيض", soy: "صويا", fish: "سمك" },
+  };
+  const l = lang === "en" || lang === "fr" ? lang : "ar";
+  const free = (f.free_of ?? []).map((a) => names[l]![a] ?? a);
+  const diets = (f.diet ?? []).map((d) => ({ en: { vegan: "vegan", vegetarian: "vegetarian", halal: "halal", fasting: "fasting (siyami)" },
+                                              fr: { vegan: "végan", vegetarian: "végétarien", halal: "halal", fasting: "siyami" },
+                                              ar: { vegan: "نباتي صرف", vegetarian: "نباتي", halal: "حلال", fasting: "صيامي" } } as Record<string, Record<string, string>>)[l]![d] ?? d);
+  const without = free.length ? (l === "en" ? `free of ${free.join(", ")}` : l === "fr" ? `sans ${free.join(", ")}` : `بلا ${free.join("، ")}`) : "";
+  return [without, ...diets].filter(Boolean).join(l === "ar" ? " و" : ", ");
+}
+
+/**
+ * SR1 (6): a basket said in words ("mjadra for 6", "lunchbox snacks for the week", "a basket under $20"): built by code (build_basket, 0215),
+ * priced by quote_order and sent as the order card, which the customer confirms (invariants 4, 7). Returns true when it answered.
+ */
+export async function basketAnswer(ctx: ToolContext, intent: OrderIntent, said: string): Promise<boolean> {
+  if (intent.intent !== "order" || intent.repeat_last) return false;
+  const r = readSearch(said);
+  if (!r.basket) return false;
+  const filters: SearchFilters = { ...r.filters };
+  delete filters.prefer_tags; delete filters.audience;
+  const stated = readSearch((intent.restrictions ?? []).join(". ")).filters;
+  const f = mergeFilters(filters, { ...(stated.free_of ? { free_of: stated.free_of } : {}), ...(stated.diet ? { diet: stated.diet } : {}) });
+  const built = await rpc<{ ok: boolean; refused?: string; type?: string; dish?: string; dish_name?: { en: string; ar: string }; people?: number; units?: number;
+                            lines?: { product_id: string; qty: number; kind: string }[]; missing?: { kind: string; reason: string }[]; max_usd?: number | null;
+                            over_budget?: boolean }>(ctx.db, "build_basket", { p_text: said, p_ask: r.basket, p_filters: f }).catch(() => null);
+  if (!built || built.refused === "no_dish" || built.refused === "budget") return false;   // not a basket after all: the usual path
+  const lang = ctx.state.lang ?? "ar";
+  const B = messages(lang).built;
+  const say = async (text: string) => (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok;
+  if (built.refused === "people") return say(B.tooMany(50));
+  const missing = (built.missing ?? []).map((m) => m.kind);
+  if (!built.lines?.length) {
+    const ok = await say([missing.length ? B.missing(missing) : null, B.none].filter(Boolean).join("\n"));
+    for (const m of built.missing ?? []) await ctx.db.rpc("log_demand", { p_kind: m.reason === "not_carried" ? "unknown_product" : "facts_unconfirmed", p_origin: "honest_answer",
+      p_party: ctx.partyId, p_query: m.kind, p_detail: { kind_asked: m.kind, basket: r.basket, restrictions: f.free_of ?? [], language: intent.language, said } }).then(() => undefined, () => undefined);
+    return ok;
+  }
+  const head = built.type === "dish" ? B.dish(lang === "en" || lang === "fr" ? built.dish_name?.en ?? String(built.dish) : built.dish_name?.ar ?? String(built.dish), built.people ?? 1)
+             : built.type === "lunchbox" ? B.lunchbox(built.units ?? 0) : B.budget(Number(built.max_usd ?? 0));
+  const before = [head, missing.length ? B.missing(missing) : null, built.over_budget && built.max_usd ? B.overBudget(Number(built.max_usd)) : null].filter(Boolean).join("\n");
+  // a basket already in hand gets these lines added; otherwise it is the basket
+  const held = ctx.state.lastQuote?.lines ?? [];
+  const lines: QuoteLineInput[] = [...held.filter((h) => !built.lines!.some((l) => l.product_id === h.product_id)),
+                                   ...built.lines.map((l) => ({ product_id: l.product_id, qty: Number(l.qty) }))];
+  const villageId = ctx.state.villageId ?? null;
+  const pickup = intent.fulfilment === "pickup";
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: lines, p_village: pickup ? null : villageId, p_pickup: pickup });
+  ctx.state.lastQuote = { lines, villageId, pickup, quote };
+  ctx.state.basketAt = Date.now();
+  for (const l of quote.lines ?? []) noteReturned(ctx, (l as { product_id?: string }).product_id, (l as { name?: string }).name, (l as { name_ar?: string | null }).name_ar);
+  const { routeBasket } = await import("./pipeline");
+  const terms = ctx.state.pending ?? { payment: "cod" as const, changeForUsd: null, notes: ctx.state.directions ?? null };
+  const done = await routeBasket(ctx, { lines, villageId, placeId: ctx.state.placeId ?? null, pickup }, terms, quote, before);
+  return done.done;
 }

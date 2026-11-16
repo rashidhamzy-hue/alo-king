@@ -260,6 +260,18 @@ export const fr: Messages = {
     named: (phrases) => `Articles avec ${phrases.map((p) => `« ${p} »`).join(" ou ")} dans leur nom :`,
     closeItems: "Dites-moi si vous en voulez un, ou autre chose.",
     closeNone: "Dites-moi ce qu'il vous faut d'autre.",
+    fits: (kinds) => `Ce qui convient (${list(kinds, "et")}), avec ce qu'indique l'emballage :`,
+    noneFits: (kinds) => `Aucun de nos ${list(kinds, "et")} ne convient, d'après leurs emballages.`,
+    closeFits: "Dites-moi lequel et combien.",
+  },
+  built: {
+    dish: (dish, people) => `${dish} pour ${people} : tout ce qu'il faut, selon la quantité par personne.`,
+    lunchbox: (units) => `Goûters pour la boîte à lunch : ${units} en tout, de plusieurs sortes.`,
+    budget: (max) => `Un panier selon votre budget (articles seulement, livraison à part).\nBudget : ${usd(max)}`,
+    missing: (kinds) => `Pas inclus : ${list(kinds, "et")} (impossible de l'ajouter maintenant).`,
+    overBudget: (max) => `Cela dépasse votre budget ; dites-moi quoi retirer.\nBudget : ${usd(max)}`,
+    tooMany: (max) => `Je peux préparer un panier jusqu'à ${max} personnes. Dites-moi ce qu'il vous faut et je l'ajoute.`,
+    none: "Je n'ai pas pu préparer ce panier avec ce que nous avons. Dites-moi ce qu'il vous faut et je l'ajoute.",
   },
   ops: {
     newPick: (code) => `📦 Nouvelle commande à préparer #${code}`,
