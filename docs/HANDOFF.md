@@ -96,6 +96,26 @@ exist, so after 24 hours that notice is skipped and recorded (as every notice wi
 **Not proven here.** WhatsApp and Kapso (a list under the confirmation on a real phone; the welcome's buttons); a rider typing a code on a
 real phone; the Arabic, read by a person (`docs/ARABIC_REVIEW.md`, "CX1"); 0143 to 0146 on staging.
 
+**The gates.** The language gate holds on the merged code ([language-pack 43766716990](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43766716990),
+second run; CX1 changes no reading code): 990 readings, **F1 0.914, wrong products 0**, the 0.13 demo right, the live evals **103 of 103**. The first
+run (43765862681) had one wrong product (`g0958`, «الأكوا» read as a second line) and the known `addr-13nov-voice` miss, both model variance.
+
+**The simulated customers on `main`** ([sim-test 43772497024](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43772497024), limit 150,
+budget USD 4, spent **$3.53**; main at 5d43392, #90), against B1c's run on the commit just before it ([43771268952](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43771268952),
+2bd4080, $3.48), the same 150 scenarios, all judged in both:
+
+| class | B1c (before CX1) | CX1 on main | what it was |
+| --- | --- | --- | --- |
+| wrong_language (code) | 1 | **15** | **New, CX1's**: all 15 were the welcome in Arabic to an English (12) or French (3) customer whose first message was a voice note. The welcome was sent before the note was read. Fixed in the follow-up pull request (the welcome now goes once the turn's words, typed or spoken, are read); tests: the first voice note in English and in French |
+| message_rules (code) | 4 | 8 | B1c's «...»: أي واحد بدك؟ question quoting the customer's Arabic-Indic digits (sim-147, sim-099, sim-014); not CX1's code. For B1c: fold the quoted words through `latinDigits` |
+| turn_error, no_reply (code) | 1, 1 | 0, 1 | |
+| judge: goal not reached, repeated question, dead end | 50, 28, 25 | 45, 18, 15 | |
+| judge: unnatural dialect, wrong product, invented fact | 33, 23, 10 | 37, 25, 13 | model variance on the same code paths (CX1 changed no reading, planner or model text) |
+| passed | 88 | 70 | the 15 welcome conversations fail on their first turn |
+
+Silences after a hand-off: 0 (25 hand-offs, 25 alerted). Address 0, off-topic 3, minimum-order loops 0, lost baskets 1. Done when the
+follow-up's own run on `main` shows no new class.
+
 ### Founder actions (CX1)
 - Pickup stays off until the hub's place is named. When it is: Supabase, SQL editor on staging, run
   `update settings set value = '{"enabled": true, "place_ar": "<the place in Arabic>", "place_en": "<the place in English>"}' where key = 'pickup';`

@@ -2,7 +2,7 @@
 // confirmation with the card's two choices, "cancel my order" in words and by tap before and after picking starts, the handover
 // code with a prepaid confirmation, and pickup at the hub said in words. docs/strategy/02-journeys.md section 1; 03 section B.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ar } from "@ak/agents/messages";
+import { ar, en, fr } from "@ak/agents/messages";
 import { cancelWords, pickupWords } from "@ak/agents/customer-pack";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Ids, type Sent } from "./flow-kit";
@@ -71,6 +71,20 @@ describe("the first-ever welcome", () => {
     expect(bodyOf(outbound[0]!)).toContain(ar.cx.privacy);
     expect(t.seen).toHaveLength(1);                           // the reading still ran
     expect(outbound.length).toBeGreaterThan(1);
+  });
+
+  // sim-test 43772497024 (main after CX1): 15 English and French customers whose first message was a voice note got the welcome in
+  // Arabic, because it was sent before the note was read. The welcome now goes once the turn's words, typed or spoken, are known.
+  it.each([["en", "hi i want to order two ulker albeni chocolate bars please", en.cx.privacy],
+           ["fr", "bonjour je voudrais commander deux bouteilles d'eau s'il vous plait", fr.cx.privacy]] as const)(
+    "a first voice note in %s: the welcome in the customer's language", async (_lang, said, privacy) => {
+    const t = flow(db, [read(order([]))]);
+    await t.conv.fetch(t.inbound({ type: "audio", audio: { id: "m1" }, kapso: { direction: "inbound", origin: "cloud_api", media_data: { url: "u", byte_size: 40000 },
+      transcript: { text: said } } }));
+    await t.conv.alarm();
+    const w = outbound.find((s) => bodyOf(s).includes("Alo King") || bodyOf(s).includes("ألو كينغ"));
+    expect(w, all()).toBeTruthy();
+    expect(bodyOf(w!)).toContain(privacy);
   });
 
   it("a first message that is STOP gets no welcome", async () => {
