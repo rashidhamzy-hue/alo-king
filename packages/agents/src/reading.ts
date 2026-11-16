@@ -23,6 +23,9 @@ const NUMBER_WORDS: Record<string, number> = {
   // B1c: counts of pieces in a pack's name (sim-003: "thirty pieces", "twelve pieces"), and the words for three said as «تلات»
   "tlet": 3, "تلات": 3, "ten": 10, "dix": 10, "عشره": 10, "twelve": 12, "douze": 12, "طنعش": 12, "اتنعش": 12, "twenty": 20, "vingt": 20,
   "عشرين": 20, "thirty": 30, "trente": 30, "تلاتين": 30, "forty": 40, "quarante": 40, "اربعين": 40, "fifty": 50, "خمسين": 50,
+  // B1d (sim-015: «2 pocket wipes arba3in» is the 40-piece pack): the tens in Arabizi
+  "3ashra": 10, "3ashara": 10, "3eshrin": 20, "3ishrin": 20, "3ichrin": 20, "tletin": 30, "tlatin": 30, "tleteen": 30, "arba3in": 40, "arb3in": 40,
+  "arba3een": 40, "khamsin": 50, "khamseen": 50,
 };
 const num = (w: string | undefined): number | null => (w == null ? null : /^\d+(?:\.\d+)?$/.test(w) ? Number(w) : NUMBER_WORDS[w] ?? null);
 /** A number written with a clitic («لتلاته», "to three" in one word; «بتلاته»): the number, else null. */
@@ -159,10 +162,157 @@ function sizeOnlyLines(intent: OrderIntent): OrderIntent {
   return out.length === intent.lines.length ? intent : { ...intent, lines: out };
 }
 
+// ---------- B1d: counts (evals/cases/b1d_counts_edits.json, sim-test 43781701377) ----------
+// Number words that make up a weight or a volume said in words («تنين وخمسين غرام», «واحدة وتلاتة مية ملل», "arba3 eh miyyeh gram").
+const MEASURE_NUM = "\\d+(?:\\.\\d+)?|واحد|واحده|وحده|تنين|اتنين|تلات|تلاته|اربع|اربعه|خمس|خمسه|ست|سته|سبع|سبعه|تمن|تمنه|تمان|تمانه|تسع|تسعه|عشر|عشره" +
+  "|عشرين|تلاتين|اربعين|خمسين|ستين|سبعين|تمانين|تسعين|ميه|مئه|مايه|مية|ميتين|تلتميه|ربعميه|خمسميه|الف|نص|wa7de|wa7ad|tnein|tnen|tlete|tlet|arba3|arba3a" +
+  "|khamse|khams|sette|set|sab3a|tmene|tes3a|3ashra|3ashrin|khamsin|miyye|miyyeh|miye|mia|meyye|mitein|alf|nos|one|two|three|four|five|six|seven|eight" +
+  "|nine|ten|twenty|thirty|forty|fifty|hundred|thousand|half|un|une|deux|trois|quatre|cinq|cent|cents|mille|demi";
+const MEASURE_UNIT = "g|gr|gm|gram|grams|gramme|grammes|غ|غم|غرام|غرامات|جرام|ml|مل|ملل|ميلي|cl|l|lt|ltr|litre|litres|liter|liters|ليتر|لتر|kg|كغ|كيلو" +
+  "|كيلوغرام|kilo|kilos|كيلوات";
+const MEASURE_FILLER = "و|w|wa|we|and|et|eh|ah|um|emm|emmm|يعني|ya3ni|bas|بس";
+const MEASURE_ONLY = new RegExp(`^(?:(?:${MEASURE_NUM}|${MEASURE_FILLER})(?: |$)|و(?:${MEASURE_NUM})(?: |$))+(?:${MEASURE_UNIT})$|^(?:${MEASURE_NUM})(?:${MEASURE_UNIT})$`, "u");
+// «مية» after a number or before a unit is a hundred, never water («تلات قناني جلي ... واحدة وتلاتة مية ملل», sim-137 put Tannourine on the card).
+const HUNDRED = new RegExp(`(?:^| )(?:(?:${MEASURE_NUM}) (?:و ?)?(?:مية|ميه|مايه|miyye|miyyeh|mia)|(?:مية|ميه|miyye|miyyeh) (?:${MEASURE_UNIT}))(?: |$)`, "u");
+
+/**
+ * A line that is only a weight or a volume («خمس غرام» after «اتنين domo sugar vanillin», sim-008; «واحدة وتلاتة مية ملل» after the dish
+ * soap, sim-137) is the size of the line before it, never an item of its own: it joins that line's words, and its number is not a count.
+ */
+function measureOnlyLines(intent: OrderIntent): OrderIntent {
+  if (intent.lines.length < 2) return intent;
+  const out: Line[] = [];
+  for (const l of intent.lines as Line[]) {
+    const raw = fold(l.raw);
+    const prev = out[out.length - 1];
+    const measure = MEASURE_ONLY.test(raw) || (HUNDRED.test(raw) && raw.split(" ").every((w) => new RegExp(`^(?:${MEASURE_NUM}|${MEASURE_FILLER}|${MEASURE_UNIT}|و\\S+)$`, "u").test(w)))
+      || packOfPrevious(raw);
+    if (prev && measure && !l.brand_hint && l.change !== "remove") {
+      out[out.length - 1] = { ...prev, raw: `${prev.raw} ${l.raw.trim()}`.trim() };
+      continue;
+    }
+    out.push(l);
+  }
+  return out.length === intent.lines.length ? intent : { ...intent, lines: out };
+}
+
+// «التاني تبع الخمس رغفان» ("the other one, the five-loaf one", gate run 43812039544, hz0377): a line that only points back and says the
+// pack (a number of loaves or pieces) describes the line before it.
+const POINT_BACK = "التاني|الثاني|تاني|التانيه|الاول|الاولى|تبع|تبعون|تبعو|يلي|اللي|هيدا|هيدي|هيداك|هيديك|منو|منها|the|other|one|ones|with|of|that|el|l|tene|tenye|teneh|tabe3|yalli|le|la|autre|celui|celle|avec|de|du";
+const PACK_UNIT = "رغيف|رغفان|ارغفه|رغيفات|loaf|loaves|ra8ifs?|r8ifs?|rghifs?|pains?|حبه|حبات|قطع|قطعه|pieces?|pcs";
+function packOfPrevious(raw: string): boolean {
+  const w = raw.split(" ");
+  const strip = (x: string) => x.replace(/^ال(?=\p{L})/u, "");
+  const isNum = (x: string) => new RegExp(`^(?:${MEASURE_NUM})$`, "u").test(strip(x)) || new RegExp(`^(?:${MEASURE_NUM})$`, "u").test(x);
+  const isUnit = (x: string) => new RegExp(`^(?:${PACK_UNIT})$`, "u").test(strip(x)) || new RegExp(`^(?:${PACK_UNIT})$`, "u").test(x);
+  return w.some(isNum) && w.some(isUnit) && w.some((x) => new RegExp(`^(?:${POINT_BACK})$`, "u").test(x))
+    && w.every((x) => isNum(x) || isUnit(x) || new RegExp(`^(?:${POINT_BACK})$`, "u").test(x));
+}
+
+// «3tine», «a3tini», «عطيني» is "give me", never a count (sim-046: «3tine rabtet khebez 3arabi» put two breads on the card).
+const GIVE_ME = /(?:^| )(?:3tine|3tini|3tiny|3teene|3tene|a3tine|a3tini|ateene|atini|عطيني|اعطيني|عطينا|عطيتي)(?: |$)/u;
+// «wa7de tene», «وحدة تانية», "one more", «tenye»: one more, never two (sim-test 43776071899 read «wa7de tene» as 2).
+const ONE_MORE = /(?:^| )(?:(?:wa7de|wa7ad|wahde|wahad|wa7da|وحده|واحد|واحده) (?:tene|tenye|tenyeh|tanye|tenyi|tani|tany|teni|تانيه|تاني|تانيي|كمان|kamen|kaman|kman)|one more|another one|une autre|un autre|encore une|encore un)(?: |$)/u;
+const ANOTHER = /(?:^| )(?:tene|tenye|tenyeh|tanye|tenyi|tani|tany|تانيه|تانيي|another|autre)(?: |$)/u;
+const TWO = /(?:^| )(?:2|tnein|tnen|tnayn|tneyn|tenyin|tintayn|tinten|tenten|تنين|اتنين|تنتين|ثنين|two|deux)(?: |$)/u;
+/** The numbers said in words or digits: what a count could have come from. */
+const countsIn = (t: string): number[] => t.split(" ").map((w) => numWord(w)).filter((n): n is number => n != null && n > 0);
+const UNIT_NEXT = new RegExp(`^(?:${MEASURE_UNIT}|${PIECES_WORDS()})$`, "u");
+function PIECES_WORDS() { return "حبه|حبات|حبة|قطعه|قطع|pieces|piece|pcs|pc|pièces|morceaux|wa2it|7abbe|7abbet"; }
+
+/**
+ * The counts the model read against the customer's own words:
+ *  - «3tine X» ("give me X") with no two said is one, not two;
+ *  - «wa7de tene», «X tenye» ("another X") is one more, not two;
+ *  - a line that starts with its count («3 Snickers caramel ...», sim-136 put 2 on the card) has that count.
+ */
+function countsSaid(intent: OrderIntent, said: string): OrderIntent {
+  if (!intent.lines.length || intent.intent === "cancel") return intent;
+  const t = fold(said);
+  const single = intent.lines.length === 1;
+  let touched = false;
+  const lines = (intent.lines as Line[]).map((l) => {
+    if (l.change === "remove") return l;
+    const raw = fold(l.raw);
+    const words = single ? `${raw} ${t}` : raw;
+    // the line's own leading count, when it is a plain count (not a weight, a volume or pieces)
+    const w = raw.split(" ");
+    const lead = num(w[0]);
+    if (lead != null && lead > 0 && lead < 100 && Number.isInteger(lead) && lead !== l.qty && !UNIT_NEXT.test(w[1] ?? "") && !/^\d+(?:\.\d+)?[\p{L}]/u.test(l.raw.trim())
+        && !countsIn(raw).includes(l.qty) && !(single && countsIn(t).includes(l.qty))) {
+      touched = true;
+      return { ...l, qty: lead };
+    }
+    if (l.qty === 2 || l.qty === 3) {
+      const noCount = !countsIn(raw.replace(GIVE_ME, " ")).includes(l.qty) && !countsIn(t.replace(GIVE_ME, " ")).includes(l.qty) && !(l.qty === 2 && TWO.test(raw));
+      if ((ONE_MORE.test(words) || (ANOTHER.test(raw) && !TWO.test(words))) && noCount) {
+        touched = true;
+        return { ...l, qty: 1, change: l.change === "set" ? l.change : (l.change ?? null) };
+      }
+      if (GIVE_ME.test(words) && noCount && !countsIn(words.replace(GIVE_ME, " ")).some((n) => n === l.qty)) {
+        touched = true;
+        return { ...l, qty: 1 };
+      }
+    }
+    return l;
+  });
+  return touched ? { ...intent, lines } : intent;
+}
+
+// What says "more": the line is added to what is there. Without one of these, a count said for an item already in the basket is its count.
+const MORE_ANY = /(?:^| )و?(?:كمان|زياده|زيدلي|زيد|زيدو|زيدها|زيدهن|ضيف|ضيفلي|ضيفو|ضيفي|ضيفها|ضيفهن|kman|kaman|kamen|kamein|zyede|ziyade|zid|zidli|zidle|zidlo|zidla|dif|difli|difle|add|adding|more|another|extra|encore|ajoute|ajoutez|ajouter|rajoute|rajoutez|de plus|en plus|tene|tenye|tenyeh|tanye|tani|تانيه|تاني|autre)(?: |$)/u;
+const NOT_MORE = /(?:^| )(?:ما|مش|ma|mish|mesh|msh|don'?t|do not|no|pas|ne)(?: (?:بدي|بدنا|baddi|badde|bade|want|veux|need))? (?:زيد|زيدلي|ضيف|كمان|zid|zidli|zidle|kaman|kamen|add|ajouter)(?: (?:شي|shi|anything|rien|more))?(?= |$)/gu;
+/** True when the message asks for more of something, said in the positive. */
+export function saysMore(said: string): boolean {
+  return MORE_ANY.test(fold(said).replace(NOT_MORE, " "));
+}
+// «ناقص 3 بامبرز», "it's missing", «il manque»: what is missing goes on the card, it is never taken off (sim-135 took the diapers off).
+const MISSING_ITEM = /(?:^| )و?(?:ناقص|ناقصني|ناقصه|ناقصين|نقصان|na2es|na2s|naa2es|missing|manque|il manque|manquent)(?: |$)/u;
+const REMOVE_WORDS = /(?:^| )و?(?:شيل|شيلي|شيلو|شيله|شيلها|شيلهن|اشطب|بلا|بلاش|ما بدي|مش بدي|shil|shile|shilo|sheel|bala|ma baddi|ma badde|remove|take off|without|no more|enlève|enlevez|enleve|retire|retirez|sans)(?: |$)/u;
+// «2 tahina bas», «3 Germex w 1 Domo bas»: "only" said after the items: those counts are the counts.
+const ONLY_AFTER = /(?:^| )(?:bas|bass|بس|only|seulement|just)$/u;
+
+/**
+ * B1d: what a message about the basket in hand says, against the model's marks:
+ *  - a line marked "add" when nothing in the message says more («3 Germex badal 2, w 1 Domo bicarbonate», sim-107; «ma baddi zid shi,
+ *    kif fiyye kammel hek? 2 tahina bas», sim-023; a question «sar 5?») is its count, never added again;
+ *  - a line marked "remove" in a message that says it is missing and asks nothing off is not taken off.
+ */
+function editMarks(intent: OrderIntent, said: string): OrderIntent {
+  if (!intent.lines.length || intent.intent === "cancel") return intent;
+  const t = fold(said);
+  const more = saysMore(said);
+  const missing = MISSING_ITEM.test(t) && !REMOVE_WORDS.test(t);
+  const onlyAfter = (l: Line) => ONLY_AFTER.test(fold(l.raw)) || (intent.lines.length === 1 && ONLY_AFTER.test(t));
+  let touched = false;
+  const lines = (intent.lines as Line[]).map((l) => {
+    if (l.change === "add" && !more) { touched = true; return { ...l, change: "set" as const }; }
+    if (l.change === "remove" && missing) { touched = true; return { ...l, change: more ? "add" as const : null }; }
+    if ((l.change === "add" || l.change == null) && onlyAfter(l) && !more) { touched = true; return { ...l, change: "set" as const }; }
+    return l;
+  });
+  return touched ? { ...intent, lines } : intent;
+}
+
+// «مش الكبير», "not the big one", «mish el kbir» read as a modifier (gate run 43812039544, hz0377 and g0377: the large loaf chosen): a size
+// ruled out says which product, so it goes into the line's own words, where the planner reads sizes.
+const NOT_SIZE = new RegExp(`(?:^| )(?:مش|مو|ما|بلا|mish|mesh|msh|mush|ma|bala|not|no|pas|sans)(?: (?:${ARTICLE}))? ?(?:${SIZE})(?: |$)`, "u");
+function sizeModifiers(intent: OrderIntent): OrderIntent {
+  let touched = false;
+  const lines = (intent.lines as Line[]).map((l) => {
+    const ruled = (l.modifiers ?? []).filter((m) => NOT_SIZE.test(fold(m)) && !fold(l.raw).includes(fold(m)));
+    if (!ruled.length) return l;
+    touched = true;
+    return { ...l, raw: `${l.raw.trim()} ${ruled.join(" ")}`.trim() };
+  });
+  return touched ? { ...intent, lines } : intent;
+}
+
 /** The reading after code's corrections. `said`: the customer's own words of the turn (texts and transcripts). */
 export function tidyReading(intent: OrderIntent, said: string): OrderIntent {
   if (!said.trim()) return intent;
-  return addOrSet(wholeMessageChanges(sizeOnlyLines(buildingColour(intent, said)), said), said);
+  const tidy = addOrSet(wholeMessageChanges(sizeOnlyLines(measureOnlyLines(sizeModifiers(buildingColour(intent, said)))), said), said);
+  return editMarks(countsSaid(tidy, said), said);
 }
 
 // ---------- pieces that are the pack's size ----------
@@ -185,16 +335,46 @@ export function packSizeCount(line: { raw: string; qty: number }, productNames: 
   const words = fold(line.raw).split(" ");
   // the count is said in pieces: "30 pieces", "thirty pieces", «٣٠ حبة»
   const pieces = new RegExp(`^(?:${PIECES})$`, "u");
-  const at = words.findIndex((w, i) => num(w) === n && pieces.test(words[i + 1] ?? ""))
-    ?? -1;
+  const at = words.findIndex((w, i) => num(w) === n && pieces.test(words[i + 1] ?? ""));
   const glued = new RegExp(`(?:^|[^\\d.])${n} ?(?:${PIECES})(?:$|[^\\p{L}])`, "u").test(fold(line.raw));
-  if (at < 0 && !glued) return null;
   const pack = new RegExp(`(?:^|[^\\d.])${n} ?(?:${PIECES}|sheets|wipes|count|ct|x|rolls|loaves)(?:$|[^\\p{L}])|(?:^| )x ?${n}(?:$|[^\\d])`, "iu");
-  if (!productNames.some((p) => !!p && pack.test(fold(p)))) return null;
+  const namePack = productNames.some((p) => !!p && pack.test(fold(p)));
+  // B1d (sim-135): a number that is one end of a range the product's name carries («١٦-٣٠ كيلو» of the "16-30Kg" diapers) is a size.
+  const rangeOf = new RegExp(`(?:^|[^\\d.])(?:${n} ?[-–] ?\\d+|\\d+ ?[-–] ?${n})(?:$|[^\\d])`, "u");
+  const inRange = rangeOf.test(DIGITS(line.raw)) && productNames.some((p) => !!p && rangeOf.test(DIGITS(p)));
   // the other count in the line, said before the pieces: "three ... thirty pieces"
-  // (never a size: «مقاس 6», "size 4", "N8", nor a weight or a volume: "400 g")
+  // (never a size: «مقاس 6», "size 4", "N8", nor a weight or a volume: "400 g", nor the other end of a range)
   const sizeWord = /^(?:مقاس|المقاس|قياس|نمره|رقم|size|taille|no|n|numero|number|ma2as|mi2as)$/u, unit = /^(?:g|gr|kg|ml|cl|l|lt|ltr|غ|غرام|كغ|كيلو|مل|ليتر|لتر|grams?|kilos?|litres?|liters?)$/u;
+  const rangeEnds = new Set([...DIGITS(line.raw).matchAll(/(\d+) ?[-–] ?(\d+)/gu)].flatMap((m) => [Number(m[1]), Number(m[2])]));
   const other = words.map((w) => num(w)).find((x, i) => x != null && x !== n && x > 0 && x < 100 && i !== at && !pieces.test(words[i + 1] ?? "")
-    && !sizeWord.test(words[i - 1] ?? "") && !unit.test(words[i + 1] ?? ""));
-  return other ?? 1;
+    && !sizeWord.test(words[i - 1] ?? "") && !unit.test(words[i + 1] ?? "") && !rangeEnds.has(x));
+  if (inRange) return other ?? 1;
+  if ((at >= 0 || glued) && namePack) return other ?? 1;
+  // B1d (sim-015): «tnein gipsy wet wipes miyye w 2 pocket wipes arba3in» read as 40: the number is the pack's own count of pieces
+  // (40Pcs), and the customer said the count of packs too.
+  if (namePack && other != null && words.some((w) => num(w) === n)) return other;
+  return weightCount(line, productNames);
+}
+
+/**
+ * B1d (sim-test 43776071899: «٣ كيلو» of sugar became three 5 kg bags): a count said in kilos, of a product sold in packs of another
+ * weight, is the number of packs nearest that weight, at least one. Null when the line's count is not a weight said in kilos or the
+ * pack is a kilo (the count stands).
+ */
+export function weightCount(line: { raw: string; qty: number }, productNames: (string | null | undefined)[]): number | null {
+  const n = line.qty;
+  const words = fold(line.raw).split(" ");
+  const kilos = words.some((w, i) => num(w) === n && /^(?:kg|كغ|كيلو|كيلوات|kilo|kilos|كيلوغرام)$/u.test(words[i + 1] ?? ""))
+    || new RegExp(`(?:^|[^\\d.])${n} ?(?:kg|كغ|كيلو|kilo)(?:$|[^\\p{L}])`, "u").test(fold(line.raw));
+  if (!kilos) return null;
+  const weights = productNames.flatMap((p) => {
+    const m = p ? /(\d+(?:\.\d+)?) ?(kg|g|gr|غ|غرام|كغ|كيلو)(?:$|[^\p{L}])/iu.exec(DIGITS(p)) : null;
+    if (!m) return [];
+    const w = Number(m[1]) / (/^(?:kg|كغ|كيلو)$/iu.test(m[2]!) ? 1 : 1000);
+    return w > 0 ? [w] : [];
+  });
+  const w = weights[0];
+  if (w == null || Math.abs(w - 1) < 1e-9) return null;
+  const packs = Math.max(1, Math.round(n / w));
+  return packs === n ? null : packs;
 }

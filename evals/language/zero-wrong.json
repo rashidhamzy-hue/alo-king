@@ -897,6 +897,74 @@
     }
    ],
    "run": "43767961138"
+  },
+  {
+   "id": "hz0377",
+   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+   "items": [
+    {
+     "sku": "AK-0088"
+    }
+   ],
+   "lines": [
+    {
+     "raw": "خبز تنور العصر",
+     "query": "خبز تنور",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "مش الكبير"
+     ]
+    },
+    {
+     "raw": "التاني تبع الخمس رغفان",
+     "query": "خبز",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "خمس رغفان"
+     ]
+    }
+   ],
+   "run": "43812039544"
+  },
+  {
+   "id": "g0377",
+   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+   "items": [
+    {
+     "sku": "AK-0088"
+    }
+   ],
+   "lines": [
+    {
+     "raw": "خبز تنور العصر",
+     "query": "خبز تنور",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "مش الكبير"
+     ]
+    },
+    {
+     "raw": "التاني تبع الخمس رغفان",
+     "query": "خبز تنور",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "خمس رغفان"
+     ]
+    }
+   ],
+   "run": "43812039544"
   }
  ]
 }

@@ -121,7 +121,11 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
     // three on: «تانية» is also "another", one more whatever the count.
     const ordinal = ordinalIn(`${said?.raw ?? ""}`);
     let op: BasketOp = ordinal != null && ordinal === qty && (explicit ?? defaultOp(intent.intent)) === "add" ? "set" : explicit ?? defaultOp(intent.intent);
-    const inB = (p: string | null | undefined): p is string => !!p && inBasket.has(p);
+    // B1d (sim-135): a size the customer says («3 من مقاس 5») that is not the basket product's size («Size 6») is never that product.
+    const saidSize = sizeIn(`${said?.raw ?? ""} ${said?.query ?? ""}`);
+    const clash = (p: string) => { if (saidSize == null) return false; const nm = heldQuote?.lines.find((l) => l.product_id === p);
+                                   const s = nm ? sizeIn(`${nm.name} ${nm.name_ar ?? ""}`) : null; return s != null && s !== saidSize; };
+    const inB = (p: string | null | undefined): p is string => !!p && inBasket.has(p) && !clash(p);
     // B1c: the basket product these words name: the planner's choice; else the one basket product among those the words fit
     // («wet wipes» is the Oui Oui in the basket, sim-021; «mortadelle» the Tanmia, sim-025; «لبن» the Khoury yogurt, sim-052); else by
     // name; else by the catalogue search.
@@ -129,11 +133,11 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
     const named = inB(pl.chosen?.product_id) ? pl.chosen!.product_id
       : onlyOne(fits.filter(inB))
         // the basket product named by its brand («add 2 more Dove cream bars»: the Dove soap, never a cream; sim-083)
-        ?? byBrand([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => l.product_id && inBasket.has(l.product_id)))
+        ?? byBrand([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => inB(l.product_id)))
         // by name or by the search only when the planner found nothing these words fit, or to take something off: «شيبس ماستر» fits the
         // Master chips, so it is never the Dolsi in the basket (sim-143)
         ?? (fits.length === 0 || op === "remove"
-          ? byName([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => l.product_id && inBasket.has(l.product_id))) ?? onlyOne((hints.get(pl.idx) ?? []).filter(inB))
+          ? byName([said?.query, said?.raw], (heldQuote?.lines ?? []).filter((l) => inB(l.product_id))) ?? onlyOne((hints.get(pl.idx) ?? []).filter(inB))
           : null);
     // B1c: a product the customer named by its own words (matched, not chosen by a rule) that is not in the basket is a new line,
     // never the basket's other product of that kind («٢ كيس شيبس ماستر» added two Dolsi, sim-143).
@@ -166,6 +170,11 @@ export function editsFromPlan(intent: Pick<OrderIntent, "intent" | "lines">, pla
   return { edits, unresolved };
 }
 const onlyOne = (xs: string[]): string | null => (new Set(xs).size === 1 ? xs[0]! : null);
+/** The size a text names: «مقاس 5», "size 6", "taille 4", "ma2as 3" (diapers, clothes), or null. */
+export function sizeIn(text: string): number | null {
+  const m = /(?:مقاس|المقاس|قياس|نمره|نمرة|size|taille|ma2as|mi2as|ma2es)\s*(\d+)/iu.exec(fold(text));
+  return m ? Number(m[1]) : null;
+}
 /** Lower case, Western digits, one alef: for the phrase checks below. */
 const fold = (s: string) => s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
 /** "It wasn't added", "they're missing": the customer thinks a basket line is not there (sim-028's «شكلهن ما انضافوا»). */

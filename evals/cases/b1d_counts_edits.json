@@ -1,0 +1,946 @@
+{
+ "about": "B1d (16 Nov 2026): the 25 wrong-product conversations of sim-test 43781701377 (CX1's run on main, the latest; 18 in B1c's run 43776071899 before it), read one by one, with what must happen instead and the test that holds it. `readings`: the model's reading against the customer's words, tidied by code (evals/test/b1d-counts.test.ts); `packs`: a count against the chosen pack (packSizeCount); the flows are in test/db/ordering-b1d.test.ts. Invented customers.",
+ "run": 43781701377,
+ "cases": [
+  {
+   "id": "sim-008",
+   "class": "count_vs_pack",
+   "lang": "ar",
+   "category": "address/pin_outside",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا اتنين domo sugar vanillinخمس غرام واتنين edita bake rolz زيتون تنين وخمسين غرام وبدي ياهم عالبيت بغريفة\"]",
+    "[taps \"Domo Sugar Vanill 5G\"]",
+    "[taps \"Domo Sugar Vanill 5G\"]",
+    "ليش تلاتة؟ انا بدي اتنين Domo بس",
+    "ما بدي زيد شي، بدي بس هيدول. فيك تكمّل الطلب؟"
+   ],
+   "wrong": "«اتنين domo sugar vanillin خمس غرام»: «خمس غرام» (the 5 g size) was read as its own line and asked as a second question; its tap added a third vanillin.",
+   "expect": "A line that is only a weight or a volume joins the line before it: one question, and the tap keeps the 2.",
+   "tested_by": "reading: sim-008-measure-line; flow: ordering-b1d «a size said after an item»"
+  },
+  {
+   "id": "sim-015",
+   "class": "count_vs_pack",
+   "lang": "arabizi",
+   "category": "window/tomorrow_morning",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba shu 3amel baddi tnein gipsy wet wipes miyye w 2 pocket wipes arba3in law sama7t w baddon yousalo bokra bokra l sob7 3a l beit bi mazraat ech chouf emmm\"]",
+    "[sends a location pin: home]",
+    "la2, l card ghalat: ana baddi 2 bas, mesh 40. w baddon bokra l sob7 mesh halla2",
+    "ah ok, ma baddi zeed shi. fi tari2a nektfe bi hayda? 2 bas",
+    "ok ok, ana baddi 3 badal 2 then, bi tseer fo2 l 5 dollar, tamem?",
+    "tamem l kamiyye 3, bas baddon bokra l sob7 mesh b 30 d2i2a. fi tawsil bokra?",
+    "ma fhemit, baddon bokra l sob7 w mesh halla2. fi t3ayyin wa2t lal tawsil?",
+    "ana baddon bokra l sob7, mesh halla2. ma fi ta2jeel? iza la2 mnele2i, ma baddi confirm",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«tnein gipsy wet wipes miyye w 2 pocket wipes arba3in» became 40 packs: the 40 is the pocket wipes' own count of pieces (40Pcs).",
+   "expect": "2 packs: a number that is the pack's own count of pieces, with the count of packs said too, is the count of packs.",
+   "tested_by": "reading: sim-015-pieces (packSizeCount)"
+  },
+  {
+   "id": "sim-135",
+   "class": "count_vs_pack",
+   "lang": "ar",
+   "category": "night/kept_order",
+   "customer": [
+    "مرحبا، بدي بامبرز اوي اوي مقاس ٦ (١٦-٣٠ كيلو) ٣٢ حبة، وعلكة منتوس ستروبري",
+    "[taps \"Oui Oui Diapers 30Kg\"]",
+    "[taps \"Mentos Incredibl 45G\"]",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "لحظة، مش 16، بدي وحدة بس من البامبرز مقاس 6. وكمان بدي 3 من مقاس 5",
+    "[taps \"ابعت طلبي\"]",
+    "الكارت غلط، بدي وحدة بس من مقاس 6 مش 4، وكمان ناقص 3 بامبرز مقاس 5",
+    "ليش شلتو البامبرز؟ بدي وحدة من مقاس 6 و3 من مقاس 5",
+    "[taps \"Oui Oui Diapers 30Kg\"]",
+    "[taps \"Oui Oui Diapers 25Kg\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«بامبرز اوي اوي مقاس ٦ (١٦-٣٠ كيلو) ٣٢ حبة»: the tap made 16 packs (the 16 of «١٦-٣٠ كيلو»); then «وكمان بدي 3 من مقاس 5» landed on the size 6 line (4 × size 6), and «ناقص 3 بامبرز مقاس 5» took the size 6 off.",
+   "expect": "One pack: an end of the range the product's name carries is a size. «مقاس 5» never names the size 6 in the basket. «ناقص» (missing) puts the item on, never takes one off.",
+   "tested_by": "reading: sim-135-range, sim-135-missing; flow: ordering-b1d «a size that is not the basket's»"
+  },
+  {
+   "id": "sim-137",
+   "class": "count_vs_pack",
+   "lang": "ar",
+   "category": "plain_order/few_items",
+   "customer": [
+    "[voice note, transcript as received: \"مرحبا بدي تلات ربطات خبز فرنجي بيستون ابيض وتنتين بيبيروني تولكرم وتلات قناني جلي صحون اوديكس ازرق بس واحدة وتلاتة مية ملل وبدي ياهن عالبيت ببشتفين لجارتي العجوز\"]",
+    "[taps \"Toulkarem Pepperoni\"]",
+    "[taps \"بيبيروني\"]",
+    "[sends a location pin: home]",
+    "ناقص الجلي، بدي ٣ قناني جلي صحون أوديكس أزرق ١٣٠٠ مل، وما طلبت مي تنورين، شيلا لو سمحت",
+    "لا، أنا بدي أوديكس جلي صحون أزرق ١٣٠٠ مل، مش ليمون ولا ديتول. في عندكن؟",
+    "[taps \"إيه، زيدهن\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "Voice «تلات قناني جلي صحون اوديكس ازرق بس واحدة وتلاتة مية ملل»: «مية» (hundred, of 1300 ml) was read as water and a Tannourine pack went on the card. Then the pepperoni button «Toulkarem Pepperoni» tapped was asked again («which one?»).",
+   "expect": "«واحدة وتلاتة مية ملل» is the dish soap's size, never water. A message that is one product's full name is that product.",
+   "tested_by": "reading: sim-137-hundred; flow: ordering-b1d «a product named in full»"
+  },
+  {
+   "id": "sim-046",
+   "class": "give_me",
+   "lang": "arabizi",
+   "category": "address/no_pin",
+   "customer": [
+    "Marhaba, baddi 1 Lotussweets Ice Cream 1Kg please",
+    "ok badde zid shi, shu fi arkhas shi 2a2al men $2?",
+    "[taps \"شوف الأغراض\"]",
+    "3tine rabtet khebez 3arabi",
+    "mawqe3i ma fiyye b3ato, il 3enwen: Deir Baba, il hay il fo2ani, il binaye il bayda, il tabe2 itneen",
+    "ana talabet rabte wa7de bas, mish tintayn. 3addilha la wa7de",
+    "ok khalas 2 rabtet khebez, rajje3ha la tintayn",
+    "zid rabte khebez tanye la salleti (yaani 2 khebez total)",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«3tine rabtet khebez 3arabi» («give me a bundle of Arabic bread») became 2 breads.",
+   "expect": "«3tine» is «give me», never a count: 1.",
+   "tested_by": "reading: sim-046-3tine"
+  },
+  {
+   "id": "sim-023",
+   "class": "complaint_not_edit",
+   "lang": "arabizi",
+   "category": "cancel/after_confirm",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi tnayn al arabiya tahina arba3 eh miyyeh gram bas la hal 2ar2ame w delivery 3al bayt bel warhaniyeh merci ktir\"]",
+    "[sends a location pin: home]",
+    "el binaye beyda, el tabe2 el tene",
+    "ma baddi zid shi, kif fiyye kammel hek? 2 tahina bas",
+    "la2, 2 bas msh 4. sa77o el card",
+    "ok shu fiyye zid yaany? 2a2all shi bi $1.04 aw akther",
+    "[taps \"شوف الأغراض\"]",
+    "3tine 3elbet tahina tenye zghire aw ay shi arkhas bi $1.04",
+    "la2 3am bet2ellik 2 msh 4 tahina. 2 bas, w ma baddi 3elbe tenye",
+    "[taps \"ilghi el talab\"]",
+    "[taps \"Eh, ilghi\"]"
+   ],
+   "wrong": "«ma baddi zid shi, kif fiyye kammel hek? 2 tahina bas» (a question, «I don't want to add anything, only 2») added 2 tahina (4 on the card); «3tine 3elbet tahina tenye ... aw ay shi arkhas» again 4.",
+   "expect": "Nothing in the message says more: the 2 is the count, set (no change). «tenye» is one more, «3tine» never a count.",
+   "tested_by": "reading: sim-023-question, sim-023-tenye"
+  },
+  {
+   "id": "sim-136",
+   "class": "picker_count",
+   "lang": "arabizi",
+   "category": "plain_order/few_items",
+   "customer": [
+    "marhaba, baddi 3 Snickers caramel w peanuts sghire w 2 pampers Loulou size 6, kif bde 3mel?",
+    "[taps \"Snickers Chocola 45G\"]",
+    "[sends a location pin: home]",
+    "el bineye bayda, el tabe2 etneyn",
+    "el snickers 3 msh 2, baddi 3 snickers",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«3 Snickers caramel w peanuts sghire» asked with one button; the card had 2 Snickers (the reading's count, not the 3 the line starts with).",
+   "expect": "3: a line that starts with its count has that count.",
+   "tested_by": "reading: sim-136-leading-count"
+  },
+  {
+   "id": "sim-107",
+   "class": "swap_or_correction",
+   "lang": "arabizi",
+   "category": "night/kept_order",
+   "customer": [
+    "Marhaba, baddi 2 Germex floor detergent 1L w 1 Domo bicarbonate 85g. Merci",
+    "shu fi shi ba2a bi 0.15$? 3am 7ot shi zghir la nwasel el minimum",
+    "baddi 3'ayyer: 3 Germex badal 2, w 1 Domo bicarbonate",
+    "la2, 2ana ba3ad 3am 2eddem, baddi 3 Germex w 1 Domo bas, mish 2 Domo. sa77i l talab",
+    "2abl el wa2et, sa77i el talab: 3 Germex w 1 Domo bicarbonate (mish 2)",
+    "ok mneh, bshuf2 bil sbe7 ba3d el 8",
+    "[taps \"ابعت طلبي\"]",
+    "[sends a location pin: home]",
+    "el binaye bayda, el tabe2 etneen",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«3 Germex badal 2, w 1 Domo bicarbonate» at night: the Domo already in the basket went from 1 to 2.",
+   "expect": "1 Domo: a count said for a basket item, with nothing that says more, is its count.",
+   "tested_by": "reading: sim-107-swap; flow: ordering-b1d «a swap never doubles a line»"
+  },
+  {
+   "id": "sim-032",
+   "class": "stale_card",
+   "lang": "ar",
+   "category": "edit_after_card/remove_item",
+   "customer": [
+    "مرحبا كيفكن؟ يعطيكن العافية",
+    "بدي 3 بيبسي دايت 1.25 ليتر، و2 معجون كولغيت تريبل أكشن 125 مل، و2 ربطة نعنع",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "بدي شيل البيبسي دايت من الطلب لو سمحت",
+    "ما بدي زيد شي، بس ما فيي خلي الطلب هيك؟",
+    "[taps \"تعديل\"]",
+    "شيلي البيبسي دايت من الطلب"
+   ],
+   "wrong": "After the card, «شيل البيبسي دايت» took the Pepsi off (basket under the minimum); «ما فيي خلي الطلب هيك؟» then re-sent the old card AK-1008 with the Pepsi.",
+   "expect": "The edited basket is the answer (the minimum line, without the Pepsi); the card it was edited from is never sent again.",
+   "tested_by": "flow: ordering-b1d «the card an edit came from is not sent again»"
+  },
+  {
+   "id": "sim-042",
+   "class": "swap_or_correction",
+   "lang": "arabizi",
+   "category": "money/omt",
+   "customer": [
+    "Marhaba, kifak? ca va?",
+    "Marhaba! Baddi 2 kilo banana (moz) w 1 3elbet Deroni 3adas ahmar masrou2 900g, please",
+    "Ma talabt sukkar! Baddi Deroni Red Split Lentils (3adas ahmar masrou2) 900g, mish sugar",
+    "Shil el sukkar men el basle please, baddi bas 2 banana w el 3adas. W shu fi min el ghalat, ma ba3ref",
+    "Mnih. Bas hayda ta7t el 7ad el adna? 2 moz + 3adas ktir 2alil, fi shi ta3mallo?",
+    "Lek, lal marra el talte: el sukkar lal ghalat, shilo. Baddi bas 2 banana w 1 3adas ahmar. Wa ana bzid shi gheir la ntaleh el 7ad, shu bte2tare7?",
+    "[taps \"Arkhas shi\"]",
+    "Lek el sukkar lessa bel basle! Shilo. W 3tini shi rkhis la nkammel el 5 dollar",
+    "La2 ya 3ammo, ma 2elt elghi! Baddi 2 banana w 1 3adas ahmar Deroni 900g la beit eddine, w el daf3 OMT",
+    "Yaa rab, again sukkar. Ma baddi sukkar! Baddi 3adas ahmar (red split lentils) Deroni 900g",
+    "[taps \"Bas hayda\"]"
+   ],
+   "wrong": "«1 3elbet Deroni 3adas ahmar masrou2 900g» (red split lentils) became Deroni Sugar 900G; «Ma talabt sukkar! ... shil el sukkar» (a complaint) went to the loop, which said «shilt el sukkar» four times while the sugar stayed; «Shilo» (take it off) cleared the whole basket.",
+   "expect": "The lentils' words fit two lentils, never the sugar: a question. A complaint that says what to change is an edit, made by code. «Shilo» never empties the basket.",
+   "tested_by": "flow: ordering-b1d «the product the words fit», «a complaint that says what to change», «take it off is not cancel»"
+  },
+  {
+   "id": "sim-082",
+   "class": "out_of_stock",
+   "lang": "en",
+   "category": "out_of_stock/in_basket",
+   "customer": [
+    "Hi, I want 2 Tanmia Chicken Tender Loose and 1 Chicken Legs please, delivery to Warhaniyeh",
+    "[taps \"Chicken Legs\"]",
+    "[taps \"Chicken Legs\"]",
+    "No wait, the basket is wrong. I want 2 Tanmia Chicken Tender Loose and only 1 Chicken Legs, not 3 chicken legs",
+    "[taps \"Cancel order\"]",
+    "Tanmia Chicken Tender Loose, 2 pieces",
+    "ok so tenders not available. Then just 1 Chicken Legs please, only 1"
+   ],
+   "wrong": "«2 Tanmia Chicken Tender Loose» (out of stock) was asked as «which one? • Chicken Legs»; the tap put 2 legs in, then «1 Chicken Legs» asked again added a third.",
+   "expect": "The tenders are out of stock: said, with what is like them, by the loop; nothing chosen or offered in their place by code.",
+   "tested_by": "flow: ordering-b1d «out of stock is said, never replaced»"
+  },
+  {
+   "id": "sim-145",
+   "class": "out_of_stock",
+   "lang": "ar",
+   "category": "out_of_stock/in_basket",
+   "customer": [
+    "مرحبا، بدي حبة طحين درة دومو 200غ وتلات علب أكياس سندويش سيتي بلاست 100 حبة",
+    "لا مو هيدا، أنا طلبت طحين درة دومو 200غ مش Gold Medal. وبدي ضيف شي ليوصل للحد الأدنى",
+    "طيب شو عندكن متل طحين درة؟ او شي بدلو",
+    "[taps \"ضيف Gold Medal\"]",
+    "[taps \"شوف الأغراض\"]",
+    "عطيني حبة سكر صغيرة او اي شي ارخص بدي كملو الحد الأدنى",
+    "[taps \"Deroni Sugar 900G\"]",
+    "ضيفلي حبة سكر تانية",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«حبة طحين درة دومو 200غ» (Domo corn flour, out of stock) became Gold Medal Flour 1Kg on the minimum line, unasked.",
+   "expect": "Out of stock, said; no other flour is put in the basket before the customer chooses it.",
+   "tested_by": "flow: ordering-b1d «out of stock is said, never replaced»"
+  },
+  {
+   "id": "sim-006",
+   "class": "picker_loop",
+   "lang": "ar",
+   "category": "address/no_pin",
+   "customer": [
+    "مرحبا، بدي 3 قناني مي فوارة طلعاية ليمون ولايم 330 مل، وكمان 2 سولين في آي بي كاكاو 25 غرام",
+    "[taps \"Talaya Sparkli 330Ml\"]",
+    "ما في مشكلة، شو بتنصحني زيد؟ شو الأغراض اللي عندكم؟",
+    "[taps \"شوف الأغراض\"]",
+    "زيدلي 4 قناني مي طلعاية كمان من نفس النوع",
+    "لا، بدي الطلعاية ليمون ولايم نفسها، مش تنورين. 4 قناني زيادة",
+    "زيدلي 3 سولين فيب كاكاو كمان",
+    "زيدلي 2 سولين كمان",
+    "زيدلي 1 مي طلعاية كمان",
+    "لا، بدي طلعاية ليمون ولايم 330 مل، قنينة وحدة زيادة",
+    "[taps \"ليمون للعصير\"]",
+    "الموقع مسكّر عندي. عنواني: الكحلونية، حي الضيعة، البناية البيضا، الطابق التاني"
+   ],
+   "wrong": "«زيدلي 4 قناني مي طلعاية كمان من نفس النوع» asked Tannourine and Aqua (the Talaya in the basket has no Arabic name); «طلعاية ليمون ولايم 330 مل» then asked juice lemons and oranges, and the tap added a lemon.",
+   "expect": "More of the Talaya already in the basket.",
+   "tested_by": "not fixed: «طلعاية» does not search to Talaya (a catalogue word, not a reading); left in HANDOFF"
+  },
+  {
+   "id": "sim-093",
+   "class": "question_not_item",
+   "lang": "ar",
+   "category": "not_sold/alcohol",
+   "customer": [
+    "مرحبا، بدي ٦ بيرة (سيكس باك) لو سمحت",
+    "ما فيكن تجيبوها إلي هيك هيك؟",
+    "لا هيدا جبنة مش بيرة. خلص مرسي، يعطيكن العافية"
+   ],
+   "wrong": "«ما فيكن تجيبوها إلي هيك هيك؟» (can you get the beer anyway?) was asked as «which one? • Picon».",
+   "expect": "A question is answered, never asked as a product to choose.",
+   "tested_by": "flow: ordering-b1d «a question is not an item to choose»"
+  },
+  {
+   "id": "sim-016",
+   "class": "brand_one_product",
+   "lang": "ar",
+   "category": "vague_items/brand_only",
+   "customer": [
+    "مرحبا، كيفكن؟ بدي غوروستي لو سمحت",
+    "ممكن خبرني شو في غوروستي؟ بدي زيد كمان",
+    "بدي كمان علبة غوروستي، بس مش هيدي. شو عندكن غيرها؟",
+    "غوروستي",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "لا استنى، أنا بدي بس وحدة، مش ٣",
+    "ok خلص رجعها ٣ بس",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«بدي غوروستي»: the brand's one product (Gorosti Turkey Breast) chosen; «ممكن خبرني شو في غوروستي؟» answered by the minimum line.",
+   "expect": "B1c's rule: a brand with one product is that product. The judge asks for a question.",
+   "tested_by": "not changed (B1c's decision, HANDOFF B1c)"
+  },
+  {
+   "id": "sim-140",
+   "class": "brand_one_product",
+   "lang": "arabizi",
+   "category": "vague_items/size_missing",
+   "customer": [
+    "marhaba, baddi mayy Rim please",
+    "Maasser Beiteddine",
+    "[sends a location pin: home]",
+    "baddi 3 kremen mayy Rim yaany",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«baddi mayy Rim»: Rim's one product (2L x6) chosen.",
+   "expect": "As sim-016.",
+   "tested_by": "not changed"
+  },
+  {
+   "id": "sim-047",
+   "class": "brand_one_product",
+   "lang": "ar",
+   "category": "vague_items/size_missing",
+   "customer": [
+    "مرحبا، بدي بسكوت كوفي جوي لو سمحت",
+    "ماشي، خليهن 12 حبة",
+    "خليهن 13 حبة",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "«بسكوت كوفي جوي»: Coffee Joy's one product chosen; 12 then 13 were the customer's own counts.",
+   "expect": "As sim-016.",
+   "tested_by": "not changed"
+  },
+  {
+   "id": "sim-017",
+   "class": "add_ignored",
+   "lang": "ar",
+   "category": "money/change_large_note",
+   "customer": [
+    "مرحبا، بدي اطلب سباغيتي ديفيلا نمرة 8 وكاجو كريكيتا مقلي مالح، كيف بتزبط؟",
+    "شو ممكن اضيف لوصل للحد الأدنى؟ بدي شي بسيط",
+    "[taps \"شوف الأغراض\"]",
+    "بدي علبة بيبسي عادي",
+    "وبدي كمان ٣ علب بيبسي عادي كمان",
+    "ضيفلي بيبسي كمان علبة وحدة",
+    "ما زبطت، بدي علبة بيبسي كمان مرة",
+    "ضيفلي بيبسي كمان علبة",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني. وعندي بس ورقة ١٠٠ دولار، رجاء خلي السائق يجيب صرافة",
+    "[taps \"تأكيد الطلب\"]",
+    "أنا بدفع بورقة ١٠٠ دولار، خلي السائق يجيب فراطة"
+   ],
+   "wrong": "«ضيفلي بيبسي كمان علبة وحدة» left 4 Pepsi at 4; the customer said it again and again (6 in the end).",
+   "expect": "One more: 5.",
+   "tested_by": "not reproduced by code: the reading's; the count rules now add with «كمان» and set without"
+  },
+  {
+   "id": "sim-040",
+   "class": "customer_own",
+   "lang": "arabizi",
+   "category": "window/named_day",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi tnen kit kat arba3a fingers el sghire 3a ba2et eh ain qani bass baddon ywaslo wara bokra mish mish halla2\"]",
+    "[sends a location pin: home]",
+    "el 3imara el bayda, el tabe2 el tene. w esmi Sim",
+    "[taps \"شوف الأغراض\"]",
+    "baddi zeed kamen kit kat 4 fingers, 3ashra ma3 b3adon",
+    "ok baddi 8 kit kat bi2alb",
+    "la2, ana baddi 2 bass! w baddon wara bokra mesh halla2. eza l2ale 2 ma fi, khalas cancel",
+    "[taps \"إلغاء الطلب\"]"
+   ],
+   "wrong": "«3ashra ma3 b3adon» then «8 kit kat bi2alb» were the customer's; then «baddi 2 bass» set 2 (right).",
+   "expect": "The counts the customer said.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-080",
+   "class": "customer_own",
+   "lang": "ar",
+   "category": "cancel/after_confirm",
+   "customer": [
+    "مرحبا، بدي 2 صابونة Dove Original Beauty Cream Bar 90G و3 ربطات بقدونس",
+    "ضيفلي 2 ربطة بقدونس كمان",
+    "ضيفلي 2 ربطة بقدونس كمان",
+    "ضيفلي ربطة بقدونس كمان",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "ليش 8 بقدونس؟ أنا طلبت 3 بس",
+    "خليهن 3 بقدونس بس",
+    "ماشي خلص، الغي الطلب"
+   ],
+   "wrong": "3 + 2 + 2 + 1 parsley = 8, all the customer's adds; the customer then asked «why 8?».",
+   "expect": "8 is right.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-109",
+   "class": "customer_own",
+   "lang": "fr",
+   "category": "edit_after_card/remove_item",
+   "customer": [
+    "Bonjour, je voudrais 2 Aruba Jelly Forest Fruits Light 12G, 2 Pain D'or Arabic Bread 900G (7 pains) et 1 Maxbell Sardine in Oil 125G, svp",
+    "Je voudrais enlever les Aruba Jelly Forest Fruits Light 12G svp",
+    "Ah d'accord. Alors remettez les 2 Aruba Jelly Forest Fruits Light 12G, puis je vous dis quoi faire",
+    "[taps \"Parcourir\"]",
+    "Ajoutez 1 Maxbell Sardine In Oil 125G de plus svp",
+    "Ajoutez encore 1 Aruba Jelly Forest Fruits Light 12G svp",
+    "[sends a location pin: home]",
+    "L'immeuble blanc, deuxième étage",
+    "Le compte n'est pas bon: je veux 2 sardines en moins (1 seule) et enlevez les Aruba Jelly Forest Fruits Light 12G svp",
+    "Ok. Alors remettez 2 Aruba Jelly Forest Fruits Light 12G, tant pis pour le minimum"
+   ],
+   "wrong": "The French customer's own removes and adds.",
+   "expect": "Right.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-139",
+   "class": "customer_own",
+   "lang": "ar",
+   "category": "window/pick_from_list",
+   "customer": [
+    "مرحبا، بدي واحد لو نوبا ويفر ١٧.٥ غ وتنين ميّ تنورين ٢ ليتر ربطة ست قناني، وصّلولي عالكحلونية",
+    "طيب زيدلي واحد لو نوبا ويفر كمان",
+    "زيدلي كمان تنتين لو نوبا ويفر",
+    "[sends a location pin: home]",
+    "أنا بدي بوقت أنا بختاره مش هلق، في أوقات توصيل؟",
+    "[taps \"اليوم 18:00-20:00\"]",
+    "ليش 4 لو نوبا؟ أنا طلبت واحد بس، خليه 1",
+    "طيب خليهم 2 لو نوبا",
+    "خليهم 3 لو نوبا",
+    "خليهم 4 لو نوبا",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "1 + 1 + 2 Lu Nouba, all the customer's; then «why 4?».",
+   "expect": "Right.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-143",
+   "class": "customer_own",
+   "lang": "ar",
+   "category": "money/whish",
+   "customer": [
+    "مسا الخير، بدي ٢ خل أبيض يمامة ١ ليتر وواحد ميرندا برتقال ٣٣٠ مل",
+    "ماشي، شو في بيزيد؟ شوفلي شي عالسريع بـ٣ دولار تقريباً",
+    "[taps \"شوف الأغراض\"]",
+    "عطيني ٣ ميرندا برتقال كمان",
+    "عطيني ٢ ميرندا كمان",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "بدي إدفع ويش مش كاش لو سمحت",
+    "[taps \"Whish\"]",
+    "[taps \"أكّد الطلب\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "1 + 3 + 2 Mirinda, all the customer's.",
+   "expect": "Right.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-067",
+   "class": "customer_own",
+   "lang": "ar",
+   "category": "night/kept_order",
+   "customer": [
+    "مساء الخير، بدي صابون سايل ويل بلس مراكش ميستيك 500 مل، وتنين فرنجي بيستون أبيض، وسكر ديروني 900 غرام",
+    "ok ضيفلي كمان 3 فرنجي بيستون أبيض",
+    "ضيفلي كمان 5 فرنجي بيستون أبيض",
+    "ضيفلي كمان 6 فرنجي بيستون أبيض",
+    "ضيفلي كمان 2 فرنجي بيستون أبيض",
+    "تمام يعطيك العافية، رح ابعت طلبي الصبح",
+    "[taps \"اليوم 09:00-11:00\"]",
+    "[sends a location pin: home]",
+    "البناية البيضا، الطابق التاني",
+    "ليش التوصيل 16:00-18:00؟ أنا اخترت اليوم 09:00-11:00",
+    "[taps \"خلّيه هيك\"]",
+    "[taps \"تأكيد الطلب\"]"
+   ],
+   "wrong": "2 + 3 + 5 + 6 + 2 Piston at night, all the customer's.",
+   "expect": "Right.",
+   "tested_by": "customer's own (judge)"
+  },
+  {
+   "id": "sim-010",
+   "class": "customer_own",
+   "lang": "arabizi",
+   "category": "window/later_today",
+   "customer": [
+    "[voice note, transcript as received: \"marhaba baddi tnayn wellplus liquid soap marrakesh emmm mystique khamse miyye ml w kilo loubye baddon yousalo bi botmeh bas l masa mish halla2 please\"]",
+    "[sends a location pin: home]",
+    "el bina el beyda ganb el jem3, el tabe2 el tene",
+    "ok ma fi mushkle, zidle 2 kilo loubye kamen",
+    "zidle 2 kilo loubye kamen la nsal el minimum",
+    "bas ana baddi yousal el masa, mish b 30 da2i2a. w 2ana talabt 1 kilo loubye bas, 3am bi 5 hala2?",
+    "[taps \"اليوم 19:00-21:00\"]",
+    "el loubye 5 kilo? ana baddi 1 kilo bas, hek 3am yo7seb 5. 2oul 3ade 7ata ykoun 1 kilo",
+    "la2, hek bas. bas el minimum 5$ mish?",
+    "ok zidle 2 kilo loubye w khalas",
+    "zidle 2 kilo loubye kamen la nsal el minimum",
+    "[taps \"إلغاء\"]"
+   ],
+   "wrong": "«kilo loubye», then «zidle 2 kilo loubye kamen» twice: 5, the customer's; «3am bi 5 hala2?» then asked as a complaint.",
+   "expect": "Right; a question about the count changes nothing.",
+   "tested_by": "customer's own (judge); the question rule: reading sim-010-question"
+  }
+ ],
+ "readings": [
+  {
+   "id": "sim-008-measure-line",
+   "text": "مرحبا اتنين domo sugar vanillinخمس غرام واتنين edita bake rolz زيتون تنين وخمسين غرام",
+   "reading": {
+    "intent": "order",
+    "lines": [
+     {
+      "raw": "اتنين domo sugar vanillin",
+      "query": "domo sugar vanillin",
+      "qty": 2
+     },
+     {
+      "raw": "خمس غرام",
+      "query": "خمس غرام",
+      "qty": 5
+     },
+     {
+      "raw": "اتنين edita bake rolz زيتون",
+      "query": "edita bake rolz زيتون",
+      "qty": 2
+     },
+     {
+      "raw": "تنين وخمسين غرام",
+      "query": "تنين وخمسين غرام",
+      "qty": 52
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "raw": "اتنين domo sugar vanillin خمس غرام"
+     },
+     {
+      "qty": 2,
+      "raw": "اتنين edita bake rolz زيتون تنين وخمسين غرام"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-137-hundred",
+   "text": "مرحبا بدي تلات ربطات خبز فرنجي بيستون ابيض وتنتين بيبيروني تولكرم وتلات قناني جلي صحون اوديكس ازرق بس واحدة وتلاتة مية ملل",
+   "reading": {
+    "intent": "order",
+    "lines": [
+     {
+      "raw": "تلات ربطات خبز فرنجي بيستون ابيض",
+      "query": "خبز فرنجي بيستون ابيض",
+      "qty": 3
+     },
+     {
+      "raw": "تنتين بيبيروني تولكرم",
+      "query": "بيبيروني تولكرم",
+      "qty": 2
+     },
+     {
+      "raw": "تلات قناني جلي صحون اوديكس ازرق",
+      "query": "جلي صحون اوديكس ازرق",
+      "qty": 3
+     },
+     {
+      "raw": "واحدة وتلاتة مية ملل",
+      "query": "مية",
+      "qty": 1
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 3
+     },
+     {
+      "qty": 2
+     },
+     {
+      "qty": 3,
+      "raw": "تلات قناني جلي صحون اوديكس ازرق واحدة وتلاتة مية ملل"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-046-3tine",
+   "text": "3tine rabtet khebez 3arabi",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "rabtet khebez 3arabi",
+      "query": "khebez 3arabi",
+      "qty": 2
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "run2-wa7de-tene",
+   "text": "ok zidle wa7de tene",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "wa7de tene",
+      "query": "Kinder",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 1,
+      "change": "add"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-023-tenye",
+   "text": "3tine 3elbet tahina tenye zghire aw ay shi arkhas bi $1.04",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "3elbet tahina tenye zghire",
+      "query": "tahina",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 1,
+      "change": "add"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-023-question",
+   "text": "ma baddi zid shi, kif fiyye kammel hek? 2 tahina bas",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "2 tahina",
+      "query": "tahina",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "set"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-010-question",
+   "text": "bas ana baddi yousal el masa, mish b 30 da2i2a. w 2ana talabt 1 kilo loubye bas, 3am bi 5 hala2?",
+   "reading": {
+    "intent": "complaint",
+    "lines": [
+     {
+      "raw": "1 kilo loubye",
+      "query": "loubye",
+      "qty": 1,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 1,
+      "change": "set"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-136-leading-count",
+   "text": "marhaba, baddi 3 Snickers caramel w peanuts sghire w 2 pampers Loulou size 6, kif bde 3mel?",
+   "reading": {
+    "intent": "order",
+    "lines": [
+     {
+      "raw": "3 Snickers caramel w peanuts sghire",
+      "query": "Snickers caramel peanuts",
+      "qty": 2
+     },
+     {
+      "raw": "2 pampers Loulou size 6",
+      "query": "pampers Loulou size 6",
+      "qty": 2
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 3
+     },
+     {
+      "qty": 2
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-107-swap",
+   "text": "baddi 3'ayyer: 3 Germex badal 2, w 1 Domo bicarbonate",
+   "reading": {
+    "intent": "change_order",
+    "lines": [
+     {
+      "raw": "3 Germex",
+      "query": "Germex",
+      "qty": 3,
+      "change": "set"
+     },
+     {
+      "raw": "1 Domo bicarbonate",
+      "query": "Domo bicarbonate",
+      "qty": 1,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 3,
+      "change": "set"
+     },
+     {
+      "qty": 1,
+      "change": "set"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sim-135-missing",
+   "text": "الكارت غلط، بدي وحدة بس من مقاس 6 مش 4، وكمان ناقص 3 بامبرز مقاس 5",
+   "reading": {
+    "intent": "change_order",
+    "lines": [
+     {
+      "raw": "وحدة بس من مقاس 6",
+      "query": "بامبرز مقاس 6",
+      "qty": 1,
+      "change": "set"
+     },
+     {
+      "raw": "3 بامبرز مقاس 5",
+      "query": "بامبرز مقاس 5",
+      "qty": 3,
+      "change": "remove"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 1,
+      "change": "set"
+     },
+     {
+      "qty": 3,
+      "change": "add"
+     }
+    ]
+   }
+  },
+  {
+   "id": "keep-add-with-more",
+   "text": "zid 3elbten kamen",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "3elbten",
+      "query": "Candia milk",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   }
+  },
+  {
+   "id": "keep-two-given",
+   "text": "3tine tnein kit kat",
+   "reading": {
+    "intent": "order",
+    "lines": [
+     {
+      "raw": "tnein kit kat",
+      "query": "kit kat",
+      "qty": 2
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2
+     }
+    ]
+   }
+  },
+  {
+   "id": "keep-add-diflí",
+   "text": "ضيفلي 2 ربطة بقدونس",
+   "reading": {
+    "intent": "add_to_order",
+    "lines": [
+     {
+      "raw": "2 ربطة بقدونس",
+      "query": "بقدونس",
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2,
+      "change": "add"
+     }
+    ]
+   }
+  },
+  {
+   "id": "keep-kilo",
+   "text": "baddi 2 kilo banana",
+   "reading": {
+    "intent": "order",
+    "lines": [
+     {
+      "raw": "2 kilo banana",
+      "query": "banana",
+      "qty": 2
+     }
+    ]
+   },
+   "expect": {
+    "lines": [
+     {
+      "qty": 2
+     }
+    ]
+   }
+  }
+ ],
+ "packs": [
+  {
+   "id": "sim-015-pieces",
+   "line": {
+    "raw": "tnein gipsy wet wipes miyye w 2 pocket wipes arba3in",
+    "qty": 40
+   },
+   "product": "Gipsy Wet Wipes 100Pcs + Pocket Wipes 40Pcs",
+   "expect": 2
+  },
+  {
+   "id": "sim-135-range",
+   "line": {
+    "raw": "بامبرز اوي اوي مقاس ٦ (١٦-٣٠ كيلو) ٣٢ حبة",
+    "qty": 16
+   },
+   "product": "Oui Oui Diapers Size 6 16-30Kg 32 Pieces",
+   "expect": 1
+  },
+  {
+   "id": "run2-sugar-3-kilo-5kg",
+   "line": {
+    "raw": "٣ كيلو سكر",
+    "qty": 3
+   },
+   "product": "Deroni Sugar 5Kg",
+   "expect": 1
+  },
+  {
+   "id": "keep-sugar-3-kilo-900g",
+   "line": {
+    "raw": "٣ كيلو سكر",
+    "qty": 3
+   },
+   "product": "Deroni Sugar 900G",
+   "expect": null
+  },
+  {
+   "id": "keep-two-pepsi-2l",
+   "line": {
+    "raw": "2 Pepsi 2L",
+    "qty": 2
+   },
+   "product": "Pepsi Soft Drink 2L",
+   "expect": null
+  },
+  {
+   "id": "keep-sim-003-thirty",
+   "line": {
+    "raw": "Three large blue trash bags, Vimax, thirty pieces",
+    "qty": 30
+   },
+   "product": "Vimax Trash Bags Large Blue 30 Pieces",
+   "expect": 3
+  }
+ ]
+}

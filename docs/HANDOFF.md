@@ -58,6 +58,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
 - **B1a merged (#77, #79, #80), two of three targets met** (below): on 150 simulated customers, minimum-order loops 66 to 0 and lost baskets 11 to 0; wrong products 34 (target 8; the planner's generic and size picks, a kept overnight basket's counts and reading cases remain); passed 35 to 48.
 - **B1b merged** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. On 150 simulated customers on main (second run, after the follow-up #87): address 8 to 1, other language 14 to 0, message rules 70 to 2, off-topic 16 to 1: **all four targets met**; passed 35 to 80 (93 on the first run). B1a's measures: loops 0, wrong products 34 (34), one lost basket (a "same as last time" question answered with "no open order"). The language gate holds (F1 0.914, wrong products 0).
+- **B1d (counts and edits)** (below, #97, no migration): the 25 wrong-product conversations of sim-test 43781701377 read one by one; counts against a pack's measure, «3tine» and «wa7de tene», a count said without "more" never added, a complaint or a question not an edit, a size never landing on another size, the product the customer's words fit when out of stock, a product named in full, an edit after the card. Language gate held (F1 0.908, wrong 0, live 103 of 103). Simulator result below.
 - **B1c (wrong products, part 3)** (below, migration 0138): generic words and sizes asked by code or given the house default (said); the basket shown at the minimum and at night; a count said again not added; edits land on the basket's own product; hz0815; same as last time offered.
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
@@ -66,6 +67,41 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **Coordinator decisions, 15 Nov 13:30** (`docs/DECISIONS.md`): B1 is split into B1a (report fixes 1, 3, 4, 9, 10 and the two no-reply turns) and B1b (fixes 5, 6, 7, 8), one after the other after HO1, and CX1 waits for B1b; the minimum order is $5 with no small-order fee at launch, the amount and the gap stated by code (the founder may overrule); a first order without a map pin is accepted with a typed village and landmark and marked for a rider call; DS1 converts the founder's brief first. Recorded by COST1 in documents only; the code and the seed changed in B1a (below).
 - **Left out on purpose:** part 4 of the strategy (the systems audit) and the founder's action drafts stay out of the repository until it is private (`docs/strategy/README.md`).
 - **One number corrected:** WH1a's migrations are 0153, 0156, 0157, 0188 and 0189, because WEB1 already uses 0154 and 0155 (`docs/DECISIONS.md`).
+
+### B1d: counts and edits, 16 November 2026 (Opus 5.5); no migration
+Ordering lane, branch `claude/gracious-ptolemy-bk1ldr`, #97. The 25 wrong-product conversations of CX1's run on main ([sim-test
+43781701377](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43781701377); B1c's run 43776071899 before it had 18), read one by one
+into `evals/cases/b1d_counts_edits.json`: what was wrong, what must happen, and the test that holds it. Each class with failing cases first
+(all 26 behaviour cases fail on `main`): `evals/test/b1d-counts.test.ts` (the readings, code only), `test/db/ordering-b1d.test.ts` (13 flows),
+`evals/language/zero-wrong.json` (+2). Migration 0217 was not needed: the planner is unchanged; the fixes are in `packages/agents/src/`.
+
+| Class (cases) | What B1d built |
+| --- | --- |
+| A count against a pack's measure (sim-008, sim-015, sim-135, sim-137; «٣ كيلو» sugar in run 43776071899) | `reading.ts`: a line that is only a weight or a volume («خمس غرام», «تنين وخمسين غرام», «واحدة وتلاتة مية ملل», "400 grams") joins the line before it; «مية» before a unit or after a number is a hundred, never water. `packSizeCount`: a number that is the chosen pack's own count of pieces with the count of packs said too («2 pocket wipes arba3in» is 2, not 40), or an end of the size range its name carries («١٦-٣٠ كيلو» of "16-30Kg" is a size), is not the count; `weightCount`: a count said in kilos of a pack of another weight is the nearest number of packs, at least one (3 kilo of the 5 kg bag is 1; of the 900 g bag 3). Applied after the plan and on the tap |
+| «3tine», «wa7de tene» (sim-046, sim-023, run 43776071899) | «3tine», «عطيني» is "give me", never a count; «wa7de tene», «وحدة تانية», «X tenye» is one more; a line that starts with its count has that count («3 Snickers ...» carded as 2, sim-136) |
+| A complaint or a question is not an edit (sim-023, sim-010, sim-093) | Without a word that says more («كمان», «زيد», «ضيف», "more", "add", «tenye», "encore"; said in the negative it does not count: «ma baddi zid shi»), a count said for a basket item is its count, never added; «X bas» at the end sets. A line that is a question («...هيك؟») is never asked as a product to choose (`choice.ts`) |
+| A swap or a correction never doubles or drops a line (sim-107, sim-135, sim-042) | «3 Germex badal 2, w 1 Domo» keeps the 1 Domo; a size said («مقاس 5») never names the basket's product of another size (`basket.ts`, `sizeIn`); «ناقص» ("missing") never takes an item off; a complaint or a question that marks what to change is an edit made by code (before, the loop said «shilt el sukkar» four times and the sugar stayed); «Shilo» ("take it off") read as cancel never empties the basket: only words that cancel do |
+| Out of stock never drops or adds an item unasked (sim-082, sim-145, sim-042) | `pipeline.ts`, `ownProducts`: when the planner chose a product the customer's words do not fit (`tied`), or asks only about others while the words fit one, the line is that one product: out of stock, the quote says so and the loop offers what is like it (before: «which one? • Chicken Legs» for the tenders; Gold Medal flour for Domo corn flour). When the words fit several («Deroni 3adas ahmar ... 900g»: the red and the green lentils; the planner chose Deroni's sugar), the line is asked with them. On the gate's 2,970 recorded readings with everything in stock, the planner never matched outside `tied`; eight right questions had two others in `tied`, so a question is replaced only when the words fit one |
+| A product picker that loops (sim-137) | A message that is one product's full English name (a button's title sent back as words, «Toulkarem Pepperoni») is that product, never the same question again |
+| An edit after the card (sim-032) | The edited basket replaces the card it came from (`state.editing`); «can I keep it like this?» answers with that basket, never the old card with the Pepsi taken off |
+| The reading prompt | One line on counts (a number that is part of the size is never the count; «3tine», «wa7de tene») and one on questions about a count; the code above holds without them |
+
+Not changed, and why: a brand with one product (sim-016 Gorosti, sim-140 Rim, sim-047 Coffee Joy) is still that product (B1c's rule; the judge
+asks for a question: the founder may decide, one line in `plan_order`'s brand rule). sim-006: «طلعاية» does not search to Talaya (no Arabic
+name on the product; a catalogue word, not a reading). sim-017 (one add left out) did not reproduce with any reading code can see. Seven of the
+25 were the customer's own additions that the judge counted (sim-080, sim-109, sim-139, sim-143, sim-067, sim-010, sim-040).
+**The gate counts these:** with about seven such conversations in each run of 150, "wrong products at most 8" needs the judge to stop
+counting them or the simulated customer to stop adding.
+
+**Tested here (CI, no key):** `npm run typecheck` clean; `npm test` green (2,286 passed, 111 skipped).
+**The language gate** (`language-pack` on the branch, "after" and "live"): first run ([43812039544](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43812039544)):
+F1 0.909, the demo right, live evals 103 of 103, but **two wrong products**: hz0377 and g0377, «بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس
+رغفان», read in two lines with «مش الكبير» as a modifier, which the planner does not read, so the large loaf was chosen. A size ruled out
+(«مش الكبير», "not the big one") now stays in the line's words, where the planner reads it and asks; a line that only points back with its pack
+(«التاني تبع الخمس رغفان») joins the line before; both readings are in `zero-wrong.json`. **The gate holds** on the second run
+([43813545023](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43813545023), head d9b0317): 990 readings, **F1 0.908, wrong products
+0**, the 0.13 demo right, the live evals **103 of 103**.
+**The simulated customers on `main`:** run after the merge (sim-test, limit 150); the result is added here by the follow-up.
 
 ### PD1: the product data standard, 16 November 2026 (Opus 5.5); migrations 0202 to 0211
 Session PD1, branch `claude/eager-cannon-m6mq4n`. Source: `docs/PRODUCT_DATA_STANDARD.md` (the founder's document of 16 November) and the
