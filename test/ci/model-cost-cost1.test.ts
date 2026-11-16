@@ -232,6 +232,7 @@ describe("every model-calling entry point is metered", () => {
     ["evals/language/gen-cases.mjs", /startMeter\(\{ workflow: "language-pack"/],
     ["evals/language/live.lang.test.ts", /startMeter\(\{ workflow: "language-pack"/],
     ["evals/live/concierge.live.test.ts", /startMeter\(\{ workflow: "language-pack"/],
+    ["scripts/label/read.mjs", /finishMeter\(out\.meter/],                                 // LB1: the batch reading run; its meter is built in batch.mjs (a library, below)
     ["evals/search/live.search.test.ts", /startMeter\(\{ workflow: "search-eval"/],     // SR1: the reading before and after, the embeddings
   ];
   for (const [file, re] of metered) it(`${file} starts a meter and records the run`, () => {
@@ -264,7 +265,8 @@ describe("every model-calling entry point is metered", () => {
       "scripts/ci/check-anthropic.sh",                                                                                  // the deploy self-test: see the next test
       "evals/run.ts", "evals/test/extract-contract.test.ts", "evals/test/neutral-cases.test.ts",                         // helpers and fakes used by the metered live evals
       "evals/sim/budget.ts", "evals/sim/call.ts", "evals/sim/customer.ts", "evals/sim/metered.ts", "evals/sim/mock.ts",  // the sim's own metering (budget.ts), which the next lines record
-      "evals/sim/sim.live.test.ts", "evals/sim/test/guard.test.ts",
+      "evals/sim/sim.live.test.ts", "evals/sim/test/guard.test.ts", "evals/sim/test/judge-basket-lb1.test.ts",           // LB1: a spy around the stand-in judge
+      "scripts/label/batch.mjs",                                                                                        // LB1: the reading run's library: priced at half, recorded by read.mjs
     ]);
     const entries = new Set(metered.map(([f]) => f));
     const callers = [...walk("scripts"), ...walk("evals")].filter((f) => /\.(mjs|ts|sh|js)$/.test(f)).filter((f) => /api\.anthropic\.com|@anthropic-ai\/sdk|messages\.create/.test(read(f)));

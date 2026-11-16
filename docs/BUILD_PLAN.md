@@ -670,8 +670,9 @@ Arabic read by a person; zero silences after a hand-off; the two failed requests
 
 | Wave | Session | Model, effort | Waits for | Runs beside | Migrations | Status |
 |---|---|---|---|---|---|---|
-| 4a, now | **PD1** product data standard: (1) the narrowed safety check and the honest answer; (2) templates, two readiness levels, intake and auto-approval; (3) recommendation data and the enrichment run | Opus, high | Nothing | B1d | 0202 to 0209 used (0210, 0211 unused) | (1) merged #96, (2) merged #98, (3) #99; the run's report and the gates in `docs/HANDOFF.md`, PD1 |
+| 4a, now | **PD1** product data standard: (1) the narrowed safety check and the honest answer; (2) templates, two readiness levels, intake and auto-approval; (3) recommendation data and the enrichment run | Opus, high | Nothing | B1d | 0202 to 0209 used (0210 and 0211 are LB1's) | (1) merged #96, (2) merged #98, (3) #99; the run's report and the gates in `docs/HANDOFF.md`, PD1 |
 | 4a, now | **B1d** counts and edits (the wrong products left after B1c) | Opus, high | Nothing | PD1 | 0217 | Not started |
+| 4a, now | **LB1** label day tooling and test budget (test budget in code, the judge sees the basket, directions and warnings fields, a phone capture page, one batch reading run, the approval queue in one sitting's order) | Sonnet, high | PD1 merged | SR1, T1, LD1 | 0210 to 0211 | Built (16 Nov): sim ceiling and limit 50, judge sees the basket, 0210, capture page, reading run (Batch API, USD 5 cap), approval queue; the first live reading and the photos wait for the label day; `docs/HANDOFF.md`, LB1 |
 | 4b | **SR1** search by meaning and facts (pgvector plus word search, filters by approved facts, one function for chat and website) | Opus, high | PD1 merged | T1, LD1 | 0212 to 0216 used | Built: #104 (the request set, the baseline), #106 (the search, filters, baskets, the website), #107; live first five 0.630 to 0.881, fact failures 0, language gate held; search by meaning off (token), sim-test not measured (simulator's copy); `docs/HANDOFF.md`, SR1 |
 | 4b | **T1** friends' test set-up (checks the new gate A) | Opus, medium | PD1 merged; Arabic read | SR1, LD1 | 0134 | Waits |
 | 4b | **LD1** website product data (JSON-LD, facts by template, functional only) | Sonnet, medium | PD1 merged | SR1, T1 | 0218 used | Built (16 Nov; `docs/HANDOFF.md`, LD1): the page follows the item's template, JSON-LD on every product page, an ItemList on categories |
@@ -679,4 +680,4 @@ Arabic read by a person; zero silences after a hand-off; the two failed requests
 | 4, parked | WEB2, UX2, UX3 | As before | **DS2** (was "the founder restarts design") | | As before | Parked |
 | Closed | FX1 | | Absorbed by PD1 (data and chat) and LD1 (product page) | | | Closed |
 | 6 | **BK1** list photo to basket (moved up from "Later") | Opus, high | SR1 merged; gate A open | RD1, AN1 | 0195 to 0197 | Not started |
-| After WEB2 and gate B | **WEB3** the assistant on the website (the same Concierge, same turn pipeline) | Opus, high | WEB2 merged; gate B passed | Any one | 0218 to 0219 | Not started |
+| After WEB2 and gate B | **WEB3** the assistant on the website (the same Concierge, same turn pipeline) | Opus, high | WEB2 merged; gate B passed | Any one | 0219 to 0220 (LD1 used 0218) | Not started |

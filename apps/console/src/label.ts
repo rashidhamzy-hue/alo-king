@@ -39,6 +39,9 @@ export const LabelReading = z.object({
     volume_ml: z.number().nullable().describe("Water: the volume of one bottle in ml"),
     water_type: z.enum(["mineral", "drinking", "sparkling"]).nullable(),
     count: z.number().nullable().describe("Pieces, sheets or rolls printed"),
+    // LB1 (0210): printed text, copied and never reworded: it is shown to a customer as the pack prints it.
+    directions_as_printed: z.string().nullable().describe("The directions (how to use, prepare or keep it) exactly as printed, in the language printed, or null"),
+    warnings_as_printed: z.array(z.string()).nullable().describe("Each printed warning (\"Contains caffeine\", \"Not recommended for children\", \"Keep refrigerated after opening\") exactly as printed, one entry each; null if none is printed"),
   }).partial().nullable().optional(),
   claims: z.array(z.object({
     code: z.enum(["no_added_sugar", "sugar_free", "low_sugar", "high_protein", "source_of_fibre", "gluten_free", "lactose_free", "low_fat", "fat_free", "low_salt",
@@ -54,6 +57,8 @@ export const LabelReading = z.object({
 });
 export type LabelReading = z.infer<typeof LabelReading>;
 
+export const labelTool = (): Anthropic.Tool => TOOL;
+export const labelPrompt = (): string => PROMPT;
 const TOOL: Anthropic.Tool = {
   name: "record_label",
   description: "Record what the label photos show. Use null or an empty list for anything not clearly printed. Never guess, never fill in what such a product usually contains.",
@@ -61,7 +66,7 @@ const TOOL: Anthropic.Tool = {
 };
 const PROMPT = "You read packaging photos (food, cleaning, beauty, baby and pet products) for the person who checks each field against the pack at intake. Report only what is printed on the photos. " +
   "Do not infer anything from the product's name, kind or brand. An allergen that is not printed is not listed. Use 'free' only for a printed free-from claim. " +
-  "A halal, vegetarian or vegan entry needs a printed claim or logo. You never decide what is published; a person does.";
+  "A halal, vegetarian or vegan entry needs a printed claim or logo. Directions and warnings: copy each exactly as printed, in the language printed; never reword, shorten, translate, summarise or turn them into advice, and never add a warning that is not printed. You never decide what is published; a person does.";
 
 export interface LabelImage { bytes: Uint8Array; mime: string }
 

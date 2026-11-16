@@ -26,8 +26,14 @@ export interface World {
 const jsonTypes = new Set(["json", "jsonb"]);
 const arrLiteral = (a: unknown[]) => `{${a.map((x) => (x === null ? "NULL" : `"${String(x).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)).join(",")}}`;
 
+/** The one staff party the copy's "who decided" columns point at (created in the throwaway database; no real party is ever copied). */
+export const STAND_IN_STAFF = "00000000-0000-4000-8000-0000000000c1";
+/** A column that records who proposed, approved, reviewed or decided: kept, pointing at the stand-in, so what a person approved stays approved. */
+const isDecider = (col: string) => /_by$/.test(col);
+
 async function loadCopy(db: TestDb, copy: Copy, log: (s: string) => void): Promise<string[]> {
   const notes: string[] = [];
+  await db.pg.query(`insert into parties(id, role, display_name, notes) values ($1, 'ops_lead', 'Stand-in staff (simulation copy)', 'Stands in for every person who approved or proposed something in the copy.') on conflict (id) do nothing`, [STAND_IN_STAFF]);
   const copied = new Set(COPY_TABLES.map((t) => t.table).filter((t) => copy[t]));
   const keepTargets = new Set([...copied, "food_attributes"]);
   await db.pg.exec("set session_replication_role = replica");
@@ -43,11 +49,15 @@ async function loadCopy(db: TestDb, copy: Copy, log: (s: string) => void): Promi
           join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey) where c.contype = 'f' and c.conrelid = $1::regclass`, [spec.table]);
       // A column pointing at a person (or anything not copied) is emptied: no party reaches the copy.
       const blank = new Set(fks.filter((f) => !keepTargets.has(f.target.replace(/^public\./, ""))).map((f) => f.col));
+      // ... except the columns that say who decided, when they point at a party: those point at the stand-in staff party (a stored decision
+      // keeps its decider, or 0021's check refuses an approved fact with no approver).
+      const standIn = new Set(fks.filter((f) => blank.has(f.col) && isDecider(f.col) && f.target.replace(/^public\./, "") === "parties").map((f) => f.col));
       const usable = cols.filter((c) => c.is_generated === "NEVER");
       const always = usable.some((c) => c.identity_generation === "ALWAYS");
       const names = usable.map((c) => c.column_name).filter((c) => rows!.some((r) => c in r));
       let skipped = 0;
       const enc = (c: (typeof usable)[number], v: unknown): unknown => {
+        if (standIn.has(c.column_name)) return v === null || v === undefined ? null : STAND_IN_STAFF;
         if (blank.has(c.column_name) || v === null || v === undefined) return null;
         if (jsonTypes.has(c.data_type)) return JSON.stringify(v);
         if (c.data_type === "ARRAY" && Array.isArray(v)) return arrLiteral(v);
@@ -55,14 +65,14 @@ async function loadCopy(db: TestDb, copy: Copy, log: (s: string) => void): Promi
         return v;
       };
       const meta = names.map((n) => usable.find((c) => c.column_name === n)!);
-      const ok = rows.filter((r) => { const bad = meta.some((c) => blank.has(c.column_name) && c.is_nullable === "NO" && r[c.column_name] !== null); if (bad) skipped++; return !bad; });
+      const ok = rows.filter((r) => { const bad = meta.some((c) => blank.has(c.column_name) && !standIn.has(c.column_name) && c.is_nullable === "NO" && r[c.column_name] !== null); if (bad) skipped++; return !bad; });
       for (let i = 0; i < ok.length; i += 200) {
         const chunk = ok.slice(i, i + 200);
         const params: unknown[] = [];
         const values = chunk.map((r) => "(" + meta.map((c) => { params.push(enc(c, r[c.column_name])); return `$${params.length}`; }).join(",") + ")").join(",");
         await db.pg.query(`insert into ${spec.table} (${names.map((n) => `"${n}"`).join(",")}) ${always ? "overriding system value " : ""}values ${values} on conflict do nothing`, params);
       }
-      if (blank.size) notes.push(`${spec.table}: ${[...blank].join(", ")} emptied${skipped ? `, ${skipped} row(s) left out` : ""}`);
+      if (blank.size) notes.push(`${spec.table}: ${[...blank].filter((c) => !standIn.has(c)).join(", ") || "no column"} emptied${standIn.size ? `; ${[...standIn].join(", ")} point at the stand-in staff party` : ""}${skipped ? `, ${skipped} row(s) left out` : ""}`);
       log(`[world] ${spec.table}: ${ok.length} rows loaded`);
     }
   } finally { await db.pg.exec("set session_replication_role = origin"); }
