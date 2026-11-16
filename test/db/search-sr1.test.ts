@@ -12,7 +12,7 @@ import { readSearch } from "@ak/agents/search-reading";
 import { REQUESTS } from "../../evals/search/score";
 
 /** The heading of a list of items that fit, in any language (messages.honest.fits). */
-const FITS = /What fits|Ce qui convient|هيدا يلي بيناسب/;
+const FITS = /What fits|Ce qui convient|هيدول يلي بيناسبوا/;
 
 let db: TestDb; let idOf: Map<string, string>; let skuOf: Map<string, string>;
 beforeAll(async () => { ({ db } = await openFlowDb()); ({ idOf, skuOf } = await seedSearchFacts(db)); }, 300_000);

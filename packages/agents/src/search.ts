@@ -70,7 +70,7 @@ export function factLine(e: Evidence, lang: string): string | null {
 
 const ALLERGEN_NAMES: Record<string, Record<"en" | "fr" | "ar", string>> = {
   gluten: { en: "gluten", fr: "gluten", ar: "غلوتين" }, crustaceans: { en: "crustaceans", fr: "crustacés", ar: "قشريات" }, eggs: { en: "eggs", fr: "œufs", ar: "بيض" },
-  fish: { en: "fish", fr: "poisson", ar: "سمك" }, peanuts: { en: "peanuts", fr: "arachides", ar: "فول سوداني" }, soy: { en: "soy", fr: "soja", ar: "صويا" },
+  fish: { en: "fish", fr: "poisson", ar: "سمك" }, peanuts: { en: "peanuts", fr: "arachides", ar: "فستق عبيد" }, soy: { en: "soy", fr: "soja", ar: "صويا" },
   milk: { en: "milk", fr: "lait", ar: "حليب" }, tree_nuts: { en: "tree nuts", fr: "fruits à coque", ar: "مكسرات" }, celery: { en: "celery", fr: "céleri", ar: "كرفس" },
   mustard: { en: "mustard", fr: "moutarde", ar: "خردل" }, sesame: { en: "sesame", fr: "sésame", ar: "سمسم" }, sulphites: { en: "sulphites", fr: "sulfites", ar: "كبريتيت" },
   lupin: { en: "lupin", fr: "lupin", ar: "ترمس" }, molluscs: { en: "molluscs", fr: "mollusques", ar: "رخويات" },
