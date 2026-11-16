@@ -9,6 +9,10 @@ import { createServer } from "node:net";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openTestDb, type TestDb } from "../db/harness";
+import { makeFactComplete } from "../db/fact-kit";
+import { productJsonLd } from "../../apps/web/src/lib/jsonld";
+import { DICTS } from "../../apps/web/src/lib/i18n";
+import { pictureUrl } from "../../apps/web/src/lib/db";
 import { WEB_CATALOG_FUNCTIONS } from "@ak/commerce/index";
 import { FAKE_ANON, FAKE_JWT, startFakePostgrest, type Fake } from "./postgrest-fake";
 
@@ -31,7 +35,12 @@ async function startServer(vars: Record<string, string>) {
 }
 const get = (path: string, h: Record<string, string> = {}) => fetch(base + path, { redirect: "manual", headers: { "accept-language": "en", ...h } });
 const page = async (path: string, h: Record<string, string> = {}) => { const r = await get(path, h); return { status: r.status, headers: r.headers, html: await r.text() }; };
+/** The JSON-LD blocks of a page, parsed. */
+const lds = (html: string): any[] => [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]!));
+const ld = (html: string): any => lds(html)[0];
 const skus = (html: string) => [...new Set([...html.matchAll(/href="\/p\/(AK-\d+)"/g)].map((m) => m[1]!))];
+/** The page without its data blocks (LD1: the head carries JSON-LD, whose addresses are not cards). */
+const body = (html: string) => html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "");
 const text = (html: string) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 async function propose(sku: string, kind: "intake_photo" | "open_food_facts" | "web_search") {
@@ -93,7 +102,7 @@ describe("pages render from the database, with JavaScript off", () => {
     expect(status).toBe(200);
     expect(skus(html).length).toBeGreaterThan(10);
     expect(html).toContain("Leen Taanayel Labneh Premium");
-    const card = html.split('<li class="ak-product').find((c) => c.includes("AK-0042"))!;      // DS1: the shared product card
+    const card = body(html).split('<li class="ak-product').find((c) => c.includes("AK-0042"))!;      // DS1: the shared product card
     expect(card).toContain("Out of stock");
     expect(card).toMatch(/\$\d+\.\d\d/);
   });
@@ -181,40 +190,44 @@ describe("pictures: only approved ones the bucket holds", () => {
   });
 });
 
-describe("food facts: approved ones with their status; everything else is 'not verified'", () => {
-  it("with no records: every attribute is 'not verified' and nothing says safe, free or healthy", async () => {
+describe("food facts: approved ones with their source; everything else is 'not confirmed yet'", () => {
+  it("with no records: every attribute is 'not confirmed yet' and nothing says safe, free or healthy", async () => {
     const { html } = await page("/p/AK-0043");
     const t = text(html);
-    expect(t).toContain("Nothing is verified yet for this item.");
-    expect(t).toMatch(/Not verified: .*Milk/);
+    expect(t).toContain("Nothing is confirmed yet for this item.");
+    expect(t).toMatch(/Not confirmed yet: .*Milk/);
     expect(t).toContain("do not assume it is safe or free of anything");
-    const facts = t.slice(t.indexOf("Nothing is verified yet"));                      // the facts themselves, after the standing notice
+    const facts = t.slice(t.indexOf("Nothing is confirmed yet"));                      // the facts themselves, after the standing notice
     expect(facts).not.toMatch(/Free of|\bsafe\b|healthy|health|rating|stars|score/i);
   });
 
-  it("a proposed fact never renders; an approved declared one does, with its status, source and date; a partial 'free' stays 'not verified'", async () => {
+  it("a proposed fact never renders; an approved declared one does, with its status, source and date; a partial 'free' stays 'not confirmed yet'", async () => {
     const proposedOnly = await fact("AK-0043", "milk", "contains", "declared", "label");
     expect(text((await page("/p/AK-0043")).html)).not.toContain("Contains: Milk");
     await approveFact(proposedOnly);
-    expect(text((await page("/p/AK-0043")).html)).toMatch(/Contains: Milk \(declared, pack label, checked \d{4}-\d\d-\d\d\)/);
+    expect(text((await page("/p/AK-0043")).html)).toMatch(/Contains: Milk \(from the pack, checked \d{4}-\d\d-\d\d\)/);
     const partialFree = await fact("AK-0043", "gluten", "free", "partial", "label"); await approveFact(partialFree);
     const t = text((await page("/p/AK-0043")).html);
     expect(t).not.toContain("Free of: Cereals containing gluten");
-    expect(t).toMatch(/Not verified: .*Cereals containing gluten/);
+    expect(t).toMatch(/Not confirmed yet: .*Cereals containing gluten/);
     const sesame = await fact("AK-0043", "sesame", "free", "declared", "label"); await approveFact(sesame);
-    expect(text((await page("/p/AK-0043")).html)).toContain("Free of: Sesame (declared");
+    expect(text((await page("/p/AK-0043")).html)).toContain("Free of: Sesame (from the pack");
     await db.pg.query(`update product_facts set expires_at = now() - interval '1 day' where id = $1`, [sesame]);
     expect(text((await page("/p/AK-0043")).html)).not.toContain("Free of: Sesame");
   });
 
-  it("ingredients and the nutrition panel render as printed, only when approved; evidence details never leave", async () => {
+  it("ingredients render as printed once approved; the nutrition panel only for a fact-complete item; evidence details never leave", async () => {
     const ing = await fact("AK-0044", "ingredients", null, "declared", "label", { text: "Strained yoghurt, salt", lang: "en", secret_note: "internal-evidence-ref" });
     expect(text((await page("/p/AK-0044")).html)).not.toContain("Strained yoghurt");
     await approveFact(ing);
-    const nut = await fact("AK-0044", "nutrition", null, "declared", "label", { values: { energy_kcal: 120, protein_g: 4.5 }, per: "100g" }); await approveFact(nut);
-    const { html } = await page("/p/AK-0044");
+    const nut = await fact("AK-0044", "nutrition", null, "declared", "label", { values: { energy_kcal: 120, proteins: 4.5 }, per: "100g" }); await approveFact(nut);
+    let { html } = await page("/p/AK-0044");
     expect(text(html)).toContain("Strained yoghurt, salt");
-    expect(html).toContain("energy kcal"); expect(html).toContain("4.5");
+    expect(text(html)).not.toMatch(/Energy 120 kcal/);                                     // approved, but the item is not fact-complete yet: no numbers
+    expect(text(html)).toMatch(/Nutrition Not confirmed yet/);
+    await makeFactComplete(db, pid["AK-0044"]!, ops);
+    html = (await page("/p/AK-0044")).html;
+    expect(text(html)).toMatch(/Energy[^A-Za-z]*120 kcal/); expect(text(html)).toMatch(/Protein[^A-Za-z]*4.5 g/); expect(text(html)).toContain("Per 100 g");
     expect(html).not.toContain("internal-evidence-ref");
   });
 
@@ -229,6 +242,61 @@ describe("food facts: approved ones with their status; everything else is 'not v
       const { html } = await page("/p/AK-0044", { "accept-language": lang });
       expect(text(html), lang).not.toMatch(/healthy|best seller|recommended|top rated|rating|صحي|الأفضل|مميز|sain\b|meilleur/i);
     }
+  });
+});
+
+describe("LD1: the product page follows its template, and its JSON-LD is built from the same read", () => {
+  const sku = async (category: string) => (await db.one(`select sku from products where category = $1 and is_active order by sku limit 1`, [category])).sku as string;
+  const read = async (s: string) => await db.rpc<any>("web_catalog_product", { p_sku: s });
+
+  it("one JSON-LD block, a data block the content security policy does not run, equal to the one built from the same read; no microdata", async () => {
+    const r = await page("/p/AK-0042");
+    expect(lds(r.html)).toHaveLength(1);
+    expect(r.html).toMatch(/<script type="application\/ld\+json">/);
+    expect(r.headers.get("content-security-policy")).toMatch(/script-src 'self';/);
+    expect(r.html).not.toMatch(/itemscope|itemprop/);
+    const ok = await read("AK-0042");
+    const image = ok.picture ? pictureUrl({ SUPABASE_URL: fake.url }, ok.picture.path, 1200) : null;
+    expect(ld(r.html)).toEqual(JSON.parse(JSON.stringify(productJsonLd("en", ok, { origin: base, imageUrl: image }))));
+    expect(ld(r.html).offers.url).toBe(`${base}/p/AK-0042`);
+    expect(text(r.html)).toContain(`$${ld(r.html).offers.price}`);                 // the price in the data is the price on the page
+  });
+
+  it.each([["Cleaning & Household"], ["Beauty & Personal Care"], ["Baby & Child"], ["Pet Zone"]])("%s: no allergen, diet, nutrition or food-facts line; its own fields read not confirmed yet, in all three languages", async (category) => {
+    const s = await sku(category);
+    for (const lang of ["en", "ar", "fr"] as const) {
+      const { status, html } = await page(`/p/${s}`, { "accept-language": lang });
+      const t = text(html);
+      expect(status, lang).toBe(200);
+      expect(t, `${lang} ${s}`).toContain(DICTS[lang].not_confirmed_yet);
+      for (const w of [DICTS[lang].allergens, DICTS[lang].diets, DICTS[lang].nutrition, DICTS[lang].facts_title, DICTS[lang].contains, DICTS[lang].free_of]) expect(t, `${lang}: ${w}`).not.toContain(w);
+      expect(ld(html)).not.toHaveProperty("nutrition");
+    }
+  });
+
+  it("packaged food in all three languages: the groups its template has, each unknown listed as not confirmed yet", async () => {
+    for (const lang of ["en", "ar", "fr"] as const) {
+      const t = text((await page("/p/AK-0045", { "accept-language": lang })).html);
+      expect(t).toContain(DICTS[lang].facts_title); expect(t).toContain(DICTS[lang].allergens); expect(t).toContain(DICTS[lang].not_confirmed_yet);
+    }
+  });
+
+  it("an item with no price entered states none: no $0.00 on the page and no Offer in the data", async () => {
+    const { status, html } = await page("/p/AK-0190");
+    expect(status).toBe(200);
+    expect(text(html)).toContain("Price not set yet"); expect(text(html)).not.toContain("$0.00");
+    expect(ld(html)).not.toHaveProperty("offers");
+    expect(ld(html)).toMatchObject({ "@type": "Product", sku: "AK-0190" });
+  });
+
+  it("a category page carries an ItemList of exactly the items it lists", async () => {
+    const { html } = await page("/c/dairy_eggs");
+    const list = ld(html);
+    const listed = skus(html);
+    expect(list["@type"]).toBe("ItemList"); expect(list.numberOfItems).toBe(listed.length);
+    expect(list.itemListElement.map((x: any) => x.url.replace(`${base}/p/`, "")).sort()).toEqual([...listed].sort());
+    expect(list.itemListElement.map((x: any) => x.position)).toEqual(listed.map((_, i) => i + 1));
+    expect(JSON.stringify(list)).not.toMatch(/aggregateRating|ratingValue|review/i);
   });
 });
 
@@ -399,13 +467,13 @@ describe("DS1: the redesigned pages", () => {
     await db.pg.exec(`update stock_levels set on_hand = 0 where product_id = (select id from products where sku = 'AK-0046')`);
     try {
       const cat = (await page("/c/dairy_eggs")).html;
-      const card = (sku: string) => cat.split('<li class="ak-product').find((c) => c.includes(`/p/${sku}"`))!;
+      const card = (sku: string) => body(cat).split('<li class="ak-product').find((c) => c.includes(`/p/${sku}"`))!;
       expect(card("AK-0042")).toContain('href="https://wa.me/96100000000?text=AK-0042"'); expect(card("AK-0046")).not.toContain("wa.me");
       const prod = (await page("/p/AK-0042")).html;
-      expect(prod).toContain('itemtype="https://schema.org/Product"'); expect(prod).toContain('itemprop="priceCurrency" content="USD"'); expect(prod).toContain('href="https://schema.org/InStock"');
-      expect((await page("/p/AK-0046")).html).toContain('href="https://schema.org/OutOfStock"');
+      expect(ld(prod).offers).toMatchObject({ priceCurrency: "USD", availability: "https://schema.org/InStock" });
+      expect(ld((await page("/p/AK-0046")).html).offers.availability).toBe("https://schema.org/OutOfStock");
       expect((await page("/")).html).toContain('itemtype="https://schema.org/GroceryStore"');
-      expect(prod).not.toMatch(/application\/ld\+json|aggregateRating|ratingValue|review/i);
+      expect(prod).not.toMatch(/aggregateRating|ratingValue|review|itemprop/i);
     } finally { await db.pg.exec(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = 'AK-0046')`); }
   });
 

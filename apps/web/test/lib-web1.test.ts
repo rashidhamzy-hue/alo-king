@@ -41,7 +41,7 @@ describe("facts wording", () => {
   it("a verified one is stated with its status, source and date; the rest stay listed as not verified", () => {
     const g = groupFacts("en", [fact({ verified: true, value: "may_contain", status: "declared", source: "label", reviewed_at: "2026-11-10T09:00:00Z" }),
                                 fact({ attribute: "eggs", name_en: "Eggs" })]);
-    expect(g[0]!.lines).toEqual([{ text: "May contain: Milk", how: "declared, pack label, checked 2026-11-10" }]);
+    expect(g[0]!.lines).toEqual([{ text: "May contain: Milk", how: "from the pack, checked 2026-11-10" }]);
     expect(g[0]!.notVerified).toEqual(["Eggs"]);
   });
   it("Arabic wording and the Arabic ingredient text when there is one", () => {

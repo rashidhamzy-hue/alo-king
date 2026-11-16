@@ -1,27 +1,34 @@
 // What a product page says about food, as data the template prints. The database has already decided what may be said
-// (web_catalog_product: a current approved fact, unexpired, checked); this only groups it and words it. Invariants 14 and 15:
+// (web_catalog_product: a current approved fact, unexpired, checked, and only the groups the item's own template has); this only groups it
+// and words it. The nutrition panel is not here: it comes once, typed, as `nutrition` (lib/product.ts). Invariants 14 and 15:
 // no judgement about the food, and unknown is never safe, so an unchecked attribute is listed as "not verified" and never as "free".
 import type { CatalogFact } from "@ak/commerce/index";
-import { nameIn, t, type Lang } from "./i18n";
+import { DICTS, nameIn, t, type Lang } from "./i18n";
 
 export interface FactLine { text: string; how: string }
 export interface FactGroup {
-  kind: "allergen" | "diet" | "ingredients" | "nutrition" | "text";
-  title: string; lines: FactLine[]; panel?: { name: string; value: string }[]; notVerified: string[];
+  kind: "allergen" | "diet" | "text";
+  title: string; lines: FactLine[]; notVerified: string[];
   /** The whole group has nothing checked. */
   empty: boolean;
 }
 
-const humanize = (k: string) => k.replace(/_/g, " ");
 const dateOf = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
 
-/** "declared, pack label, checked 2026-11-10". */
-function how(l: Lang, f: CatalogFact): string {
-  const parts = [t(l, `status_${f.status}` as never), f.source ? t(l, `src_${f.source}` as never) : ""];
-  const d = dateOf(f.reviewed_at);
+/** Where a stored source comes from, in words: "from the pack", "declared by the vendor". An unknown source says nothing rather than guess. */
+export const sourceWord = (l: Lang, source: string | null | undefined): string => {
+  const k = `src_${source ?? ""}`;
+  return source && k in DICTS[l] ? DICTS[l][k]! : "";
+};
+
+/** "from the pack, checked 2026-11-10" (a certified record says so as well). A source with no words says nothing rather than guess. */
+export function howText(l: Lang, source: string | null | undefined, status: string | null | undefined, reviewedAt: string | null | undefined): string {
+  const parts = [sourceWord(l, source), status === "certified" ? t(l, "status_certified") : ""];
+  const d = dateOf(reviewedAt ?? null);
   if (d) parts.push(t(l, "checked_on", { date: d }));
   return parts.filter(Boolean).join(", ");
 }
+const how = (l: Lang, f: CatalogFact): string => howText(l, f.source, f.status, f.reviewed_at);
 
 export function groupFacts(l: Lang, facts: CatalogFact[]): FactGroup[] {
   const by = (pred: (f: CatalogFact) => boolean) => facts.filter(pred);
@@ -44,11 +51,6 @@ export function groupFacts(l: Lang, facts: CatalogFact[]): FactGroup[] {
     const title = f.attribute === "ingredients" ? t(l, "ingredients") : f.attribute === "storage" ? t(l, "storage") : f.attribute === "origin" ? t(l, "origin") : nameIn(l, f.name_en, f.name_ar);
     const text = f.verified ? (l === "ar" && f.detail?.ar ? f.detail.ar : f.detail?.text) : null;
     out.push({ kind: "text", title, lines: text ? [{ text, how: how(l, f) }] : [], notVerified: text ? [] : [t(l, "not_verified")], empty: !text });
-  }
-  for (const f of by((x) => x.kind === "nutrition")) {
-    const values = f.verified && f.detail?.values && typeof f.detail.values === "object" ? Object.entries(f.detail.values) : [];
-    const panel = values.filter(([, v]) => typeof v === "number" || typeof v === "string").map(([k, v]) => ({ name: humanize(k), value: String(v) }));
-    out.push({ kind: "nutrition", title: t(l, "nutrition"), lines: panel.length ? [{ text: "", how: how(l, f) }] : [], panel, notVerified: panel.length ? [] : [t(l, "not_verified")], empty: panel.length === 0 });
   }
   return out;
 }

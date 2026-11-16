@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openTestDb, type TestDb } from "../db/harness";
+import { makeFactComplete } from "../db/fact-kit";
 import { FAKE_ANON, FAKE_JWT, startFakePostgrest, type Fake } from "../web/postgrest-fake";
 
 const OUT = process.env.SCREENS;
@@ -20,6 +21,7 @@ const WIDE = `document.documentElement.scrollWidth <= window.innerWidth + 1 ? []
 const root = fileURLToPath(new URL("../../apps/web/", import.meta.url));
 const freePort = () => new Promise<number>((ok) => { const s = createServer(); s.listen(0, "127.0.0.1", () => { const p = (s.address() as any).port; s.close(() => ok(p)); }); });
 
+let PRODUCT_PAGES: [string, string][] = [];
 describe.skipIf(!OUT)("screenshots", () => {
   let db: TestDb; let fake: Fake; let base = ""; let stop: () => Promise<void> = async () => {};
   beforeAll(async () => {
@@ -28,6 +30,20 @@ describe.skipIf(!OUT)("screenshots", () => {
       update stock_levels set on_hand = 0 where product_id in (select id from products where sku in ('AK-0046', 'AK-0051'));
       update settings set value = '{"open":"09:00","close":"21:00","tz":"Asia/Beirut"}' where key = 'hours';
       update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
+    // LD1: invented approved data, so the three product pages show both states (the seed holds no approved fact or field): a fact-complete food
+    // item, a cleaning item with its own fields approved, and a baby item left bare (every field "not confirmed yet": the true state today).
+    // None of it is real; nothing here leaves the test database.
+    const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Example ops') returning id`)).id as string;
+    const named = async (sku: string, ar: string) => { await db.pg.query(`update products set name_ar = $2 where sku = $1`, [sku, ar]); return (await db.one(`select id from products where sku = $1`, [sku])).id as string; };
+    const food = await named("AK-0052", "زبادي يوناني سادة قليل الدسم ١٧٥ غ");
+    await makeFactComplete(db, food, ops, { allergens: { milk: "contains" }, ingredients: "Milk, live cultures", nutrition: { energy_kcal: 72, fat: 2, saturated_fat: 1.3, carbohydrates: 4.1, sugars: 4.1, proteins: 9.5, salt: 0.1 } });
+    await db.pg.query(`insert into product_claims(product_id, claim_code, quote, source, status, approved_by, approved_at) values ($1, 'low_fat', 'Low fat', 'label_photo', 'approved', $2, now())`, [food, ops]);
+    const clean = await named("AK-0249", "منظف مرحاض ١ ليتر");
+    for (const [k, v, src] of [["hazard_warnings", ["Irritant"], "label_photo"], ["pictograms", ["irritant"], "label_photo"], ["scent", "Pine", "brand_site"], ["keep_from_children", true, "label_photo"], ["use_surface", "Toilet bowls", "label_photo"]] as const)
+      await db.pg.query(`insert into product_field_values(product_id, field_key, value, source, status, proposed_by, approved_by, approved_at, reviewed_at) values ($1, $2, $3::jsonb, $4, 'approved', $5, $5, now(), now())`, [clean, k, JSON.stringify(v), src, ops]);
+    const baby = (await db.one(`select sku from products where category = 'Baby & Child' and is_active order by sku limit 1`)).sku as string;
+    await named(baby, "حفاضات أطفال");
+    PRODUCT_PAGES = [["product-food", "/p/AK-0052"], ["product-cleaning", "/p/AK-0249"], ["product-baby", `/p/${baby}`]];
     fake = await startFakePostgrest(db);
     await build({ root, logLevel: "error" });
     const body = Object.entries({ SUPABASE_URL: fake.url, SUPABASE_ANON_KEY: FAKE_ANON, WEB_CHANNEL_JWT: FAKE_JWT, PAGE_CACHE: "off", ENVIRONMENT: "staging" }).map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
@@ -42,7 +58,7 @@ describe.skipIf(!OUT)("screenshots", () => {
     const { chromium } = createRequire(import.meta.url)("playwright") as any;
     const browser = await chromium.launch();
     const all: [string, string][] = [["home", "/"], ["home-check", "/?village=2#deliver"], ["category", "/c/dairy_eggs"], ["category-filtered", "/c/dairy_eggs?sort=price_asc&stock=1"],
-      ["search", "/search?q=labneh"], ["search-miss", "/search?q=zzqq"], ["product", "/p/AK-0042"], ["gallery", "/gallery"]];
+      ["search", "/search?q=labneh"], ["search-miss", "/search?q=zzqq"], ["product", "/p/AK-0042"], ...PRODUCT_PAGES, ["gallery", "/gallery"]];
     const only = (process.env.PAGES ?? "").split(",").filter(Boolean);
     const pages = only.length ? all.filter(([n]) => only.includes(n)) : all;
     mkdirSync(OUT!, { recursive: true });

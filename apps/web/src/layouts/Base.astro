@@ -10,8 +10,10 @@ import Icon from "@ak/ui-astro/Icon.astro";
 import arabic400 from "../../../../packages/ui/fonts/plex-arabic-400.woff2?url";
 import latin400 from "../../../../packages/ui/fonts/plex-latin-400.woff2?url";
 import { LANGS, LANG_NAMES, dirOf, t, withGreeting, type Lang } from "../lib/i18n";
-interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean }
-const { title, lang, description, q = "", path = "/", whatsapp = null, live = false } = Astro.props;
+import { jsonLdScript } from "../lib/jsonld";
+// `jsonld`: schema.org objects for this page (LD1). Each becomes a data block, not a script that runs: the content security policy has no inline script.
+interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean; jsonld?: unknown[] }
+const { title, lang, description, q = "", path = "/", whatsapp = null, live = false, jsonld = [] } = Astro.props;
 const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}`;
 const chat = withGreeting(whatsapp, lang);
 ---
@@ -27,6 +29,7 @@ const chat = withGreeting(whatsapp, lang);
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  {jsonld.map((j) => <script type="application/ld+json" set:html={jsonLdScript(j)} />)}
 </head>
 <body>
   <a class="skip" href="#main">{t(lang, "skip")}</a>

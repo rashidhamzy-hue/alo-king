@@ -674,7 +674,7 @@ Arabic read by a person; zero silences after a hand-off; the two failed requests
 | 4a, now | **B1d** counts and edits (the wrong products left after B1c) | Opus, high | Nothing | PD1 | 0217 | Not started |
 | 4b | **SR1** search by meaning and facts (pgvector plus word search, filters by approved facts, one function for chat and website) | Opus, high | PD1 merged | T1, LD1 | 0212 to 0216 used | Built: #104 (the request set, the baseline), #106 (the search, filters, baskets, the website), #107; live first five 0.630 to 0.881, fact failures 0, language gate held; search by meaning off (token), sim-test not measured (simulator's copy); `docs/HANDOFF.md`, SR1 |
 | 4b | **T1** friends' test set-up (checks the new gate A) | Opus, medium | PD1 merged; Arabic read | SR1, LD1 | 0134 | Waits |
-| 4b | **LD1** website product data (JSON-LD, facts by template, functional only) | Sonnet, medium | PD1 merged | SR1, T1 | None | Not started |
+| 4b | **LD1** website product data (JSON-LD, facts by template, functional only) | Sonnet, medium | PD1 merged | SR1, T1 | 0218 used | Built (16 Nov; `docs/HANDOFF.md`, LD1): the page follows the item's template, JSON-LD on every product page, an ItemList on categories |
 | When the reference arrives | **DS2** apply the design reference to `packages/ui` and the DS1 pages | Fable, high | Rashid's screenshots, tokens, motion | Any one | None | Waits; un-parks UX2, WEB2, UX3 |
 | 4, parked | WEB2, UX2, UX3 | As before | **DS2** (was "the founder restarts design") | | As before | Parked |
 | Closed | FX1 | | Absorbed by PD1 (data and chat) and LD1 (product page) | | | Closed |

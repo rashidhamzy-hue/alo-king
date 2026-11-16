@@ -52,7 +52,7 @@ Live reading model: right item in the first five 0.630 to 0.881, fact failures 1
 only if it beats words alone. (2) The limit-50 sim-test (run 43900749787) stopped before any conversation: `evals/sim/world.ts` empties
 `approved_by` on staging's approved food facts but keeps `approved_at`, which 0021's check refuses. LB1 (owner of `evals/sim`) or the next
 session that runs a sim-test fixes the copy first (HANDOFF, SR1, "The sim-test"), then one limit-50 run measures SR1's last gate.
-**BK1** may start (SR1 merged); it still waits for gate A. **T1** and **LD1** may start.
+**BK1** may start (SR1 merged); it still waits for gate A. **T1** may start. **LD1 is built** (16 November; `docs/HANDOFF.md`, LD1; migration 0218): product page by template, JSON-LD, Arabic and French strings wait for a reader (`docs/ARABIC_REVIEW.md`, LD1).
 
 **Design pause (15 November, `docs/DECISIONS.md`).** The founder paused all website and console design for a full redesign later. UX2, UX3, WEB2 and the new FX1 are parked until he restarts design; PAY1 now waits for CX1. Console work in other sessions stays functional, on the existing components, with no visual work.
 
