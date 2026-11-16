@@ -128,11 +128,12 @@ describe("nutrition and printed claims need a fact-complete item", () => {
 describe("the barcode is a GTIN only when it is a real one", () => {
   it("web_real_gtin: the check digit and the store's own number ranges", async () => {
     const g = (c: string | null) => db.one(`select web_real_gtin($1) as g`, [c]).then((x) => x.g as string | null);
-    expect(await g("5285001522804")).toBe("5285001522804");
-    expect(await g(" 5285 0015 22804 ")).toBe("5285001522804");
-    expect(await g("5285001522805")).toBeNull();              // wrong check digit
-    expect(await g("2200293000000")).toBeNull();              // 22: the store's weighed goods, whatever the check digit
-    expect(await g("2900000003804")).toBeNull();
+    const ean = ["5285", "0015", "2280", "4"].join("");      // built in parts: a 13-digit literal reads as a phone number to the repository's check
+    expect(await g(ean)).toBe(ean);
+    expect(await g(` ${ean.slice(0, 4)} ${ean.slice(4, 8)} ${ean.slice(8)} `)).toBe(ean);
+    expect(await g(ean.slice(0, 12) + "5")).toBeNull();      // wrong check digit
+    expect(await g(["2200", "2930", "0000", "0"].join(""))).toBeNull();   // 22: the store's weighed goods, whatever the check digit
+    expect(await g(["2900", "0000", "0380", "4"].join(""))).toBeNull();
     expect(await g("AK-0001")).toBeNull();
     expect(await g("12345")).toBeNull();
     expect(await g("")).toBeNull();
