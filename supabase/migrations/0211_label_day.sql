@@ -115,6 +115,15 @@ create or replace function label_capture_progress() returns jsonb language sql s
                    from (select aisle, min(sort_order) as sort_order, count(*)::int as t, (count(*) filter (where done))::int as d from label_capture_status group by aisle) a))
     from label_capture_status $$;
 
+-- The party the reading run records as the one who PROPOSED a reading (record_label_scan asks for a picker, an ops lead or an admin).
+-- A picker can only propose: it approves nothing (review_* ask for an ops lead or an admin), has no sign-in, and the rule party's trigger
+-- list (0124, 0207) still keeps every allergen, halal, certificate and warning for a person.
+insert into parties(id, role, display_name, is_blocked, notes)
+values ('00000000-0000-4000-8000-0000000000b1', 'picker', 'Label reading run (a model reads the photos; a person approves)', false,
+        'Session LB1. Recorded as the proposer of the label-read workflow''s readings. No account can sign in as it.')
+on conflict (id) do nothing;
+create or replace function label_reader_party() returns uuid language sql immutable as $$ select '00000000-0000-4000-8000-0000000000b1'::uuid $$;
+
 -- ---------- 3 ----------
 -- Photographed (front and back) and not read since the newest current photo. A failed reading leaves the item here.
 create or replace function label_reading_queue(p_limit int default 500) returns jsonb language sql stable set search_path = public, pg_temp as $$
@@ -192,9 +201,10 @@ end $$;
 
 -- A field value the label reading proposed: confirmed as printed, confirmed with a correction (the pack differs from the reading), or rejected.
 -- Confirming replaces the item's current value and sets any other open reading of the same field aside: the person decided.
+-- p_corrected, when the pack differs from the reading: {"value": <the corrected value>} (an object, so a list and a text travel the same way).
 create or replace function review_field_value(p_value uuid, p_by uuid, p_decision text, p_note text default null, p_corrected jsonb default null) returns jsonb
 language plpgsql set search_path = public, pg_temp as $$
-declare v product_field_values%rowtype; v_corrected boolean := p_corrected is not null and p_corrected <> 'null'::jsonb;
+declare v product_field_values%rowtype; v_corrected boolean := p_corrected is not null and jsonb_typeof(p_corrected) = 'object' and p_corrected ? 'value' and p_corrected->'value' <> 'null'::jsonb;
 begin
   perform label_reviewer(p_by);
   if p_decision is null or p_decision not in ('confirm', 'reject') then raise exception 'UNKNOWN_DECISION %', p_decision; end if;
@@ -209,7 +219,7 @@ begin
   update product_field_values set status = 'superseded', detail = detail || jsonb_build_object('set_aside_by', v.id, 'reason', 'a person confirmed another reading')
    where product_id = v.product_id and field_key = v.field_key and status = 'proposed' and id <> v.id;
   update product_field_values set status = 'approved', approved_by = p_by, approved_at = now(), reviewed_at = now(), expires_at = null,
-         value = case when v_corrected then p_corrected else value end,
+         value = case when v_corrected then p_corrected->'value' else value end,
          detail = detail || case when v_corrected then jsonb_build_object('corrected_by_person', true, 'read_value', v.value) else '{}'::jsonb end
    where id = p_value;
   return jsonb_build_object('ok', true, 'decision', 'confirm', 'corrected', v_corrected);

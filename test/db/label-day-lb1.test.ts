@@ -269,6 +269,18 @@ describe("0211: the reading queue, label beats web, and what the run settles", (
   });
 });
 
+describe("0211: the party that records the reading run's proposals", () => {
+  it("can propose a reading and nothing else: it cannot confirm, and no one can sign in as it", async () => {
+    const reader = await db.rpc("label_reader_party");
+    const p = await firstOf("Snacks & Candy", 25);
+    await db.rpc("record_label_capture", { p_product: p, p_shot: "front", p_media_path: path(p, "front", 9), p_by: reader });
+    await db.rpc("record_label_scan", { p_product: p, p_photos: [path(p, "front", 9)], p_model: "test", p_by: reader, p_reading: { facts: [{ attribute: "milk", value: "contains", quote: "Contains milk" }] } });
+    const f = (await db.one(`select id from product_facts where product_id = $1 and attribute = 'milk' and approved_at is null and superseded_at is null`, [p])).id;
+    await expect(db.rpc("review_proposed_fact", { p_fact: f, p_by: reader, p_decision: "confirm" })).rejects.toThrow(/NOT_AUTHORISED/);
+    expect(await db.one(`select role::text as role, is_blocked from parties where id = $1`, [reader])).toEqual({ role: "picker", is_blocked: false });
+  });
+});
+
 describe("0211: a person approves field values, claims and certificates", () => {
   const field = async (p: string, key: string, value: unknown, source = "label_photo") =>
     (await db.one(`insert into product_field_values(product_id, field_key, value, source) values ($1, $2, $3::jsonb, $4) returning id`, [p, key, JSON.stringify(value), source])).id as string;
@@ -279,7 +291,7 @@ describe("0211: a person approves field values, claims and certificates", () => 
     await expect(db.rpc("review_field_value", { p_value: a, p_by: picker, p_decision: "confirm" })).rejects.toThrow(/NOT_AUTHORISED/);
     await expect(db.rpc("review_field_value", { p_value: a, p_by: AUTO, p_decision: "confirm" })).rejects.toThrow(/NOT_AUTHORISED/);
     await expect(db.rpc("review_field_value", { p_value: a, p_by: ops, p_decision: "maybe" })).rejects.toThrow(/UNKNOWN_DECISION/);
-    const r = await db.rpc("review_field_value", { p_value: a, p_by: ops, p_decision: "confirm", p_corrected: JSON.stringify(["Causes serious eye irritation"]) });
+    const r = await db.rpc("review_field_value", { p_value: a, p_by: ops, p_decision: "confirm", p_corrected: { value: ["Causes serious eye irritation"] } });
     expect(r).toMatchObject({ ok: true, decision: "confirm", corrected: true });
     expect(await db.one(`select status, approved_by, value, detail->>'corrected_by_person' as c from product_field_values where id = $1`, [a])).toEqual({ status: "approved", approved_by: ops, value: ["Causes serious eye irritation"], c: "true" });
     await expect(db.rpc("review_field_value", { p_value: a, p_by: ops, p_decision: "confirm" })).rejects.toThrow(/NOT_PENDING/);

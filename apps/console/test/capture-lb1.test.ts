@@ -165,7 +165,7 @@ describe("saving a photo", () => {
     const { id } = await firstItem(w);
     const put = r.media.put.bind(r.media), sign = r.media.sign.bind(r.media);
     r.media.put = async () => { throw new Error("storage_503"); };
-    r.media.sign = async () => null;                                               // the real bucket cannot sign what it does not hold
+    r.media.sign = async () => null as unknown as string;                                               // the real bucket cannot sign what it does not hold
     const down = await send(w, { product: id, shot: "front" }, { bytes: JPEG(51) });
     r.media.put = put; r.media.sign = sign;
     expect(down.status).toBe(502);

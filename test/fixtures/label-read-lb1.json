@@ -1,0 +1,44 @@
+{
+  "note": "Invented readings, shaped as the label reader returns them (apps/console/src/label.ts), standing in for what a model would read from five test photos. The first live run writes the real ones to the artifact readings.jsonl; replace these with them then.",
+  "jpeg_1x1_base64": "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=",
+  "readings": {
+    "packaged_food_1": {
+      "name_en": "Test Salted Chips 150 g", "name_ar": null, "brand": "Test Foods", "size": "150 g", "barcode": null,
+      "ingredients_text": "Potatoes, sunflower oil, salt",
+      "allergens": [{ "code": "milk", "value": "free", "quote": "Milk free" }, { "code": "sesame", "value": "may_contain", "quote": "May contain traces of sesame" }],
+      "diet": [{ "code": "halal", "value": "yes", "quote": "Halal" }],
+      "nutrition_per_100g": { "energy_kcal": 520, "fat": 30, "saturated_fat": 3, "carbohydrates": 50, "sugars": 1, "fiber": 4, "proteins": 6, "salt": 1.2 },
+      "fields": { "directions_as_printed": "Store in a cool dry place. Consume within 3 days of opening.", "warnings_as_printed": ["May contain traces of sesame."] },
+      "claims": [{ "code": "no_added_sugar", "value": null, "quote": "No added sugar" }]
+    },
+    "packaged_food_2": {
+      "name_en": "Test Labneh 500 g", "name_ar": "لبنة", "brand": "Test Dairy", "size": "500 g", "barcode": null,
+      "ingredients_text": "Pasteurised cow's milk, salt, lactic cultures",
+      "allergens": [{ "code": "milk", "value": "contains", "quote": "Contains milk" }],
+      "diet": [],
+      "nutrition_per_100g": { "energy_kcal": 160, "fat": 12, "saturated_fat": null, "carbohydrates": 4, "sugars": null, "fiber": null, "proteins": 7, "salt": 1.1 },
+      "fields": { "directions_as_printed": "Keep refrigerated at 0 to 4 C." },
+      "claims": []
+    },
+    "cleaning_household": {
+      "name_en": "Test Bleach 1 L", "name_ar": null, "brand": "Test Clean", "size": "1 L", "barcode": null,
+      "ingredients_text": null, "allergens": [], "diet": [], "nutrition_per_100g": null,
+      "fields": { "hazard_warnings": ["Causes serious eye irritation", "Do not mix with other products"], "pictograms": ["corrosive"], "active_ingredient": "Sodium hypochlorite 4.5%",
+                  "keep_from_children": true, "directions_as_printed": "Dilute 1:10 with water.", "warnings_as_printed": ["Keep out of reach of children."] },
+      "claims": []
+    },
+    "water": {
+      "name_en": "Test Mineral Water 1.5 L", "name_ar": null, "brand": "Test Springs", "size": "1.5 L", "barcode": null,
+      "ingredients_text": "Natural mineral water", "allergens": [], "diet": [],
+      "nutrition_per_100g": null,
+      "fields": { "volume_ml": 1500, "water_type": "mineral" },
+      "claims": []
+    },
+    "beauty_personal_care": {
+      "name_en": "Test Kids Shampoo 250 ml", "name_ar": null, "brand": "Test Care", "size": "250 ml", "barcode": null,
+      "ingredients_text": null, "allergens": [], "diet": [], "nutrition_per_100g": null,
+      "fields": { "inci_ingredients": "Aqua, Sodium Laureth Sulfate, Cocamidopropyl Betaine", "age_group": "kids", "directions_as_printed": "Apply to wet hair, rinse well.", "warnings_as_printed": ["Avoid contact with eyes."] },
+      "claims": [{ "code": "tear_free", "value": null, "quote": "Tear free" }]
+    }
+  }
+}

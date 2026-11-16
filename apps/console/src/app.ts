@@ -146,6 +146,7 @@ export function explain(e: unknown): string {
       [/^CLAIM_WORDS ([^:]*)/, "A name may not praise, or make a health, diet or religion claim. Remove: $1."],
       [/^NAME_CHANGED_SINCE/, "The catalog name was changed after this approval, so it is not put back from here."],
       [/^UNKNOWN_DECISION/, "Choose approve, correct or reject."],
+      [/^NOT_PENDING/, "That one was already decided."],
       [/^CAPTURE_SHOT/, "Choose front, back or side."],
       [/^CAPTURE_PATH/, "That photo does not belong to this item."],
       [/^PRODUCT_NOT_FOUND/, "That item was not found."],
