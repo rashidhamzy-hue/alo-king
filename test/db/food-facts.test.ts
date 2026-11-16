@@ -4,7 +4,9 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { openTestDb, type TestDb } from "./harness";
 
 let db: TestDb; let ops: string; let picker: string; let labneh: string; let sponsored: string;
-const check = (p: string, r: string[]) => db.rpc("product_meets_restrictions", { p_product: p, p_restrictions: r });
+// PD1 (0206): the 0021 rules themselves, unchanged, are product_meets_restrictions_base and product_food_facts_base. The public functions
+// add the readiness level on top (a pass needs a fact-complete item): test/db/product-standard-pd1.test.ts.
+const check = (p: string, r: string[]) => db.rpc("product_meets_restrictions_base", { p_product: p, p_restrictions: r });
 const propose = (p: string, attribute: string, value: string | null, status: string, source = "label", extra: Record<string, unknown> = {}) =>
   db.rpc<string>("propose_product_fact", { p_product: p, p_attribute: attribute, p_value: value, p_status: status, p_source: source, p_by: picker, ...extra });
 const approve = (fact: string) => db.rpc("approve_product_fact", { p_fact: fact, p_by: ops });
@@ -101,7 +103,7 @@ describe("food facts (1.11)", () => {
 
   it("no restrictions asked means nothing to fail; the facts list carries status and expiry", async () => {
     expect(await check(labneh, [])).toMatchObject({ meets: true, checks: [] });
-    const facts = await db.rpc<any[]>("product_food_facts", { p_product: labneh });
+    const facts = await db.rpc<any[]>("product_food_facts_base", { p_product: labneh });
     expect(facts.find((f) => f.attribute === "halal")).toMatchObject({ value: "yes", status: "certified", expired: false });
     expect(facts.find((f) => f.attribute === "eggs")).toMatchObject({ expired: true });
   });

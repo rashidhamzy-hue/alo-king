@@ -114,7 +114,8 @@ describe("ingredients and nutrition: the label photo and a second source for the
     expect((await db.rpc("try_auto_approve", { p_kind: "fact", p_proposal: ing })).failed).toEqual(["second_source_for_the_barcode_agrees"]);
     await db.pg.query(`delete from product_facts where source = 'web_page' and product_id = $1`, [pid]);
     await web("www.nutella.com");
-    expect((await db.rpc("try_auto_approve", { p_kind: "fact", p_proposal: ing })).failed).toBeUndefined();
+    // PD1 (0207): the brand's page agrees, but Open Food Facts still says otherwise: any disagreement between sources goes to a person.
+    expect(await db.rpc("try_auto_approve", { p_kind: "fact", p_proposal: ing })).toMatchObject({ approved: false, reason: "sources_disagree" });
     // (rolled back below by restoring Open Food Facts' text and removing the page; the label barcode next)
     await db.pg.query(`delete from product_facts where source = 'web_page' and product_id = $1`, [pid]);
     await resetFacts();
@@ -225,8 +226,9 @@ describe("names and search words", () => {
 
   it("the console overview lists the rules, the never-automatic fields and the waiting spot checks", async () => {
     const o = await db.rpc("auto_approvals_overview", {});
-    expect(o.rules.map((r) => r.field)).toEqual(["picture", "name_size_category", "search_words", "ingredients_nutrition"]);
-    expect(o.never_automatic).toEqual(["allergens", "diet labels", "price", "cost"]);
+    // PD1 (0207) added three rows: two published sources (on, the coordinator's rule), printed claims (off), rule fields (on).
+    expect(o.rules.map((r) => r.field)).toEqual(["picture", "name_size_category", "search_words", "ingredients_nutrition", "two_published_sources", "printed_claims", "rule_fields"]);
+    expect(o.never_automatic).toEqual(["allergens", "diet labels", "halal and every certificate", "hazard warnings", "claims that sound medical", "fields where sources disagree", "price", "cost"]);
     expect(o.intake).toMatchObject({ items: 292 });
   });
 });

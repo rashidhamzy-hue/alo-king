@@ -5,7 +5,8 @@ import { flashOf, openShop, rig, type Rig } from "./kit";
 let r: Rig; let product: string;
 afterAll(() => vi.unstubAllGlobals());
 const PHOTO = { name: "pack.jpg", type: "image/jpeg", bytes: new Uint8Array([0xff, 0xd8, 0xff, 9, 9, 9]) };
-const meets = async (codes: string[]) => (await r.db.rpc("product_meets_restrictions", { p_product: product, p_restrictions: codes })) as { meets: boolean; checks: { result: string }[] };
+// PD1 (0206): the record the editor wrote, by 0021's rule; the public function also needs the item fact-complete (product-standard-pd1.test.ts).
+const meets = async (codes: string[]) => (await r.db.rpc("product_meets_restrictions_base", { p_product: product, p_restrictions: codes })) as { meets: boolean; checks: { result: string }[] };
 beforeAll(async () => {
   r = await rig(); await openShop(r.db);
   product = (await r.db.one(`select id from products where name_en = 'Leen Taanayel Labneh Premium'`)).id;
