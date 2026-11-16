@@ -137,6 +137,13 @@ failing-first order held for the new tests (they fail on main), but the migratio
 (they are approved in SQL by a person's party; design is paused: a functional page belongs with UX2 or a later session); the readiness page
 shows what is missing. The vendor path has no channel (no vendor is signed; no send path may be added). Gas has no items.
 
+**Pull request 3: recommendation data and the run (parts f and h); migrations 0208 and 0209.**
+
+| Item | What PD1 built | Tested by |
+| --- | --- | --- |
+| (f) Recommendation data (0208) | `substitute_groups` and `product_substitutes` (a trigger refuses a member of another template or another approved kind: `SUBSTITUTE_MISMATCH`); `complements` (kind to kind, eleven seeded: hummus and labneh with Arabic bread, chips with a soft drink ...); `dishes` and `dish_kinds` (eight Lebanese dishes as baskets with their kinds and the quantity per person as numbers: mjadra, tabbouleh, fattoush, hummus, foul, lentil soup, manakish, breakfast); `portions` (bread per person per day, rice per person, a snack per child ...); `product_unit_price()` per kg, litre or piece, computed in SQL from the hub's price and the size printed (never by a model); `substitutes_for()` and `dish_basket()` never return an item that fails a stated restriction (with restrictions only fact-complete items can pass); taste, format, seasons and occasions are tags (0204), local origin the origin field and the "made in" claim; `product_search_documents` with `build_search_document()` and `refresh_search_documents()` (approved data only) for SR1; `apply_item_proposal()` checks a model's proposal by rules (a kind is a short lowercase phrase, tags only from the list, a substitute group only for the item's template and approved kind). None of it is a health claim, and the chat does not say it | `scripts/product-data/test/enrich.test.mjs` |
+| (h) The enrichment run | `.github/workflows/enrich.yml` (from `main` only), one cap for the whole run split across its steps: (1) Open Food Facts by barcode as proposals, (2) the research files' facts as proposals (no model), (3) `scripts/product-data/enrich.mjs`: the rules pass (`apply_rule_fields`, 0209: sale unit, fresh or frozen, water's volume and type, nappy size, pet species, packed apart, chilled bag, size, pack count, format tags), the kind and shopping tags from the fast model in batches (checked in SQL), substitute groups by rule, every approval rule (`intake_try_auto`, including two published sources), the search documents, Open Food Facts front pictures as rows for `data/pictures/candidates.csv`, and `enrichment_report()` (0209): items sellable and fact-complete per template, per item what is missing and the route that fills it (names page, a page on file, the supplier sheet, a label photo at a shop shelf before stock arrives, the label photo at the first receiving), the shelf-visit list by aisle and the supplier sheet. Markets compare by code (`market_code`); an Open Food Facts record's market is its barcode's GS1 country (`barcode_market`) | the same file: the whole run on PGlite with a scripted model (291 items, three batches, every step) |
+
 **Not built in pull request 1, and why.** The code-built menus (the welcome's and the support lines' "Browse" button) still show Browse while
 the catalogue is not connected; its tap answers "tell me what you need" (B1a's line), which is not a dead end. The Arabic of the honest
 answer waits for a reader (`docs/ARABIC_REVIEW.md`, "PD1"). The facts asked are read by code from the customer's words, not by the model.
@@ -207,6 +214,50 @@ budget USD 4, spent **$3.47**; main at 861788a: CX1, the welcome fix #94 and B1c
 Silences after a hand-off: 0 (22 hand-offs, 22 alerted). Address 0, off-topic 1, minimum-order loops 0, lost baskets 0. Seen by the judge, for a
 later session and not a new class: a first message that asks for a person gets the welcome above the hand-off line (sim-007, sim-018, both
 Arabizi; the welcome is by design first on a first message ever, and Arabizi customers get Arabic script throughout, as before CX1).
+
+**The simulated customers after pull request 1** ([sim-test 43814118255](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43814118255),
+main at 2d10ca1 (#96), limit 150, budget USD 4, spent **$3.47**), against CX1's final run (43781701377), the same 150 scenarios, all judged:
+**no new failure class.**
+
+| class | CX1 + fix on main | PD1 (1) on main | note |
+| --- | --- | --- | --- |
+| passed | 89 | **90** | |
+| silences after a hand-off | 0 (22) | **0** (26 hand-offs, 26 alerted) | |
+| message_rules (code) | 2 | **0** | |
+| wrong_language (code) | 1 | 1 | sim-014, an English line in an Arabic conversation after a swap; not PD1's |
+| turn_error (code) | 0 | 1 | sim-014 turn 11, an edit («السكر الكبير 5 كيلو شيلوه من الطلب»): the class existed before (B1c: 1); no PD1 path in that turn (no fact asked, no honest answer); left to B1d |
+| judge: goal not reached, repeated question, dead end | 49, 13, 15 | 51, 19, 11 | run-to-run variance on code PD1 did not change |
+| judge: unnatural dialect, wrong product, invented fact | 24, 29, 8 | 23, **26**, **6** | |
+
+### Founder actions (PD1)
+0. **First, today: renew the Supabase access token. Staging is at migration 0159 (read 16 November, 06:40): none of PD1's migrations are there.** Both deploys after PD1's
+   merges (deploy-staging runs 43814172694 and 43817508007) stopped at `supabase link` with "Invalid access token": the repository secret
+   `SUPABASE_ACCESS_TOKEN` has expired or was revoked. Until it is renewed, staging has none of 0202 onward, and PD1's enrichment run
+   cannot start. The clicks:
+   1. supabase.com, sign in, your avatar (top right), **Account preferences**, **Access Tokens**, **Generate new token**; name it
+      `github-actions-deploy`; copy it (it is shown once).
+   2. GitHub, the repository, **Settings**, **Secrets and variables**, **Actions**, **Repository secrets**, `SUPABASE_ACCESS_TOKEN`, the
+      pencil (**Update**), paste, **Update secret**.
+   3. **Actions**, **deploy-staging**, **Run workflow**, branch `main`, **Run workflow** (tick "Make new Kapso webhook signing secrets" too
+      if you want to do founder action 10 of the coordinator's list at the same time). It should end green.
+   4. Then tell the planning chat "staging deployed": a session dispatches the `enrich` workflow on `main` (PD1's run, cap USD 15).
+Items 1 to 3 below are needed for gate A ("every active item at least sellable", the facts the friends will ask about). The enrichment
+run's report gives the counts and the lists.
+1. **Arabic names: every active item needs one to be sellable.** Console, **Names**: read the proposals, then "Approve all shown" (the
+   Arabic ones need an Arabic reader). The readiness page (**Readiness**, filter "not sellable") lists every item and what it misses.
+2. **Approve product facts, in this order** (console, **Food facts** or **Intake**, one item at a time, against the pack or the page):
+   allergens first (each answered from the pack: contains, may contain or free); then halal and certificates (with the certificate
+   photo); then hazard warnings of the cleaning products (console **Intake**: the proposed warnings from the label photo); then anything
+   where sources disagree (the item's intake page lists both readings). Nutrition numbers and ingredients that two published sources agree
+   on are already live (the rule "two published sources", console **Automatic approvals**, where you can switch it off).
+3. **One shelf visit (Bassem).** The run's artifact `enrichment` holds `enrichment-report.md` with the printable list by aisle (SKU, name,
+   barcode, a tick box): photograph front and back of each pack at the supplier or any shop that stocks it, then upload on the console's
+   **Intake** page (type the barcode or SKU, attach the photos). The label reader fills the fields; a person checks each.
+4. **Supplier sheet (Bassem).** The same report lists, per item, the fields the supplier gives: for produce the origin; for meat the cut, the
+   weight per pack and the halal certificate; for the bakery the allergen declaration. Send them to the planning chat or type them on the
+   item's console page.
+5. **Printed claims rule.** It is off until its first spot check passes (console, **Automatic approvals**, "Spot checks waiting": tick
+   Right or Wrong for each). No action is needed to keep it off.
 
 ### Founder actions (CX1)
 - Pickup stays off until the hub's place is named. When it is: Supabase, SQL editor on staging, run

@@ -35,6 +35,14 @@ refused the words themselves, there are no fields for what was asked, and search
 (PD1 and LD1). **BK1** moves to wave 6. **WEB3** (the assistant on the website) comes after WEB2 and gate B. At most three sessions at once:
 PD1 and B1d now; then SR1, T1 and LD1.
 
+**PD1 status (16 November).** Pull requests 1 (#96: the narrowed safety check, the honest answer) and 2 (#98: templates, two readiness
+levels, intake and the approval rules) are merged; 3 (#99: recommendation data, the enrichment run) follows. Migrations 0202 to 0209 used;
+0210 and 0211 are free. **SR1 reads:** `product_search_documents` (one per item, `refresh_search_documents()`), `product_nutrition()`,
+`product_claims`, `product_tags`, `product_facts_for_chat()`, `product_meets_restrictions()` (a pass needs a fact-complete item),
+`substitutes_for()`, `dish_basket()`, `product_unit_price()`, and the honest answer (`packages/agents/src/honest.ts`). **LD1 reads:**
+`product_template_status()`, `template_fields` and `product_facts_for_chat()` for the product page. **B1d:** PD1 changed no reading,
+planner or edit code; sim-test 43814118255 (main after #96) had one turn error in an edit turn (sim-014, «شيلوه من الطلب»), B1d's ground.
+
 **Design pause (15 November, `docs/DECISIONS.md`).** The founder paused all website and console design for a full redesign later. UX2, UX3, WEB2 and the new FX1 are parked until he restarts design; PAY1 now waits for CX1. Console work in other sessions stays functional, on the existing components, with no visual work.
 
 **Where the queue stands.** CX1 is built and merged (16 November, #90 and #94; `docs/HANDOFF.md`, CX1; the language gate held and the simulated customers on `main` show no new failure class): PAY1 and RCPT1 may start on it (WEB2 when design restarts); UX2, when design restarts, adds two small console forms CX1 left (the handover code when acting for a rider, and a pickup handover at the hub; the SQL is `rider_handover` and `hub_handover`); SH1 sets `orders.handover_required` on a gift order. D4b is built (16 November; `docs/HANDOFF.md`, D4b): UX2 and T1 may start on it; T1 turns on the pick-queue switch (HANDOFF, D4b, "Before the friends' test"; no founder action). DS1 is built (15 November; `docs/HANDOFF.md`, DS1): D4b and UX2 build on `packages/ui` (the HTML functions in `packages/ui/src/components.ts`; after a style or class change run `node packages/ui/scripts/build.mjs`; screenshots with `SCREENS=<folder> npx vitest run test/screens`). The crown waits for the founder's approval; 34 new Arabic lines of the website wait for a reader (`docs/ARABIC_REVIEW.md`). What DS1 left out for lack of a source is a table in HANDOFF, DS1: AN1, WEB2 and UX2 read it first.

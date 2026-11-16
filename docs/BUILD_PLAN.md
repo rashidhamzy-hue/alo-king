@@ -670,7 +670,7 @@ Arabic read by a person; zero silences after a hand-off; the two failed requests
 
 | Wave | Session | Model, effort | Waits for | Runs beside | Migrations | Status |
 |---|---|---|---|---|---|---|
-| 4a, now | **PD1** product data standard: (1) the narrowed safety check and the honest answer; (2) templates, two readiness levels, intake and auto-approval; (3) recommendation data and the enrichment run | Opus, high | Nothing | B1d | 0202 to 0211 | In progress |
+| 4a, now | **PD1** product data standard: (1) the narrowed safety check and the honest answer; (2) templates, two readiness levels, intake and auto-approval; (3) recommendation data and the enrichment run | Opus, high | Nothing | B1d | 0202 to 0209 used (0210, 0211 unused) | (1) merged #96, (2) merged #98, (3) #99; the run's report and the gates in `docs/HANDOFF.md`, PD1 |
 | 4a, now | **B1d** counts and edits (the wrong products left after B1c) | Opus, high | Nothing | PD1 | 0217 | Not started |
 | 4b | **SR1** search by meaning and facts (pgvector plus word search, filters by approved facts, one function for chat and website) | Opus, high | PD1 merged | T1, LD1 | 0212 to 0216 | Not started |
 | 4b | **T1** friends' test set-up (checks the new gate A) | Opus, medium | PD1 merged; Arabic read | SR1, LD1 | 0134 | Waits |
