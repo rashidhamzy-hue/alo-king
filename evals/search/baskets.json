@@ -1,0 +1,874 @@
+{
+ "note": "SR1 basket requests: built by code from PD1's dishes, portions and unit prices (and data tables of SR1), priced by quote_order, confirmed by the customer on the card. expect.kinds: every kind must have a line with enough of it; max_usd: the items' subtotal (delivery apart) at most this; min_items: units in the basket; tag: every line carries this shopping tag; missing_kinds: kinds that must be left out and said (a restriction no item of that kind passes); refused: the request is refused with this reason.",
+ "baskets": [
+  {
+   "id": "b001",
+   "lang": "en",
+   "text": "mjadra for 6",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 6
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "rice",
+     "onion",
+     "vegetable oil"
+    ]
+   }
+  },
+  {
+   "id": "b002",
+   "lang": "ar",
+   "text": "بدي غراض مجدرة ل ٦ أشخاص",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 6
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "rice",
+     "onion",
+     "vegetable oil"
+    ]
+   }
+  },
+  {
+   "id": "b003",
+   "lang": "arabizi",
+   "text": "baddi a8rad mjadra la 6",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 6
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "rice",
+     "onion",
+     "vegetable oil"
+    ]
+   }
+  },
+  {
+   "id": "b004",
+   "lang": "fr",
+   "text": "de quoi faire une moujaddara pour 6",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 6
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "rice",
+     "onion",
+     "vegetable oil"
+    ]
+   }
+  },
+  {
+   "id": "b005",
+   "lang": "en",
+   "text": "tabbouleh for 4",
+   "basket": {
+    "type": "dish",
+    "dish": "tabbouleh",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "parsley",
+     "tomato",
+     "burghul",
+     "lemon",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b006",
+   "lang": "ar",
+   "text": "تبولة ل ٤",
+   "basket": {
+    "type": "dish",
+    "dish": "tabbouleh",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "parsley",
+     "tomato",
+     "burghul",
+     "lemon",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b007",
+   "lang": "arabizi",
+   "text": "tabbouleh la 4 ashkhas",
+   "basket": {
+    "type": "dish",
+    "dish": "tabbouleh",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "parsley",
+     "tomato",
+     "burghul",
+     "lemon",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b008",
+   "lang": "fr",
+   "text": "un taboulé pour 4 personnes",
+   "basket": {
+    "type": "dish",
+    "dish": "tabbouleh",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "parsley",
+     "tomato",
+     "burghul",
+     "lemon",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b009",
+   "lang": "en",
+   "text": "everything for fattoush for 8 people",
+   "basket": {
+    "type": "dish",
+    "dish": "fattoush",
+    "people": 8
+   },
+   "expect": {
+    "kinds": [
+     "lettuce",
+     "tomato",
+     "cucumber",
+     "arabic bread",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b010",
+   "lang": "ar",
+   "text": "غراض فتوش ل ٨",
+   "basket": {
+    "type": "dish",
+    "dish": "fattoush",
+    "people": 8
+   },
+   "expect": {
+    "kinds": [
+     "lettuce",
+     "tomato",
+     "cucumber",
+     "arabic bread",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b011",
+   "lang": "arabizi",
+   "text": "fattoush la 8",
+   "basket": {
+    "type": "dish",
+    "dish": "fattoush",
+    "people": 8
+   },
+   "expect": {
+    "kinds": [
+     "lettuce",
+     "tomato",
+     "cucumber",
+     "arabic bread",
+     "olive oil"
+    ]
+   }
+  },
+  {
+   "id": "b012",
+   "lang": "en",
+   "text": "hummus for 3",
+   "basket": {
+    "type": "dish",
+    "dish": "hummus",
+    "people": 3
+   },
+   "expect": {
+    "kinds": [
+     "chickpeas",
+     "tahini",
+     "lemon",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b013",
+   "lang": "arabizi",
+   "text": "7ommos la 3",
+   "basket": {
+    "type": "dish",
+    "dish": "hummus",
+    "people": 3
+   },
+   "expect": {
+    "kinds": [
+     "chickpeas",
+     "tahini",
+     "lemon",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b014",
+   "lang": "ar",
+   "text": "صحن حمص ل ٣",
+   "basket": {
+    "type": "dish",
+    "dish": "hummus",
+    "people": 3
+   },
+   "expect": {
+    "kinds": [
+     "chickpeas",
+     "tahini",
+     "lemon",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b015",
+   "lang": "ar",
+   "text": "فول مدمس لشخصين",
+   "basket": {
+    "type": "dish",
+    "dish": "foul",
+    "people": 2
+   },
+   "expect": {
+    "kinds": [
+     "fava beans",
+     "lemon",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b016",
+   "lang": "fr",
+   "text": "un foul pour 2",
+   "basket": {
+    "type": "dish",
+    "dish": "foul",
+    "people": 2
+   },
+   "expect": {
+    "kinds": [
+     "fava beans",
+     "lemon",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b017",
+   "lang": "en",
+   "text": "foul for 2",
+   "basket": {
+    "type": "dish",
+    "dish": "foul",
+    "people": 2
+   },
+   "expect": {
+    "kinds": [
+     "fava beans",
+     "lemon",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b018",
+   "lang": "en",
+   "text": "lentil soup for 5",
+   "basket": {
+    "type": "dish",
+    "dish": "lentil_soup",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "onion"
+    ]
+   }
+  },
+  {
+   "id": "b019",
+   "lang": "ar",
+   "text": "شوربة عدس ل ٥",
+   "basket": {
+    "type": "dish",
+    "dish": "lentil_soup",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "onion"
+    ]
+   }
+  },
+  {
+   "id": "b020",
+   "lang": "fr",
+   "text": "une soupe de lentilles pour 5",
+   "basket": {
+    "type": "dish",
+    "dish": "lentil_soup",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "onion"
+    ]
+   }
+  },
+  {
+   "id": "b021",
+   "lang": "arabizi",
+   "text": "man2oushe la 4",
+   "basket": {
+    "type": "dish",
+    "dish": "manakish",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "zaatar",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b022",
+   "lang": "ar",
+   "text": "مناقيش زعتر ل ٤",
+   "basket": {
+    "type": "dish",
+    "dish": "manakish",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "zaatar",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b023",
+   "lang": "en",
+   "text": "manakish at home for 4",
+   "basket": {
+    "type": "dish",
+    "dish": "manakish",
+    "people": 4
+   },
+   "expect": {
+    "kinds": [
+     "zaatar",
+     "olive oil",
+     "arabic bread"
+    ]
+   }
+  },
+  {
+   "id": "b024",
+   "lang": "en",
+   "text": "a lebanese breakfast for 5",
+   "basket": {
+    "type": "dish",
+    "dish": "breakfast",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "labneh",
+     "arabic bread",
+     "eggs"
+    ]
+   }
+  },
+  {
+   "id": "b025",
+   "lang": "ar",
+   "text": "ترويقة ل ٥",
+   "basket": {
+    "type": "dish",
+    "dish": "breakfast",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "labneh",
+     "arabic bread",
+     "eggs"
+    ]
+   }
+  },
+  {
+   "id": "b026",
+   "lang": "arabizi",
+   "text": "terwi2a la 5",
+   "basket": {
+    "type": "dish",
+    "dish": "breakfast",
+    "people": 5
+   },
+   "expect": {
+    "kinds": [
+     "labneh",
+     "arabic bread",
+     "eggs"
+    ]
+   }
+  },
+  {
+   "id": "b027",
+   "lang": "en",
+   "text": "hummus for 3, I am allergic to sesame",
+   "basket": {
+    "type": "dish",
+    "dish": "hummus",
+    "people": 3
+   },
+   "expect": {
+    "kinds": [
+     "chickpeas",
+     "tahini",
+     "lemon",
+     "arabic bread"
+    ],
+    "missing_kinds": [
+     "tahini"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "sesame"
+    ]
+   }
+  },
+  {
+   "id": "b028",
+   "lang": "en",
+   "text": "lunchbox snacks for the week",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b029",
+   "lang": "ar",
+   "text": "سناكات للزوادة لكل الجمعة",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b030",
+   "lang": "arabizi",
+   "text": "snacks lal lunchbox la kel el jem3a",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b031",
+   "lang": "fr",
+   "text": "des goûters pour la boîte à lunch de la semaine",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b032",
+   "lang": "en",
+   "text": "lunchbox snacks for 2 kids for the week",
+   "basket": {
+    "type": "lunchbox",
+    "children": 2,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 10,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b033",
+   "lang": "ar",
+   "text": "زوادة المدرسة لولدين للجمعة",
+   "basket": {
+    "type": "lunchbox",
+    "children": 2,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 10,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b034",
+   "lang": "fr",
+   "text": "des goûters pour 3 enfants pour la semaine",
+   "basket": {
+    "type": "lunchbox",
+    "children": 3,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 15,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b035",
+   "lang": "arabizi",
+   "text": "snacks lal madrase la 3 wled la jem3a",
+   "basket": {
+    "type": "lunchbox",
+    "children": 3,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 15,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b036",
+   "lang": "en",
+   "text": "lunchbox snacks for the week with no sugar",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "b037",
+   "lang": "ar",
+   "text": "سناكات للزوادة للجمعة بلا سكر",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "b038",
+   "lang": "en",
+   "text": "lunchbox snacks for my son for the week, he is allergic to peanuts",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "tag": "lunchbox"
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   }
+  },
+  {
+   "id": "b039",
+   "lang": "en",
+   "text": "snacks for the lunchbox for 3 days",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 3
+   },
+   "expect": {
+    "min_items": 3,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b040",
+   "lang": "en",
+   "text": "a basket under $20",
+   "basket": {
+    "type": "budget",
+    "theme": "staples",
+    "max_usd": 20
+   },
+   "expect": {
+    "max_usd": 20,
+    "min_items": 4
+   }
+  },
+  {
+   "id": "b041",
+   "lang": "ar",
+   "text": "سلة أغراض بأقل من ٢٠ دولار",
+   "basket": {
+    "type": "budget",
+    "theme": "staples",
+    "max_usd": 20
+   },
+   "expect": {
+    "max_usd": 20,
+    "min_items": 4
+   }
+  },
+  {
+   "id": "b042",
+   "lang": "arabizi",
+   "text": "sallet a8rad b 2a2al men 20$",
+   "basket": {
+    "type": "budget",
+    "theme": "staples",
+    "max_usd": 20
+   },
+   "expect": {
+    "max_usd": 20,
+    "min_items": 4
+   }
+  },
+  {
+   "id": "b043",
+   "lang": "fr",
+   "text": "un panier de base à moins de 20 dollars",
+   "basket": {
+    "type": "budget",
+    "theme": "staples",
+    "max_usd": 20
+   },
+   "expect": {
+    "max_usd": 20,
+    "min_items": 4
+   }
+  },
+  {
+   "id": "b044",
+   "lang": "en",
+   "text": "party snacks under $10",
+   "basket": {
+    "type": "budget",
+    "theme": "party",
+    "max_usd": 10
+   },
+   "expect": {
+    "max_usd": 10,
+    "min_items": 3,
+    "tag": "party"
+   }
+  },
+  {
+   "id": "b045",
+   "lang": "ar",
+   "text": "تسالي للسهرة بأقل من ١٠ دولار",
+   "basket": {
+    "type": "budget",
+    "theme": "party",
+    "max_usd": 10
+   },
+   "expect": {
+    "max_usd": 10,
+    "min_items": 3,
+    "tag": "party"
+   }
+  },
+  {
+   "id": "b046",
+   "lang": "en",
+   "text": "cleaning basket under $25",
+   "basket": {
+    "type": "budget",
+    "theme": "cleaning",
+    "max_usd": 25
+   },
+   "expect": {
+    "max_usd": 25,
+    "min_items": 3
+   }
+  },
+  {
+   "id": "b047",
+   "lang": "fr",
+   "text": "un panier de ménage à moins de 25 $",
+   "basket": {
+    "type": "budget",
+    "theme": "cleaning",
+    "max_usd": 25
+   },
+   "expect": {
+    "max_usd": 25,
+    "min_items": 3
+   }
+  },
+  {
+   "id": "b048",
+   "lang": "en",
+   "text": "breakfast for 4 under $15",
+   "basket": {
+    "type": "dish",
+    "dish": "breakfast",
+    "people": 4,
+    "max_usd": 15
+   },
+   "expect": {
+    "kinds": [
+     "labneh",
+     "arabic bread",
+     "eggs"
+    ],
+    "max_usd": 15
+   }
+  },
+  {
+   "id": "b049",
+   "lang": "ar",
+   "text": "ترويقة ل ٤ بأقل من ١٥ دولار",
+   "basket": {
+    "type": "dish",
+    "dish": "breakfast",
+    "people": 4,
+    "max_usd": 15
+   },
+   "expect": {
+    "kinds": [
+     "labneh",
+     "arabic bread",
+     "eggs"
+    ],
+    "max_usd": 15
+   }
+  },
+  {
+   "id": "b050",
+   "lang": "en",
+   "text": "lunchbox snacks for the week under $5",
+   "basket": {
+    "type": "lunchbox",
+    "children": 1,
+    "days": 5,
+    "max_usd": 5
+   },
+   "expect": {
+    "min_items": 5,
+    "max_usd": 5,
+    "tag": "lunchbox"
+   }
+  },
+  {
+   "id": "b051",
+   "lang": "arabizi",
+   "text": "mjadra la 6 b a2al men 10$",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 6,
+    "max_usd": 10
+   },
+   "expect": {
+    "kinds": [
+     "lentils",
+     "rice",
+     "onion",
+     "vegetable oil"
+    ],
+    "max_usd": 10
+   }
+  },
+  {
+   "id": "b052",
+   "lang": "en",
+   "text": "mjadra for 60 people",
+   "basket": {
+    "type": "dish",
+    "dish": "mjadra",
+    "people": 60
+   },
+   "expect": {
+    "refused": "people"
+   }
+  }
+ ]
+}
