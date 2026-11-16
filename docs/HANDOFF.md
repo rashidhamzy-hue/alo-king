@@ -179,6 +179,39 @@ Silences after a hand-off: 0 (22 hand-offs, 22 alerted). Address 0, off-topic 1,
 later session and not a new class: a first message that asks for a person gets the welcome above the hand-off line (sim-007, sim-018, both
 Arabizi; the welcome is by design first on a first message ever, and Arabizi customers get Arabic script throughout, as before CX1).
 
+**The simulated customers after pull request 1** ([sim-test 43814118255](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43814118255),
+main at 2d10ca1 (#96), limit 150, budget USD 4, spent **$3.47**), against CX1's final run (43781701377), the same 150 scenarios, all judged:
+**no new failure class.**
+
+| class | CX1 + fix on main | PD1 (1) on main | note |
+| --- | --- | --- | --- |
+| passed | 89 | **90** | |
+| silences after a hand-off | 0 (22) | **0** (26 hand-offs, 26 alerted) | |
+| message_rules (code) | 2 | **0** | |
+| wrong_language (code) | 1 | 1 | sim-014, an English line in an Arabic conversation after a swap; not PD1's |
+| turn_error (code) | 0 | 1 | sim-014 turn 11, an edit («السكر الكبير 5 كيلو شيلوه من الطلب»): the class existed before (B1c: 1); no PD1 path in that turn (no fact asked, no honest answer); left to B1d |
+| judge: goal not reached, repeated question, dead end | 49, 13, 15 | 51, 19, 11 | run-to-run variance on code PD1 did not change |
+| judge: unnatural dialect, wrong product, invented fact | 24, 29, 8 | 23, **26**, **6** | |
+
+### Founder actions (PD1)
+Nothing here is needed before the next session starts; items 1 to 3 are needed for gate A ("every active item at least sellable", the facts
+the friends will ask about). The enrichment run's report (below, "PD1: the enrichment run on staging") gives the counts and the lists.
+1. **Arabic names: every active item needs one to be sellable.** Console, **Names**: read the proposals, then "Approve all shown" (the
+   Arabic ones need an Arabic reader). The readiness page (**Readiness**, filter "not sellable") lists every item and what it misses.
+2. **Approve product facts, in this order** (console, **Food facts** or **Intake**, one item at a time, against the pack or the page):
+   allergens first (each answered from the pack: contains, may contain or free); then halal and certificates (with the certificate
+   photo); then hazard warnings of the cleaning products (console **Intake**: the proposed warnings from the label photo); then anything
+   where sources disagree (the item's intake page lists both readings). Nutrition numbers and ingredients that two published sources agree
+   on are already live (the rule "two published sources", console **Automatic approvals**, where you can switch it off).
+3. **One shelf visit (Bassem).** The run's artifact `enrichment` holds `enrichment-report.md` with the printable list by aisle (SKU, name,
+   barcode, a tick box): photograph front and back of each pack at the supplier or any shop that stocks it, then upload on the console's
+   **Intake** page (type the barcode or SKU, attach the photos). The label reader fills the fields; a person checks each.
+4. **Supplier sheet (Bassem).** The same report lists, per item, the fields the supplier gives: for produce the origin; for meat the cut, the
+   weight per pack and the halal certificate; for the bakery the allergen declaration. Send them to the planning chat or type them on the
+   item's console page.
+5. **Printed claims rule.** It is off until its first spot check passes (console, **Automatic approvals**, "Spot checks waiting": tick
+   Right or Wrong for each). No action is needed to keep it off.
+
 ### Founder actions (CX1)
 - Pickup stays off until the hub's place is named. When it is: Supabase, SQL editor on staging, run
   `update settings set value = '{"enabled": true, "place_ar": "<the place in Arabic>", "place_en": "<the place in English>"}' where key = 'pickup';`
