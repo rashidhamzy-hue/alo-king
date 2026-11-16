@@ -68,6 +68,34 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **Left out on purpose:** part 4 of the strategy (the systems audit) and the founder's action drafts stay out of the repository until it is private (`docs/strategy/README.md`).
 - **One number corrected:** WH1a's migrations are 0153, 0156, 0157, 0188 and 0189, because WEB1 already uses 0154 and 0155 (`docs/DECISIONS.md`).
 
+### SR1: search by meaning and facts, 16 November 2026 (Opus 5.5); migrations 0212 to 0216
+Branch `claude/wizardly-rubin-puf4v8`. In progress: step 1 (the request set and today's baseline) is on `main`; the search itself follows.
+
+**The request set (step 1, before any search code).** `evals/search/requests.json`: 135 requests (Arabic 42, English 43, French 27,
+Lebanese in Latin letters 23), each with what must come back (products, a kind, or "nothing fits") and the facts it asks for. It holds the
+two voice notes of 15 November in all four languages, non-food requests ("fragrance-free shampoo for kids", "dog food for a puppy", cat food,
+diapers by age), allergies, and requests that mix a fact, an audience and a count. `evals/search/baskets.json`: 52 basket requests (a dish
+for N people, a week of lunchbox snacks, a budget basket). The facts the expected results rest on are a seeded set of approved test facts,
+`evals/search/facts.json`, loaded into the test database only (`test/db/search-kit.ts`), never into staging: invented values on seed
+products and six invented items (SR1T-*: a protein bar with and one without sugar, kids' rice cakes, a fragrance-free kids' shampoo,
+gluten-free pasta, lactose-free milk). `evals/search/score.ts` judges a returned item by those test facts, apart from the search's own SQL.
+
+**Baseline: today's `search_catalog` on the customer's words** (`evals/search/test/baseline.test.ts`, `evals/search/results/baseline.json`):
+
+| | requests | right item in the first five | share | returned items failing a fact filter | "nothing fits" answered |
+| --- | --- | --- | --- | --- | --- |
+| all | 135 | 96 | 0.711 | 169 | 9 of 19 |
+| Arabic | 42 | 33 | 0.786 | 40 | 2 of 5 |
+| Latin letters | 23 | 17 | 0.739 | 20 | 1 of 2 |
+| English | 43 | 29 | 0.674 | 76 | 5 of 10 |
+| French | 27 | 17 | 0.630 | 33 | 1 of 2 |
+| plain kinds | 46 | 45 | 0.978 | 0 | |
+| one fact | 32 | 14 | 0.438 | 73 | |
+| fact, audience and count | 10 | 2 | 0.200 | 17 | |
+
+Today's search finds plain items well and fails on facts: "no sugar" brings sugar and coffee sachets, "low fat yogurt" brings full-fat
+laban, "lactose free milk" brings ordinary milk, and an allergy is not a filter at all. Baskets: today nothing builds one (0 of 52).
+
 ### B1d: counts and edits, 16 November 2026 (Opus 5.5); no migration
 Ordering lane, branch `claude/gracious-ptolemy-bk1ldr`, #97. The 25 wrong-product conversations of CX1's run on main ([sim-test
 43781701377](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43781701377); B1c's run 43776071899 before it had 18), read one by one
