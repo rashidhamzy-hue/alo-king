@@ -58,7 +58,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **HO1 done** (below): the hand-off redesign is in code, and the simulated customers show zero silences after a hand-off (150 run).
 - **B1a merged (#77, #79, #80), two of three targets met** (below): on 150 simulated customers, minimum-order loops 66 to 0 and lost baskets 11 to 0; wrong products 34 (target 8; the planner's generic and size picks, a kept overnight basket's counts and reading cases remain); passed 35 to 48.
 - **B1b merged** (below, #85): a first order without a pin accepted and marked for a rider call; the language kept; the message rules held in model text; greetings and thanks not off-topic; B1a's reading leftovers; the founder's Arabic applied. On 150 simulated customers on main (second run, after the follow-up #87): address 8 to 1, other language 14 to 0, message rules 70 to 2, off-topic 16 to 1: **all four targets met**; passed 35 to 80 (93 on the first run). B1a's measures: loops 0, wrong products 34 (34), one lost basket (a "same as last time" question answered with "no open order"). The language gate holds (F1 0.914, wrong products 0).
-- **B1d (counts and edits)** (below, #97, no migration): the 25 wrong-product conversations of sim-test 43781701377 read one by one; counts against a pack's measure, «3tine» and «wa7de tene», a count said without "more" never added, a complaint or a question not an edit, a size never landing on another size, the product the customer's words fit when out of stock, a product named in full, an edit after the card. Language gate held (F1 0.908, wrong 0, live 103 of 103). Simulator result below.
+- **B1d (counts and edits)** (below, #97, no migration): the 25 wrong-product conversations of sim-test 43781701377 read one by one; counts against a pack's measure, «3tine» and «wa7de tene», a count said without "more" never added, a complaint or a question not an edit, a size never landing on another size, the product the customer's words fit when out of stock, a product named in full, an edit after the card. Language gate held (F1 0.908 and 0.915, wrong 0, live 103 of 103). On 150 simulated customers, two runs: wrong products 21 and 30 (target 8 **not met**; CX1's run 29), message rules 0 and wrong language 0 on the second; the judge classes vary by about eight between runs of the same code (below).
 - **B1c (wrong products, part 3)** (below, migration 0138): generic words and sizes asked by code or given the house default (said); the basket shown at the minimum and at night; a count said again not added; edits land on the basket's own product; hz0815; same as last time offered.
 - **What runs next.** Wave 0: PUB1 (public-repository hygiene) and BK0 (free backups and a repeated restore check; done, 15 Nov, see "BK0" below). Wave 1: HO1 (the never-stranded hand-off, first, ahead of T1), COST1 and OPS1; HO1 and COST1 start when SIM1's report is merged. Then B1a and B1b (one after the other), DS1, PIX, CX1 (waits for B1b), D4b. **T1 waits for gate A.** At most three sessions at once.
 - **Built and tested by DOC1:** documents only (`docs/strategy/*`, `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md`, `docs/DECISIONS.md`, this section, the old queue kept in `docs/history/NEXT_SESSIONS_2026-11-14.md`). No code, migration or workflow changed. Not proven: nothing here runs; it is a plan.
@@ -93,7 +93,7 @@ name on the product; a catalogue word, not a reading). sim-017 (one add left out
 **The gate counts these:** with about seven such conversations in each run of 150, "wrong products at most 8" needs the judge to stop
 counting them or the simulated customer to stop adding.
 
-**Tested here (CI, no key):** `npm run typecheck` clean; `npm test` green (2,286 passed, 111 skipped).
+**Tested here (CI, no key):** `npm run typecheck` clean; `npm test` green (2,402 passed, 111 skipped, on the follow-up merged with main).
 **The language gate** (`language-pack` on the branch, "after" and "live"): first run ([43812039544](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43812039544)):
 F1 0.909, the demo right, live evals 103 of 103, but **two wrong products**: hz0377 and g0377, «بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس
 رغفان», read in two lines with «مش الكبير» as a modifier, which the planner does not read, so the large loaf was chosen. A size ruled out
@@ -129,7 +129,46 @@ and readings spread over several lines that no code rule sees whole.
 **B1d follow-up** (second pull request): «شو فيني زيد؟» ("what can I add?") and «كمان بدي X» ("also I want X") are not more of X, and «بدي بس»
 wins over a "more" elsewhere in the message; bottles and cans of a pack of that many are one pack; the house default's line quotes the
 customer's words as the question does (Latin digits, no amount, at most 40 characters; B1c's test that held the Arabic-Indic digits now holds
-the Latin ones). Run 2 on main after it: below.
+the Latin ones). Merged as #101; its language gate ([43827184655](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43827184655)):
+F1 0.915, wrong products 0, the demo right, live 103 of 103.
+
+**The simulated customers on `main`, run 2** ([sim-test 43829590880](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43829590880),
+limit 150, budget USD 4, spent **$3.47**; main at 06309cb, #101):
+
+| class | CX1 | PD1 | B1d run 1 | **B1d run 2** |
+| --- | --- | --- | --- | --- |
+| wrong or uninvited product (judge) | 29 | 26 | 21 | **30** |
+| goal not reached | 49 | 49 | 42 | **48** |
+| unnatural dialect | 24 | 25 | 21 | **27** |
+| repeated question | 13 | 20 | 13 | **19** |
+| dead end | 15 | 17 | 10 | **12** |
+| invented fact | 8 | 8 | 6 | **5** |
+| wrong language (code) | 1 | 1 | 0 | **0** |
+| message rules (code) | 2 | 2 | 4 | **0** |
+| passed | 89 | 87 | 93 | **92** |
+
+**Done when, honestly:** the new cases pass (34 reading and pack cases, 14 flows); the language gate holds (F1 0.908 and 0.915, wrong 0,
+live 103 of 103, on both pull requests). **Not met:** wrong products at most 8 (21 and 30 on two runs of the same code), and "no class worse
+than CX1's run" holds on run 1 except message rules (fixed: 0 on run 2) but not on run 2 for three judge classes (wrong product +1, unnatural
+dialect +3, repeated question +6). The judge classes move this much between runs of unchanged code (wrong products: CX1's code 25 and 29,
+B1c's 23 and 18, B1d's 21 and 30; repeated question: CX1 13, PD1 20 on code B1d did not touch), so one run of 150 cannot show a change
+smaller than about eight in a judge class. The code-checked classes (message rules, wrong language) are at 0.
+
+Run 2's 30, read: none comes from B1d's new code (sim-029, sim-017, sim-099 checked against it); about ten are the customer's own counts or
+choices the judge counted (sim-047, sim-078, sim-080, sim-110, sim-104, sim-017's own tap on the 5 kg sugar), three are a brand with one
+product chosen (sim-016, sim-035, sim-047), and the rest are the loop's paths: an out-of-stock first message that drops the other line
+(sim-099), a question that offers only what is in stock when the product the words name is out of stock (sim-029: «عدس أحمر دروني» asked
+with only the green lentils; `questionsFor` filters the out-of-stock ones), the night and window flows (sim-014, sim-028, sim-040, sim-067,
+sim-103), and Whish (sim-052).
+
+**For the next ordering session** (B1e, or whoever takes wrong products next): (1) the judge cannot tell the customer's own additions from
+the shop's: about a third of every run; either the simulated customer stops piling up counts to reach the minimum, or the judge is given the
+basket after each turn (a measurement change, decided by the coordinator, not by the ordering lane); (2) a question whose in-stock candidates
+leave out the product the words name exactly should say it is out of stock (sim-029); (3) an out-of-stock first message keeps its other lines
+(sim-099); (4) a brand with one product (sim-016, sim-035, sim-047, three in each run): ask, or keep B1c's rule, is the founder's call; (5)
+«طلعاية» needs an Arabic name or a search word for Talaya (sim-006). **A CI flake seen twice:** `openTestDb` in a `beforeAll` timed out at
+10 s on the shared runner (extensions-schema, food-facts, console sign-in, image list; passed on re-run): worth `hookTimeout` 60 s for the
+PGlite suites (CI lane).
 
 ### PD1: the product data standard, 16 November 2026 (Opus 5.5); migrations 0202 to 0211
 Session PD1, branch `claude/eager-cannon-m6mq4n`. Source: `docs/PRODUCT_DATA_STANDARD.md` (the founder's document of 16 November) and the
