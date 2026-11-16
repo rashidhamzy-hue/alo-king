@@ -193,6 +193,18 @@ main at 2d10ca1 (#96), limit 150, budget USD 4, spent **$3.47**), against CX1's 
 | judge: goal not reached, repeated question, dead end | 49, 13, 15 | 51, 19, 11 | run-to-run variance on code PD1 did not change |
 | judge: unnatural dialect, wrong product, invented fact | 24, 29, 8 | 23, **26**, **6** | |
 
+**The gates on `main` after all three pull requests** (main at 0c78a19, #99):
+- **Language gate** ([language-pack 43819297527](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43819297527), step "after",
+  USD 0.19): 990 readings, **F1 0.917, wrong products 0**, the 0.13 demo right. **Holds.** The live evals step: **102 of 103**; the one miss
+  is `addr-13nov-voice` (a village read from a voice note), the known model-variance miss CX1's first run also had; PD1 changed no reading
+  code. The run is red only for that step.
+- **Simulated customers** ([sim-test 43819301131](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43819301131), limit 150, budget
+  USD 4, spent **$3.49**): passed 87; **silences after a hand-off 0** (25 hand-offs, 25 alerted); turn errors 0; wrong language 1 (sim-114,
+  the memory line in Arabic to an English customer, as in CX1's run); message rules 2 (sim-122, the restriction line quoting a long
+  Arabizi phrase, 121 characters: an existing line, not PD1's); judge: goal not reached 49, wrong product 26, unnatural dialect 25,
+  repeated question 20, dead end 17, invented fact 8. **No new failure class** against CX1's run and PD1's first.
+- **Not run: the enrichment run** (`enrich`, cap USD 15) and every staging proof, because staging cannot deploy (founder action 0).
+
 ### Founder actions (PD1)
 0. **First, today: renew the Supabase access token. Staging is at migration 0159 (read 16 November, 06:40): none of PD1's migrations are there.** Both deploys after PD1's
    merges (deploy-staging runs 43814172694 and 43817508007) stopped at `supabase link` with "Invalid access token": the repository secret
