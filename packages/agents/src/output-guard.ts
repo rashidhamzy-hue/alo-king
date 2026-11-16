@@ -75,6 +75,8 @@ const QUALITY: RegExp[] = [
   arWord(["أحسن", "احسن", "أفضل", "افضل", "أطيب", "اطيب", "أطعم", "اطعم", "لذيذ", "زاكي", "صحي", "صحّي", "ممتاز", "رائع", "رهيب", "بجنن", "بتجنن",
           "أسوأ", "اسوأ", "أوحش", "اوحش", "عاطل", "منصحك", "بنصحك", "أنصحك", "انصحك", "ننصحك", "منوصيك"]),
   /\d(?:[.,]\d)?\s*\/\s*(?:5|10)\b|\d\s*(?:stars?|نجوم|نجمات)|⭐|★|\brating\b|\brated\b|تقييم/u,
+  // PD1: suitability said as a judgement ("good for kids", «منيح للولاد»). Audience tags are shopping tags, never a claim in a reply.
+  /\b(?:good|great|perfect|ideal|suitable|safe|better) for (?:kids|children|babies|toddlers|you|your health|health|the family)\b|\bbon(?:ne)? pour (?:les enfants|la santé|les bébés)|(?<![\p{L}])(?:منيح|منيحة|مفيد|مفيدة|مناسب|مناسبة) (?:لل?ولاد|للأولاد|للاولاد|للأطفال|للاطفال|للصحة|للصحّة)|\b(?:mni7a?|mfid|mfide) (?:lal|la) (?:wled|wlad|ewled|sa77a|sa7a)\b/u,
 ];
 const SENSITIVE = [enWord(["muslim", "christian", "druze", "jewish", "religion", "religious", "your faith"]),
                    arWord(["مسلم", "مسيحي", "درزي", "يهودي", "دين", "ديانة", "دينك"])];
@@ -86,7 +88,8 @@ export const FOOD_TERMS: [string, RegExp][] = [
   ["vegan", /vegan|فيغان|ڤيغان|نباتي صرف/u],
   ["vegetarian", /vegetarian|végétarien|نباتي|نباتية/u],
   ["fasting", /siyami|syami|صيامي|fasting[- ]friendly|lenten/u],
-  ["nutrition", /calorie|calories|kcal|كالوري|سعرات|protein|بروتين|carbs|كربوهيدرات|keto|كيتو|sugar[- ]free|بدون سكر|خالي من السكر|low[- ]fat|organic|عضوي/u],
+  // PD1: the printed sugar claims customers ask for ("no sugar", "zero sugar", "no added sugar") in four languages.
+  ["nutrition", /calorie|calories|kcal|كالوري|سعرات|protein|بروتين|carbs|كربوهيدرات|keto|كيتو|sugar[- ]free|(?:no|zero|without|low)(?: added)? sugar|sans sucre|sucre ajouté|بدون سكر|بلا سكر|خالي من السكر|قليل السكر|زيرو شوغر|زيرو سكر|bala s[eiou]kk?[ae]r|bidoun s[eiou]kk?[ae]r|low[- ]fat|organic|عضوي/u],
   ["allergens", /allerg|حساسي|nuts?\b|nut[- ]free|peanut|مكسرات|فستق|sesame|سمسم|dairy[- ]free|lactose|لاكتوز|خالي من الحليب|egg[- ]free|shellfish|soy/u],
 ];
 const UNCERTAIN = /not verified|unverified|no verified|isn't verified|is not verified|don't have|do not have|no information|can't confirm|cannot confirm|can not confirm|not sure|unknown|check the label|ask (?:the )?(?:restaurant|merchant|kitchen|maker|shop)|must confirm|has to confirm|needs to confirm|will ask|i can ask|we can ask|ما عندي|ما عنا|ما عندنا|ما في معلوم|مش متأكد|مش مأكد|مش موثّق|مش موثق|غير موثّق|غير موثق|مش مؤكد|غير مؤكد|ما منقدر نأكّد|ما منقدر نأكد|ما فينا نأكّد|ما فينا نأكد|لازم المطبخ|لازم المحل|لازم يأكّد|لازم يأكد|منسأل|بنسأل|نسأل|بسأل|اسأل|شوف الملصق|تشوف الملصق|اتطلع عالملصق|تطلع عالملصق|ما بعرف|ma 3ande|ma 3anna|mesh mt2akkad|pas vérifié|je ne sais pas/u;
@@ -116,6 +119,19 @@ export interface CheckOptions {
   catalogueSearched?: boolean;
   /** B1a: quote_order or a card changed the basket this turn, so "I changed it" has a tool result behind it. */
   basketChanged?: boolean;
+  /** PD1 (e): the products and dishes a tool returned this turn, each with its exact names. A food word inside one of these names, as
+   *  the reply writes it, is part of a name and not a claim ("We have Balance Protein Crackers"). */
+  products?: readonly { id: string; names: readonly (string | null | undefined)[] }[];
+  /** PD1 (e): the customer's own words this turn. Said back as the request ("you asked for ...", "we don't carry ... yet"), the food
+   *  words they asked about are not a claim. A confirming echo («إيه، بدون سكر» to «هيدا بدون سكر؟») is still one. */
+  customerWords?: string;
+  /** PD1 (e): approved records a tool returned this turn, by product id: the guard attributes they cover. When given, the unlock is per
+   *  product: a fact passes only in a sentence that names that product (or, naming none, when one product alone has such a record) and
+   *  says where the fact comes from ("the pack says ..."). `approvedFacts` is then ignored. */
+  approvedByProduct?: ReadonlyMap<string, ReadonlySet<string>>;
+  /** PD1 (g): whether settings.catalog has a WhatsApp catalogue. False: the model may not offer the catalogue (staging, 15 Nov 22:20: the
+   *  button it offered answered "write what you want"). Unknown (undefined): not checked. */
+  catalogueReady?: boolean;
 }
 
 // B1a (SIM1 fix 1): the minimum order, the basket and the gap are said by code with their amounts (basket.ts); the model never words
@@ -124,6 +140,8 @@ const MINIMUM = /الحد الأدنى|الحد الادنى|حد أدنى|حد 
 // B1a (SIM1 fix 10): what the catalogue holds is said only from a tool result. "The catalogue is not ready" is code's fixed line
 // (show_catalog); "the only one" and "no other" need a search this turn.
 const CATALOGUE_STATE = /(?:catalog(?:ue)?|كتالوج|كاتالوج|الكتالوج|الكاتالوج|katalog)[^.!?؟\n]{0,20}(?:not ready|isn't ready|is not ready|not available|unavailable|n'est pas prêt|pas disponible|مش جاهز|مش جاهزة|مش متوفر|مش متاح|غير متوفر|ma7adar|mesh jehez|msh jehez)/u;
+// PD1 (g): an offer to show the WhatsApp catalogue, refused while settings.catalog has none (catalogueReady false).
+const CATALOGUE_OFFER = /(?:catalog(?:ue)?|كتالوج|كاتالوج|الكتالوج|الكاتالوج|katalog)/u;
 const ONLY_ONE = /\bthe only (?:one|kind|flavou?r|brand|size|type)\b|\bthe only [\p{L} ]{1,30}? (?:we have|we've got|we carry|available|in stock|left)\b|\bonly (?:one|kind) (?:we have|available)\b|\bno other\b|\bnothing else (?:like|in)\b|\bwe (?:don't|do not) have (?:any )?(?:other|another)\b|c'est (?:la|le) seule?\b|\bseule? (?:disponible|qu'on a)\b|\baucune? autre\b|\bpas d'autres?\b|الوحيد|الوحيدة|ما عنا غير|ما عندنا غير|ما في غير|ما في غيرها|ما في غيرو|ما في غيره|ما عنا غيرها|ما عنا غيرو|ma 3anna ghayr|ma 3anna gher|ma fi ghayra|ma fi gherha|ma fi ghero|el wa7id|el wa7ide/u;
 
 // B1a (the second run on main: sim-079, sim-146, sim-110, sim-052): the model said it had changed the order («عدّلنا», "I've
@@ -172,6 +190,83 @@ export function tooLong(text: string): string | null {
   return long ? `${long.length} characters` : null;
 }
 
+// ---------- PD1 (e): names and echoes ----------
+// A placeholder for a name taken out of the text: private-use characters, so no check's pattern can match it. The second character
+// says which returned product it was (or none, for the customer's words said back).
+const MARK = "\uE000";
+const ECHO = "\uE0FF";
+const markOf = (i: number) => MARK + String.fromCharCode(0xE100 + i);
+const MARKS = /\uE000([\uE100-\uEFFF])/gu;
+const TOKEN = /[\p{L}\p{N}]+/gu;
+const tokens = (t: string) => [...t.matchAll(TOKEN)].map((m) => ({ w: m[0], at: m.index!, end: m.index! + m[0].length }));
+
+/**
+ * The text with every returned product's name taken out, each replaced by its mark. A name counts as written when the reply has, word
+ * for word and with nothing in between, the name's first word followed by at least one more of its words in order ("Lipton Ice Tea Zero
+ * Sugar" for "Lipton Ice Tea Tropical Zero Sugar 320Ml"), or the whole name. Words the name does not have end the match, so a claim
+ * written after a name ("... is sugar-free") stays in the text.
+ */
+export function withoutNames(t: string, products: CheckOptions["products"]): string {
+  const spans: { at: number; end: number; i: number }[] = [];
+  const words = tokens(t);
+  (products ?? []).forEach((p, i) => {
+    for (const raw of p.names) {
+      const name = tokens(normaliseForGuard(String(raw ?? ""))).map((x) => x.w);
+      if (!name.length) continue;
+      for (let k = 0; k < words.length; k++) {
+        if (words[k]!.w !== name[0]) continue;
+        let j = k + 1, n = 1, matched = 1;
+        while (j < words.length) {
+          let found = -1;
+          for (let q = n; q < name.length; q++) if (name[q] === words[j]!.w) { found = q; break; }
+          if (found < 0) break;
+          n = found + 1; matched++; j++;
+        }
+        if (matched >= 2 || name.length === 1) spans.push({ at: words[k]!.at, end: words[j - 1]!.end, i });
+      }
+    }
+  });
+  // Longest first, then left to right; overlapping spans are dropped.
+  spans.sort((a, b) => (b.end - b.at) - (a.end - a.at) || a.at - b.at);
+  const kept: typeof spans = [];
+  for (const s of spans) if (!kept.some((k) => s.at < k.end && k.at < s.end)) kept.push(s);
+  kept.sort((a, b) => b.at - a.at);
+  let out = t;
+  for (const s of kept) out = out.slice(0, s.at) + ` ${markOf(s.i)} ` + out.slice(s.end);
+  return out;
+}
+
+// The request said back: what follows these words, to the end of the clause, is the customer's own request.
+const REQUEST_FRAME = new RegExp([
+  "you(?:'ve| have)? asked (?:for|about)", "you(?:'re| are) (?:asking|looking) for", "you want(?:ed)?", "you(?:'d| would) like", "you need",
+  "we (?:don't|do not|didn't|did not) (?:carry|have|sell|stock)(?: any)?", "we have no", "there (?:are|is) no", "no one sells",
+  "vous (?:avez demandé|cherchez|voulez)", "tu (?:as demandé|cherches|veux)", "(?:nous n'avons|on n'a|nous ne vendons|on ne vend) pas(?: de| d'| des)?",
+  "طلبت(?:ي)?", "سألت(?:ي)? عن", "بد(?:ّ)?ك", "بدكن", "عم تدو(?:ّ)?ر(?:ي)? على", "ما عنا", "ما عندنا", "ما في عنا", "ما منبيع",
+  "talabt(?:e|i)?", "sa2alt(?:e|i)? 3an", "badd?(?:ak|ik|kon)", "3am tdawwer(?:e|i)? 3a", "ma 3a[n]+a", "ma 3enna", "ma fi 3anna",
+].map((f) => `(?:^|[^\\p{L}])${f}(?![\\p{L}])`).join("|"), "gu");
+const CLAUSE_END = /[.,!?؟،;:\n]|\b(?:but|and it|it is|it's|mais)\b|(?<![\p{L}])(?:بس|لكن)(?![\p{L}])/u;
+
+/** The text with the customer's request said back taken out, when every food word in it is one the customer used this turn. */
+export function withoutEchoes(t: string, customerWords: string | undefined): string {
+  const said = normaliseForGuard(customerWords ?? "");
+  if (!said.trim()) return t;
+  const asked = new Set(FOOD_TERMS.filter(([, re]) => re.test(said)).map(([a]) => a));
+  let out = t;
+  for (const m of [...t.matchAll(REQUEST_FRAME)].reverse()) {
+    const from = m.index! + m[0].length;
+    const rest = t.slice(from);
+    const stop = CLAUSE_END.exec(rest);
+    const phrase = stop ? rest.slice(0, stop.index) : rest;
+    const terms = FOOD_TERMS.filter(([, re]) => re.test(phrase)).map(([a]) => a);
+    if (!terms.length || !terms.every((a) => asked.has(a))) continue;
+    out = out.slice(0, from) + ` ${ECHO} ` + out.slice(from + phrase.length);
+  }
+  return out;
+}
+
+// Where a fact comes from, said in the reply: the pack, the label, the certificate, the maker or the kitchen's declaration.
+const SOURCE = /\b(?:pack|packet|package|label|box|bottle|wrapper|certificate|certified)\b|\b(?:the )?pack(?:et)? says\b|according to|declared by|the (?:maker|brand|vendor|kitchen) (?:says|declares)|l'emballage|l'étiquette|le paquet|selon|déclaré|العلبة|عالعلبة|على العلبة|الملصق|عالملصق|الكيس|عالكيس|مكتوب|حسب|بحسب|الشهادة|\b3al? (?:3elbe|3ilbe|el 3elbe)\b|\bmaktoub\b|\bmektoub\b/u;
+
 /** Every check that applies to text written by the model. Returns the first violation, or null when the text may be sent. */
 export function checkModelText(text: string, opts: CheckOptions = {}): Violation | null {
   const money = moneyInText(text);
@@ -187,14 +282,17 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   if (only) return { code: "catalogue_claim", match: only[0] };
   const claim = opts.basketChanged ? null : CHANGE_CLAIM.exec(t);
   if (claim) return { code: "change_claim", match: claim[0] };
+  if (opts.catalogueReady === false) { const m = CATALOGUE_OFFER.exec(t); if (m) return { code: "catalogue_claim", match: m[0].trim() }; }
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
+  // PD1 (e): names a tool returned this turn and the customer's request said back are taken out; the rest is checked as before.
+  const rest = withoutEchoes(withoutNames(t, opts.products), opts.customerWords);
   // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
   // judgement (K1: B4's live run refused it). A comma or a contrast word starts a new clause, so "I can't rank them, X is the best" fails.
-  for (const c of opts.skipQuality ? [] : clauses(t)) {
+  for (const c of opts.skipQuality ? [] : clauses(rest)) {
     if (DECLINE.test(c)) continue;
     for (const re of QUALITY) { const m = re.exec(c); if (m) return { code: "quality_judgement", match: m[0].trim() }; }
   }
-  for (const s of sentences(t)) {
+  for (const s of sentences(rest)) {
     const foods = FOOD_TERMS.filter(([, re]) => re.test(s));
     if (foods.length === 0) continue;
     // An offer to filter by a kind of fact («I can filter by allergens where we have approved records») names the category, not
@@ -204,21 +302,37 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
     const calm = REASSURE.exec(s);
     if (calm && foods.some(([a]) => a === "allergens" || a === "gluten")) return { code: "allergy_reassurance", match: calm[0] };
     if (UNCERTAIN.test(s) || THEIR_OWN.test(s)) continue;
-    const unapproved = foods.find(([a]) => !opts.approvedFacts?.has(a));
+    const unapproved = foods.find(([a]) => !factUnlocked(a, s, opts));
     if (unapproved) return { code: "unapproved_food_claim", match: (unapproved[1].exec(s)?.[0] ?? unapproved[0]).trim() };
   }
   return null;
 }
 
+/**
+ * May this sentence state a fact of this attribute? With records by product (PD1), only for a product the sentence names whose record
+ * covers it, or for the one product with such a record when the sentence names none, and only with its source said. Without them, the
+ * attribute-group rule of 1.10 (used by the wording evals).
+ */
+function factUnlocked(attribute: string, s: string, opts: CheckOptions): boolean {
+  const byProduct = opts.approvedByProduct;
+  if (!byProduct) return !!opts.approvedFacts?.has(attribute);
+  if (!SOURCE.test(s.replace(MARKS, " "))) return false;
+  const ids = (opts.products ?? []).map((p) => p.id);
+  const named = [...s.matchAll(MARKS)].map((m) => ids[m[1]!.charCodeAt(0) - 0xE100]).filter((x): x is string => !!x);
+  const covering = [...byProduct.entries()].filter(([, attrs]) => attrs.has(attribute)).map(([id]) => id);
+  if (named.length) return named.some((id) => covering.includes(id));
+  return covering.length === 1;
+}
+
 /** What the model is told when its text is refused, so it can reword instead of repeating itself. */
 export const GUARD_HINT: Record<GuardCode, string> = {
   quality_judgement: "Never call a merchant, dish or product good, bad, best, tasty or healthy, never recommend one and never give a rating. Present options by measurable facts (what was asked for, availability, size) and let the customer choose, or ask what matters to them.",
-  unapproved_food_claim: "No approved record for this food fact came back from a tool. Say you do not have verified information, and offer to ask the merchant or suggest checking the label.",
+  unapproved_food_claim: "No approved record for this food fact came back from a tool for this product. Say you cannot confirm it yet, and offer to ask the merchant or suggest checking the label. Product names exactly as the tools returned them are fine; with an approved record, name the product and say where the fact comes from (\"the pack says ...\").",
   allergy_reassurance: "Never reassure about an allergy or a diet. Pass it on as an allergy and say the kitchen must confirm before the order is accepted.",
   sensitive_inference: "Never mention or infer a religion, health condition or diet from a name, a place or past orders. Ask only what the customer wants to exclude.",
   too_long: "Your own words are at most two short sentences, each under 120 characters. Say one thing: ask the one question that matters, or offer the choices as buttons (at most three). Lists, cards and totals are sent by the system.",
   minimum_by_code: "Do not mention the minimum order: the system already tells the customer the minimum, their basket and what is missing, with buttons. Answer the rest of their message, or ask what they want to add.",
   change_claim: "Never say the order or basket was changed unless quote_order changed it this turn. To change it, call quote_order with the new lines (and remove), then send_confirmation for the new card; or ask what to change.",
-  catalogue_claim: "Say only what a tool returned about the catalogue. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",
+  catalogue_claim: "Say only what a tool returned about the catalogue, and never offer the catalogue while it is not connected: ask what they need in words. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",
   money_in_free_text: "Prices, fees and totals are never written in free text. Leave amounts out: pass the product ids in `price_of` and the system adds prices from the database, or call quote_order and send_confirmation so the card shows the total.",
 };

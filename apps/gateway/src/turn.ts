@@ -16,7 +16,7 @@ import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
-import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
+import { catalogueReady, makeConciergeTools, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
 import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
@@ -666,6 +666,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
     const said = [...texts, ...transcripts.map((t) => t.primary)].join("\n");
+    // PD1 (e): the customer's own words this turn, so their request said back («you asked for protein bars») is not read as a claim.
+    ctx.customerWords = said;
     // A basket waiting on where to deliver, and an answer with no new items: those words are the address (B4). The card follows.
     if (intent && waitingForPlace(ctx)) {
       const took = await takeAddress(ctx, intent, said);
@@ -677,6 +679,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 3. Only a question needs the tool loop.
     // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
     // B1b (SIM1 fix 6): the language to write in, kept for the conversation (Arabizi in Latin letters for an Arabizi customer).
+    // PD1 (e): the products the planner returned are names the reply may use as written; (g) the catalogue is offered only when connected.
+    notePlanNames(ctx, routed.plan);
+    ctx.catalogueReady = await catalogueReady(db);
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE, ...(replyLanguage(state.speech) ? { reply_language: replyLanguage(state.speech) } : {}) };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);

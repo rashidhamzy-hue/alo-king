@@ -1385,6 +1385,87 @@ Nous n'avons pas pu ouvrir l'image.
 Pouvez-vous renvoyer la photo du reçu ?
 ```
 
+## honest.notCarried
+
+```text
+Nous n'avons pas encore protein bars. J'ai noté votre demande.
+```
+
+## honest.notCarried.two
+
+```text
+Nous n'avons pas encore protein bars et dates. J'ai noté votre demande.
+```
+
+## honest.cannotConfirm
+
+```text
+Je ne peux pas encore confirmer le sucre pour nos snacks.
+```
+
+## honest.fact.sugar
+
+```text
+Je ne peux pas encore confirmer le sucre pour nos snacks.
+```
+
+## honest.fact.protein
+
+```text
+Je ne peux pas encore confirmer les protéines pour nos snacks.
+```
+
+## honest.fact.gluten
+
+```text
+Je ne peux pas encore confirmer l'absence de gluten pour nos snacks.
+```
+
+## honest.fact.lactose
+
+```text
+Je ne peux pas encore confirmer l'absence de lactose pour nos snacks.
+```
+
+## honest.fact.fat
+
+```text
+Je ne peux pas encore confirmer les matières grasses pour nos snacks.
+```
+
+## honest.fact.salt
+
+```text
+Je ne peux pas encore confirmer le sel pour nos snacks.
+```
+
+## honest.fact.fragrance
+
+```text
+Je ne peux pas encore confirmer l'absence de parfum pour nos snacks.
+```
+
+## honest.named
+
+```text
+Articles avec « Zero Sugar » ou « No Sugar » dans leur nom :
+Lipton Ice Tea Tropical Zero Sugar 320Ml
+$0.69
+Dites-moi si vous en voulez un, ou autre chose.
+```
+
+## honest.closeItems
+
+```text
+Dites-moi si vous en voulez un, ou autre chose.
+```
+
+## honest.closeNone
+
+```text
+Dites-moi ce qu'il vous faut d'autre.
+```
+
 ## cx.welcome
 
 ```text

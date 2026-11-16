@@ -1,5 +1,5 @@
 // M1: every fixed message in Lebanese Arabic. Meaning as before M1; only the layout follows the brief's rules (types.ts).
-import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
+import { grouped, list, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} ل.ل`;
 const join = (xs: string[]) => xs.join("، ");
@@ -251,6 +251,14 @@ export const ar: Messages = {
     },
   },
 
+  honest: {
+    notCarried: (kinds) => `ما عنا ${list(kinds, "و")} بعد. سجّلنا طلبك.`,
+    cannotConfirm: (fact, kinds) => `ما فينا نأكّد ${fact} بـ${list(kinds, "و")} يلي عنا بعد.`,
+    fact: { sugar: "السكر", protein: "البروتين", gluten: "إنّو بلا غلوتين", lactose: "إنّو بلا لاكتوز", fat: "الدهون", salt: "الملح", fragrance: "إنّو بلا ريحة" },
+    named: (phrases) => `أغراض باسمها ${phrases.map((p) => `«${p}»`).join(" أو ")}:`,
+    closeItems: "قلّي إذا بدك شي منهن، أو شي تاني.",
+    closeNone: "قلّي شو بدك غير هيك.",
+  },
   ops: {
     newPick: (code) => `📦 طلب جديد للتحضير #${code}`,
     startButton: (code) => `بلّش #${code}`,
