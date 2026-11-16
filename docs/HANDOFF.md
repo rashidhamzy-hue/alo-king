@@ -232,7 +232,33 @@ conversation: USD 0 spent, no silence, failure class or judge figure measured.**
 (coordinator's step 2), but a fact the automatic rule approved (`source = 'published_sources'`, 0207) must name the rule party, and 0207's check
 `product_facts_published_sources_by_the_rule` refused it. Fixed with a failing test first (`evals/sim/test/world-copy-lb1.test.ts`): a who-decided column holding
 the rule party keeps it; any other person becomes the stand-in; a scan of every check constraint on the copied tables finds no other that names such a column.
-Per the coordinator's rule (no second run, whatever the result) **no second run was started**: the fix is on the branch and waits for a decision.
+The coordinator then approved one more run on the fixed copy (#110, merged; main's CI green).
+
+**The simulation that ran: [sim-test 43933295260](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43933295260)** (main at 34df6d8, limit 50, budget USD 2,
+`repeats` 0; the monthly-ceiling step passed; the copy loaded; every planned conversation ran, none stopped by the budget or an error). **No further run, either way.**
+It measures SR1's last gate and LB1's judge change (each of the 329 turns carried the held basket to the judge):
+
+| measure | this run |
+| --- | --- |
+| conversations, judged | 50, 50 |
+| **passed** | **26 (52.0%)** |
+| **spend** | **USD 1.11** of the budget of 2 (Concierge 0.13, customer 0.58, judge 0.40); 769 model calls; USD 0.022 a conversation; recorded in `model_costs` |
+| **customers left in silence after a hand-off** | **0** of 7 hand-offs (0 follow-up messages without a reply) |
+| **code-checked classes** (no reply, silence after a hand-off, turn error, reply in another language, message rules, card total unlike the database, confirmed without a tap, invented amount, message after STOP) | **all 0** (no conversation had a code failure) |
+| B1b's four code measures | address 0, other language 0, message rules 0, off-topic line outside its scenarios 1 (2.0%) |
+| judge: goal not reached | 15 (30.0%), mean severity 2.40 |
+| judge: wrong or uninvited product | 12 (24.0%), 2.25 |
+| judge: unnatural dialect | 10 (20.0%), 1.90 |
+| judge: repeated question | 9 (18.0%), 2.33 |
+| judge: dead end | 5 (10.0%), 2.60 |
+| judge: invented fact | 4 (8.0%), 2.25 |
+| judge: rating, praise or health word | 0 |
+
+**Read honestly.** SR1's last gate (zero silences after a hand-off) and the code-checked classes are met. The judge classes **cannot be compared** with B1d's two
+150-runs (wrong products 21 and 30 of 150, 14% and 20%): 50 conversations is a different sample, the judge now sees the basket (the change under test), and the
+judge moved by about eight a run on unchanged code. 12 of 50 wrong products is not evidence that the basket helps; it is not evidence against either. The weakest
+categories by pass rate (small counts, so only a pointer): night 1 of 5, window 1 of 5, money 0 of 2, address 1 of 4. The full report, the failing cases
+(`evals/cases/sim_<class>.json`) and `results.jsonl` are in the run's artifact `sim-results`.
 
 **Decisions made inside the brief, to confirm or change.**
 - *63, not 34.* The brief says 34 items have no barcode. The seed has 34 with none and 29 more that carry the store's own weighed-goods code (`2200...`), which a manufacturer's pack never prints, so a scan cannot find them either: the list holds all 63. Scanning a real barcode for an item that has none on file finds nothing: pick it from the list (the label reader reads the digits off the photo, and a person can add the barcode to the item later; no code does it yet).
