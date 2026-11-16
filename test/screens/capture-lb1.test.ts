@@ -40,12 +40,12 @@ describe.skipIf(!OUT)("the capture page in a browser", () => {
 
     const { chromium } = createRequire(import.meta.url)("playwright") as any;
     const browser = await chromium.launch();
-    const newPhone = async (lang: "en" | "ar", init?: string) => {
+    const newPhone = async (lang: "en" | "ar", init?: string, who: { email: string; password: string } = picker) => {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: "en-GB", timezoneId: "Asia/Beirut" });
       if (init) await ctx.addInitScript(init);
       const page = await ctx.newPage();
       await page.goto(`${base}/sign-in`);
-      await page.fill("input[name=email]", picker.email); await page.fill("input[name=password]", picker.password);
+      await page.fill("input[name=email]", who.email); await page.fill("input[name=password]", who.password);
       await Promise.all([page.waitForURL(`${base}/`), page.click("button")]);
       await page.goto(`${base}/lang?to=${lang}&next=/capture`);
       return { ctx, page };
@@ -185,6 +185,25 @@ describe.skipIf(!OUT)("the capture page in a browser", () => {
       const want = (await r.db.one(`select id from products where barcode = $1`, [code])).id;
       expect(await product(page)).toBe(want);
       await ctx.close();
+    }
+    // ---------------- the approval queue, for the ops lead ----------------
+    {
+      const lead = await r.staff("ops_lead", "Example lead");
+      const some = await r.db.all(`select id, category from products where is_active and category in ('Snacks & Candy', 'Cleaning & Household') order by category desc, sku limit 4`);
+      for (const [i, x] of some.entries()) {
+        for (const sh of ["front", "back"]) await r.db.rpc("record_label_capture", { p_product: x.id, p_shot: sh, p_media_path: `labels/${x.id}/2026-11-16/${sh}.jpg`, p_by: lead.partyId });
+        await r.db.rpc("record_label_scan", { p_product: x.id, p_photos: [`labels/${x.id}/2026-11-16/front.jpg`, `labels/${x.id}/2026-11-16/back.jpg`], p_model: "test", p_by: lead.partyId,
+          p_reading: x.category === "Snacks & Candy"
+            ? { facts: [{ attribute: "milk", value: i % 2 ? "contains" : "free", quote: i % 2 ? "Contains milk" : "Milk free" }, { attribute: "halal", value: "yes", quote: "Halal" }], fields: { warnings_as_printed: ["May contain traces of sesame."], directions_as_printed: "Keep cool and dry." } }
+            : { fields: { hazard_warnings: ["Causes serious eye irritation", "Do not mix with other products"] } } });
+      }
+      for (const lang of ["en", "ar"] as const) {
+        const { ctx, page } = await newPhone(lang, undefined, lead);
+        await page.goto(`${base}/label-queue`);
+        await noSideways(page, `queue ${lang}`);
+        await shot(page, `7-approvals-${lang}-390`);
+        await ctx.close();
+      }
     }
     await browser.close();
   }, 300_000);

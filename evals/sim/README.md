@@ -18,7 +18,8 @@ Nothing here changes product code.
 - **The customer** (`customer.ts`): `MODEL_SMART` (Sonnet 5.5), one cached persona and goal per conversation. It sees only texts,
   buttons and list rows, and answers with a text, a burst, a tap, a pin or a voice note. Voice is tested at transcript level: code
   turns what the customer says into a noisy transcript in Kapso's shape. At most 12 customer turns.
-- **The judge** (`judge.ts`): Sonnet 5.5, one call per conversation, JSON only.
+- **The judge** (`judge.ts`): Sonnet 5.5, one call per conversation, JSON only. LB1: it also reads the basket the conversation held after each turn (`basket.ts`: `BASKET NOW: ...` under each reply), so a customer's own additions are not counted as the shop's wrong products.
+- **Test budget** (LB1, `docs/NEXT_SESSIONS.md` rule 12): one run per session, limit 50 by default, 150 only at a gate check; `scripts/ci/sim-ceiling.mjs` refuses to start above the monthly ceiling (`settings.sim_monthly_cap_usd`).
 - **Checks on every turn** (`checks.ts`, `driver.ts`): no reply; silence after a hand-off; an order confirmed without the
   customer's own tap; a card total unlike the database's; an amount in model text no tool returned; a reply in another language;
   the message rules (M1's rules test); a turn error; anything sent after STOP.
