@@ -166,5 +166,24 @@
   .reply textarea { min-block-size: 7rem; }
   .actions-row { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: center; margin: var(--ak-space-3) 0; }
   .actions-row form { margin: 0; }
+
+  /* ---------- LB1: the label day's capture page (apps/console/src/pages/capture.ts). Functional only. ---------- */
+  .cap-count { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ak-space-3); font-size: var(--ak-text-lg); font-weight: var(--ak-weight-strong); margin-block: var(--ak-space-2); }
+  .cap-count small { font-weight: 400; color: var(--ak-muted); font-size: var(--ak-text-sm); }
+  progress[data-progress] { display: block; inline-size: 100%; block-size: 12px; accent-color: var(--ak-accent); margin-block-end: var(--ak-space-3); }
+  .cap-slot { background: var(--ak-surface); border: 1px solid var(--ak-line); border-inline-start: 4px solid var(--ak-line-strong); border-radius: var(--ak-radius); padding: var(--ak-space-3) var(--ak-space-4); margin: var(--ak-space-3) 0; }
+  .cap-slot[data-status="done"] { border-inline-start-color: var(--ak-ok); }
+  .cap-slot[data-status="waiting"], .cap-slot[data-status="working"] { border-inline-start-color: var(--ak-gold); }
+  .cap-slot[data-status="refused"] { border-inline-start-color: var(--ak-danger); }
+  .cap-slot h3 { margin: 0 0 var(--ak-space-1); }
+  .cap-take { position: relative; overflow: hidden; inline-size: 100%; min-block-size: 56px; font-weight: var(--ak-weight-strong); cursor: pointer; }
+  .cap-take input[type=file] { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; min-block-size: 0; opacity: 0; cursor: pointer; }
+  .cap-thumb { max-block-size: 120px; inline-size: auto; }
+  .cap-video { display: block; inline-size: 100%; max-block-size: 55vh; border-radius: var(--ak-radius); background: #000; }
+  .cap-list { list-style: none; margin: 0; padding: 0; }
+  .cap-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); padding-block: var(--ak-space-1); border-block-end: 1px solid var(--ak-line); }
+  .cap-list a { display: inline-flex; align-items: center; min-block-size: var(--tap); font-weight: var(--ak-weight-strong); }
+  .cap-list li[data-state="done"] a { color: var(--ak-muted); }
+  .cap-find { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: end; }
   @media print { .bottom-nav, .sidebar, header.top, .env { display: none; } body { background: #fff; } }
 }

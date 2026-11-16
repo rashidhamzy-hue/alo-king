@@ -6,6 +6,7 @@ import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { turnKeyOf, type Pending } from "../../apps/gateway/src/turn";
 import type { ModelClient } from "../../packages/agents/src/concierge";
 import { supabaseOver } from "../../test/db/supabase-shim";
+import { basketRows } from "./basket";
 import { cardOf, HARD_SEVERITY, renderKapso, ruleProblems, totalMismatch, wrongLanguage, type BotMsg, type Option } from "./checks";
 import { amountsIn, numbersIn, type Meter } from "./metered";
 import { hash, rng } from "./rng";
@@ -28,6 +29,8 @@ export interface TurnRecord {
   n: number; clock: string; action: Action; replies: BotMsg[]; seconds: number; modelCalls: number; usd: number;
   outcome: string | null; path: string | null; handoffs: string[]; afterHandoff: boolean; afterOptOut: boolean; failures: Failure[];
   guardRefusals: number;
+  /** LB1: the basket the conversation held after this turn (evals/sim/basket.ts), for the judge; null: nothing held. Older runs have none. */
+  basket?: string[] | null;
 }
 
 function fakeStorage() {
@@ -239,7 +242,8 @@ export class SimConversation {
       }
     }
     const rec: TurnRecord = { n, clock, action, replies, seconds, modelCalls: calls.length, usd: calls.reduce((s, c) => s + c.usd, 0), outcome, path, handoffs,
-                              afterHandoff, afterOptOut, failures, guardRefusals: this.guard.refused.length - mark.refused };
+                              afterHandoff, afterOptOut, failures, guardRefusals: this.guard.refused.length - mark.refused,
+                              basket: basketRows(this.store.get("state") as Parameters<typeof basketRows>[0]) };
     this.turns.push(rec);
     return rec;
   }

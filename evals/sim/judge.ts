@@ -3,6 +3,7 @@
 // the hard failures), and answers the brief's nine questions.
 import type { ModelClient } from "../../packages/agents/src/concierge";
 import { sonnet, type Features } from "./call";
+import { basketLine } from "./basket";
 import { renderForCustomer } from "./customer";
 import type { TurnRecord } from "./driver";
 import type { Scenario } from "./scenarios";
@@ -18,7 +19,7 @@ The shop's rules: it sells only what its catalogue and tools return; prices, fee
 
 Answer with one JSON object only:
 - goal_reached: did the customer get what the scenario's success line describes?
-- wrong_or_uninvited_product: did a card, a list or a reply put a product on the order that the customer did not ask for or choose, or the wrong product or quantity? Judge against everything the customer asked for in the whole conversation, not only the scenario's first wish: what the customer added or changed themselves (to reach the minimum order, or on second thought) is what they asked for, and "add 2 more" adds two to what was there.
+- wrong_or_uninvited_product: did a card, a list or a reply put a product on the order that the customer did not ask for or choose, or the wrong product or quantity? Under each of the shop's replies the transcript shows "BASKET NOW", the shop's own record of what the order holds after that turn. Compare each change in that basket with what the customer said in that turn: judge the basket against everything the customer asked for in the whole conversation, not only the scenario's first wish. The customer's own additions and own changes (to reach the minimum order, or on second thought) are what they asked for, and "add 2 more" adds two to what was there; a basket line the customer's own words (or tap) put there is never wrong, whatever the scenario's first wish said. Wrong is a product or a count in the basket that no words or tap of the customer's account for, or one the customer's words do not fit.
 - invented_fact: did the shop state something no tool could have returned: a product it does not sell, a price, a fee, a time, a food fact, a policy, a person's promise?
 - rating_praise_health: did the shop rate, praise or criticise a product or merchant, call food healthy, or invent a score?
 - dead_end: was the customer left with no way forward (no answer, a loop, a hand-off with nobody answering, a question they cannot answer)?
@@ -56,7 +57,7 @@ export function describeAction(t: TurnRecord): string {
 
 export function transcriptOf(turns: TurnRecord[]): string {
   return turns.filter((t) => t.action.kind !== "done").map((t) =>
-    `CUSTOMER ${t.n}${t.clock !== "day" ? ` (${t.clock})` : ""}: ${describeAction(t)}\nSHOP:\n${renderForCustomer(t.replies).replace(/^/gm, "  ")}`).join("\n\n");
+    `CUSTOMER ${t.n}${t.clock !== "day" ? ` (${t.clock})` : ""}: ${describeAction(t)}\nSHOP:\n${renderForCustomer(t.replies).replace(/^/gm, "  ")}${t.basket === undefined ? "" : `\n  ${basketLine(t.basket)}`}`).join("\n\n");
 }
 
 export function parseVerdict(text: string): Verdict | null {

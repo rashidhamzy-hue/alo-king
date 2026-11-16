@@ -1,0 +1,67 @@
+# Manual. Session LB1 (docs/NEXT_SESSIONS.md; docs/DECISIONS.md, "Coordinator decisions, 16 November 2026"): the label reading run, on STAGING.
+# Every pack photographed on the label day (front, back, side: console page /capture) is read by MODEL_FAST through the Anthropic Message
+# Batches API at half price. Each reading goes through record_label_scan into the item's template fields as PROPOSALS; the approval rules
+# approve what they may (a label and a second source that agree); a label reading replaces the web proposals for the same fields (label beats
+# web, 0114); allergens, halal, certificates, hazard warnings and printed warnings wait for a person in the console's "Label approvals".
+# Money: capped at USD 5 (the input is clamped to 5; the worst case of the items sent is estimated first, and no more are sent than the cap
+# allows; items left over are read by the next run) and recorded in model_costs (COST1, migration 0139). Nothing about a photo or a reading is
+# printed. The summary reports items read, fields filled per template, and the items still not fact-complete, with the reason.
+# Run from main only: staging must already have migrations 0210 and 0211. A batch that is still processing when the job ends keeps running
+# at Anthropic; its id is printed, and a second run with batch_ids set reads it (nothing is paid twice).
+# Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+name: label-read
+on:
+  workflow_dispatch:
+    inputs:
+      max_usd:
+        description: "Dollar cap for this run (at most 5)"
+        type: string
+        default: "5"
+      limit:
+        description: "Only the first N items waiting (empty = all)"
+        type: string
+        default: ""
+      batch_ids:
+        description: "Pick up batches already sent, comma-separated (msgbatch_...), instead of sending new ones (empty = send)"
+        type: string
+        default: ""
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: label-read
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Main only
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::label-read runs from main only (staging must have migrations 0210 and 0211); choose branch main"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Tests (the dry run on five seed items, the cap, the failures)
+        run: npx vitest run test/db/label-read-lb1.test.ts
+      - name: Read the labels
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAX_USD: ${{ inputs.max_usd }}
+          LIMIT: ${{ inputs.limit }}
+          BATCH_IDS: ${{ inputs.batch_ids }}
+          RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          OUT_DIR: out/label
+        run: |
+          export MODEL_FAST="$(node scripts/ci/wrangler-var.mjs MODEL_FAST)"
+          node scripts/label/read.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: label-read, path: out/label, retention-days: 30, if-no-files-found: ignore }

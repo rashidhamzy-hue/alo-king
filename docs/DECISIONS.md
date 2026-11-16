@@ -285,3 +285,16 @@ recommendations good"), so `docs/PRODUCT_DATA_STANDARD.md` is complete and PD1's
 **Read on staging, 15 November 22:20** (coordinator): the safety check refused the draft for the words "sugar free"; the customer got
 "I found no snacks with these specifications, shall I show you the catalogue?"; the catalogue button then answered "write what you want",
 because the catalogue is not connected on the test number. PD1's pull request 1 stops offering it.
+
+## Coordinator decisions, 16 November 2026
+Recorded by session LB1 (first commit, documents only) from the coordinator's note of 16 November. Each supersedes any earlier line that
+disagrees.
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | **Testing rules.** Fifteen full simulations cost about USD 43 in two days and no longer measure anything: the judge moves by about 8 wrong products between runs of the same code. (1) Every pull request: free tests only (unit tests, flow tests with a scripted model, the offline replay of recorded readings, zero-wrong), USD 0. (2) The live language gate: once per session, and only when the session changed reading, planner or prompt code. (3) Simulated customers: at most one run per session, limit 50, only for sessions that change ordering code; never a second run to check variance; limit 150 only at a gate check (T1 for gate A, then gate B). (4) Data and product-intake sessions run no simulation. (5) `sim-test` refuses to start above a monthly ceiling (the setting `sim_monthly_cap_usd`: 60 for November 2026, 20 a month after). (6) `intake` runs by hand only. | `docs/NEXT_SESSIONS.md` rule 12; LB1 (build items 1) |
+| 2 | **The label day replaces web facts.** Every pack is photographed (front, back, and the side with nutrition or directions) before the friends' test, so the label, not a web page, is the source of product facts. The 466 web-based fact proposals waiting on staging are not approved by hand; label readings replace them (label beats web, 0114). Gate A now needs every stocked item photographed and read, with allergens, halal and hazard warnings decided by a person. | Gate A (`docs/NEXT_SESSIONS.md`, `docs/HANDOFF.md`); LB1 (capture page, reading run, approval queue) |
+| 3 | **The judge sees the basket.** The simulator's judge is given the basket after each turn, so a customer's own additions are not counted as wrong products (about a third of every run). A measurement change; no ordering code moves. | LB1 (`evals/sim`) |
+| 4 | **A brand with one product keeps B1c's rule:** that product, named on the card (sim-016, sim-035, sim-047; F5 in HANDOFF, B1d). | No change |
+| 5 | **The out-of-stock question and the out-of-stock first message** (sim-029: a question whose buttons leave out the product named; sim-099: a first message that drops its other line) **are cases for T1 to measure** (HANDOFF, B1d, F3 and F4), **fixed only if the friends hit them.** | T1 |
+| 6 | **Migration numbers.** 0210 and 0211, left free by PD1, are LB1's. | LB1 |
