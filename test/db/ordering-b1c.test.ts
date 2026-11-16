@@ -99,7 +99,8 @@ describe("the house default is used and said (fix 1)", () => {
       const t = flow(db, [read(order([line("٩ ربطات خبز", "خبز", 9)]))]);
       await t.customer();                                                // no pin yet: the pin request says which bread (9 × 0.62 = 5.58)
       await t.text("بدي ٩ ربطات خبز");
-      expect(bodyOf(outbound.at(-1)!)).toContain(ar.basket.houseDefault("٩ ربطات خبز", await name("pita")));
+      // B1d (run 43824481535, message rule 7): the customer's words are quoted with Latin digits, as the question quotes them
+      expect(bodyOf(outbound.at(-1)!)).toContain(ar.basket.houseDefault("9 ربطات خبز", await name("pita")));
       expect(bodyOf(outbound.at(-1)!).endsWith(ar.fixed.askPin)).toBe(true);
       // with a pin, the card names it with its count
       const t2 = flow(db, [read(order([line("٩ ربطات خبز", "خبز", 9)]))]);

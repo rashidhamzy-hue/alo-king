@@ -202,3 +202,19 @@ describe("the card an edit came from is not sent again (sim-032)", () => {
     expect(after.map(bodyOf).join("\n")).not.toContain(await name("pepsiDiet"));
   });
 });
+
+describe("the house default's line quotes the customer's words by the message rules (run 43824481535: sim-069, sim-143, sim-045)", () => {
+  it("«بدي كمان ٣ ربطات خبز»: «3 ...», Latin digits, never «٣ ...»", async () => {
+    const was = (await db.all<{ id: string }>(`select id from products where house_default`)).map((r) => r.id);
+    const pita = (await db.one(`select id from products where sku = 'AK-0082'`)).id;
+    await db.pg.query(`update products set house_default = (id = $1) where house_default or id = $1`, [pita]);
+    try {
+      const t = flow(db, [read(order([line("كمان ٩ ربطات خبز", "خبز", 9)]))]);
+      await t.customer();
+      await t.text("بدي كمان ٩ ربطات خبز");
+      const said = outbound.map(bodyOf).join("\n");
+      expect(said).toContain("«كمان 9 ربطات خبز»");
+      expect(said).not.toMatch(/«[^»]*[٠-٩][^»]*»/u);
+    } finally { await db.pg.query(`update products set house_default = (id = any($1::uuid[]))`, [was]); }
+  });
+});

@@ -50,7 +50,7 @@ export function questionsFor(lines: PlanLineLike[], intent: Pick<OrderIntent, "l
 }
 
 /** The customer's words as the question quotes them: Latin digits, no amount, at most 40 characters (message rules 1 and 7). */
-function quoted(raw: string): string {
+export function quoted(raw: string): string {
   const t = raw.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/\$\s?\d+(?:[.,]\d+)?/g, " ").replace(/\s+/g, " ").trim();
   return t.length <= 40 ? t : `${t.slice(0, 39).trimEnd()}…`;
 }
