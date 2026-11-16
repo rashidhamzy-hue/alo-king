@@ -170,6 +170,27 @@ leave out the product the words name exactly should say it is out of stock (sim-
 10 s on the shared runner (extensions-schema, food-facts, console sign-in, image list; passed on re-run): worth `hookTimeout` 60 s for the
 PGlite suites (CI lane).
 
+**Session ended here, by instruction** (16 November): sim-test 43829590880 is the last run; no further sim-test or language-pack run was
+started. Wrong products stay above 8 (21 and 30), so what is left is handed to **T1, the friends' test, as cases to measure** on real
+customers. For each one T1's daily report counts how often it happens and whether the order was right in the end. The simulator cannot settle
+these, because its judge moves by about eight between runs:
+
+| # | Case to measure in the friends' test | What counts as wrong | Seen in |
+| --- | --- | --- | --- |
+| F1 | A count said for an item already in the basket: does the card carry the count the friend meant (set, not added) | a card count the friend corrects | sim-051, sim-036, sim-023 |
+| F2 | A count that is part of the pack («6 قناني» of a six-pack, «32 حبة», «كيلو» of a 900 g or 5 kg bag) | packs × the pack's own count | sim-140, sim-043, sim-135, sim-017 |
+| F3 | A product out of stock in the first message: said as out of stock, the other lines kept | another product put in its place, or a line dropped | sim-082, sim-145, sim-099 |
+| F4 | A question by code whose in-stock buttons leave out the product named («عدس أحمر» when the red lentils are out) | a button for a product the friend did not name, tapped | sim-029 |
+| F5 | A brand said alone with one product («بدي غوروستي»): taken as that product (B1c's rule) | the friend says it is not what they meant | sim-016, sim-035, sim-047 |
+| F6 | An edit or a swap spread over a long message (two items changed, one added) | a line doubled, dropped or landed on another product | sim-057, sim-021, sim-010, sim-079 |
+| F7 | A basket built up to reach the $5 minimum by several "add more" messages | the final card's counts against what the friend says they wanted | sim-080, sim-139, sim-143, sim-067 (the judge counts these against the shop) |
+| F8 | A product name the catalogue does not know in Arabic («طلعاية» for Talaya) | a question that offers other products | sim-006 |
+| F9 | Kept at night or for a later window: the counts and the window on the card in the morning | a count or a window the friend did not choose | sim-028, sim-103, sim-040, sim-110 |
+
+Each row has the simulated conversations in `evals/cases/sim_judge_wrong_product.json` of runs 43824481535 and 43829590880 (artifacts) and,
+where code changed, a case in `evals/cases/b1d_counts_edits.json`. Real orders replace the judge as the measure: an order is wrong when the
+friend corrects the card or the delivered basket.
+
 ### PD1: the product data standard, 16 November 2026 (Opus 5.5); migrations 0202 to 0211
 Session PD1, branch `claude/eager-cannon-m6mq4n`. Source: `docs/PRODUCT_DATA_STANDARD.md` (the founder's document of 16 November) and the
 coordinator's note of the same morning (`docs/DECISIONS.md`, "Founder decisions, 16 November 2026"). Three pull requests, in order.
