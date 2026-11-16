@@ -52,6 +52,7 @@ The engine is ahead of the business: the next phase builds less and proves more.
 15 November 2026"); the roadmap rows are the last section of `docs/BUILD_PLAN.md`; the rules every session follows and every prompt are in
 `docs/NEXT_SESSIONS.md`. Where these disagree with an older section of this file, they win.
 - **Gates.** **A**, the friends' test (Rashid and three friends on the US number): HO1, B1a, B1b, CX1, DS1, D4b, T1 merged; pictures approved; Arabic strings read by a person; simulated customers show zero silences after a hand-off. **B**, the shadow run (staff and family, cash only, 7 days, 100 orders): WH1a, RD1, OPS1, OPS2, AUD1, A3 merged; a nightly backup and a passed restore check; the hub with backup power and a temperature log; real costs entered; blended margin at least 15%. **C**, the paid pilot: the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 switched on or cash only by decision; G2's blockers fixed; Supabase Pro; the +961 numbers; auto-reload on with a limit. Stop conditions: `docs/strategy/01-verdict-gates.md`.
+- **SR1 built** (below, #104, #106, #107; migrations 0212 to 0216): one search for chat and website, filtered by approved facts only. Live reading model: right item in the first five 0.630 to **0.881**, returned items failing a fact filter 153 to **0**, "nothing fits" 9 to **19 of 19**; baskets 52 of 52; +36 ms on staging (+55 with a fact filter); language gate wrong 0, F1 0.915. Search by meaning is built but **off** (the Cloudflare token cannot call Workers AI: founder action). The limit-50 sim-test stopped before any conversation (the simulator's staging copy, `evals/sim/world.ts`; fix written below).
 - **CX1 built** (below): the first-ever welcome with its privacy line, the card's two choices (a missing item; which note, change kept as credit), self-service cancel until picking starts and the exact refundable amount after, a handover code for prepaid orders, pickup at the hub with no fee, and at most four messages started by code per order.
 - **D4b built** (below): the pick queue, rider jobs with "act for a rider", and rider incidents on the console; one order goes from confirmed to closed on the console alone.
 - **DS1 built** (below): the design system (`packages/ui`), the console's shell, Today, Inbox and Orders, and the website's home, category, search and product pages. The crown waits for the founder's approval.
@@ -69,7 +70,8 @@ The engine is ahead of the business: the next phase builds less and proves more.
 - **One number corrected:** WH1a's migrations are 0153, 0156, 0157, 0188 and 0189, because WEB1 already uses 0154 and 0155 (`docs/DECISIONS.md`).
 
 ### SR1: search by meaning and facts, 16 November 2026 (Opus 5.5); migrations 0212 to 0216
-Branch `claude/wizardly-rubin-puf4v8`. Pull requests #104 (step 1: the request set and today's baseline, merged) and the search (steps 2 to 8).
+Branch `claude/wizardly-rubin-puf4v8`. Pull requests #104 (step 1: the request set and today's baseline), #106 (steps 2 to 8: the search,
+migrations 0212 to 0216), #107 (CI's permission check waits for Postgres over TCP; the live reading's after result) and the closing docs, all merged.
 
 **The request set (step 1, before any search code).** `evals/search/requests.json`: 135 requests (Arabic 42, English 43, French 27,
 Lebanese in Latin letters 23), each with what must come back (products, a kind, or "nothing fits") and the facts it asks for. It holds the
@@ -137,6 +139,45 @@ Every one of the 16 misses after is a request the live model read with **no item
 the Concierge's ask loop, whose `search_catalog` tool reads the customer's own words with the same reading step (free score on those
 words: right); this harness runs no ask loop, so 0.881 is a floor for the chat, not its measure. The Latin-letter share (0.696) is below
 0.85 for that reason only: six of its seven misses are bare one-word requests. Not tuned further on this set: the friends' test measures it.
+
+**Embeddings (step 5): built, not yet measured.** The search-eval run on `main` (43900693145) called Workers AI over REST for bge-m3 and
+qwen3-embedding-0.6b and got **401 Authentication error** for both: the repository's `CLOUDFLARE_API_TOKEN` deploys Workers but has no
+Workers AI permission (founder action below). Nothing was spent and nothing was guessed. So `settings.search.embeddings` stays **off**:
+every search on staging runs on words alone, which is the designed fallback and what all the numbers above measure. The comparison
+(bge-m3 first, qwen3 if bge-m3 does not beat words on Arabic and Latin letters, both recorded; the meaning subset m001 to m024 is where
+words alone get 8 of 24) runs once the token can call Workers AI; then staging's documents are embedded (`staging_embed:<model>`) and the
+switch turned on (`switch:<model>`), both steps of `search-eval`. The Worker's own `AI` binding needs no token; it is deployed and unused
+while the switch is off.
+
+**Latency on staging** (`scripts/search/staging.mjs latency`, run 43900693145, 30 queries each, round trip from the runner): `search_catalog`
+median 249 ms; `find_products` on words 285 ms, **36 ms added**; with a fact filter ("no sugar") 304 ms, **55 ms added**. Under the 150 ms
+limit. The meaning list (an embedding call, about one Workers AI round trip, cached per query) is not in these numbers: embeddings are off.
+
+**The language gate, once, at the end** (`language-pack`, `after` on main at 2a242e5, run 43900743255, claude-haiku-5-5, 990 cases):
+**wrong products 0** (precision 1.000), **F1 0.915** (Lebanese Arabic 0.923, Latin letters 0.891, English 0.961, French 0.940, mixed 0.933);
+249,490 tokens in and 156,748 out, about USD 0.10 at the 0092 list price, recorded in `model_costs`, far under its USD 5 cap. The gate holds.
+
+**The sim-test, once, at the end: it did not run a conversation.** `sim-test` on main at 2a242e5 (run 43900749787, limit 50, budget USD 10)
+stopped in about a minute while it copied staging into its throwaway database, before the first simulated customer and before any model call
+(no `model-cost.json`; USD 0 spent): `new row for relation "product_facts" violates check constraint "product_facts_check"`. The cause is
+in the simulator's copy, not in SR1: `evals/sim/world.ts` empties every column that points at a person, so an approved fact arrives with
+`approved_at` set and `approved_by` empty, and 0021's check `(approved_by is null) = (approved_at is null)` refuses it. The run at 08:14
+(43829590880) passed because staging then held no approved food fact; it now does (approved since, on staging; SR1's migrations write no
+`product_facts` row). `evals/sim` belongs to LB1 in this wave, so SR1 did not change it and did not run the sim-test a second time: it would
+fail the same way. **The fix, for the owner of `evals/sim`:** in the world loader, when a blanked column is `approved_by`, keep the row
+approved by a stand-in staff party created in the throwaway database (or set `approved_at` to null and leave the fact out of the copy only
+if that is the decision). With it, one limit-50 run measures SR1's last gate (zero silences after a hand-off, no code-checked failure class).
+
+**Not proven (what only a live account or a later run can show):**
+- **Search by meaning.** Built and tested against an in-process model only; the embedding comparison and the switch wait for the token
+  (founder action 1 below). Until then every search is words alone.
+- **The sim-test gate** (above): not measured, because the simulator could not copy staging.
+- **The two voice notes of 15 November answered on staging by WhatsApp.** The request set holds them in all four languages and they pass
+  with the live reading model in PGlite; a real reply on the staging number is the friends' test's to show.
+- **The Arabic** of the fact-with-source lines and the basket lines (founder action 2 below). A basket's "not included" line names the
+  kind in English inside an Arabic sentence (kind names are data in English today); a translation of kind names is a later data task.
+- **The website search page** is functional only (design paused); it calls the same function and filters.
+- **LB1's 0210 and 0211** were not on main when SR1 merged 0212 to 0216; whoever deploys them applies with `--include-all`.
 
 **Changed expectations in older tests, and why.** `test/db/honest-answer-pd1.test.ts`: an approved record for a product of the kind used
 to let the usual path answer; now the record must show the product fits (Kinder's panel says 52 g sugar, so it never passes "no sugar"),
@@ -405,6 +446,14 @@ main at 2d10ca1 (#96), limit 150, budget USD 4, spent **$3.47**), against CX1's 
   Arabizi phrase, 121 characters: an existing line, not PD1's); judge: goal not reached 49, wrong product 26, unnatural dialect 25,
   repeated question 20, dead end 17, invented fact 8. **No new failure class** against CX1's run and PD1's first.
 - **Not run: the enrichment run** (`enrich`, cap USD 15) and every staging proof, because staging cannot deploy (founder action 0).
+
+### Founder actions (SR1)
+1. **Let the Cloudflare token call Workers AI** (search by meaning stays off until then; words alone answer meanwhile). dash.cloudflare.com,
+   your avatar (top right), **My Profile**, **API Tokens**; on the token the repository uses as `CLOUDFLARE_API_TOKEN`, **⋯**, **Edit**;
+   under **Permissions**, **+ Add more**: **Account**, **Workers AI**, **Edit**; **Continue to summary**, **Update token**. The token's value
+   does not change, so nothing in GitHub changes. Then tell the planning chat "Workers AI token fixed": a session runs `search-eval` with
+   `embed` (the comparison, under USD 1), and only if a model beats words alone, `staging_embed:<model>` and `switch:<model>`.
+2. **Arabic to read** (`docs/ARABIC_REVIEW.md`, "SR1"): the lines that state a fact with its source, and the basket lines.
 
 ### Founder actions (PD1)
 0. **First, today: renew the Supabase access token. Staging is at migration 0159 (read 16 November, 06:40): none of PD1's migrations are there.** Both deploys after PD1's
