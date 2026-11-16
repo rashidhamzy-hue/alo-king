@@ -124,9 +124,10 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
     const r = await searchProducts(ctx.db, ctx.embedder, a.kind, a.filters, 3).catch(() => null);
     if (!r) return false;                                            // the search failed: the usual path answers, never a guess
     if (r.matches.length) { fits.push({ ask: a, found: r.matches }); continue; }
-    // only an allergy or a diet, and nothing confirmed to pass: the usual ordering path, which puts the restriction on the card and checks
-    // the item named (1.14); a product the customer named is never blocked by code for lack of a record
-    if (onlyRestrictions(a.filters)) return false;
+    // only an allergy or a diet, nothing confirmed to pass, and a product named by its brand («لبنة ليبان ليه»): the usual ordering path,
+    // which puts the restriction on the card (1.14). A kind ("hummus", "halal chicken") gets the honest answer below: never "which one
+    // would you like?" over items nobody can confirm are safe.
+    if (onlyRestrictions(a.filters) && (intent.lines[a.idx]?.brand_hint || await namesBrand(ctx, a.kind))) return false;
     if (r.reason === "no_match") {
       // the kind may still be carried under a category's name ("snacks"): PD1's check
       const category = await rpc<{ code: string; product_ids: string[] } | null>(ctx.db, "kind_in_catalog", { p_query: a.kind }).catch(() => null);
@@ -200,6 +201,14 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
     }).then(() => undefined, () => undefined);
   }
   return true;
+}
+
+/** Do the words name a brand we stock («ليبان ليه» in «لبنة ليبان ليه»)? Any one or two words in a row, as catalog_is_brand (0053) reads them. */
+async function namesBrand(ctx: ToolContext, words: string): Promise<boolean> {
+  const t = words.split(/\s+/).filter(Boolean);
+  const grams = [...t.map((_, i) => t.slice(i, i + 2).join(" ")).filter((g) => g.includes(" ")), ...t.filter((w) => w.length >= 3)];
+  for (const g of grams.slice(0, 8)) if (await rpc<boolean>(ctx.db, "catalog_is_brand", { p_name: g }).catch(() => false)) return true;
+  return false;
 }
 
 /** Only an allergy or a diet: no nutrient, claim, animal or age asked. */

@@ -8,6 +8,11 @@ import { flow, openFlowDb, read, recordKapso, type Sent } from "./flow-kit";
 import { seedSearchFacts } from "./search-kit";
 import { searchProducts } from "@ak/agents/search";
 import type { Embedder } from "@ak/agents/embeddings";
+import { readSearch } from "@ak/agents/search-reading";
+import { REQUESTS } from "../../evals/search/score";
+
+/** The heading of a list of items that fit, in any language (messages.honest.fits). */
+const FITS = /What fits|Ce qui convient|هيدا يلي بيناسب/;
 
 let db: TestDb; let idOf: Map<string, string>; let skuOf: Map<string, string>;
 beforeAll(async () => { ({ db } = await openFlowDb()); ({ idOf, skuOf } = await seedSearchFacts(db)); }, 300_000);
@@ -204,5 +209,22 @@ describe("SR1 (6): a basket said in words is built by code, priced by quote_orde
     await t.customer();
     await t.text("mjadra for 60 people");
     expect(outbound.map(bodyOf).join("\n")).toContain("up to 50 people");
+  });
+});
+
+describe("SR1 (7): every 'nothing fits' request of the set gets the honest answer through the real turn, and its demand row", () => {
+  // The scripted reading is what code reads from the words (the live model's own reading is scored in evals/search/live.search.test.ts).
+  it.each(REQUESTS.filter((r) => r.expect.type === "nothing").map((r) => [r.id, r] as const))("%s", async (_id, r) => {
+    const reading = readSearch(r.text);
+    const lang = r.lang === "ar" ? "ar_lb" : r.lang;
+    const t = flow(db, [read(order([line({ raw: r.text, query: reading.query || r.text, qty: reading.count ?? 1 })], lang))]);
+    const party = (await t.customer()).party_id;
+    await t.text(r.text);
+    expect(outbound.length).toBeGreaterThan(0);                                   // answered, never silent
+    const body = outbound.map(bodyOf).join("\n");
+    const offered = (await db.all<{ name_en: string }>(`select name_en from products where sku = any($1)`, [[...skuOf.values()]]))
+      .filter((p) => body.includes(p.name_en) && FITS.test(body)).map((p) => p.name_en);
+    expect(offered, body).toEqual([]);                                             // nothing offered as fitting
+    expect(await db.all(`select 1 from demand_signals where party_id = $1`, [party]), body).not.toHaveLength(0);
   });
 });
