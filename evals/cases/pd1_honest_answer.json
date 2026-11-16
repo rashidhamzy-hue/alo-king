@@ -1,0 +1,31 @@
+{
+  "about": "PD1 (g), 16 November 2026: the two voice notes that failed on staging (15 Nov 22:20), on today's seed, with the reading the model gives and the answer the founder's document gives (docs/PRODUCT_DATA_STANDARD.md, 'What the right answer looks like, with today's catalogue'). The answer is written by code: what we do not carry yet (noted), what we cannot confirm yet, and at most three real items by their exact name and price. No catalogue button. The request is logged with log_demand. test/db/honest-answer-pd1.test.ts runs each case through the real turn code.",
+  "cases": [
+    { "id": "snacks-no-sugar-5-kids-en", "said": "I want snacks with no sugar for 5 kids", "language": "en",
+      "lines": [{ "raw": "snacks with no sugar", "query": "snacks", "qty": 5, "modifiers": ["no sugar"] }],
+      "expect": { "kind": "facts_unconfirmed", "facts": ["sugar"], "audience": "kids", "quantity": 5,
+                  "contains": ["I can't confirm the sugar for our snacks yet.", "Lipton Ice Tea", "$0.69", "Cafe21 2In1 Instant Coffee No Sugar 12G", "$0.24"],
+                  "not_contains": ["catalog", "sugar-free", "healthy"] } },
+    { "id": "protein-bars-no-sugar-en", "said": "protein bars with no sugar", "language": "en",
+      "lines": [{ "raw": "protein bars with no sugar", "query": "protein bars", "qty": 1, "modifiers": [] }],
+      "expect": { "kind": "unknown_product", "facts": ["sugar"], "audience": null, "quantity": 1,
+                  "contains": ["We don't carry protein bars yet. I've noted your request.", "Lipton Ice Tea", "Cafe21"],
+                  "not_contains": ["catalog", "I can't confirm"] } },
+    { "id": "snacks-no-sugar-5-kids-ar", "said": "بدي سناكس بلا سكر لخمس ولاد", "language": "ar_lb",
+      "lines": [{ "raw": "سناكس بلا سكر", "query": "سناكس", "qty": 5, "modifiers": ["بلا سكر"] }],
+      "expect": { "kind": "facts_unconfirmed", "facts": ["sugar"], "audience": "kids", "quantity": 5,
+                  "contains": ["ما فينا نأكّد السكر بـسناكس يلي عنا بعد.", "Lipton Ice Tea", "$0.69"], "not_contains": ["كتالوج", "كاتالوج"] } },
+    { "id": "protein-bars-no-sugar-ar", "said": "بدي بروتين بار بلا سكر", "language": "ar_lb",
+      "lines": [{ "raw": "بروتين بار بلا سكر", "query": "بروتين بار", "qty": 1, "modifiers": [] }],
+      "expect": { "kind": "unknown_product", "facts": ["sugar"], "audience": null, "quantity": 1,
+                  "contains": ["ما عنا بروتين بار بعد. سجّلنا طلبك.", "Cafe21"], "not_contains": ["كتالوج"] } },
+    { "id": "snacks-no-sugar-arabizi", "said": "baddi snacks bala sekkar la 5 wled", "language": "arabizi",
+      "lines": [{ "raw": "snacks bala sekkar", "query": "snacks", "qty": 5, "modifiers": [] }],
+      "expect": { "kind": "facts_unconfirmed", "facts": ["sugar"], "audience": "kids", "quantity": 5,
+                  "contains": ["ما فينا نأكّد السكر", "Lipton Ice Tea"], "not_contains": ["catalog"] } },
+    { "id": "snacks-no-sugar-fr", "said": "des snacks sans sucre pour 5 enfants", "language": "fr",
+      "lines": [{ "raw": "des snacks sans sucre", "query": "snacks", "qty": 5, "modifiers": [] }],
+      "expect": { "kind": "facts_unconfirmed", "facts": ["sugar"], "audience": "kids", "quantity": 5,
+                  "contains": ["Je ne peux pas encore confirmer le sucre pour nos snacks.", "Lipton Ice Tea"], "not_contains": ["catalogue"] } }
+  ]
+}

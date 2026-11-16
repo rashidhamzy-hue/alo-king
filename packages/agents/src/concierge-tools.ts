@@ -74,10 +74,8 @@ export interface ToolContext {
   state: ConversationState;
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
   /** authored: set on text the model wrote, so the gateway checks it again (A2's second lock for 1.5 and 1.10). */
-  send: (msg: Outbound, opts?: { orderId?: string; authored?: { by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean } }) => Promise<SendResult>;
+  send: (msg: Outbound, opts?: { orderId?: string; authored?: Authored }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
-  /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
-  approvedFacts?: Set<string>;
   /** The customer turn this runs in (SP1, G1-21): a retried turn finds the order its first attempt made, instead of a second. */
   turnKey?: string;
   /** HO1: what the turn learned about cases (opened, reminded, a food fact not on record, a stalled loop). */
@@ -88,6 +86,59 @@ export interface ToolContext {
   openCaseIds?: string[];
   /** B1a: quote_order or a card changed the basket this turn, so the model may say it changed (the guard's change_claim). */
   basketChanged?: boolean;
+  /** PD1 (e): every product or dish a tool (or the planner) returned this turn, with its names: a food word inside one is a name. */
+  returned?: Map<string, Set<string>>;
+  /** PD1 (e): approved records food_facts returned this turn, by product: the unlock is per product, never per attribute group. */
+  approvedByProduct?: Map<string, Set<string>>;
+  /** PD1 (e): the customer's own words this turn, so their request said back is not read as a claim. */
+  customerWords?: string;
+  /** PD1 (g): settings.catalog has a WhatsApp catalogue. False: the catalogue is never offered (staging, 15 Nov 22:20). */
+  catalogueReady?: boolean;
+}
+
+/** What the gateway is told about text the model wrote, so it checks it again with the same tool results (A2's second lock). */
+export interface Authored {
+  by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean;
+  products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean;
+}
+
+/** PD1 (e): keep the names of products a tool returned this turn. */
+export function noteReturned(ctx: Pick<ToolContext, "returned">, id: unknown, ...names: unknown[]): void {
+  if (typeof id !== "string" || !id) return;
+  const set = (ctx.returned ??= new Map()).get(id) ?? new Set<string>();
+  for (const n of names) if (typeof n === "string" && n.trim()) set.add(n.trim());
+  ctx.returned.set(id, set);
+}
+/** PD1 (e): the products a plan (plan_order, repeat_plan) returned: each line's choice and its candidates. */
+export function notePlanNames(ctx: Pick<ToolContext, "returned">, plan: unknown): void {
+  const p = plan as { lines?: { chosen?: { product_id?: string; name?: string; name_ar?: string | null } | null;
+                                candidates?: { product_id?: string; name?: string; name_ar?: string | null }[] | null }[];
+                      quote?: { lines?: { product_id?: string; name?: string; name_ar?: string | null }[] } | null } | null;
+  for (const l of p?.lines ?? []) for (const x of [l.chosen, ...(l.candidates ?? [])]) if (x) noteReturned(ctx, x.product_id, x.name, x.name_ar);
+  for (const l of p?.quote?.lines ?? []) noteReturned(ctx, l.product_id, l.name, l.name_ar);
+}
+/** PD1 (g): settings.catalog names a WhatsApp catalogue. Unreadable counts as not connected (fail closed: the offer is not made). */
+export async function catalogueReady(db: SupabaseClient): Promise<boolean> {
+  try {
+    const { data } = await db.rpc("setting", { p_key: "catalog" });
+    return !!(data as { catalog_id?: string | null } | null)?.catalog_id;
+  } catch { return false; }
+}
+/** The guard's options for this turn's tool results. */
+export function guardOptions(ctx: ToolContext) {
+  return {
+    catalogueSearched: !!ctx.searched, basketChanged: !!ctx.basketChanged,
+    products: [...(ctx.returned ?? new Map<string, Set<string>>()).entries()].map(([id, names]) => ({ id, names: [...names] })),
+    customerWords: ctx.customerWords ?? "",
+    approvedByProduct: ctx.approvedByProduct ?? new Map<string, Set<string>>(),
+    ...(ctx.catalogueReady !== undefined ? { catalogueReady: ctx.catalogueReady } : {}),
+  };
+}
+function authored(ctx: ToolContext): Authored {
+  const o = guardOptions(ctx);
+  return { by: "model", catalogueSearched: o.catalogueSearched, basketChanged: o.basketChanged, products: o.products, customerWords: o.customerWords,
+           approvedByProduct: Object.fromEntries([...o.approvedByProduct.entries()].map(([k, v]) => [k, [...v]])),
+           ...(o.catalogueReady !== undefined ? { catalogueReady: o.catalogueReady } : {}) };
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -102,7 +153,7 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 
 export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string, byModel = false): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.sent.count >= MAX_SENDS_PER_TURN) return { ok: false, error: "message_budget_reached_for_this_turn" };
-  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: { by: "model" as const, approvedFacts: [...(ctx.approvedFacts ?? [])], catalogueSearched: !!ctx.searched, basketChanged: !!ctx.basketChanged } } : {}) });
+  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: authored(ctx) } : {}) });
   if (!r.ok) return { ok: false, error: `not_sent:${r.refused}` };
   ctx.sent.count++; ctx.sent.texts.push(summary);
   return { ok: true };
@@ -114,6 +165,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const r = await rpc<{ matches: Record<string, unknown>[]; reason: string | null }>(ctx.db, "search_catalog",
         { p_query: query, p_source_hint: source_hint ?? null, p_limit: 6 });
       ctx.searched = true;
+      for (const m of r.matches) noteReturned(ctx, m.product_id, m.name_en, m.name_ar);
       // Trim to what the model needs to choose; ids must be passed back untouched.
       return {
         reason: r.reason,
@@ -169,6 +221,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       ctx.state.lastQuote = { lines: basket, villageId, pickup: !!pickup, quote };
       ctx.state.basketAt = Date.now();
       ctx.basketChanged = true;
+      for (const l of quote.lines ?? []) noteReturned(ctx, (l as { product_id?: string }).product_id, l.name, l.name_ar);
       return { ...quote, basket_note: "These lines are the customer's whole basket now. send_confirmation sends exactly this basket." };
     },
 
@@ -180,7 +233,11 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const out = [];
       for (const id of ids) {
         const facts = await rpc<FoodFact[]>(ctx.db, "product_food_facts", { p_product: id });
-        for (const f of facts) if (!f.expired && USABLE.has(f.status)) (ctx.approvedFacts ??= new Set()).add(guardAttribute(f.attribute, f.kind));
+        // PD1 (e): per product. The record unlocks that attribute for this product only, never for every product of the turn.
+        for (const f of facts) if (!f.expired && USABLE.has(f.status)) {
+          const m = (ctx.approvedByProduct ??= new Map());
+          m.set(id, (m.get(id) ?? new Set<string>()).add(guardAttribute(f.attribute, f.kind)));
+        }
         const check = codes.length ? await rpc<unknown>(ctx.db, "product_meets_restrictions", { p_product: id, p_restrictions: codes }) : null;
         out.push({ product_id: id, facts: facts.filter((f) => !f.expired), no_approved_facts: facts.every((f) => f.expired), restrictions: check });
       }
@@ -259,7 +316,8 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
  */
 export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
   let v: Violation | null = null;
-  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts, catalogueSearched: !!ctx.searched, basketChanged: !!ctx.basketChanged }); if (v) break; }
+  const opts = guardOptions(ctx);
+  for (const t of texts) { v = checkModelText(t, opts); if (v) break; }
   if (!v) return null;
   await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
                                            trace: { code: v.code, match: v.match.slice(0, 60) } });

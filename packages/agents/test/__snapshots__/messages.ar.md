@@ -1385,6 +1385,87 @@ Najjar Classic coffee 180 g: 1 → 3
 فيك تبعتلنا صورة الإيصال مرة تانية؟
 ```
 
+## honest.notCarried
+
+```text
+ما عنا protein bars بعد. سجّلنا طلبك.
+```
+
+## honest.notCarried.two
+
+```text
+ما عنا protein bars وdates بعد. سجّلنا طلبك.
+```
+
+## honest.cannotConfirm
+
+```text
+ما فينا نأكّد السكر بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.sugar
+
+```text
+ما فينا نأكّد السكر بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.protein
+
+```text
+ما فينا نأكّد البروتين بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.gluten
+
+```text
+ما فينا نأكّد إنّو بلا غلوتين بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.lactose
+
+```text
+ما فينا نأكّد إنّو بلا لاكتوز بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.fat
+
+```text
+ما فينا نأكّد الدهون بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.salt
+
+```text
+ما فينا نأكّد الملح بـsnacks يلي عنا بعد.
+```
+
+## honest.fact.fragrance
+
+```text
+ما فينا نأكّد إنّو بلا ريحة بـsnacks يلي عنا بعد.
+```
+
+## honest.named
+
+```text
+أغراض باسمها «Zero Sugar» أو «No Sugar»:
+Lipton Ice Tea Tropical Zero Sugar 320Ml
+$0.69
+قلّي إذا بدك شي منهن، أو شي تاني.
+```
+
+## honest.closeItems
+
+```text
+قلّي إذا بدك شي منهن، أو شي تاني.
+```
+
+## honest.closeNone
+
+```text
+قلّي شو بدك غير هيك.
+```
+
 ## cx.welcome
 
 ```text

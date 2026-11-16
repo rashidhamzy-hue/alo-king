@@ -16,6 +16,13 @@ type S = string;
 export const usd = (n: number): string => `${Number(n) < 0 ? "-" : ""}$${Math.abs(Number(n)).toFixed(2)}`;
 /** Lira grouped with commas, Western digits: 650,000. The unit word comes from the language file. */
 export const grouped = (n: number): string => Math.round(Number(n)).toLocaleString("en-US");
+/** PD1: "a", "a and b", "a, b and c" with the language's own "and" (Arabic: «أ، ب وج», the و joined to the last word). */
+export const list = (items: string[], and: string): string => {
+  const xs = items.filter(Boolean);
+  if (xs.length <= 1) return xs[0] ?? "";
+  const sep = and === "و" ? "، " : ", ";
+  return `${xs.slice(0, -1).join(sep)} ${and === "و" ? "و" : and + " "}${xs[xs.length - 1]}`;
+};
 /** B1b (SIM1 fix 7): a list of names written over as many lines as it needs, none longer than `max` (message rule 1). */
 export const wrapNames = (head: string, names: string[], sep: string, end = ".", max = 110): string => {
   const lines: string[] = []; let cur = head;
@@ -275,6 +282,23 @@ export interface Messages {
   };
 
   /** The ops line: pickers, riders and the ops lead. Staff read Arabic today (STAFF_LANG); en and fr are kept in step. */
+  /**
+   * PD1 (g): the honest answer when nothing fits (docs/PRODUCT_DATA_STANDARD.md, "Why the two voice notes failed"). Written by code:
+   * what we do not carry yet (noted), what we cannot confirm yet, and at most three real items by their exact name, each priced by
+   * quote_order. Never a catalogue button, never a fact: a phrase is quoted as part of a name ("with 'Zero Sugar' in their name").
+   */
+  honest: {
+    /** The kinds the customer asked for that we do not carry, in their own words. */
+    notCarried: (kinds: S[]) => S;
+    /** A fact asked about a kind we carry, which no approved record confirms yet. */
+    cannotConfirm: (fact: S, kinds: S[]) => S;
+    /** What each fact is called in that sentence. */
+    fact: Record<"sugar" | "protein" | "gluten" | "lactose" | "fat" | "salt" | "fragrance", S>;
+    /** The heading of the items whose own name holds the phrase. */
+    named: (phrases: S[]) => S;
+    /** The last line: with items listed, or with none. */
+    closeItems: S; closeNone: S;
+  };
   ops: {
     newPick: (code: S) => S;
     startButton: (code: S) => S;

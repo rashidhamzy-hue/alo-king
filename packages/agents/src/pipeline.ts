@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
+import { honestAnswer } from "./honest";
 import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName } from "./messages";
@@ -122,6 +123,10 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
       return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
     }
   }
+  // PD1 (g): a kind of product asked with a fact («snacks with no sugar for 5 kids», "protein bars with no sugar") that no approved record
+  // can answer: code says what we do not carry yet, what we cannot confirm yet, and up to three real items by name and price, and logs
+  // the request (honest.ts). Staging, 15 Nov 22:20: the model offered the catalogue, which is not connected.
+  if (said && await honestAnswer(ctx, intent, said)) return { done: true, path: "honest_answer" };
   // W1: a time said with no new item ("بكرا الصبح", "can you bring it friday afternoon?") is for what is in hand: the card waiting
   // on the tap, the basket waiting on us, or the order being changed.
   const when = whenIn(said);
