@@ -44,8 +44,14 @@ export function questionsFor(lines: PlanLineLike[], intent: Pick<OrderIntent, "l
     if (!line) return [];
     const candidates = (l.candidates ?? []).filter((c) => c.in_stock !== false).slice(0, 3)
       .map((c) => ({ product_id: c.product_id, name: c.name ?? "", name_ar: c.name_ar ?? null, price_usd: c.price_usd == null ? null : Number(c.price_usd) }));
-    return candidates.length ? [{ raw: (line.raw || l.raw || line.query).trim().slice(0, 60), line, candidates }] : [];
+    return candidates.length ? [{ raw: quoted(line.raw || l.raw || line.query), line, candidates }] : [];
   });
+}
+
+/** The customer's words as the question quotes them: Latin digits, no amount, at most 40 characters (message rules 1 and 7). */
+function quoted(raw: string): string {
+  const t = raw.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/\$\s?\d+(?:[.,]\d+)?/g, " ").replace(/\s+/g, " ").trim();
+  return t.length <= 40 ? t : `${t.slice(0, 39).trimEnd()}…`;
 }
 
 /** Button titles of at most 20 characters that tell the products apart: the name, else the brand and the size, else numbered. */
