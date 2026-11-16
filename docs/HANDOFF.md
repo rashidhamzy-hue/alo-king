@@ -113,8 +113,24 @@ budget USD 4, spent **$3.53**; main at 5d43392, #90), against B1c's run on the c
 | judge: unnatural dialect, wrong product, invented fact | 33, 23, 10 | 37, 25, 13 | model variance on the same code paths (CX1 changed no reading, planner or model text) |
 | passed | 88 | 70 | the 15 welcome conversations fail on their first turn |
 
-Silences after a hand-off: 0 (25 hand-offs, 25 alerted). Address 0, off-topic 3, minimum-order loops 0, lost baskets 1. Done when the
-follow-up's own run on `main` shows no new class.
+Silences after a hand-off: 0 (25 hand-offs, 25 alerted). Address 0, off-topic 3, minimum-order loops 0, lost baskets 1.
+
+**The follow-up's own run on `main`** ([sim-test 43781701377](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43781701377), limit 150,
+budget USD 4, spent **$3.47**; main at 861788a: CX1, the welcome fix #94 and B1c's #93), the same 150 scenarios, all judged:
+**no new failure class; CX1's "Done when" is met.**
+
+| class | B1c (before CX1) | CX1 + fix on main | note |
+| --- | --- | --- | --- |
+| wrong_language (code) | 1 | **1** | back to B1c's level; the one left (sim-138) is the memory opt-out line in Arabic to an English customer, not CX1's |
+| message_rules (code) | 4 | **2** | sim-029 (another line, «...»: حطّينالك ..., still quoting the customer's «٤ ربطات خبز» in Arabic-Indic digits; B1c's #93 fixed the question line only) and sim-138 (the same opt-out line, 125 characters); neither is CX1's |
+| turn_error, no_reply (code) | 1, 1 | 0, 0 | |
+| judge: goal not reached, repeated question, dead end | 50, 28, 25 | 49, 13, 15 | |
+| judge: unnatural dialect, wrong product, invented fact | 33, 23, 10 | 24, 29, 8 | the same classes as before; wrong product varies run to run (23, 25, 29) on code CX1 did not change |
+| passed | 88 | **89** | |
+
+Silences after a hand-off: 0 (22 hand-offs, 22 alerted). Address 0, off-topic 1, minimum-order loops 0, lost baskets 0. Seen by the judge, for a
+later session and not a new class: a first message that asks for a person gets the welcome above the hand-off line (sim-007, sim-018, both
+Arabizi; the welcome is by design first on a first message ever, and Arabizi customers get Arabic script throughout, as before CX1).
 
 ### Founder actions (CX1)
 - Pickup stays off until the hub's place is named. When it is: Supabase, SQL editor on staging, run
@@ -210,7 +226,7 @@ complaint is not an edit) in `evals/cases/reading_tidy.json` and the language pa
 **The last B1c fix** (third pull request): the question quotes the customer's words with Latin digits, no amount, at most 40 characters
 (message rules 1 and 7; sim-105, sim-029, sim-076, sim-126 of run 2). Test in `ordering-b1c`. Not run on the simulator again.
 
-**For CX1 (or the session after it):** the welcome is sent in Arabic to an English customer's first message (15 of run 2's language flags).
+**For CX1 (or the session after it):** the welcome is sent in Arabic to an English customer's first message (15 of run 2's language flags). **Fixed by CX1 in #94** (sim-test 43781701377: wrong_language 1).
 
 
 
