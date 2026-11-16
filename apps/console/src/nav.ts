@@ -20,7 +20,7 @@ export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null
   { id: "inbox", key: "nav_inbox", icon: "inbox", hub: null, hrefs: ["/inbox"], also: ["/cases"] },
   { id: "orders", key: "nav_orders", icon: "orders", hub: null, hrefs: ["/orders"] },
   { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approvals", "/names", "/pictures", "/food-facts", "/intake", "/search-words", "/auto-approvals"] },
-  { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/catalog", "/readiness", "/receiving", "/returns"] },
+  { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/capture", "/catalog", "/readiness", "/receiving", "/returns"] },
   { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/day-open", "/day-close", "/payments", "/refunds", "/riders", "/rider-jobs", "/money", "/fx"], also: ["/rider-incidents"] },
   { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/zones", "/windows", "/staff", "/templates"] },
 ];
