@@ -181,7 +181,37 @@ neither path changed in B1c.
 under today's minimum"): a question the customer moves past is dropped, never asked again; a basket product named by its brand is that product;
 the tap applies the pack-size count; choices («مثلا», «أو», «aw», "or" between two lines) are never put in the basket by code (the loop answers);
 «same as last time» for a past basket that cannot go as it is (under the minimum, an item gone) is routed as any basket: the minimum line with its
-lines. SIM_RESULT2
+lines.
+
+Merged as #92.
+
+**The simulated customers on `main`, run 2** ([sim-test 43776071899](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43776071899),
+limit 150, budget USD 4, spent **$3.50**; main at 7eed5f4, #92, CX1's #90 merged before it; staging deployed by 43775235327):
+
+| | B1b run 2 | B1c run 1 | B1c run 2 | target |
+| --- | --- | --- | --- | --- |
+| wrong or uninvited product (judge) | 34 | 23 | **18** | at most 8: **not met** |
+| lost baskets | 1 | 1 | **0** | 0: **met** |
+| minimum-order loops | 0 | 0 | **0** | held |
+| address / off-topic | 1 / 1 | 1 / 6 | **0 / 1** | held |
+| message rules | 2 | 4 | **5** | **not held**: 4 are B1c's question quoting the customer's digits (fixed below) |
+| reply in another language | 0 | 1 | **15** | **not held, not B1c's**: CX1's welcome (#90) goes out in Arabic to English customers on turn one (sim-003, sim-022, sim-104, sim-150: «👑 أهلا فيك بألو كينغ! ...») |
+| passed | 80 | 88 | **81** | |
+
+**Not met: wrong products 18, against 8.** What the 18 are, from the judge's summaries: quantities read wrong by the model (a sugar «٣
+كيلو» read as three 5 kg bags; «wa7de tene» as two; a complaint «sar 5?» as an add; tea 3 for 2; Kinder padded to 10) about 8; a swap or a
+correction that doubled a line (salt, chicken legs) 2; a vague request answered by the one product of a brand or a reading the judge still
+calls uninvited (Gorosti, «la7me») 3; an item dropped or uninvited on an out-of-stock path (sim-099's chicken filet, sim-145's flour) 2;
+the customer's own additions the judge counted 2 (sim-045, sim-047); a product picker loop (sim-126) 1. The planner's generic and size
+picks, the night basket's counts, edits landing on another product and «same as last time» no longer appear. What is left is mostly the
+reading of counts and edits by the model: the next step is reading cases for counts («wa7de tene», «X kilo» against a pack's weight, a
+complaint is not an edit) in `evals/cases/reading_tidy.json` and the language pack, then the same 150-run.
+
+**The last B1c fix** (third pull request): the question quotes the customer's words with Latin digits, no amount, at most 40 characters
+(message rules 1 and 7; sim-105, sim-029, sim-076, sim-126 of run 2). Test in `ordering-b1c`. Not run on the simulator again.
+
+**For CX1 (or the session after it):** the welcome is sent in Arabic to an English customer's first message (15 of run 2's language flags).
+
 
 
 ### D4b: the pick queue and rider jobs on the console, 16 November 2026 (Sonnet 5.5); migrations 0147 and 0148

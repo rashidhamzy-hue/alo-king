@@ -5,7 +5,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ar } from "@ak/agents/messages";
 import { editsFromPlan } from "@ak/agents/basket";
-import { pickButtonId, pickTitles } from "@ak/agents/choice";
+import { pickButtonId, pickTitles, questionsFor } from "@ak/agents/choice";
 import { packSizeCount } from "@ak/agents/reading";
 import { offersChoices } from "@ak/agents/pipeline";
 import { repeatButtonId } from "@ak/agents/answers";
@@ -53,7 +53,7 @@ describe("fix 1: a generic word or a brand alone is one question by code, never 
     expect(picks.length).toBeGreaterThan(1);
     expect(picks.length).toBeLessThanOrEqual(3);
     expect(picks.every((b) => b.id.startsWith("pick:"))).toBe(true);
-    expect(bodyOf(q)).toContain("«٢ كيس عدس»: أي واحد بدك؟");
+    expect(bodyOf(q)).toContain("«2 كيس عدس»: أي واحد بدك؟");          // the customer's words, Latin digits (message rule 7)
     expect(bodyOf(q)).toContain("$0.99");                              // the prices come from the plan
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
     await t.tap(pickButtonId(P.lentilsRed!), "Deroni Red");
@@ -323,5 +323,15 @@ describe("fix 3: same as last time with a past basket under today's minimum (sim
     await t.tap(repeatButtonId(o), ar.answer.repeatButton);
     expect(outbound.length).toBeGreaterThan(0);
     expect(bodyOf(outbound.at(-1)!)).toContain(`2 × ${await name("lipton")}`);
+  });
+});
+
+describe("the question quotes the customer's words by the message rules (sim-test 43776071899: sim-105, sim-029, sim-126)", () => {
+  it("Latin digits, no amount, short", () => {
+    const cand = [{ product_id: "a", name: "Deroni Sugar 900G", name_ar: null, price_usd: 0.69, in_stock: true }];
+    const q = (raw: string) => questionsFor([{ idx: 0, status: "ambiguous", candidates: cand }], { lines: [{ raw, query: "x", qty: 1 } as any] })[0]!.raw;
+    expect(q("بدي كمان ٣ كيلو سكر")).toBe("بدي كمان 3 كيلو سكر");
+    expect(q('baddi "ليمون للعصير" $0.44 yalli kenet 3endak 2abel')).not.toContain("$");
+    expect(q("بدي قهوة نجار بالهيل ١٨٠ غرام، اتنين وكمان شي تاني طويل كتير كتير").length).toBeLessThanOrEqual(40);
   });
 });
