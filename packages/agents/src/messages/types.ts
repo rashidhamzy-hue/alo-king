@@ -298,6 +298,23 @@ export interface Messages {
     named: (phrases: S[]) => S;
     /** The last line: with items listed, or with none. */
     closeItems: S; closeNone: S;
+    /** SR1: the heading of the items that pass the facts asked, each followed by its facts with their source (search.ts factLine). */
+    fits: (kinds: S[]) => S;
+    /** SR1: a kind whose items the approved facts show do not fit (none is unknown: each checked one fails). */
+    noneFits: (kinds: S[]) => S;
+    /** SR1: the last line after items that fit. */
+    closeFits: S;
+  };
+  /** SR1 (6): a basket built by code (0215), said before its card; the card is the customer's to confirm (invariant 4). */
+  built: {
+    dish: (dish: S, people: number) => S;
+    lunchbox: (units: number) => S;
+    budget: (maxUsd: number) => S;
+    /** Kinds left out: not carried, not on sale now, or none that passes what the customer stated. */
+    missing: (kinds: S[]) => S;
+    overBudget: (maxUsd: number) => S;
+    tooMany: (max: number) => S;
+    none: S;
   };
   ops: {
     newPick: (code: S) => S;

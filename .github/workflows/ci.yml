@@ -85,6 +85,11 @@ jobs:
         run: npm ci
       - if: needs.changes.outputs.tests == 'true'
         run: npx tsc --noEmit
+      - name: pgvector for the runner's Postgres (SR1, migration 0212; the Ubuntu package for the newest installed major)
+        if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.pg == 'true'
+        run: |
+          v=$(ls /usr/lib/postgresql | sort -n | tail -1)
+          sudo apt-get update -qq && sudo apt-get install -y -qq "postgresql-$v-pgvector"
       - name: vitest (all suites, the real-Postgres ones included)
         if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.pg == 'true'
         run: npx vitest run
@@ -116,12 +121,14 @@ jobs:
         run: echo "nothing the permission check reads changed; it ran green on the last change that did"
       - if: needs.changes.outputs.pg == 'true'
         uses: actions/checkout@v4
-      - name: Postgres 17
+      - name: Postgres 17 with pgvector (SR1, migration 0212)
         if: needs.changes.outputs.pg == 'true'
         run: |
-          docker run -d --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17 >/dev/null
-          for i in $(seq 1 60); do docker exec pg pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
-          docker exec pg pg_isready -U postgres
+          docker run -d --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 pgvector/pgvector:0.8.0-pg17 >/dev/null
+          # Over TCP: the image's entrypoint first runs a temporary server on the socket only (initdb), stops it and starts the real one;
+          # a socket check can answer the temporary one and then hit the restart (main, run 43895028330).
+          for i in $(seq 1 90); do docker exec pg pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1 && break; sleep 1; done
+          docker exec pg pg_isready -h 127.0.0.1 -U postgres
           command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
       - if: needs.changes.outputs.pg == 'true'
         run: scripts/check_permissions.sh

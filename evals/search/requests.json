@@ -1,0 +1,2666 @@
+{
+ "note": "SR1 request set (search). Each request: what the customer says, and what must come back: products (any of skus in the first five), a kind (any of its skus in the first five), or nothing (the honest answer). filters: the facts the request asks for, as find_products takes them; every returned item must pass them (scored against evals/search/facts.json, not against the search's own code). prefer_tags: shopping tags the request leans to (never a hard filter on food). Written 16 Nov 2026 by SR1. The 24 'meaning' requests (m001-m024) were added after the word search was scored on s001-s135, to measure the meaning list: none of them uses a word of the catalogue or the language pack for what it wants. They are scored apart (kind 'meaning') and are not in the s-set's share.",
+ "requests": [
+  {
+   "id": "s001",
+   "lang": "en",
+   "kind": "mixed",
+   "text": "snacks with no sugar for 5 kids",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 5,
+   "prefer_tags": [
+    "kids"
+   ],
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s002",
+   "lang": "ar",
+   "kind": "mixed",
+   "text": "بدي سناكات بلا سكر ل ٥ ولاد",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 5,
+   "prefer_tags": [
+    "kids"
+   ],
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s003",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "text": "baddi snacks bala sekkar la 5 wled",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 5,
+   "prefer_tags": [
+    "kids"
+   ],
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s004",
+   "lang": "fr",
+   "kind": "mixed",
+   "text": "des snacks sans sucre pour 5 enfants",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 5,
+   "prefer_tags": [
+    "kids"
+   ],
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s005",
+   "lang": "en",
+   "kind": "fact",
+   "text": "protein bars with no sugar",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s006",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "ألواح بروتين بدون سكر",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s007",
+   "lang": "arabizi",
+   "kind": "fact",
+   "text": "protein bars bala sekkar",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s008",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "des barres protéinées sans sucre",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "note": "voice note, 15 Nov"
+  },
+  {
+   "id": "s009",
+   "lang": "en",
+   "kind": "fact",
+   "text": "high protein snack",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-001",
+     "SR1T-002",
+     "AK-0248"
+    ]
+   },
+   "filters": {
+    "protein": "high"
+   }
+  },
+  {
+   "id": "s010",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "شي سناك غني بالبروتين",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-001",
+     "SR1T-002",
+     "AK-0248"
+    ]
+   },
+   "filters": {
+    "protein": "high"
+   }
+  },
+  {
+   "id": "s011",
+   "lang": "arabizi",
+   "kind": "fact",
+   "text": "snack fi protein ktir",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-001",
+     "SR1T-002",
+     "AK-0248"
+    ]
+   },
+   "filters": {
+    "protein": "high"
+   }
+  },
+  {
+   "id": "s012",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "un snack riche en protéines",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-001",
+     "SR1T-002",
+     "AK-0248"
+    ]
+   },
+   "filters": {
+    "protein": "high"
+   }
+  },
+  {
+   "id": "s013",
+   "lang": "en",
+   "kind": "fact",
+   "text": "drinks with no sugar",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s014",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "مشروبات بلا سكر",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s015",
+   "lang": "arabizi",
+   "kind": "fact",
+   "text": "mashroubat bala sekkar",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s016",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "des boissons sans sucre",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s017",
+   "lang": "en",
+   "kind": "fact",
+   "text": "low fat yogurt",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0052",
+     "AK-0057"
+    ]
+   },
+   "filters": {
+    "fat": "low"
+   }
+  },
+  {
+   "id": "s018",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "لبن زبادي قليل الدسم",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0052",
+     "AK-0057"
+    ]
+   },
+   "filters": {
+    "fat": "low"
+   }
+  },
+  {
+   "id": "s019",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "yaourt allégé en matières grasses",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0052",
+     "AK-0057"
+    ]
+   },
+   "filters": {
+    "fat": "low"
+   }
+  },
+  {
+   "id": "s020",
+   "lang": "en",
+   "kind": "fact",
+   "text": "unsalted butter",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0053"
+    ]
+   },
+   "filters": {
+    "salt": "none"
+   }
+  },
+  {
+   "id": "s021",
+   "lang": "arabizi",
+   "kind": "fact",
+   "text": "zebde bala mele7",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0053"
+    ]
+   },
+   "filters": {
+    "salt": "none"
+   }
+  },
+  {
+   "id": "s022",
+   "lang": "en",
+   "kind": "fact",
+   "text": "gluten free pasta",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-005"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   }
+  },
+  {
+   "id": "s023",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "معكرونة خالية من الغلوتين",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-005"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   }
+  },
+  {
+   "id": "s024",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "des pâtes sans gluten",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-005"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   }
+  },
+  {
+   "id": "s025",
+   "lang": "en",
+   "kind": "fact",
+   "text": "lactose free milk",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-006"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   }
+  },
+  {
+   "id": "s026",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "حليب بدون لاكتوز",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-006"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   }
+  },
+  {
+   "id": "s027",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "du lait sans lactose",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-006"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   }
+  },
+  {
+   "id": "s028",
+   "lang": "en",
+   "kind": "fact",
+   "text": "snacks under 5 g of sugar",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001",
+     "AK-0248",
+     "AK-0154",
+     "AK-0166",
+     "AK-0169"
+    ]
+   },
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ]
+   }
+  },
+  {
+   "id": "s029",
+   "lang": "fr",
+   "kind": "fact",
+   "text": "des snacks avec moins de 5 g de sucre",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001",
+     "AK-0248",
+     "AK-0154",
+     "AK-0166",
+     "AK-0169"
+    ]
+   },
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ]
+   }
+  },
+  {
+   "id": "s030",
+   "lang": "en",
+   "kind": "fact",
+   "text": "vegan snacks",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "AK-0247",
+     "SR1T-003",
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "diet": [
+     "vegan"
+    ]
+   }
+  },
+  {
+   "id": "s031",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "سناكات نباتية صرف (vegan)",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "AK-0247",
+     "SR1T-003",
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "diet": [
+     "vegan"
+    ]
+   }
+  },
+  {
+   "id": "s032",
+   "lang": "en",
+   "kind": "fact",
+   "text": "low fat milk",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0071",
+     "SR1T-006"
+    ]
+   },
+   "filters": {
+    "fat": "low"
+   }
+  },
+  {
+   "id": "s033",
+   "lang": "arabizi",
+   "kind": "fact",
+   "text": "7alib light, 2alil el dasam",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0071",
+     "SR1T-006"
+    ]
+   },
+   "filters": {
+    "fat": "low"
+   }
+  },
+  {
+   "id": "s034",
+   "lang": "en",
+   "kind": "fact",
+   "text": "rice cakes with no sugar",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-003",
+     "AK-0247"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s035",
+   "lang": "ar",
+   "kind": "fact",
+   "text": "كعك رز بلا سكر",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-003",
+     "AK-0247"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s036",
+   "lang": "en",
+   "kind": "fact",
+   "text": "iced tea zero sugar",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0122",
+     "AK-0123"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   }
+  },
+  {
+   "id": "s037",
+   "lang": "en",
+   "kind": "allergy",
+   "text": "chips, my son is allergic to peanuts",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   }
+  },
+  {
+   "id": "s038",
+   "lang": "ar",
+   "kind": "allergy",
+   "text": "شيبس بس ابني عندو حساسية من الفستق",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   }
+  },
+  {
+   "id": "s039",
+   "lang": "arabizi",
+   "kind": "allergy",
+   "text": "chips bas ibni 3ando 7asasiye 3al fosto2",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   }
+  },
+  {
+   "id": "s040",
+   "lang": "fr",
+   "kind": "allergy",
+   "text": "des chips, mon fils est allergique aux cacahuètes",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0161"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   }
+  },
+  {
+   "id": "s041",
+   "lang": "en",
+   "kind": "allergy",
+   "text": "protein bar without peanuts, allergy",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   },
+   "note": "SR1T-001 'may contain' peanuts fails too: nothing fits"
+  },
+  {
+   "id": "s042",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "hummus but I am allergic to sesame",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "free_of": [
+     "sesame"
+    ]
+   }
+  },
+  {
+   "id": "s043",
+   "lang": "ar",
+   "kind": "nothing",
+   "text": "بدي حمص بس عندي حساسية سمسم",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "free_of": [
+     "sesame"
+    ]
+   }
+  },
+  {
+   "id": "s044",
+   "lang": "en",
+   "kind": "allergy",
+   "text": "gluten free snacks for my daughter, she is celiac",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0161",
+     "SR1T-001",
+     "AK-0154",
+     "AK-0166",
+     "AK-0169"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   },
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s045",
+   "lang": "fr",
+   "kind": "allergy",
+   "text": "des snacks sans gluten pour ma fille, elle est cœliaque",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0161",
+     "SR1T-001",
+     "AK-0154",
+     "AK-0166",
+     "AK-0169"
+    ]
+   },
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   },
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s046",
+   "lang": "en",
+   "kind": "mixed",
+   "text": "2 packs of rice cakes without sugar for the lunchbox",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-003",
+     "AK-0247"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 2,
+   "prefer_tags": [
+    "lunchbox"
+   ]
+  },
+  {
+   "id": "s047",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "text": "2 ka3ek riz bala sekkar lal lunchbox",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-003",
+     "AK-0247"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 2,
+   "prefer_tags": [
+    "lunchbox"
+   ]
+  },
+  {
+   "id": "s048",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "3 juices for the kids with no added sugar",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 3,
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s049",
+   "lang": "ar",
+   "kind": "nothing",
+   "text": "٣ عصير للولاد بدون سكر مضاف",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 3,
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s050",
+   "lang": "fr",
+   "kind": "mixed",
+   "text": "4 snacks pour les enfants avec moins de 5 g de sucre",
+   "expect": {
+    "type": "kind",
+    "kind": "snack",
+    "skus": [
+     "SR1T-003",
+     "AK-0247",
+     "AK-0161",
+     "SR1T-001",
+     "AK-0248",
+     "AK-0154",
+     "AK-0166",
+     "AK-0169"
+    ]
+   },
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ]
+   },
+   "count": 4,
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s051",
+   "lang": "en",
+   "kind": "mixed",
+   "text": "6 sugar free drinks for the party",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 6,
+   "prefer_tags": [
+    "party"
+   ]
+  },
+  {
+   "id": "s052",
+   "lang": "ar",
+   "kind": "mixed",
+   "text": "٦ مشروبات بلا سكر للسهرة",
+   "expect": {
+    "type": "kind",
+    "kind": "drink",
+    "skus": [
+     "AK-0122",
+     "AK-0123",
+     "AK-0112",
+     "AK-0116"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 6,
+   "prefer_tags": [
+    "party"
+   ]
+  },
+  {
+   "id": "s053",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "text": "jibli 3 protein bars bala sekkar la ibni",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-001"
+    ]
+   },
+   "filters": {
+    "sugar": "none"
+   },
+   "count": 3,
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s054",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "fragrance-free shampoo for kids",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s055",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "شامبو للولاد بدون ريحة",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s056",
+   "lang": "arabizi",
+   "kind": "nonfood",
+   "text": "shampo lal wled bala ri7a",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s057",
+   "lang": "fr",
+   "kind": "nonfood",
+   "text": "un shampoing sans parfum pour enfants",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s058",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "shampoo for kids",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0285",
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s059",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "شامبو أطفال",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0285",
+     "SR1T-004"
+    ]
+   },
+   "filters": {
+    "audience": "kids"
+   }
+  },
+  {
+   "id": "s060",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "dog food for a puppy",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   }
+  },
+  {
+   "id": "s061",
+   "lang": "ar",
+   "kind": "nothing",
+   "text": "أكل كلاب لجرو صغير",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   }
+  },
+  {
+   "id": "s062",
+   "lang": "arabizi",
+   "kind": "nothing",
+   "text": "akl kleb la jarw zghir",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   }
+  },
+  {
+   "id": "s063",
+   "lang": "fr",
+   "kind": "nothing",
+   "text": "des croquettes pour chiot",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   }
+  },
+  {
+   "id": "s064",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "cat food",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0289",
+     "AK-0290"
+    ]
+   },
+   "filters": {
+    "species": "cat"
+   }
+  },
+  {
+   "id": "s065",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "أكل قطط",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0289",
+     "AK-0290"
+    ]
+   },
+   "filters": {
+    "species": "cat"
+   }
+  },
+  {
+   "id": "s066",
+   "lang": "fr",
+   "kind": "nonfood",
+   "text": "de la nourriture pour chat",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0289",
+     "AK-0290"
+    ]
+   },
+   "filters": {
+    "species": "cat"
+   }
+  },
+  {
+   "id": "s067",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "food for my kitten",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "species": "cat",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   }
+  },
+  {
+   "id": "s068",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "diapers for my 2 year old",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0288"
+    ]
+   },
+   "filters": {
+    "age_months": 24
+   }
+  },
+  {
+   "id": "s069",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "حفاضات لابني عمرو سنتين",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0288"
+    ]
+   },
+   "filters": {
+    "age_months": 24
+   }
+  },
+  {
+   "id": "s070",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "lavender fabric softener",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0259"
+    ]
+   }
+  },
+  {
+   "id": "s071",
+   "lang": "fr",
+   "kind": "nonfood",
+   "text": "adoucissant à la lavande",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0259"
+    ]
+   }
+  },
+  {
+   "id": "s072",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "anti-dandruff shampoo",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0277",
+     "AK-0279"
+    ]
+   }
+  },
+  {
+   "id": "s073",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "كلور",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "s074",
+   "lang": "arabizi",
+   "kind": "nonfood",
+   "text": "bade clor",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "s075",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "cat litter",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0291"
+    ]
+   }
+  },
+  {
+   "id": "s076",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "معجون أسنان",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0275",
+     "AK-0280"
+    ]
+   }
+  },
+  {
+   "id": "s077",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "dishwashing liquid",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "s078",
+   "lang": "fr",
+   "kind": "nonfood",
+   "text": "du liquide vaisselle",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "s079",
+   "lang": "ar",
+   "kind": "nonfood",
+   "text": "محارم تواليت",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0267",
+     "AK-0268"
+    ]
+   }
+  },
+  {
+   "id": "s080",
+   "lang": "en",
+   "kind": "nonfood",
+   "text": "diapers",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0286",
+     "AK-0287",
+     "AK-0288"
+    ]
+   }
+  },
+  {
+   "id": "s081",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "لبنة",
+   "expect": {
+    "type": "kind",
+    "kind": "labneh",
+    "skus": [
+     "AK-0042",
+     "AK-0046",
+     "AK-0051"
+    ]
+   }
+  },
+  {
+   "id": "s082",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "labne",
+   "expect": {
+    "type": "kind",
+    "kind": "labneh",
+    "skus": [
+     "AK-0042",
+     "AK-0046",
+     "AK-0051"
+    ]
+   }
+  },
+  {
+   "id": "s083",
+   "lang": "en",
+   "kind": "plain",
+   "text": "labneh",
+   "expect": {
+    "type": "kind",
+    "kind": "labneh",
+    "skus": [
+     "AK-0042",
+     "AK-0046",
+     "AK-0051"
+    ]
+   }
+  },
+  {
+   "id": "s084",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "ربطة خبز عربي",
+   "expect": {
+    "type": "kind",
+    "kind": "arabic bread",
+    "skus": [
+     "AK-0080",
+     "AK-0081",
+     "AK-0082",
+     "AK-0086"
+    ]
+   }
+  },
+  {
+   "id": "s085",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "khebez",
+   "expect": {
+    "type": "kind",
+    "kind": "arabic bread",
+    "skus": [
+     "AK-0080",
+     "AK-0081",
+     "AK-0082",
+     "AK-0086"
+    ]
+   }
+  },
+  {
+   "id": "s086",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "du pain libanais",
+   "expect": {
+    "type": "kind",
+    "kind": "arabic bread",
+    "skus": [
+     "AK-0080",
+     "AK-0081",
+     "AK-0082",
+     "AK-0086"
+    ]
+   }
+  },
+  {
+   "id": "s087",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "كرتونة بيض",
+   "expect": {
+    "type": "kind",
+    "kind": "eggs",
+    "skus": [
+     "AK-0049",
+     "AK-0055",
+     "AK-0058"
+    ]
+   }
+  },
+  {
+   "id": "s088",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "bayd",
+   "expect": {
+    "type": "kind",
+    "kind": "eggs",
+    "skus": [
+     "AK-0049",
+     "AK-0055",
+     "AK-0058"
+    ]
+   }
+  },
+  {
+   "id": "s089",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "des œufs",
+   "expect": {
+    "type": "kind",
+    "kind": "eggs",
+    "skus": [
+     "AK-0049",
+     "AK-0055",
+     "AK-0058"
+    ]
+   }
+  },
+  {
+   "id": "s090",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "قهوة نجار",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0133",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "s091",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "2ahwe najjar",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0133",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "s092",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "شيبس",
+   "expect": {
+    "type": "kind",
+    "kind": "chips",
+    "skus": [
+     "AK-0154",
+     "AK-0160",
+     "AK-0161",
+     "AK-0163",
+     "AK-0164",
+     "AK-0165"
+    ]
+   }
+  },
+  {
+   "id": "s093",
+   "lang": "en",
+   "kind": "plain",
+   "text": "chips",
+   "expect": {
+    "type": "kind",
+    "kind": "chips",
+    "skus": [
+     "AK-0154",
+     "AK-0160",
+     "AK-0161",
+     "AK-0163",
+     "AK-0164",
+     "AK-0165"
+    ]
+   }
+  },
+  {
+   "id": "s094",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "تونة",
+   "expect": {
+    "type": "kind",
+    "kind": "tuna",
+    "skus": [
+     "AK-0195",
+     "AK-0196",
+     "AK-0197"
+    ]
+   }
+  },
+  {
+   "id": "s095",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "du thon",
+   "expect": {
+    "type": "kind",
+    "kind": "tuna",
+    "skus": [
+     "AK-0195",
+     "AK-0196",
+     "AK-0197"
+    ]
+   }
+  },
+  {
+   "id": "s096",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "رز",
+   "expect": {
+    "type": "kind",
+    "kind": "rice",
+    "skus": [
+     "AK-0183",
+     "AK-0184",
+     "AK-0185"
+    ]
+   }
+  },
+  {
+   "id": "s097",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "du riz basmati",
+   "expect": {
+    "type": "products",
+    "skus": [
+     "AK-0183",
+     "AK-0184"
+    ]
+   }
+  },
+  {
+   "id": "s098",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "عدس",
+   "expect": {
+    "type": "kind",
+    "kind": "lentils",
+    "skus": [
+     "AK-0180",
+     "AK-0186",
+     "AK-0189"
+    ]
+   }
+  },
+  {
+   "id": "s099",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "3adas",
+   "expect": {
+    "type": "kind",
+    "kind": "lentils",
+    "skus": [
+     "AK-0180",
+     "AK-0186",
+     "AK-0189"
+    ]
+   }
+  },
+  {
+   "id": "s100",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "des lentilles",
+   "expect": {
+    "type": "kind",
+    "kind": "lentils",
+    "skus": [
+     "AK-0180",
+     "AK-0186",
+     "AK-0189"
+    ]
+   }
+  },
+  {
+   "id": "s101",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "زيت زيتون",
+   "expect": {
+    "type": "kind",
+    "kind": "olive oil",
+    "skus": [
+     "AK-0217",
+     "AK-0219"
+    ]
+   }
+  },
+  {
+   "id": "s102",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "zeit zeitoun",
+   "expect": {
+    "type": "kind",
+    "kind": "olive oil",
+    "skus": [
+     "AK-0217",
+     "AK-0219"
+    ]
+   }
+  },
+  {
+   "id": "s103",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "de l'huile d'olive",
+   "expect": {
+    "type": "kind",
+    "kind": "olive oil",
+    "skus": [
+     "AK-0217",
+     "AK-0219"
+    ]
+   }
+  },
+  {
+   "id": "s104",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "رب بندورة",
+   "expect": {
+    "type": "kind",
+    "kind": "tomato paste",
+    "skus": [
+     "AK-0208",
+     "AK-0210",
+     "AK-0212"
+    ]
+   }
+  },
+  {
+   "id": "s105",
+   "lang": "en",
+   "kind": "plain",
+   "text": "tomato paste",
+   "expect": {
+    "type": "kind",
+    "kind": "tomato paste",
+    "skus": [
+     "AK-0208",
+     "AK-0210",
+     "AK-0212"
+    ]
+   }
+  },
+  {
+   "id": "s106",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "حمص",
+   "expect": {
+    "type": "kind",
+    "kind": "hummus",
+    "skus": [
+     "AK-0101",
+     "AK-0198",
+     "AK-0200"
+    ]
+   }
+  },
+  {
+   "id": "s107",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "حلوم",
+   "expect": {
+    "type": "kind",
+    "kind": "halloum",
+    "skus": [
+     "AK-0044",
+     "AK-0060"
+    ]
+   }
+  },
+  {
+   "id": "s108",
+   "lang": "en",
+   "kind": "plain",
+   "text": "ketchup",
+   "expect": {
+    "type": "kind",
+    "kind": "ketchup",
+    "skus": [
+     "AK-0214",
+     "AK-0215"
+    ]
+   }
+  },
+  {
+   "id": "s109",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "حليب",
+   "expect": {
+    "type": "kind",
+    "kind": "milk",
+    "skus": [
+     "AK-0067",
+     "AK-0070",
+     "AK-0071",
+     "AK-0073",
+     "AK-0074",
+     "SR1T-006"
+    ]
+   }
+  },
+  {
+   "id": "s110",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "7alib",
+   "expect": {
+    "type": "kind",
+    "kind": "milk",
+    "skus": [
+     "AK-0067",
+     "AK-0070",
+     "AK-0071",
+     "AK-0073",
+     "AK-0074",
+     "SR1T-006"
+    ]
+   }
+  },
+  {
+   "id": "s111",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "du lait",
+   "expect": {
+    "type": "kind",
+    "kind": "milk",
+    "skus": [
+     "AK-0067",
+     "AK-0070",
+     "AK-0071",
+     "AK-0073",
+     "AK-0074",
+     "SR1T-006"
+    ]
+   }
+  },
+  {
+   "id": "s112",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "شاي",
+   "expect": {
+    "type": "kind",
+    "kind": "tea",
+    "skus": [
+     "AK-0140",
+     "AK-0142",
+     "AK-0143"
+    ]
+   }
+  },
+  {
+   "id": "s113",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "du thé",
+   "expect": {
+    "type": "kind",
+    "kind": "tea",
+    "skus": [
+     "AK-0140",
+     "AK-0142",
+     "AK-0143"
+    ]
+   }
+  },
+  {
+   "id": "s114",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "سكر",
+   "expect": {
+    "type": "kind",
+    "kind": "sugar",
+    "skus": [
+     "AK-0223",
+     "AK-0228"
+    ]
+   }
+  },
+  {
+   "id": "s115",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "sekkar",
+   "expect": {
+    "type": "kind",
+    "kind": "sugar",
+    "skus": [
+     "AK-0223",
+     "AK-0228"
+    ]
+   }
+  },
+  {
+   "id": "s116",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "معكرونة",
+   "expect": {
+    "type": "kind",
+    "kind": "pasta",
+    "skus": [
+     "AK-0175",
+     "AK-0179",
+     "AK-0181",
+     "SR1T-005"
+    ]
+   }
+  },
+  {
+   "id": "s117",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "des pâtes",
+   "expect": {
+    "type": "kind",
+    "kind": "pasta",
+    "skus": [
+     "AK-0175",
+     "AK-0179",
+     "AK-0181",
+     "SR1T-005"
+    ]
+   }
+  },
+  {
+   "id": "s118",
+   "lang": "en",
+   "kind": "plain",
+   "text": "frozen fries",
+   "expect": {
+    "type": "kind",
+    "kind": "fries",
+    "skus": [
+     "AK-0239",
+     "AK-0244"
+    ]
+   }
+  },
+  {
+   "id": "s119",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "ناغتس دجاج",
+   "expect": {
+    "type": "kind",
+    "kind": "nuggets",
+    "skus": [
+     "AK-0236",
+     "AK-0246"
+    ]
+   }
+  },
+  {
+   "id": "s120",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "بيبسي",
+   "expect": {
+    "type": "kind",
+    "kind": "cola",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117"
+    ]
+   }
+  },
+  {
+   "id": "s121",
+   "lang": "en",
+   "kind": "plain",
+   "text": "pepsi",
+   "expect": {
+    "type": "kind",
+    "kind": "cola",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117"
+    ]
+   }
+  },
+  {
+   "id": "s122",
+   "lang": "ar",
+   "kind": "plain",
+   "text": "مي",
+   "expect": {
+    "type": "kind",
+    "kind": "water",
+    "skus": [
+     "AK-0102",
+     "AK-0103",
+     "AK-0104",
+     "AK-0105",
+     "AK-0106",
+     "AK-0107",
+     "AK-0108",
+     "AK-0109",
+     "AK-0110",
+     "AK-0111"
+    ]
+   }
+  },
+  {
+   "id": "s123",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "mayy",
+   "expect": {
+    "type": "kind",
+    "kind": "water",
+    "skus": [
+     "AK-0102",
+     "AK-0103",
+     "AK-0104",
+     "AK-0105",
+     "AK-0106",
+     "AK-0107",
+     "AK-0108",
+     "AK-0109",
+     "AK-0110",
+     "AK-0111"
+    ]
+   }
+  },
+  {
+   "id": "s124",
+   "lang": "fr",
+   "kind": "plain",
+   "text": "de l'eau minérale",
+   "expect": {
+    "type": "kind",
+    "kind": "water",
+    "skus": [
+     "AK-0102",
+     "AK-0103",
+     "AK-0104",
+     "AK-0105",
+     "AK-0106",
+     "AK-0107",
+     "AK-0108",
+     "AK-0109",
+     "AK-0110",
+     "AK-0111"
+    ]
+   }
+  },
+  {
+   "id": "s125",
+   "lang": "en",
+   "kind": "plain",
+   "text": "juice for the kids",
+   "expect": {
+    "type": "kind",
+    "kind": "juice",
+    "skus": [
+     "AK-0114",
+     "AK-0119",
+     "AK-0120",
+     "AK-0125",
+     "AK-0127",
+     "AK-0128"
+    ]
+   },
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s126",
+   "lang": "arabizi",
+   "kind": "plain",
+   "text": "3asir lal wled",
+   "expect": {
+    "type": "kind",
+    "kind": "juice",
+    "skus": [
+     "AK-0114",
+     "AK-0119",
+     "AK-0120",
+     "AK-0125",
+     "AK-0127",
+     "AK-0128"
+    ]
+   },
+   "prefer_tags": [
+    "kids"
+   ]
+  },
+  {
+   "id": "s127",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "low salt chips",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "salt": "low"
+   }
+  },
+  {
+   "id": "s128",
+   "lang": "fr",
+   "kind": "nothing",
+   "text": "des chips pauvres en sel",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "salt": "low"
+   }
+  },
+  {
+   "id": "s129",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "organic eggs",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "claims": [
+     "organic"
+    ]
+   }
+  },
+  {
+   "id": "s130",
+   "lang": "ar",
+   "kind": "nothing",
+   "text": "بيض عضوي",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "claims": [
+     "organic"
+    ]
+   }
+  },
+  {
+   "id": "s131",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "halal chicken",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "diet": [
+     "halal"
+    ]
+   },
+   "note": "no meat item has an approved halal record with its certificate"
+  },
+  {
+   "id": "s132",
+   "lang": "arabizi",
+   "kind": "nothing",
+   "text": "djej 7alal",
+   "expect": {
+    "type": "nothing"
+   },
+   "filters": {
+    "diet": [
+     "halal"
+    ]
+   }
+  },
+  {
+   "id": "s133",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "a gas cylinder",
+   "expect": {
+    "type": "nothing"
+   }
+  },
+  {
+   "id": "s134",
+   "lang": "ar",
+   "kind": "nothing",
+   "text": "قنينة غاز",
+   "expect": {
+    "type": "nothing"
+   }
+  },
+  {
+   "id": "s135",
+   "lang": "en",
+   "kind": "nothing",
+   "text": "sushi",
+   "expect": {
+    "type": "nothing"
+   }
+  },
+  {
+   "id": "m001",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something fizzy to drink",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m002",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي مشروب غازي",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m003",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi mashroub 8azi",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m004",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "une boisson gazeuse",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0112",
+     "AK-0113",
+     "AK-0115",
+     "AK-0116",
+     "AK-0117",
+     "AK-0121",
+     "AK-0124",
+     "AK-0126"
+    ]
+   }
+  },
+  {
+   "id": "m005",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to spread on bread for breakfast",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m006",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "quelque chose à tartiner pour le petit déjeuner",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m007",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi n7ottou 3al khebez lal terwi2a",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m008",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي ندهنه عالخبز للترويقة",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0151",
+     "AK-0162",
+     "AK-0168",
+     "AK-0042",
+     "AK-0046",
+     "AK-0051",
+     "AK-0063",
+     "AK-0062"
+    ]
+   }
+  },
+  {
+   "id": "m009",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "stuff to wash the dishes",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m010",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي لجلي الصحون",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m011",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi la jali el s7oun",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m012",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "de quoi faire la vaisselle",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0255",
+     "AK-0264"
+    ]
+   }
+  },
+  {
+   "id": "m013",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something sweet with chocolate",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m014",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي حلو بالشوكولا",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m015",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "un truc sucré au chocolat",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m016",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi 7elo bel chocolat",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0146",
+     "AK-0147",
+     "AK-0148",
+     "AK-0149",
+     "AK-0150",
+     "AK-0152",
+     "AK-0155",
+     "AK-0171",
+     "AK-0144",
+     "AK-0145"
+    ]
+   }
+  },
+  {
+   "id": "m017",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to wake me up in the morning",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0130",
+     "AK-0131",
+     "AK-0133",
+     "AK-0134",
+     "AK-0135",
+     "AK-0136",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "m018",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "شي يفيقني الصبح",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0130",
+     "AK-0131",
+     "AK-0133",
+     "AK-0134",
+     "AK-0135",
+     "AK-0136",
+     "AK-0137",
+     "AK-0138",
+     "AK-0139"
+    ]
+   }
+  },
+  {
+   "id": "m019",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something to clean the floor",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0262",
+     "AK-0249",
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "m020",
+   "lang": "fr",
+   "kind": "meaning",
+   "text": "de quoi nettoyer le sol",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0262",
+     "AK-0249",
+     "AK-0256",
+     "AK-0258"
+    ]
+   }
+  },
+  {
+   "id": "m021",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "wipes for the baby",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0283",
+     "AK-0284",
+     "AK-0269"
+    ]
+   }
+  },
+  {
+   "id": "m022",
+   "lang": "ar",
+   "kind": "meaning",
+   "text": "محارم مبللة للبيبي",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0283",
+     "AK-0284",
+     "AK-0269"
+    ]
+   }
+  },
+  {
+   "id": "m023",
+   "lang": "en",
+   "kind": "meaning",
+   "text": "something quick for dinner from the freezer",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0242",
+     "AK-0243",
+     "AK-0236",
+     "AK-0245",
+     "AK-0246"
+    ]
+   }
+  },
+  {
+   "id": "m024",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "text": "shi sari3 lal 3asha men el frizer",
+   "expect": {
+    "type": "kind",
+    "skus": [
+     "AK-0242",
+     "AK-0243",
+     "AK-0236",
+     "AK-0245",
+     "AK-0246"
+    ]
+   }
+  }
+ ]
+}

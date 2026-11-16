@@ -152,7 +152,7 @@ describe("the cap: a run stops making model calls when it passes its dollar cap"
   });
 
   it("every item loop asks capStop(), so the record says so", () => {
-    for (const f of ["scripts/images/fetch-images.mjs", "scripts/product-data/fetch-product-data.mjs", "scripts/product-data/load-research.mjs", "evals/language/live.lang.test.ts"]) {
+    for (const f of ["scripts/images/fetch-images.mjs", "scripts/product-data/fetch-product-data.mjs", "scripts/product-data/load-research.mjs", "evals/language/live.lang.test.ts", "evals/search/live.search.test.ts"]) {
       const s = read(f);
       expect(s, f).toMatch(/meter\.capStop\(\)/);
       expect(s, f).not.toMatch(/meter\.capReached/);
@@ -233,6 +233,7 @@ describe("every model-calling entry point is metered", () => {
     ["evals/language/live.lang.test.ts", /startMeter\(\{ workflow: "language-pack"/],
     ["evals/live/concierge.live.test.ts", /startMeter\(\{ workflow: "language-pack"/],
     ["scripts/label/read.mjs", /finishMeter\(out\.meter/],                                 // LB1: the batch reading run; its meter is built in batch.mjs (a library, below)
+    ["evals/search/live.search.test.ts", /startMeter\(\{ workflow: "search-eval"/],     // SR1: the reading before and after, the embeddings
   ];
   for (const [file, re] of metered) it(`${file} starts a meter and records the run`, () => {
     const s = read(file);

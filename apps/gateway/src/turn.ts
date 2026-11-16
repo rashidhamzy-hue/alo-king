@@ -40,6 +40,8 @@ interface SavedPin { place_id: string; village_id: string | null; village: strin
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
 export interface TurnDeps {
   db: SupabaseClient;
+  /** SR1: query embeddings for search by meaning (the Worker's Workers AI binding). Absent: search runs on words alone. */
+  embedder?: import("@ak/agents/embeddings").Embedder;
   model: ModelClient;
   modelName: string;
   send: (req: SendRequest) => Promise<SendResult>;      // packages/wa/src/gateway.ts send(), bound to env
@@ -161,6 +163,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state, turnKey,
     send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
     openCaseIds: (conv.cases ?? []).map((c) => c.case_id),
+    ...(deps.embedder ? { embedder: deps.embedder } : {}),
   };
   const texts: string[] = [];
   const turnIds = pending.map((p) => p.event.message.id);

@@ -1,0 +1,2782 @@
+{
+ "at": "2026-11-16T14:35:10.744Z",
+ "summary": {
+  "n": 135,
+  "right": 135,
+  "share": 1,
+  "fact_fails": 0,
+  "nothing_right": "19/19",
+  "by_lang": {
+   "ar": {
+    "n": 42,
+    "right": 42,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "5/5"
+   },
+   "arabizi": {
+    "n": 23,
+    "right": 23,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "2/2"
+   },
+   "en": {
+    "n": 43,
+    "right": 43,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "10/10"
+   },
+   "fr": {
+    "n": 27,
+    "right": 27,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "2/2"
+   }
+  },
+  "by_kind": {
+   "allergy": {
+    "n": 7,
+    "right": 7,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "1/1"
+   },
+   "fact": {
+    "n": 32,
+    "right": 32,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "mixed": {
+    "n": 10,
+    "right": 10,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "nonfood": {
+    "n": 22,
+    "right": 22,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "nothing": {
+    "n": 18,
+    "right": 18,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "18/18"
+   },
+   "plain": {
+    "n": 46,
+    "right": 46,
+    "share": 1,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   }
+  }
+ },
+ "meaning": {
+  "n": 24,
+  "right": 8,
+  "share": 0.333,
+  "fact_fails": 0,
+  "nothing_right": "0/0",
+  "by_lang": {
+   "ar": {
+    "n": 6,
+    "right": 3,
+    "share": 0.5,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "arabizi": {
+    "n": 5,
+    "right": 1,
+    "share": 0.2,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "en": {
+    "n": 8,
+    "right": 2,
+    "share": 0.25,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   },
+   "fr": {
+    "n": 5,
+    "right": 2,
+    "share": 0.4,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   }
+  },
+  "by_kind": {
+   "meaning": {
+    "n": 24,
+    "right": 8,
+    "share": 0.333,
+    "fact_fails": 0,
+    "nothing_right": "0/0"
+   }
+  }
+ },
+ "results": [
+  {
+   "id": "s001",
+   "lang": "en",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0247",
+    "AK-0161",
+    "AK-0156",
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s002",
+   "lang": "ar",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "SR1T-001",
+    "AK-0247",
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "سناكات",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s003",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0247",
+    "AK-0161",
+    "AK-0156",
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s004",
+   "lang": "fr",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0247",
+    "AK-0161",
+    "AK-0156",
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s005",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "protein bars",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s006",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "ألواح بروتين",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s007",
+   "lang": "arabizi",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "protein bars",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s008",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "barres protéinées",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s009",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0248",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "snack",
+   "filters": {
+    "protein": "high"
+   },
+   "reason": null
+  },
+  {
+   "id": "s010",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0248",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "سناك",
+   "filters": {
+    "protein": "high"
+   },
+   "reason": null
+  },
+  {
+   "id": "s011",
+   "lang": "arabizi",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0248",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "snack",
+   "filters": {
+    "protein": "high"
+   },
+   "reason": null
+  },
+  {
+   "id": "s012",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0248",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "snack",
+   "filters": {
+    "protein": "high"
+   },
+   "reason": null
+  },
+  {
+   "id": "s013",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112"
+   ],
+   "factFails": [],
+   "query": "drinks",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s014",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112"
+   ],
+   "factFails": [],
+   "query": "مشروبات",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s015",
+   "lang": "arabizi",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112"
+   ],
+   "factFails": [],
+   "query": "mashroubat",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s016",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0116",
+    "AK-0112",
+    "AK-0123",
+    "AK-0122"
+   ],
+   "factFails": [],
+   "query": "boissons",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s017",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0057",
+    "AK-0052"
+   ],
+   "factFails": [],
+   "query": "yogurt",
+   "filters": {
+    "fat": "low"
+   },
+   "reason": null
+  },
+  {
+   "id": "s018",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0057",
+    "AK-0052"
+   ],
+   "factFails": [],
+   "query": "لبن زبادي",
+   "filters": {
+    "fat": "low"
+   },
+   "reason": null
+  },
+  {
+   "id": "s019",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0057",
+    "AK-0052"
+   ],
+   "factFails": [],
+   "query": "yaourt",
+   "filters": {
+    "fat": "low"
+   },
+   "reason": null
+  },
+  {
+   "id": "s020",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0053"
+   ],
+   "factFails": [],
+   "query": "butter",
+   "filters": {
+    "salt": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s021",
+   "lang": "arabizi",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0053"
+   ],
+   "factFails": [],
+   "query": "zebde",
+   "filters": {
+    "salt": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s022",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-005"
+   ],
+   "factFails": [],
+   "query": "pasta",
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s023",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-005"
+   ],
+   "factFails": [],
+   "query": "معكرونة",
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s024",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-005"
+   ],
+   "factFails": [],
+   "query": "pâtes",
+   "filters": {
+    "free_of": [
+     "gluten"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s025",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-006"
+   ],
+   "factFails": [],
+   "query": "milk",
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s026",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-006"
+   ],
+   "factFails": [],
+   "query": "حليب",
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s027",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-006"
+   ],
+   "factFails": [],
+   "query": "lait",
+   "filters": {
+    "claims": [
+     "lactose_free"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s028",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0154",
+    "AK-0169",
+    "AK-0247",
+    "AK-0161",
+    "AK-0248",
+    "AK-0166",
+    "AK-0156",
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s029",
+   "lang": "fr",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0154",
+    "AK-0169",
+    "AK-0247",
+    "AK-0161",
+    "AK-0248",
+    "AK-0166",
+    "AK-0156",
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s030",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "AK-0161",
+    "AK-0156",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "diet": [
+     "vegan"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s031",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "AK-0161",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "سناكات",
+   "filters": {
+    "diet": [
+     "vegan"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s032",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-006",
+    "AK-0071"
+   ],
+   "factFails": [],
+   "query": "milk",
+   "filters": {
+    "fat": "low"
+   },
+   "reason": null
+  },
+  {
+   "id": "s033",
+   "lang": "arabizi",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "SR1T-006",
+    "AK-0071"
+   ],
+   "factFails": [],
+   "query": "7alib",
+   "filters": {
+    "fat": "low"
+   },
+   "reason": null
+  },
+  {
+   "id": "s034",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "rice cakes",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s035",
+   "lang": "ar",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "كعك رز",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s036",
+   "lang": "en",
+   "kind": "fact",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0122"
+   ],
+   "factFails": [],
+   "query": "iced tea",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s037",
+   "lang": "en",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "chips",
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s038",
+   "lang": "ar",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "شيبس",
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s039",
+   "lang": "arabizi",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "chips",
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s040",
+   "lang": "fr",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "chips",
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s041",
+   "lang": "en",
+   "kind": "allergy",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "protein bar",
+   "filters": {
+    "free_of": [
+     "peanuts"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s042",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "hummus I",
+   "filters": {
+    "free_of": [
+     "sesame"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s043",
+   "lang": "ar",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "حمص",
+   "filters": {
+    "free_of": [
+     "sesame"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s044",
+   "lang": "en",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0154",
+    "AK-0169",
+    "AK-0161",
+    "AK-0166",
+    "AK-0156",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "free_of": [
+     "gluten"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s045",
+   "lang": "fr",
+   "kind": "allergy",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0154",
+    "AK-0169",
+    "AK-0161",
+    "AK-0166",
+    "AK-0156",
+    "SR1T-001",
+    "SR1T-002"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "free_of": [
+     "gluten"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s046",
+   "lang": "en",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "rice cakes",
+   "filters": {
+    "sugar": "none",
+    "prefer_tags": [
+     "lunchbox"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s047",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "AK-0247",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "ka3ek riz",
+   "filters": {
+    "sugar": "none",
+    "prefer_tags": [
+     "lunchbox"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s048",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "juices",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s049",
+   "lang": "ar",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "عصير",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s050",
+   "lang": "fr",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-003",
+    "AK-0154",
+    "AK-0169",
+    "AK-0247",
+    "AK-0161",
+    "AK-0248",
+    "AK-0166",
+    "AK-0156"
+   ],
+   "factFails": [],
+   "query": "snacks",
+   "filters": {
+    "nutrients": [
+     {
+      "key": "sugars_g",
+      "max": 5
+     }
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s051",
+   "lang": "en",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112"
+   ],
+   "factFails": [],
+   "query": "drinks",
+   "filters": {
+    "sugar": "none",
+    "prefer_tags": [
+     "party"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s052",
+   "lang": "ar",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "AK-0161",
+    "AK-0123",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112"
+   ],
+   "factFails": [],
+   "query": "مشروبات للسهرة",
+   "filters": {
+    "sugar": "none"
+   },
+   "reason": null
+  },
+  {
+   "id": "s053",
+   "lang": "arabizi",
+   "kind": "mixed",
+   "right": true,
+   "returned": [
+    "SR1T-001"
+   ],
+   "factFails": [],
+   "query": "protein bars",
+   "filters": {
+    "sugar": "none",
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s054",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004"
+   ],
+   "factFails": [],
+   "query": "shampoo",
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s055",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004"
+   ],
+   "factFails": [],
+   "query": "شامبو",
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s056",
+   "lang": "arabizi",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004"
+   ],
+   "factFails": [],
+   "query": "shampo",
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s057",
+   "lang": "fr",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004"
+   ],
+   "factFails": [],
+   "query": "shampoing",
+   "filters": {
+    "claims": [
+     "fragrance_free"
+    ],
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s058",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004",
+    "AK-0285"
+   ],
+   "factFails": [],
+   "query": "shampoo",
+   "filters": {
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s059",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "SR1T-004",
+    "AK-0285"
+   ],
+   "factFails": [],
+   "query": "شامبو",
+   "filters": {
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s060",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "dog food",
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s061",
+   "lang": "ar",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "dog أكل لجرو",
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   },
+   "reason": "no_match"
+  },
+  {
+   "id": "s062",
+   "lang": "arabizi",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "dog akl",
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   },
+   "reason": "no_match"
+  },
+  {
+   "id": "s063",
+   "lang": "fr",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "dog croquettes",
+   "filters": {
+    "species": "dog",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   },
+   "reason": "no_match"
+  },
+  {
+   "id": "s064",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0290",
+    "AK-0289"
+   ],
+   "factFails": [],
+   "query": "cat food",
+   "filters": {
+    "species": "cat",
+    "life_stage": [
+     "baby",
+     "young",
+     "adult",
+     "senior",
+     "all"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s065",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0290",
+    "AK-0289"
+   ],
+   "factFails": [],
+   "query": "cat أكل",
+   "filters": {
+    "species": "cat",
+    "life_stage": [
+     "baby",
+     "young",
+     "adult",
+     "senior",
+     "all"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s066",
+   "lang": "fr",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0290",
+    "AK-0289"
+   ],
+   "factFails": [],
+   "query": "cat nourriture",
+   "filters": {
+    "species": "cat",
+    "life_stage": [
+     "baby",
+     "young",
+     "adult",
+     "senior",
+     "all"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "s067",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "cat food",
+   "filters": {
+    "species": "cat",
+    "life_stage": [
+     "baby",
+     "young"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s068",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0288"
+   ],
+   "factFails": [],
+   "query": "diapers",
+   "filters": {
+    "age_months": 24
+   },
+   "reason": null
+  },
+  {
+   "id": "s069",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0288"
+   ],
+   "factFails": [],
+   "query": "حفاضات",
+   "filters": {
+    "age_months": 24,
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s070",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0259"
+   ],
+   "factFails": [],
+   "query": "lavender fabric softener",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s071",
+   "lang": "fr",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0259"
+   ],
+   "factFails": [],
+   "query": "adoucissant à lavande",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s072",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0277",
+    "AK-0279",
+    "SR1T-004"
+   ],
+   "factFails": [],
+   "query": "anti-dandruff shampoo",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s073",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0258",
+    "AK-0256"
+   ],
+   "factFails": [],
+   "query": "كلور",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s074",
+   "lang": "arabizi",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0258",
+    "AK-0256"
+   ],
+   "factFails": [],
+   "query": "clor",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s075",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0291"
+   ],
+   "factFails": [],
+   "query": "cat litter",
+   "filters": {
+    "species": "cat"
+   },
+   "reason": null
+  },
+  {
+   "id": "s076",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0275",
+    "AK-0280"
+   ],
+   "factFails": [],
+   "query": "معجون أسنان",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s077",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0255",
+    "AK-0264"
+   ],
+   "factFails": [],
+   "query": "dishwashing liquid",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s078",
+   "lang": "fr",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0255",
+    "AK-0264"
+   ],
+   "factFails": [],
+   "query": "liquide vaisselle",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s079",
+   "lang": "ar",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0268",
+    "AK-0267",
+    "AK-0254",
+    "AK-0250",
+    "AK-0253"
+   ],
+   "factFails": [],
+   "query": "محارم تواليت",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s080",
+   "lang": "en",
+   "kind": "nonfood",
+   "right": true,
+   "returned": [
+    "AK-0288",
+    "AK-0286",
+    "AK-0287"
+   ],
+   "factFails": [],
+   "query": "diapers",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s081",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0046",
+    "AK-0042",
+    "AK-0051"
+   ],
+   "factFails": [],
+   "query": "لبنة",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s082",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0046",
+    "AK-0042",
+    "AK-0051"
+   ],
+   "factFails": [],
+   "query": "labne",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s083",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0046",
+    "AK-0042",
+    "AK-0051"
+   ],
+   "factFails": [],
+   "query": "labneh",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s084",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0086",
+    "AK-0082",
+    "AK-0081",
+    "AK-0080"
+   ],
+   "factFails": [],
+   "query": "ربطة خبز عربي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s085",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0086",
+    "AK-0082",
+    "AK-0081",
+    "AK-0080",
+    "AK-0105",
+    "AK-0103",
+    "AK-0085",
+    "AK-0084"
+   ],
+   "factFails": [],
+   "query": "khebez",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s086",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0086",
+    "AK-0082",
+    "AK-0081",
+    "AK-0080"
+   ],
+   "factFails": [],
+   "query": "pain libanais",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s087",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0055",
+    "AK-0058",
+    "AK-0049",
+    "AK-0250"
+   ],
+   "factFails": [],
+   "query": "كرتونة بيض",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s088",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0055",
+    "AK-0058",
+    "AK-0049"
+   ],
+   "factFails": [],
+   "query": "bayd",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s089",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0055",
+    "AK-0058",
+    "AK-0049"
+   ],
+   "factFails": [],
+   "query": "oeufs",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s090",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0133",
+    "AK-0138",
+    "AK-0139",
+    "AK-0137"
+   ],
+   "factFails": [],
+   "query": "قهوة نجار",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s091",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0133",
+    "AK-0138",
+    "AK-0139",
+    "AK-0137"
+   ],
+   "factFails": [],
+   "query": "2ahwe najjar",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s092",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0154",
+    "AK-0165",
+    "AK-0164",
+    "AK-0163",
+    "AK-0160",
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "شيبس",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s093",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0154",
+    "AK-0165",
+    "AK-0164",
+    "AK-0163",
+    "AK-0160",
+    "AK-0161"
+   ],
+   "factFails": [],
+   "query": "chips",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s094",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0197",
+    "AK-0196",
+    "AK-0195"
+   ],
+   "factFails": [],
+   "query": "تونة",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s095",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0197",
+    "AK-0196",
+    "AK-0195"
+   ],
+   "factFails": [],
+   "query": "thon",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s096",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0184",
+    "AK-0185",
+    "AK-0183",
+    "AK-0247",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "رز",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s097",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0184",
+    "AK-0183",
+    "AK-0185"
+   ],
+   "factFails": [],
+   "query": "riz basmati",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s098",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0180",
+    "AK-0189",
+    "AK-0186"
+   ],
+   "factFails": [],
+   "query": "عدس",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s099",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0180",
+    "AK-0189",
+    "AK-0186"
+   ],
+   "factFails": [],
+   "query": "3adas",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s100",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0180",
+    "AK-0189",
+    "AK-0186"
+   ],
+   "factFails": [],
+   "query": "lentilles",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s101",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0217",
+    "AK-0219",
+    "AK-0204",
+    "AK-0158",
+    "AK-0205"
+   ],
+   "factFails": [],
+   "query": "زيت زيتون",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s102",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0217",
+    "AK-0219",
+    "AK-0204",
+    "AK-0205"
+   ],
+   "factFails": [],
+   "query": "zeit zeitoun",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s103",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0217",
+    "AK-0219",
+    "AK-0204",
+    "AK-0158",
+    "AK-0205"
+   ],
+   "factFails": [],
+   "query": "'huile d'olive",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s104",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0210",
+    "AK-0208",
+    "AK-0002"
+   ],
+   "factFails": [],
+   "query": "رب بندورة",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s105",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0210",
+    "AK-0208",
+    "AK-0002",
+    "AK-0212"
+   ],
+   "factFails": [],
+   "query": "tomato paste",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s106",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0101",
+    "AK-0198",
+    "AK-0200"
+   ],
+   "factFails": [],
+   "query": "حمص",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s107",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0044",
+    "AK-0060"
+   ],
+   "factFails": [],
+   "query": "حلوم",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s108",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0214",
+    "AK-0215",
+    "AK-0211"
+   ],
+   "factFails": [],
+   "query": "ketchup",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s109",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0068",
+    "AK-0074",
+    "AK-0070",
+    "SR1T-006",
+    "AK-0071",
+    "AK-0073",
+    "AK-0067",
+    "AK-0069"
+   ],
+   "factFails": [],
+   "query": "حليب",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s110",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0068",
+    "AK-0074",
+    "AK-0070",
+    "SR1T-006",
+    "AK-0071",
+    "AK-0073",
+    "AK-0067",
+    "AK-0069"
+   ],
+   "factFails": [],
+   "query": "7alib",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s111",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0068",
+    "AK-0074",
+    "AK-0070",
+    "SR1T-006",
+    "AK-0071",
+    "AK-0073",
+    "AK-0067",
+    "AK-0069"
+   ],
+   "factFails": [],
+   "query": "lait",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s112",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0142",
+    "AK-0140",
+    "AK-0143",
+    "AK-0123",
+    "AK-0122"
+   ],
+   "factFails": [],
+   "query": "شاي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s113",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0142",
+    "AK-0140",
+    "AK-0143",
+    "AK-0123",
+    "AK-0122"
+   ],
+   "factFails": [],
+   "query": "thé",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s114",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0223",
+    "AK-0228",
+    "AK-0123",
+    "SR1T-001",
+    "AK-0130",
+    "AK-0122",
+    "AK-0225",
+    "SR1T-003"
+   ],
+   "factFails": [],
+   "query": "سكر",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s115",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0223",
+    "AK-0228",
+    "AK-0130",
+    "AK-0225"
+   ],
+   "factFails": [],
+   "query": "sekkar",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s116",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0181",
+    "AK-0179",
+    "SR1T-005",
+    "AK-0175"
+   ],
+   "factFails": [],
+   "query": "معكرونة",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s117",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0181",
+    "AK-0179",
+    "SR1T-005",
+    "AK-0175",
+    "AK-0100",
+    "AK-0151",
+    "AK-0162",
+    "AK-0280"
+   ],
+   "factFails": [],
+   "query": "pâtes",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s118",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0239",
+    "AK-0244"
+   ],
+   "factFails": [],
+   "query": "frozen fries",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s119",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0236",
+    "AK-0246",
+    "AK-0031",
+    "AK-0035",
+    "AK-0034",
+    "AK-0029"
+   ],
+   "factFails": [],
+   "query": "ناغتس دجاج",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s120",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0117",
+    "AK-0116",
+    "AK-0112",
+    "AK-0113",
+    "AK-0115"
+   ],
+   "factFails": [],
+   "query": "بيبسي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s121",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0117",
+    "AK-0116",
+    "AK-0112",
+    "AK-0113",
+    "AK-0115"
+   ],
+   "factFails": [],
+   "query": "pepsi",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s122",
+   "lang": "ar",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0105",
+    "AK-0103",
+    "AK-0111",
+    "AK-0110",
+    "AK-0107",
+    "AK-0104",
+    "AK-0108",
+    "AK-0109"
+   ],
+   "factFails": [],
+   "query": "مي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s123",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0105",
+    "AK-0103",
+    "AK-0111",
+    "AK-0110",
+    "AK-0107",
+    "AK-0104",
+    "AK-0108",
+    "AK-0109"
+   ],
+   "factFails": [],
+   "query": "mayy",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s124",
+   "lang": "fr",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0105",
+    "AK-0103",
+    "AK-0110",
+    "AK-0107",
+    "AK-0104",
+    "AK-0108",
+    "AK-0111",
+    "AK-0109"
+   ],
+   "factFails": [],
+   "query": "'eau minérale",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "s125",
+   "lang": "en",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0114",
+    "AK-0119",
+    "AK-0120",
+    "AK-0127",
+    "AK-0125",
+    "AK-0128",
+    "AK-0006"
+   ],
+   "factFails": [],
+   "query": "juice",
+   "filters": {
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s126",
+   "lang": "arabizi",
+   "kind": "plain",
+   "right": true,
+   "returned": [
+    "AK-0114",
+    "AK-0119",
+    "AK-0120",
+    "AK-0127",
+    "AK-0125",
+    "AK-0128",
+    "AK-0006"
+   ],
+   "factFails": [],
+   "query": "3asir",
+   "filters": {
+    "audience": "kids"
+   },
+   "reason": null
+  },
+  {
+   "id": "s127",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "chips",
+   "filters": {
+    "salt": "low"
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s128",
+   "lang": "fr",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "chips",
+   "filters": {
+    "salt": "low"
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s129",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "eggs",
+   "filters": {
+    "claims": [
+     "organic"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s130",
+   "lang": "ar",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "بيض",
+   "filters": {
+    "claims": [
+     "organic"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s131",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "chicken",
+   "filters": {
+    "diet": [
+     "halal"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s132",
+   "lang": "arabizi",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "djej",
+   "filters": {
+    "diet": [
+     "halal"
+    ]
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "s133",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "gas cylinder",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "s134",
+   "lang": "ar",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "قنينة غاز",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "s135",
+   "lang": "en",
+   "kind": "nothing",
+   "right": true,
+   "returned": [],
+   "factFails": [],
+   "query": "sushi",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m001",
+   "lang": "en",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0123",
+    "AK-0114",
+    "AK-0117",
+    "AK-0119",
+    "AK-0122",
+    "AK-0116",
+    "AK-0112",
+    "AK-0120"
+   ],
+   "factFails": [],
+   "query": "fizzy drink",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m002",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0117",
+    "AK-0116",
+    "AK-0112",
+    "AK-0124",
+    "AK-0113",
+    "AK-0126",
+    "AK-0115",
+    "AK-0121"
+   ],
+   "factFails": [],
+   "query": "مشروب غازي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m003",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "mashroub 8azi",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m004",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0117",
+    "AK-0116",
+    "AK-0112",
+    "AK-0124",
+    "AK-0113",
+    "AK-0126",
+    "AK-0115",
+    "AK-0121"
+   ],
+   "factFails": [],
+   "query": "boisson gazeuse",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m005",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "spread on bread",
+   "filters": {
+    "prefer_tags": [
+     "breakfast"
+    ]
+   },
+   "reason": "no_match"
+  },
+  {
+   "id": "m006",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "quelque chose à tartiner",
+   "filters": {
+    "prefer_tags": [
+     "breakfast"
+    ]
+   },
+   "reason": "no_match"
+  },
+  {
+   "id": "m007",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0086",
+    "AK-0082",
+    "AK-0081",
+    "AK-0080"
+   ],
+   "factFails": [],
+   "query": "n7ottou khebez",
+   "filters": {
+    "prefer_tags": [
+     "breakfast"
+    ]
+   },
+   "reason": null
+  },
+  {
+   "id": "m008",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [
+    "AK-0086",
+    "AK-0082",
+    "AK-0081",
+    "AK-0080"
+   ],
+   "factFails": [],
+   "query": "ندهنه عالخبز للترويقة",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m009",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "stuff wash dishes",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m010",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "لجلي الصحون",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m011",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "jali el s7oun",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m012",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "quoi faire vaisselle",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m013",
+   "lang": "en",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0146",
+    "AK-0147",
+    "AK-0150",
+    "AK-0152",
+    "AK-0148",
+    "AK-0155",
+    "AK-0149",
+    "AK-0144"
+   ],
+   "factFails": [],
+   "query": "sweet chocolate",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m014",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0146",
+    "AK-0147",
+    "AK-0150",
+    "AK-0152",
+    "AK-0148",
+    "AK-0155",
+    "AK-0149",
+    "AK-0144"
+   ],
+   "factFails": [],
+   "query": "حلو بالشوكولا",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m015",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0147",
+    "AK-0146",
+    "AK-0150",
+    "AK-0152",
+    "AK-0148",
+    "AK-0155",
+    "AK-0149",
+    "AK-0144"
+   ],
+   "factFails": [],
+   "query": "truc sucré chocolat",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m016",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0147",
+    "AK-0146",
+    "AK-0150",
+    "AK-0152",
+    "AK-0148",
+    "AK-0155",
+    "AK-0149",
+    "AK-0144"
+   ],
+   "factFails": [],
+   "query": "7elo bel chocolat",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m017",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "wake up in morning",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m018",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "يفيقني الصبح",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m019",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "clean floor",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m020",
+   "lang": "fr",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "quoi nettoyer sol",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m021",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "wipes",
+   "filters": {
+    "audience": "kids"
+   },
+   "reason": "none_pass"
+  },
+  {
+   "id": "m022",
+   "lang": "ar",
+   "kind": "meaning",
+   "right": true,
+   "returned": [
+    "AK-0283",
+    "AK-0284",
+    "AK-0269",
+    "AK-0254",
+    "AK-0250",
+    "AK-0253"
+   ],
+   "factFails": [],
+   "query": "محارم مبللة للبيبي",
+   "filters": {},
+   "reason": null
+  },
+  {
+   "id": "m023",
+   "lang": "en",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "quick dinner from freezer",
+   "filters": {},
+   "reason": "no_match"
+  },
+  {
+   "id": "m024",
+   "lang": "arabizi",
+   "kind": "meaning",
+   "right": false,
+   "returned": [],
+   "factFails": [],
+   "query": "sari3 3asha el frizer",
+   "filters": {},
+   "reason": "no_match"
+  }
+ ]
+}

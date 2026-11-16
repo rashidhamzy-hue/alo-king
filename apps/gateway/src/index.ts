@@ -20,6 +20,7 @@ import { messages } from "@ak/agents/messages";
 import { supportMessage } from "@ak/agents/support";
 import { claimOrderMessage, logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
+import { workersAiEmbedder } from "@ak/agents/embeddings";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -39,6 +40,8 @@ export interface Env {
   ANTHROPIC_BASE_URL?: string;
   /** 1.21 (K1): the password Meta's scheduled feed uses for GET /catalog/feed.csv (user "meta"). Unset: the route answers 404. */
   CATALOG_FEED_PASSWORD?: string;
+  /** SR1: Workers AI (wrangler.jsonc "ai"), for query embeddings. Absent: search runs on words alone. */
+  AI?: { run(model: string, input: unknown): Promise<unknown> };
   /** Tests inject a scripted model and an in-memory database here. Never set in production. */
   TEST_DEPS?: { db: SupabaseClient; model: ModelClient };
 }
@@ -71,6 +74,8 @@ function depsFor(env: Env): TurnDeps {
     Sentry.captureMessage(`model_account: ${reason}`, { level: "fatal", tags: { where: "model_account", reason }, extra: { message }, fingerprint: ["model_account", reason] });
   });
   const deps: TurnDeps = { db: supa, model: guarded, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
+  // SR1: search by meaning; the switch, the model and the daily cap are settings.search, checked before every call (search.ts)
+  if (env.AI && !env.TEST_DEPS) deps.embedder = workersAiEmbedder(env.AI);
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);
   // 1.8 (B3's request, wired by B4): WhatsApp's typing indicator on the message being answered. Marks it read; sends nothing.

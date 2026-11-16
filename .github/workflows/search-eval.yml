@@ -1,0 +1,98 @@
+# SR1: the search request set on live models, and what the search needs on staging. Spends money: only on request.
+# Cost (COST1): every model call is counted in model_costs (workflow search-eval, or workflow search for staging's own embeddings), and
+# the run stops making calls at its cap, max_usd (default 1). The reading runs are the session's "once before, once after", each capped at 1.
+# How to run: by hand (workflow_dispatch), or by committing evals/search/request.json with {"steps": [...], "max_usd": 1} to any branch.
+#   steps: "before"  the live reading model, then today's search (search_catalog), on origin/main's code (BEFORE_REF, default origin/main)
+#          "after"   the live reading model, then find_products, on this commit's code
+#          "embed"   every document and query on Workers AI (EMBED_MODELS), words alone against hybrid, per language (PGlite, test facts)
+#          "latency" find_products against search_catalog on staging, round trip, median of 30 queries
+#          "staging_embed:<model>"  staging's search documents embedded with that model;  "switch:<model>"  settings.search embeddings on
+# Results go to a new branch search-eval-out/<run id>; nothing is pushed to the branch that triggered the run. Never deploys anything.
+name: search-eval
+on:
+  workflow_dispatch:
+    inputs:
+      steps: { description: "Comma-separated: before, after, embed, latency, staging_embed:<model>, switch:<model>", type: string, default: "latency" }
+      max_usd: { description: "Dollar cap for the run's model calls", type: string, default: "1" }
+      embed_models: { description: "For embed: comma-separated Workers AI models", type: string, default: "@cf/baai/bge-m3,@cf/qwen/qwen3-embedding-0.6b" }
+  push:
+    paths: [evals/search/request.json]
+permissions: { contents: write }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: search-eval-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '1' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: What to run
+        id: what
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            steps="${{ inputs.steps }}"; models="${{ inputs.embed_models }}"; before_ref="origin/main"
+          else
+            steps=$(node -e 'const r=require("./evals/search/request.json"); console.log((r.steps||[]).join(","))')
+            models=$(node -e 'const r=require("./evals/search/request.json"); console.log((r.embed_models||["@cf/baai/bge-m3","@cf/qwen/qwen3-embedding-0.6b"]).filter((m)=>/^@cf\/[a-z0-9._\/-]+$/.test(m)).join(","))')
+            before_ref=$(node -e 'const r=require("./evals/search/request.json"); const x=r.before_ref||"origin/main"; console.log(/^[A-Za-z0-9_.\/-]+$/.test(x)?x:"origin/main")')
+            cap=$(node -e 'const r=require("./evals/search/request.json"); console.log(r.max_usd ?? "")')
+            [[ "$cap" =~ ^[0-9]+(\.[0-9]+)?$ ]] && echo "MODEL_COST_CAP_USD=$cap" >> "$GITHUB_ENV"
+          fi
+          echo "steps=,$steps," >> "$GITHUB_OUTPUT"; echo "EMBED_MODELS=$models" >> "$GITHUB_ENV"; echo "BEFORE_REF=$before_ref" >> "$GITHUB_ENV"
+          echo "MODEL=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
+          echo "- steps: $steps; cost cap: USD ${MODEL_COST_CAP_USD}; before: $before_ref" >> "$GITHUB_STEP_SUMMARY"
+      - name: The live reading model and today's search (before), on ${{ env.BEFORE_REF }}
+        if: contains(steps.what.outputs.steps, ',before,')
+        env: { SR1_STEP: reading, LABEL: before }
+        run: |
+          git worktree add ../before "$BEFORE_REF"
+          mkdir -p ../before/evals/search ../before/scripts/lib
+          cp evals/search/{score.ts,live.search.test.ts,requests.json,facts.json} ../before/evals/search/
+          cp test/db/search-kit.ts ../before/test/db/ && cp scripts/lib/model-cost.mjs scripts/lib/model-cost.d.mts ../before/scripts/lib/
+          ( cd ../before && npm ci --silent && npx vitest run evals/search/live.search.test.ts )
+          mkdir -p evals/search/results && cp ../before/evals/search/results/reading-before.json evals/search/results/
+      - name: The live reading model and find_products (after), on this commit
+        if: contains(steps.what.outputs.steps, ',after,')
+        env: { SR1_STEP: reading, LABEL: after }
+        run: npx vitest run evals/search/live.search.test.ts
+      - name: Embeddings against words alone (Workers AI), on this commit
+        if: contains(steps.what.outputs.steps, ',embed,')
+        env: { SR1_STEP: embed }
+        run: npx vitest run evals/search/live.search.test.ts
+      - name: Latency on staging
+        if: contains(steps.what.outputs.steps, ',latency,')
+        run: node scripts/search/staging.mjs latency
+      - name: Staging's documents embedded, and the switch
+        if: contains(steps.what.outputs.steps, ',staging_embed:') || contains(steps.what.outputs.steps, ',switch:')
+        env: { STEPS: "${{ steps.what.outputs.steps }}" }
+        run: |
+          for s in ${STEPS//,/ }; do
+            case "$s" in
+              staging_embed:@cf/*) node scripts/search/staging.mjs embed "${s#staging_embed:}" ;;
+              switch:@cf/*) node scripts/search/staging.mjs switch "${s#switch:}" ;;
+            esac
+          done
+      - name: Push the results to search-eval-out/${{ github.run_id }}
+        if: always()
+        run: |
+          git config user.name "search-eval bot"; git config user.email "actions@users.noreply.github.com"
+          git checkout -b "search-eval-out/${{ github.run_id }}"
+          [ -d evals/search/results ] && git add -f evals/search/results
+          git commit -m "search-eval run ${{ github.run_id }} output" || { echo "nothing written"; exit 0; }
+          git push origin "search-eval-out/${{ github.run_id }}"
+          echo "- output branch: search-eval-out/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"

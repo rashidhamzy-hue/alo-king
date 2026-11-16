@@ -27,7 +27,7 @@ describe("restore-check.yml", () => {
   it("runs weekly and by hand, restores into a container of the copy's own Postgres major, and raises restore_check_failed", () => {
     expect(restore).toMatch(/cron: "30 3 \* \* 1"/);
     expect(restore).toMatch(/workflow_dispatch:/);
-    expect(restore).toMatch(/docker run .*postgres:\$PG_MAJOR/);
+    expect(restore).toMatch(/docker run .*pgvector\/pgvector:[0-9.]+-pg\$PG_MAJOR/);
     expect(restore).toMatch(/127\.0\.0\.1:55432:5432/);            // bound to the runner only
     expect(restore).toMatch(/alert\.sh raise restore_check_failed/);
     expect(restore).toMatch(/if: failure\(\)/);

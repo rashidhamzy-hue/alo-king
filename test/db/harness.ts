@@ -3,6 +3,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { vector } from "@electric-sql/pglite-pgvector";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -57,7 +58,7 @@ const enc = (v: unknown): unknown =>
 /** `welcome`: CX1's first-ever welcome (0143) stays on. Off by default, so a test's fresh customer is answered as before CX1; the CX1
  *  tests and the simulated customers (evals/sim/world.ts) turn it on. */
 export async function openTestDb(opts: { seeds?: boolean; welcome?: boolean } = {}): Promise<TestDb> {
-  const pg = new PGlite({ extensions: { pg_trgm, pgcrypto } });
+  const pg = new PGlite({ extensions: { pg_trgm, pgcrypto, vector } });
   for (const f of readdirSync(root + "migrations").sort()) {
     try { await pg.exec(readFileSync(root + "migrations/" + f, "utf8")); }
     catch (e) { throw new Error(`${f}: ${(e as Error).message}`); }

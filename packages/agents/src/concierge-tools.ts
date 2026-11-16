@@ -10,6 +10,8 @@ import { checkModelText, GUARD_HINT, shapeModelText, type Violation } from "./ou
 import { catalogMessages } from "./catalog-messages";
 import { handoffToCase, openCase, tellOpened, type SupportNote } from "./support";
 import { applyEdits, askMinimum, underMinimumOnly, type BasketEdit } from "./basket";
+import { asksFacts, mergeFilters, readSearch, type SearchFilters } from "./search-reading";
+import { factLine, searchProducts } from "./search";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -94,6 +96,8 @@ export interface ToolContext {
   customerWords?: string;
   /** PD1 (g): settings.catalog has a WhatsApp catalogue. False: the catalogue is never offered (staging, 15 Nov 22:20). */
   catalogueReady?: boolean;
+  /** SR1: query embeddings for search by meaning (Workers AI). Absent, or failing: the search runs on words alone (search.ts). */
+  embedder?: import("./embeddings").Embedder;
 }
 
 /** What the gateway is told about text the model wrote, so it checks it again with the same tool results (A2's second lock). */
@@ -162,17 +166,47 @@ export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, 
 export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
   return {
     async search_catalog({ query, source_hint }) {
-      const r = await rpc<{ matches: Record<string, unknown>[]; reason: string | null }>(ctx.db, "search_catalog",
-        { p_query: query, p_source_hint: source_hint ?? null, p_limit: 6 });
+      // SR1: the hub's catalogue through find_products (0214): words and meaning, under hard filters by approved facts. The filters are read
+      // by code (search-reading.ts) from the model's phrase and from the customer's own words this turn: the clause of the message about
+      // this kind (its "no sugar", its count), and every allergy or diet said anywhere (a restriction holds for the whole order: invariant 16).
+      // A restaurant named (source_hint), or nothing found with no fact asked: the 0053 search as before.
+      const legacy = async () => {
+        const r = await rpc<{ matches: Record<string, unknown>[]; reason: string | null }>(ctx.db, "search_catalog",
+          { p_query: query, p_source_hint: source_hint ?? null, p_limit: 6 });
+        for (const m of r.matches) noteReturned(ctx, m.product_id, m.name_en, m.name_ar);
+        return {
+          reason: r.reason,
+          matches: r.matches.map((m) => ({
+            product_id: m.product_id, source_id: m.source_id, name: m.name_en, name_ar: m.name_ar, brand: m.brand,
+            unit: m.sell_unit, price_usd: m.price_usd, in_stock: Number(m.available) > 0, source: m.source_name, score: m.score,
+          })),
+        };
+      };
       ctx.searched = true;
-      for (const m of r.matches) noteReturned(ctx, m.product_id, m.name_en, m.name_ar);
-      // Trim to what the model needs to choose; ids must be passed back untouched.
+      if (source_hint) return legacy();
+      const own = readSearch(query);
+      const filters = mergeFilters(own.filters, filtersSaidFor(own.query || query, ctx.customerWords ?? "", ctx.state.orderRestrictions ?? []));
+      const r = await searchProducts(ctx.db, ctx.embedder, own.query || query, filters, 6).catch(() => null);
+      if (!r || (!r.matches.length && !asksFacts(filters))) return legacy();
+      for (const m of r.matches) {
+        noteReturned(ctx, m.product_id, m.name_en, m.name_ar);
+        // an approved record behind a fact that made the item pass unlocks that fact for this product only (PD1 (e))
+        for (const e of m.evidence) {
+          const map = (ctx.approvedByProduct ??= new Map());
+          const attr = e.kind === "claim" ? CLAIM_ATTRIBUTE[e.code ?? ""] ?? "nutrition" : e.kind === "allergen" ? guardAttribute(e.code ?? "", "allergen")
+                     : e.kind === "diet" ? e.code ?? "nutrition" : "nutrition";
+          if (e.kind !== "field") map.set(m.product_id, (map.get(m.product_id) ?? new Set<string>()).add(attr));
+        }
+      }
       return {
-        reason: r.reason,
+        reason: r.reason, filters,
         matches: r.matches.map((m) => ({
-          product_id: m.product_id, source_id: m.source_id, name: m.name_en, name_ar: m.name_ar, brand: m.brand,
-          unit: m.sell_unit, price_usd: m.price_usd, in_stock: Number(m.available) > 0, source: m.source_name, score: m.score,
+          product_id: m.product_id, source_id: m.source_id, name: m.name_en, name_ar: m.name_ar, brand: m.brand, unit: m.sell_unit,
+          price_usd: m.price_usd, in_stock: Number(m.available) > 0, source: m.source_name,
+          facts: m.evidence.map((e) => factLine(e, ctx.state.lang ?? "en")).filter(Boolean),
         })),
+        ...(r.reason === "none_pass" ? { note: "Items of this kind exist, but none is confirmed to fit what the customer stated. Say so plainly; never offer one as fitting." } : {}),
+        ...(r.matches.some((m) => m.evidence.length) ? { rule: "A fact may be stated only as listed in facts, with its source (\"the pack says ...\")." } : {}),
       };
     },
 
@@ -533,4 +567,25 @@ export function withRestrictionNote(notes: string | null, restrictions: string[]
   const rs = [...new Set(restrictions.map((r) => r.trim()).filter(Boolean))];
   if (rs.length === 0 || (notes ?? "").includes(RESTRICTION_MARK)) return notes;
   return [notes, `${RESTRICTION_MARK} (لازم يتأكّد قبل التحضير): ${rs.join("، ")}`].filter(Boolean).join(" | ");
+}
+
+/**
+ * SR1: the filters the customer's own words put on a search for this kind: the facts of the clause that names it ("snacks with no sugar"
+ * in "bread and snacks with no sugar"), and every allergy or diet said anywhere in the message or kept for the order. Code, no model.
+ */
+export function filtersSaidFor(kind: string, said: string, kept: string[] = []): SearchFilters {
+  const words = (x: string) => new Set(x.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3));
+  const want = words(kind);
+  let out: SearchFilters = {};
+  const restrict = (f: SearchFilters): SearchFilters => ({ ...(f.free_of ? { free_of: f.free_of } : {}), ...(f.diet ? { diet: f.diet } : {}) });
+  for (const clause of said.split(/\n|[,;،]|(?:\s(?:and|w|و|et|ou|or|aw|او|أو)\s)/u)) {
+    const r = readSearch(clause);
+    const mine = [...words(r.query)].some((w) => want.has(w) || [...want].some((x) => x.startsWith(w) || w.startsWith(x)));
+    out = mergeFilters(out, mine ? r.filters : restrict(r.filters));
+  }
+  const whole = readSearch(said);
+  out = mergeFilters(out, restrict(whole.filters));
+  for (const k of kept) out = mergeFilters(out, restrict(readSearch(k).filters));
+  delete out.prefer_tags;
+  return out;
 }

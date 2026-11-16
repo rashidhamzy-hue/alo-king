@@ -209,6 +209,27 @@ confirm" and never as "it has no sugar", and the joined «بـ» before a Latin 
 | `honest.closeItems` | قلّي إذا بدك شي منهن، أو شي تاني. | Tell me if you want one of these, or something else. | |
 | `honest.closeNone` | قلّي شو بدك غير هيك. | Tell me what else you need. | |
 
+## SR1, what fits with its facts, and baskets built by code (16 November 2026)
+Written by code (`packages/agents/src/messages/ar.ts`, `honest.fits`, `honest.noneFits`, `honest.closeFits`, `built`; the fact lines in
+`packages/agents/src/search.ts`, `factLine`). A reader should check that each fact line reads as "this is what is printed on the pack" and
+never as our own judgement, and that «بلا» in the allergen line reads as "the list says it has none", not as a promise.
+
+| Key | Arabic | English | Read |
+| --- | --- | --- | --- |
+| `honest.fits(["سناكات"])` | هيدا يلي بيناسب (سناكات)، مع شو مكتوب على العلبة: | What fits (snacks), with what the pack says: | |
+| `honest.noneFits(["عصير"])` | ولا شي من عصير يلي عنا بيناسب، حسب المكتوب على العلب. | None of our juice fits that, by what their packs say. | |
+| `honest.closeFits` | قلّي أيّا واحد وقدّيش. | Tell me which one and how many. | |
+| `factLine` (claim) | مكتوب على العلبة «No added sugar» | the pack says “No added sugar” | |
+| `factLine` (nutrition) | جدول القيم الغذائية على العلبة: 0.4 غ سكر بكل 100 غ | the nutrition panel on the pack: 0.4 g sugar per 100 g | |
+| `factLine` (allergen) | لائحة مسبّبات الحساسية على العلبة: بلا فول سوداني | the pack's allergen list: no peanuts | |
+| `built.dish("مجدرة", 6)` | مجدرة لـ6: كل شي بدها، حسب الكمية للشخص. | Mjadra for 6: everything it needs, by the quantity per person. | |
+| `built.lunchbox(10)` | سناكات للزوادة: 10 بالمجموع، من كذا نوع. | Lunchbox snacks: 10 in all, a few different ones. | |
+| `built.budget(20)` | سلة على قد الميزانية (الأغراض بس، التوصيل لحال). / الميزانية: $20.00 | A basket for your budget (items only, delivery apart). / Budget: $20.00 | |
+| `built.missing(["برغل"])` | مش محطوط: برغل (ما فينا نزيدو هلّق). | Not included: burghul (we can't add it now). | |
+| `built.overBudget(15)` | المجموع أكتر من الميزانية؛ قلّي شو نشيل. / الميزانية: $15.00 | This comes to more than your budget; tell me what to take out. / Budget: $15.00 | |
+| `built.tooMany(50)` | فيني ضبّط سلة لحد 50 شخص. قلّي شو بدك وبزيدو. | I can build a basket for up to 50 people. Tell me what you need and I'll add it. | |
+| `built.none` | ما قدرت ضبّط هالسلة من يلي عنا هلّق. قلّي شو بدك وبزيدو. | I couldn't build this basket from what we have now. Tell me what you need and I'll add it. | |
+
 ## LB1, the label day pages (console, staff-facing, written by a model; 16 November 2026)
 
 Source: `apps/console/src/pages/capture.ts` and `apps/console/src/pages/labelqueue.ts` (the words are written beside their English with `pick(L, en, ar)`), and the navigation names in `apps/console/src/i18n.ts` (`NAV_AR`). Read by Bassem, who uses them on the label day. Not covered by `arabic-review.test.ts` (staff screens, not customer messages).
