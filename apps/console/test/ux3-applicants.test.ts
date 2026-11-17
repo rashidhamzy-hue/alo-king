@@ -7,7 +7,21 @@ import { flashOf, rig, type Rig } from "./kit";
 let r: Rig; let seq = 0;
 afterEach(() => vi.unstubAllGlobals());
 const who = async (role: "ops_lead" | "picker" | "admin", name: string, lang = "en") => { const w = await r.staff(role, name); const b = r.browser(); await b.signIn(w); b.cookies.set("ak_lang", lang); return { ...w, b }; };
-const text = (h: string) => h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+/** A page without its <script> or <style> blocks, found by a plain search (any letter case) and cut from the opening tag to the end of the closing one (as test/web/web2-pages.test.ts does). */
+const dropBlocks = (html: string, tag: "script" | "style"): string => {
+  let out = html;
+  for (;;) {
+    const low = out.toLowerCase();
+    const from = low.indexOf(`<${tag}`);
+    if (from < 0) return out;
+    const close = low.indexOf(`</${tag}`, from);
+    const end = close < 0 ? out.length : (low.indexOf(">", close) < 0 ? out.length : low.indexOf(">", close) + 1);
+    out = out.slice(0, from) + " " + out.slice(end);
+  }
+};
+/** Every tag out, repeated until none is left, then the entities. */
+const untag = (html: string): string => { let out = html, prev = ""; while (out !== prev) { prev = out; out = out.replace(/<[^<>]*>/g, " "); } return out.replace(/[<>]/g, " "); };
+const text = (h: string) => untag(dropBlocks(dropBlocks(h, "script"), "style")).replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 /** An applicant the way the website makes one: a session, a code sent to the customer line, then the application. */
 async function applicant(name: string, over: { licence?: boolean; village?: string; days?: string[]; shifts?: string[] } = {}) {
