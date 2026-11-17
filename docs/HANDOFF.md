@@ -56,7 +56,7 @@ Branch `claude/pensive-archimedes-8q67nh`, one pull request. Every check, with i
   filters never offer an unconfirmed item); the first 15 November voice note gets PD1's honest answer; the label switch is off.
 - **Fixed here (failing test first):** the `web` workflow, red on `main` since #109 (its live check read the words before LD1); the hourly
   probe, which made no order for 36 hours (it did not answer B1c's «أي واحد بدك؟»); **every number and switch on the console's Settings
-  page was refused on staging** (the page sent a JSON string; the test kit hid it, and now behaves as PostgREST does). And the Inbox, an order's story and Exceptions showed most bot messages as raw JSON; they show the words now.
+  page was refused on staging** (the page sent a JSON string; the test kit hid it, and now behaves as PostgREST does). And the Inbox, an order's story and Exceptions showed most bot messages as raw JSON; they show the words now. And a lapsed card's notice went as the approved template, without its Reopen button; inside the window it is the message with the button again.
 - **Fixed on staging (data):** `settings.catalog.product_link`, empty since K1 (RUNBOOK A3): without it the website could sign nobody in, had
   no WhatsApp button and the Food pages no "Claim it" link. Production needs the same step.
 - **Wrong, not fixed here (proposed B1e, `docs/QA1.md` section 9):** "protein bars with no sugar", the second 15 November voice note, is read
