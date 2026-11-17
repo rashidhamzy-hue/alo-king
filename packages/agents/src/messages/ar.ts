@@ -337,7 +337,7 @@ export const ar: Messages = {
     riderOff: (name, requeued, stranded, u, l) => [
       `وقّفنا ${name}.`,
       requeued ? `رجّعنا ${requeued} طلبات للتوزيع.` : null,
-      stranded.length ? `عالطريق معو: ${stranded.map((c) => "#" + c).join(" ")}.\nرح نعرضها على سائق تاني، استلام من المركز: لازم الأغراض توصل عالمستودع.\nأو كبّس «رجّعها» لنلغي التوصيل.` : null,
+      stranded.length ? `عالطريق معو: ${stranded.map((c) => "#" + c).join(" ")}.\nرح نعرضها على سائق تاني، استلام من المستودع: لازم الأغراض توصل عالمستودع.\nأو كبّس «رجّعها» لنلغي التوصيل.` : null,
       u || l ? `معو كاش:\n${usd(u)}\n${lbp(l)}\nكبّس «استلمنا الكاش» بس ينعدّ.` : "ما معو كاش.",
     ].filter(Boolean).join("\n"),
     sendBack: (code) => `رجّعها #${code}`,
