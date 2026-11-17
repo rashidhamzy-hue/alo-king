@@ -11,7 +11,8 @@ import { form, lbp, usd } from "../html";
 import { pick, t, type Lang } from "../i18n";
 import { LEADS } from "../roles";
 import { onTheWayNotice, tell } from "../notices";
-import { badge, button, card, empty, input, limitBar, select, tabs } from "@ak/ui/components";
+import { badge, button, card, empty, icon, input, limitBar, select, tabs } from "@ak/ui/components";
+import { statusPill } from "@ak/ui/status";
 
 export type Stop = { seq: number; kind: "pickup" | "dropoff"; done: boolean; arrived: boolean; source: string | null; order_id: string | null; short_code: string | null; order_status: string | null;
   village: string | null; directions: string | null; notes: string | null; payment_method: string | null; total_usd: number | string | null; fx_rate_lbp: number | string | null; change_for_usd: number | string | null; paid: boolean; items: number };
@@ -47,6 +48,9 @@ export function plain(L: Lang, e: unknown): unknown {
   if (/^NOT_AT_DOOR/.test(m)) return say("The order is not at the door yet. Record it as delivered first.", "الطلب ليس عند الباب بعد. سجّل التسليم أولاً.");
   if (/^AMOUNT_REQUIRED/.test(m)) return say("Type the amount received, in dollars, lira or both.", "اكتب المبلغ المستلم بالدولار أو الليرة أو كليهما.");
   if (/^NOT_AUTHORISED/.test(m)) return say("Only the ops lead or the admin can act for a rider.", "فقط مسؤول العمليات أو المدير يتصرف نيابة عن مندوب.");
+  if (/^HANDOVER_CODE_REQUIRED/.test(m)) return say("This order is handed over only against the customer's 4-digit code. Type it, then press Delivered.", "يُسلَّم هذا الطلب مقابل رمز الزبون المكوّن من 4 أرقام فقط. اكتبه ثم اضغط «سُلّم».");
+  if (/^NOT_A_PICKUP/.test(m)) return say("This is not a pickup order.", "هذا ليس طلب استلام.");
+  if (/^PAYMENT_NOT_RECORDED/.test(m)) return say("Nothing was paid on this order yet: record what was received first.", "لم يُسجَّل أي دفع لهذا الطلب: سجّل المبلغ المستلم أولاً.");
   return e;
 }
 
@@ -65,20 +69,31 @@ const STATUS: Record<string, [string, string]> = { offered: ["offered", "معر�
 async function page(c: Ctx) {
   const L = c.lang;
   const now = c.deps.now();
-  const [{ riders, waiting }, cap] = await Promise.all([readBoard(c), c.deps.db.rpc<{ soft_usd?: number; hard_usd?: number } | null>("setting", { p_key: "cash_cap" }).catch(() => null)]);
+  const [{ riders, waiting }, cap, pickBoard] = await Promise.all([readBoard(c), c.deps.db.rpc<{ soft_usd?: number; hard_usd?: number } | null>("setting", { p_key: "cash_cap" }).catch(() => null),
+    c.deps.db.rpc<{ order_id: string; short_code: string; status: string; is_pickup: boolean; village_ar: string | null; village_en: string | null }[] | null>("console_pick_board", {}).catch(() => null)]);
   const onShift = riders.filter((r) => r.on_shift);
+  const off = riders.filter((r) => !r.on_shift);
   const hard = Number(cap?.hard_usd ?? 0), soft = Number(cap?.soft_usd ?? 0);
-  const picker = () => select({ name: "driver", label: pick(L, "Rider", "المندوب"), options: onShift.map((r) => ({ value: r.driver_id, label: `${r.name ?? pick(L, "Rider", "مندوب")}${r.delivery ? ` · ${pick(L, "has a job", "لديه مهمة")}` : ""}` })), hideLabel: true });
+  // What the settings say, in the same words on every card. The database decides the job (offer_delivery); this only shows the numbers it will compare.
+  const capWords = hard ? pick(L, `Soft cap ${usd(soft)} warns. Hard cap ${usd(hard)} blocks new cash orders until a drop.`, `السقف المرن ${usd(soft)} للتنبيه. السقف الصارم ${usd(hard)} يمنع الطلبات النقدية الجديدة حتى التسليم.`) : "";
+  const picker = (w: Waiting) => select({ name: "driver", label: pick(L, "Rider", "المندوب"), hideLabel: true,
+    options: onShift.map((r) => ({ value: r.driver_id, label: `${r.name ?? pick(L, "Rider", "مندوب")} · ${usd(r.exposure_usd)}${hard ? ` / ${usd(hard)}` : ""}${r.delivery ? ` · ${pick(L, "has a job", "لديه مهمة")}` : ""}` })) });
+  // A pickup order has no rider and no fee: its shelf is below. A stranded order (left on the road) is first in the line.
+  const packed = waiting.filter((w) => w.status === "ready" || w.stranded);
+  const notPacked = waiting.filter((w) => !(w.status === "ready" || w.stranded));
+  const pickups = (pickBoard ?? []).filter((b) => b.is_pickup && b.status === "ready");
+  const pickupInfo = pickups.length ? await c.deps.db.rows<{ id: string; payment_method: string; total_usd: number | string; handover_code: string | null; handover_verified_at: string | null }>("orders", { select: "id,payment_method,total_usd,handover_code,handover_verified_at", where: { id: { in: pickups.map((x) => x.order_id) } } }).catch(() => []) : [];
 
   const stopRow = (r: RiderRow, s: Stop, job: Job) => {
     const total = Number(s.total_usd ?? 0);
     const fx = Number(s.fx_rate_lbp ?? 0);
+    const needsCode = (s as Stop & { code_required?: boolean }).code_required === true;
     const pay = s.payment_method === "cod" && !s.paid ? html`${badge(pick(L, "collect", "تحصيل"), "gold", "wallet")} <bdi>${usd(total)}</bdi>${fx ? html` <span class="muted">≈ <bdi>${lbp(Math.round((total * fx) / 1000) * 1000)}</bdi></span>` : ""}${s.change_for_usd ? ` · ${pick(L, `change for ${usd(s.change_for_usd)}`, `فكّة لـ ${usd(s.change_for_usd)}`)}` : ""}` : badge(s.paid ? pick(L, "paid", "مدفوع") : payWord(s.payment_method ?? "", L), "ok", "check");
-    return html`<li data-state="${s.done ? "done" : ""}"><div class="head"><strong>${s.short_code} · ${s.village ?? ""}</strong><span class="tags">${s.arrived ? badge(pick(L, "at the door", "عند الباب"), "ok") : ""}${s.done ? badge(pick(L, "delivered", "سُلّم"), "ok", "check") : ""}</span></div>
+    return html`<li data-state="${s.done ? "done" : ""}"><div class="head"><strong>${s.short_code} · ${s.village ?? ""}</strong><span class="tags">${s.order_status ? statusPill(s.order_status, { lang: L }) : ""}${s.arrived ? badge(pick(L, "at the door", "عند الباب"), "ok", "pin") : ""}${s.done ? badge(pick(L, "delivered", "سُلّم"), "ok", "check") : ""}</span></div>
 <p>${pay}</p>${s.directions ? html`<p class="muted">${s.directions}</p>` : ""}${s.notes ? html`<p class="muted">${pick(L, "Note", "ملاحظة")}: ${s.notes}</p>` : ""}
 ${s.done ? "" : html`<div class="actions-row">
 ${s.arrived ? "" : form(c.f, `/rider-jobs/${r.driver_id}/arrived`, html`<input type="hidden" name="order" value="${s.order_id}">${button({ label: pick(L, "Arrived", "وصل"), icon: "pin" })}`, { cls: "inline" })}
-${form(c.f, `/rider-jobs/${r.driver_id}/delivered`, html`<input type="hidden" name="order" value="${s.order_id}">${button({ label: pick(L, "Delivered", "سُلّم"), variant: "primary", icon: "check" })}`, { cls: "inline" })}</div>`}</li>`;
+${form(c.f, `/rider-jobs/${r.driver_id}/delivered`, html`<input type="hidden" name="order" value="${s.order_id}">${needsCode ? input({ name: "code", label: pick(L, "The customer's 4-digit code", "رمز الزبون المكوّن من 4 أرقام"), required: true, maxlength: 4, attrs: { inputmode: "numeric", autocomplete: "off" } }) : ""}${button({ label: pick(L, "Delivered", "سُلّم"), variant: "primary", icon: "check" })}`, { cls: "inline" })}</div>`}</li>`;
   };
 
   const cash = (r: RiderRow, u: RiderRow["unpaid"][number]) => {
@@ -95,35 +110,61 @@ ${form(c.f, `/rider-jobs/${r.driver_id}/collect`, html`<input type="hidden" name
   const riderCard = (r: RiderRow) => {
     const d = r.delivery; const job = d?.job;
     const exposure = Number(r.exposure_usd);
-    const pickups = job?.stops.filter((s) => s.kind === "pickup") ?? [];
+    const pickups_ = job?.stops.filter((s) => s.kind === "pickup") ?? [];
     const drops = job?.stops.filter((s) => s.kind === "dropoff") ?? [];
     const stillPicking = drops.filter((s) => s.order_status === "preparing").map((s) => s.short_code);
+    // Said in words and an icon, beside the bar: the bar's colour only repeats it.
+    const capState = hard && exposure >= hard ? badge(pick(L, "at the hard cap: no new cash order", "عند السقف الصارم: لا طلب نقدي جديد"), "danger", "alert") : soft && exposure >= soft ? badge(pick(L, "over the soft cap: plan a drop", "فوق السقف المرن: خطّط لتسليم النقد"), "warn", "alert") : "";
     return card(html`
 <p class="head">${r.on_shift ? badge(`${pick(L, "on shift since", "في الوردية منذ")} ${hm(r.shift_since)}`, "ok", "bike") : badge(pick(L, "off shift", "خارج الوردية"))}
- ${d ? badge(pick(L, ...(STATUS[d.status] ?? [d.status, d.status])), d.status === "offered" ? "warn" : "gold", "truck") : ""}</p>
-<p>${pick(L, "Cash held", "النقد معه")}: <bdi>${usd(r.cash_usd)}</bdi> + <bdi>${lbp(r.cash_lbp)}</bdi></p>
+ ${d ? badge(pick(L, ...(STATUS[d.status] ?? [d.status, d.status])), d.status === "offered" ? "warn" : "gold", "truck") : badge(pick(L, "at the hub", "في المركز"), "neutral", "store")}</p>
+<p>${pick(L, "Cash held", "النقد معه")}: <strong><bdi>${usd(r.cash_usd)}</bdi> + <bdi>${lbp(r.cash_lbp)}</bdi></strong> ${capState}</p>
 ${hard ? limitBar({ value: exposure, soft: soft || null, hard, label: pick(L, `${usd(exposure)} of the ${usd(hard)} hard cap`, `${usd(exposure)} من السقف الصارم ${usd(hard)}`) }) : ""}
+<p class="muted"><bdi>${usd(exposure)}</bdi> ${pick(L, "counting cash still to collect", "مع النقد المنتظر تحصيله")} · ${capWords ? pick(L, `soft ${usd(soft)}, hard ${usd(hard)}`, `مرن ${usd(soft)}، صارم ${usd(hard)}`) : ""}</p>
+<div class="actions-row">${button({ label: pick(L, "Cash drop", "تسليم النقد"), href: "/rider-incidents", icon: "coins", variant: "ghost" })}</div>
 ${!r.on_shift ? html`<div class="actions-row">${form(c.f, `/rider-jobs/${r.driver_id}/start_shift`, button({ label: pick(L, "Start their shift", "ابدأ ورديته"), icon: "bike" }), { cls: "inline" })}</div>` : ""}
 ${d && d.status === "offered" ? html`<div class="actions-row">${form(c.f, `/rider-jobs/${r.driver_id}/accept`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Accept for the rider", "اقبل نيابةً عنه"), variant: "primary", icon: "check" })}`, { cls: "inline" })}
 ${form(c.f, `/rider-jobs/${r.driver_id}/decline`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Decline for the rider", "ارفض نيابةً عنه") })}`, { cls: "inline" })}</div>
 <p class="muted">${pick(L, "Orders", "الطلبات")}: ${drops.map((s) => s.short_code).join(pick(L, ", ", "، "))}</p>` : ""}
-${d && d.status === "accepted" ? html`${pickups.map((s) => html`<p>${pick(L, "Pick up at", "الاستلام من")} <strong>${s.source ?? pick(L, "the hub", "المركز")}</strong>: ${drops.map((x) => x.short_code).join(pick(L, ", ", "، "))}</p>`)}
-${stillPicking.length ? html`<p class="note">${pick(L, `Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed.`, `ما زال قيد التجهيز في المركز: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز.`)}</p>` : ""}
+${d && d.status === "accepted" ? html`${pickups_.map((s) => html`<p>${pick(L, "Pick up at", "الاستلام من")} <strong>${s.source ?? pick(L, "the hub", "المركز")}</strong>: ${drops.map((x) => x.short_code).join(pick(L, ", ", "، "))}</p>`)}
+${stillPicking.length ? html`<p class="note">${icon("alert")} ${pick(L, `Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed.`, `ما زال قيد التجهيز في المركز: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز.`)}</p>` : ""}
 <div class="actions-row">${form(c.f, `/rider-jobs/${r.driver_id}/picked_up`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Picked up: on the way", "تم الاستلام: في الطريق"), variant: "primary", icon: "truck" })}`, { cls: "inline" })}</div>` : ""}
 ${d && d.status === "in_progress" && drops.length ? html`<ul class="ak-rows">${drops.map((s) => stopRow(r, s, job!))}</ul>` : ""}
-${r.unpaid.length ? html`<h3>${pick(L, "Cash to record", "نقد بانتظار التسجيل")}</h3><ul class="ak-rows">${r.unpaid.map((u) => cash(r, u))}</ul>` : ""}
-${!d && r.unpaid.length === 0 ? html`<p class="muted">${pick(L, "No job.", "لا مهمة.")}</p>` : ""}`, { title: r.name ?? pick(L, "Rider", "مندوب") });
+${r.unpaid.length ? html`<h3>${pick(L, "Cash to record", "نقد بانتظار التسجيل")}</h3><ul class="ak-rows">${r.unpaid.map((u) => cash(r, u))}</ul>` : ""}`, { title: r.name ?? pick(L, "Rider", "مندوب") });
   };
 
-  return render(c, pick(L, "Rider jobs", "مهام المناديب"), html`${riderTabs(L, "jobs")}
-<p class="muted">${pick(L, "You are acting for the rider. Every tap is recorded under your name and shows on the order's timeline. The rider is not messaged; the customer is told when the goods leave.", "أنت تتصرف نيابةً عن المندوب. كل ضغطة تُسجَّل باسمك وتظهر في السجل الزمني للطلب. لا يُراسَل المندوب؛ ويُبلَغ الزبون عند خروج البضاعة.")}
+  const waitingRow = (w: Waiting) => html`<li${w.stranded ? html` data-state="late"` : ""}><div class="head"><strong>${w.short_code} · ${villageOf(w, L)}</strong><span class="tags">${statusPill(w.status, { lang: L })}${badge(payWord(w.payment_method, L), w.payment_method === "cod" ? "gold" : "ok", w.payment_method === "cod" ? "wallet" : "check")} ${badge(usd(w.total_usd))}${w.stranded ? badge(pick(L, "left on the road", "تُرك في الطريق"), "danger", "alert") : ""}</span></div>
+${onShift.length ? form(c.f, "/rider-jobs/assign", html`<input type="hidden" name="order" value="${w.order_id}">${picker(w)}<div class="actions-row">${button({ label: pick(L, "Give to this rider", "أعطه لهذا المندوب"), variant: "primary", icon: "bike" })}</div>`)
+  : html`<p class="muted">${pick(L, "No rider is on shift. Start a shift for one below.", "لا مندوب في الوردية. ابدأ وردية أحدهم أدناه.")}</p>`}</li>`;
+
+  const pickupRow = (b: NonNullable<typeof pickBoard>[number]) => {
+    const o = pickupInfo.find((x) => x.id === b.order_id);
+    const needsCode = !!o?.handover_code && !o.handover_verified_at;
+    const cod = o?.payment_method === "cod";
+    return html`<li><div class="head"><strong>${b.short_code}</strong><span class="tags">${badge(pick(L, "pickup: no rider, no fee", "استلام: بلا مندوب ولا رسم"), "neutral", "store")} ${o ? badge(usd(o.total_usd)) : ""}</span></div>
+${form(c.f, `/rider-jobs/pickup/${b.order_id}`, html`${needsCode ? input({ name: "code", label: pick(L, "The customer's 4-digit code", "رمز الزبون المكوّن من 4 أرقام"), required: true, maxlength: 4, attrs: { inputmode: "numeric", autocomplete: "off" } }) : ""}
+${cod ? html`<div class="ak-money-fields">${input({ name: "usd", label: pick(L, "Dollars received", "دولارات مستلمة"), type: "text", attrs: { inputmode: "decimal" } })}${input({ name: "lbp", label: pick(L, "Lira received", "ليرات مستلمة"), type: "text", attrs: { inputmode: "numeric" } })}
+${input({ name: "change_usd", label: pick(L, "Change given, dollars", "الباقي بالدولار"), type: "text", attrs: { inputmode: "decimal" } })}${input({ name: "change_lbp", label: pick(L, "Change given, lira", "الباقي بالليرة"), type: "text", attrs: { inputmode: "numeric" } })}</div>` : ""}
+<div class="actions-row">${button({ label: pick(L, "Collected", "استُلم"), variant: "primary", icon: "check" })}</div>`)}</li>`;
+  };
+
+  return render(c, pick(L, "Dispatch", "التوزيع"), html`${riderTabs(L, "jobs")}
+<p class="muted">${pick(L, "Give packed orders to a rider. The rider keeps the whole delivery fee. You are acting for the rider: every tap is recorded under your name and shows on the order's timeline; the rider is not messaged, the customer is told when the goods leave.", "أعطِ الطلبات الجاهزة لمندوب. يحتفظ المندوب بكامل رسم التوصيل. أنت تتصرف نيابةً عن المندوب: كل ضغطة تُسجَّل باسمك وتظهر في السجل الزمني للطلب؛ لا يُراسَل المندوب، ويُبلَغ الزبون عند خروج البضاعة.")}
  <span class="live" data-live>${t(L, "updated_at", { time: hm(now.toISOString()) })}</span></p>
-<h2>${pick(L, "Waiting for a rider", "بانتظار مندوب")} (${waiting.length})</h2>
-${waiting.length === 0 ? empty({ ok: true, title: pick(L, "No order is waiting for a rider.", "لا طلب ينتظر مندوباً.") }) : html`<ul class="ak-rows">${waiting.map((w) => html`<li><div class="head"><strong>${w.short_code} · ${villageOf(w, L)}</strong><span class="tags">${badge(payWord(w.payment_method, L))} ${badge(usd(w.total_usd))}${w.stranded ? badge(pick(L, "left on the road", "تُرك في الطريق"), "danger", "alert") : ""}</span></div>
-${onShift.length ? form(c.f, "/rider-jobs/assign", html`<input type="hidden" name="order" value="${w.order_id}">${picker()}<div class="actions-row">${button({ label: pick(L, "Give to this rider", "أعطه لهذا المندوب"), variant: "primary", icon: "bike" })}</div>`)
-  : html`<p class="muted">${pick(L, "No rider is on shift. Start a shift for one below.", "لا مندوب في الوردية. ابدأ وردية أحدهم أدناه.")}</p>`}</li>`)}</ul><p class="muted">${pick(L, "The system also offers these to riders on its own every minute. Giving one here offers it and accepts it for that rider.", "يعرض النظام هذه الطلبات على المناديب تلقائياً كل دقيقة. الإعطاء هنا يعرضها ويقبلها نيابةً عن ذلك المندوب.")}</p>`}
-<h2>${pick(L, "Riders", "المناديب")} (${riders.length})</h2>
-${riders.length === 0 ? empty({ title: pick(L, "No rider is registered.", "لا مندوب مسجّل.") }) : html`<div class="ak-cards">${riders.map(riderCard)}</div>`}`, { translated: true });
+<div class="ak-dispatch"><div>
+<h2>${icon("pick")} ${pick(L, "Packed, waiting for a rider", "جاهز بانتظار مندوب")} (${packed.length})</h2>
+${packed.length === 0 ? empty({ ok: true, title: pick(L, "No packed order is waiting for a rider.", "لا طلب جاهز ينتظر مندوباً.") }) : html`<ul class="ak-rows">${packed.map(waitingRow)}</ul>`}
+${notPacked.length ? html`<h2>${pick(L, "Not packed yet", "لم يُجهَّز بعد")} (${notPacked.length})</h2><p class="muted">${pick(L, "These can be given now; the rider leaves only when each is packed.", "يمكن إعطاؤها الآن؛ لا يغادر المندوب إلا بعد تجهيز كل طلب.")}</p><ul class="ak-rows">${notPacked.map(waitingRow)}</ul>` : ""}
+<p class="muted">${pick(L, "The system also offers these to riders on its own every minute. Giving one here offers it and accepts it for that rider.", "يعرض النظام هذه الطلبات على المناديب تلقائياً كل دقيقة. الإعطاء هنا يعرضها ويقبلها نيابةً عن ذلك المندوب.")}</p>
+<h2 id="pickup">${icon("store")} ${pick(L, "Pickup shelf", "رف الاستلام")} (${pickups.length})</h2>
+${pickups.length === 0 ? html`<p class="muted">${pick(L, "No order waits to be collected at the hub.", "لا طلب ينتظر الاستلام من المركز.")}</p>` : html`<ul class="ak-rows">${pickups.map(pickupRow)}</ul>`}
+</div><div>
+<h2>${icon("bike")} ${pick(L, "Riders on shift", "المناديب في الوردية")} (${onShift.length})</h2>
+${onShift.length === 0 ? empty({ title: pick(L, "No rider is on shift.", "لا مندوب في الوردية.") }) : html`<div class="ak-cards">${onShift.map(riderCard)}</div>`}
+${capWords ? html`<p class="muted">${capWords}</p>` : ""}
+${off.length ? html`<h2>${pick(L, "Off shift", "خارج الوردية")} (${off.length})</h2><div class="ak-cards">${off.map(riderCard)}</div>` : ""}
+${riders.length === 0 ? empty({ title: pick(L, "No rider is registered.", "لا مندوب مسجّل.") }) : ""}
+</div></div>`, { translated: true });
 }
 
 // ---------- the taps ----------
@@ -171,6 +212,13 @@ async function tap(c: Ctx) {
     const ord = uuid(L, order);
     if (action === "arrived") { await db.rpc("act_for_rider", { ...base, p_order: ord }); return pick(L, "Recorded: the rider is at the door.", "سُجّل: المندوب عند الباب."); }
     if (action === "delivered") {
+      const code = (c.form.code ?? "").trim();
+      if (code) {
+        // A prepaid, gift or pickup order is handed over only against the customer's code (rider_handover, 0146): the same function the rider's own tap calls.
+        const h = await db.rpc<{ ok: boolean; result?: string; tries_left?: number; needs_cash?: boolean }>("rider_handover", { p_order: ord, p_driver: driver, p_code: code });
+        if (!h.ok) throw new UserError(h.result === "locked" ? pick(L, "Too many wrong tries: the code is locked and a person decides.", "محاولات خاطئة كثيرة: الرمز مقفل ويقرّر شخص.") : pick(L, `That is not the code. ${h.tries_left ?? 0} tries left.`, `هذا ليس الرمز. بقي ${h.tries_left ?? 0} محاولات.`));
+        return h.needs_cash ? pick(L, "Delivered. Now record the cash the rider collected (below).", "سُلّم. سجّل الآن النقد الذي حصّله المندوب (أدناه).") : pick(L, "Delivered.", "سُلّم.");
+      }
       const r = await db.rpc<{ needs_cash?: boolean; paid?: boolean }>("act_for_rider", { ...base, p_order: ord });
       return r.needs_cash ? pick(L, "Delivered. Now record the cash the rider collected (below).", "سُلّم. سجّل الآن النقد الذي حصّله المندوب (أدناه).") : pick(L, "Delivered.", "سُلّم.");
     }
@@ -198,11 +246,28 @@ async function assign(c: Ctx) {
   });
 }
 
+/** A pickup order handed over at the hub (hub_handover, 0146): the code when it has one, and for cash what was received. The order closes only with its payment (invariant 12). */
+async function pickup(c: Ctx) {
+  const order = id(c, "order"); const L = c.lang;
+  const code = (c.form.code ?? "").trim() || null;
+  return doit(c, "pickup_handover", { order }, "/rider-jobs", async () => {
+    const usdIn = num(c, "usd", { min: 0, optional: true }), lbpIn = num(c, "lbp", { min: 0, optional: true });
+    const r = await c.deps.db.rpc<{ ok: boolean; already?: boolean; result?: string; reason?: string; tries_left?: number }>("hub_handover", {
+      p_order: order, p_by: c.staff.partyId, p_code: code, p_usd: usdIn === null && lbpIn === null ? null : (usdIn ?? 0), p_lbp: lbpIn ?? 0,
+      p_change_usd: num(c, "change_usd", { min: 0, optional: true }) ?? 0, p_change_lbp: num(c, "change_lbp", { min: 0, optional: true }) ?? 0 });
+    if (r.already) return pick(L, "Already handed over.", "سُلّم بالفعل.");
+    if (!r.ok) throw new UserError(r.result === "locked" ? pick(L, "Too many wrong tries: the code is locked and a person decides.", "محاولات خاطئة كثيرة: الرمز مقفل ويقرّر شخص.")
+      : r.result === "wrong" ? pick(L, `That is not the code. ${r.tries_left ?? 0} tries left.`, `هذا ليس الرمز. بقي ${r.tries_left ?? 0} محاولات.`) : pick(L, "This order is not ready to be collected.", "هذا الطلب ليس جاهزاً للاستلام."));
+    return pick(L, "Handed over and closed.", "سُلّم وأُغلق.");
+  });
+}
+
 export const riderJobsSection: Section = {
   nav: { href: "/rider-jobs", label: "Rider jobs", roles: LEADS },
   routes: [
     { method: "GET", path: "/rider-jobs", roles: LEADS, handler: page },
     { method: "POST", path: "/rider-jobs/assign", roles: LEADS, handler: assign },
+    { method: "POST", path: "/rider-jobs/pickup/:order", roles: LEADS, handler: pickup },
     { method: "POST", path: "/rider-jobs/:driver/:action", roles: LEADS, handler: tap },
   ],
 };

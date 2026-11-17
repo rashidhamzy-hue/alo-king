@@ -57,7 +57,8 @@ describe("generated files", () => {
     expect(UI_CSS).toContain("--ak-gold:#c9a227"); expect(UI_CSS).toContain('[data-theme=dark]'); expect(UI_CSS).toContain("prefers-color-scheme:dark");
     expect([...UI_CSS.matchAll(/url\(([^)]+)\)/g)].map((m) => m[1]!.replace(/["']/g, "")).sort()).toEqual(["/fonts/plex-arabic-400.woff2", "/fonts/plex-arabic-600.woff2", "/fonts/plex-latin-400.woff2", "/fonts/plex-latin-600.woff2"]);
     expect(UI_CSS).not.toMatch(/https?:\/\/(?!tailwindcss\.com)/);
-    expect(UI_CSS.length, "the console's sheet").toBeLessThan(60_000);
+    // UX2a raised this from 60,000 to 66,000: the link tile, the escalation steps, the picker's runner, Dispatch and Stock added 3.7 KB (the sheet is staff-only and compresses to about a fifth).
+    expect(UI_CSS.length, "the console's sheet").toBeLessThan(66_000);
   });
   it("the fonts are four small WOFF2 files, the same bytes the website builds from, with their licence beside them", () => {
     expect(Object.keys(FONTS).sort()).toEqual(["plex-arabic-400.woff2", "plex-arabic-600.woff2", "plex-latin-400.woff2", "plex-latin-600.woff2"]);

@@ -10,21 +10,14 @@ import { form, lbp, minutesSince, money, usd, when } from "../html";
 import { pick, t } from "../i18n";
 import { kindCta, kindHref, kindName } from "../kinds";
 import { ALL, LEADS } from "../roles";
-import { badge, icon, kpiTile, kpis, limitBar, tabs, timerChip, timerState, type Compare, type KpiOpts } from "@ak/ui/components";
+import { badge, icon, kpiTile, kpis, limitBar, tabs, tileLink, timerChip, timerState, type Compare, type KpiOpts } from "@ak/ui/components";
+import { statusLabel } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
 
 export const ACTIVE = ["awaiting_confirmation", "awaiting_payment", "confirmed", "preparing", "ready", "out_for_delivery", "arrived", "failed_delivery", "delivered"] as const;
 const IN_PROGRESS = new Set(["confirmed", "preparing", "ready", "out_for_delivery", "arrived"]);
-const WORDS_AR: Record<string, string> = {
-  awaiting_confirmation: "أُرسلت البطاقة بانتظار ضغطة الزبون", awaiting_payment: "بانتظار تحويل", confirmed: "مؤكد", preparing: "قيد التجهيز", ready: "جاهز",
-  out_for_delivery: "في الطريق", arrived: "المندوب عند الباب", failed_delivery: "فشل التوصيل: البضاعة ستعود", delivered: "سُلّم ولم يُدفع بعد", closed: "مُغلق", cancelled: "مُلغى",
-};
-export const statusWord = (lang: "en" | "ar", s: string) => (lang === "ar" ? WORDS_AR[s] : WORDS[s]) ?? s;
-const WORDS: Record<string, string> = {
-  awaiting_confirmation: "card sent, waiting for the customer's tap", awaiting_payment: "waiting for a transfer", confirmed: "confirmed",
-  preparing: "being picked", ready: "packed", out_for_delivery: "on the way", arrived: "rider at the door",
-  failed_delivery: "failed delivery: goods to come back", delivered: "delivered, not paid yet", closed: "closed", cancelled: "cancelled",
-};
+/** UX2a: the words for a status are the label table's (packages/ui/src/status.ts), the same ids as the database: one table for staff and customers. */
+export const statusWord = (lang: "en" | "ar", s: string) => statusLabel(s, { lang });
 
 /** Midnight in Beirut, as an instant. */
 export function beirutMidnight(now: Date): Date {
@@ -174,7 +167,6 @@ function kpiTiles(c: Ctx, k: NonNullable<Awaited<ReturnType<typeof kpiData>>>, o
       compare: diff(avg(k.today), avg(k.yesterday), vsY, (n) => `${Math.round(n)} ${t(L, "min")}`, false), note: k.today.delivered ? pick(L, "from the customer's confirmation to the door", "من تأكيد الزبون إلى الباب") : none,
       trend: k.days.map((d) => avg(d)).filter((x): x is number => x !== null), trendLabel },
     ...(k.ai.today !== null ? [{ label: pick(L, "AI cost per order", "كلفة الذكاء الاصطناعي لكل طلب"), value: `$${k.ai.today.toFixed(3)}`, compare: diff(k.ai.today, k.ai.yesterday, pick(L, "vs yesterday", "عن أمس"), (n) => `$${n.toFixed(3)}`, false), trend: k.ai.days, trendLabel }] : []),
-    { label: pick(L, "Customers waiting for a person", "زبائن بانتظار شخص"), value: int(openCases), alert: lateCases > 0, note: lateCases ? pick(L, `${lateCases} late`, `${lateCases} متأخرة`) : pick(L, "none late", "لا تأخير") },
     { label: pick(L, "Open exceptions", "استثناءات مفتوحة"), value: int(openExcs), note: pick(L, "oldest first, below", "الأقدم أولاً، في الأسفل") },
   ];
   return kpis(tiles.map(kpiTile));
@@ -182,9 +174,10 @@ function kpiTiles(c: Ctx, k: NonNullable<Awaited<ReturnType<typeof kpiData>>>, o
 
 // ---------- the live board ----------
 const COLUMNS: { en: string; ar: string; statuses: string[] }[] = [
-  { en: "New", ar: "جديد", statuses: ["awaiting_confirmation", "awaiting_payment", "confirmed"] },
+  { en: "Waiting on customer", ar: "بانتظار الزبون", statuses: ["awaiting_confirmation", "awaiting_payment"] },
+  { en: "To pick", ar: "للتجهيز", statuses: ["confirmed"] },
   { en: "Picking", ar: "قيد التجهيز", statuses: ["preparing"] },
-  { en: "Ready", ar: "جاهز", statuses: ["ready"] },
+  { en: "Packed", ar: "جُهّز", statuses: ["ready"] },
   { en: "On the way", ar: "في الطريق", statuses: ["out_for_delivery", "arrived"] },
   { en: "To close", ar: "بانتظار الإغلاق", statuses: ["delivered", "failed_delivery"] },
 ];
@@ -203,6 +196,25 @@ async function today(c: Ctx) {
   const orderLink = (o: { id: string; short_code: string }) => (lead ? html`<a href="/orders/${o.id}">${o.short_code}</a>` : o.short_code);
   const noRider = html`<strong class="warn">${pick(L, "no rider yet", "لا مندوب بعد")}</strong>`;
   const clock = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" }).format(now);
+
+  // UX2a: the reference's four tiles, each one link to where the work is. A state is said in words and an icon beside the number.
+  const toPick = d.orders.filter((o) => o.status === "confirmed").length;
+  const packedNoRider = d.orders.filter((o) => o.status === "ready" && o.noRider).length;
+  const held = d.riders.reduce((a, r) => a + r.heldUsd, 0);
+  const attention = kpis([
+    tileLink({ label: pick(L, "Orders waiting", "طلبات بانتظارنا"), value: String(toPick), href: "/pick", icon: "pick",
+      note: packedNoRider ? pick(L, `${packedNoRider} packed, no rider yet`, `${packedNoRider} جاهز بلا مندوب`) : pick(L, "to pick", "للتجهيز"),
+      state: packedNoRider ? "warn" : "ok", stateWord: pick(L, `${packedNoRider} waiting for a rider`, `${packedNoRider} بانتظار مندوب`) }),
+    tileLink({ label: pick(L, "Late", "متأخرة"), value: String(late), href: "#at-risk", icon: "clock",
+      note: late ? pick(L, "past the zone time", "تجاوزت وقت المنطقة") : pick(L, "none past the zone time", "لا طلب تجاوز وقت المنطقة"),
+      state: late ? "late" : "ok", stateWord: pick(L, `${late} late`, `${late} متأخرة`) }),
+    ...(lead ? [
+      tileLink({ label: pick(L, "Cash held", "النقد مع المناديب"), value: usd(held), href: "/rider-jobs", icon: "wallet",
+        note: pick(L, `${d.riders.length} on shift`, `${d.riders.length} في الوردية`), state: overCap.length ? "warn" : "ok", stateWord: pick(L, `${overCap.length} over the soft cap`, `${overCap.length} فوق السقف المرن`) }),
+      tileLink({ label: pick(L, "Cases open", "حالات مفتوحة"), value: String(inbox.chats), href: "/inbox", icon: "inbox",
+        note: pick(L, "customers waiting for a person", "زبائن بانتظار شخص"), state: inbox.lateCases ? "late" : "ok", stateWord: pick(L, `${inbox.lateCases} late`, `${inbox.lateCases} متأخرة`) }),
+    ] : []),
+  ]);
 
   let drawer: unknown = "";
   if (lead) {
@@ -225,6 +237,7 @@ ${list.length === 0 ? html`<p class="none">${pick(L, "None", "لا شيء")}</p>
 
   return render(c, t(L, "today_title"), html`
 <p class="live" data-live>${t(L, "updated_at", { time: clock })}</p>
+${attention}
 ${lead && k ? kpiTiles(c, k, inbox.chats, inbox.lateCases, inbox.excs.length) : ""}
 ${lead ? html`${tabs([{ label: t(L, "tab_needs_you"), href: "/", current: true, count: inbox.excs.length }, { label: t(L, "tab_all_exceptions"), href: "/exceptions" }], t(L, "tab_all_exceptions"))}
 <h2>${t(L, "inbox_h")}${inbox.excs.length ? html` (${inbox.excs.length})` : ""}</h2>
@@ -237,7 +250,7 @@ ${e.status === "open" ? form(c.f, `/exceptions/${e.id}/acknowledged`, html`<inpu
 ${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "resolved")}</button>`)}</div></li>`)}</ul>` : ""}
 ${inbox.chats ? html`<p><a class="btn" href="/inbox">${t(L, "chats_waiting", { n: inbox.chats })}</a></p>` : ""}` : ""}
 ${quiet ? html`<p class="summary-ok">${icon("check")}<span>${t(L, "quiet_summary")}</span></p>` : ""}
-${atRisk.length ? html`<h2>${t(L, "at_risk_h")} (${atRisk.length})</h2><ul class="inbox">${atRisk.map((o) => html`<li class="${(o.lateBy ?? 0) > 0 ? "high" : ""}">
+${atRisk.length ? html`<h2 id="at-risk">${t(L, "at_risk_h")} (${atRisk.length})</h2><ul class="inbox">${atRisk.map((o) => html`<li class="${(o.lateBy ?? 0) > 0 ? "high" : ""}">
 <strong>${orderLink(o)}</strong> · ${word(o.status)}${(o.lateBy ?? 0) > 0 ? html` · <strong class="warn">${o.lateBy} ${pick(L, "min late", "د تأخير")}</strong>` : ""}${o.noRider ? html` · ${noRider}` : ""}
 <br><span class="muted">${o.villageName} · ${money(o.total_usd)} · ${o.payment_method}</span></li>`)}</ul>` : ""}
 <h2>${t(L, "open_orders_h")}</h2>

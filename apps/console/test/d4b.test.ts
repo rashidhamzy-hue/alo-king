@@ -38,7 +38,7 @@ describe("one order, confirmed to closed, on the console alone", () => {
     expect(queue).toContain(o.code); expect(queue).toContain("Start picking");
     const started = await picker.b.post(`/pick/${o.id}/start`);
     expect(flashOf(started.text)).toBe("Picking started.");
-    expect(started.text).toContain("Lines to pick, in shelf order");
+    expect(started.text).toContain("In walking order");
     expect(await status(o.id)).toBe("preparing");
 
     // done is refused until every line is ticked
@@ -62,7 +62,7 @@ describe("one order, confirmed to closed, on the console alone", () => {
 
     // the lead starts the rider's shift and gives the order to them: offered and accepted for them
     const jobs = (await lead.b.get("/rider-jobs")).text;
-    expect(jobs).toContain("Waiting for a rider (1)"); expect(jobs).toContain("Start their shift");
+    expect(jobs).toContain("Packed, waiting for a rider (1)"); expect(jobs).toContain("Start their shift");
     expect(flashOf((await lead.b.post(`/rider-jobs/${rider}/start_shift`)).text)).toMatch(/shift is open/);
     await lead.b.get("/rider-jobs");
     expect(flashOf((await lead.b.post("/rider-jobs/assign", { order: o.id, driver: rider })).text)).toMatch(/Given to the rider/);

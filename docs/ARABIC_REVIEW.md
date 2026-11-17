@@ -284,3 +284,174 @@ two navigation words (`nav_dispatch`: «التوزيع», `nav_intake`: «الت
 | `status.returned.customer` | أُعيد | Returned || RA 17 Nov |
 | `status.cancelled.customer` | مُلغى | Cancelled || RA 17 Nov |
 
+
+## UX2a, the six staff pages (console, staff-facing, written by a model; 17 November 2026)
+
+Source: the `pick(L, "English", "Arabic")` pairs added to `apps/console/src/pages/{today,inbox,orders,pick,riderjobs,stock}.ts` and the two command-bar hints in `apps/console/src/i18n.ts`. Staff read these, never a customer. Words with `${…}` stand for a number or a name filled in by the page. Nothing here is a customer message. Not yet read by a person.
+
+| English | Arabic | Read by |
+|---|---|---|
+| Orders waiting | طلبات بانتظارنا | |
+| ${packedNoRider} packed, no rider yet | ${packedNoRider} جاهز بلا مندوب | |
+| to pick | للتجهيز | |
+| ${packedNoRider} waiting for a rider | ${packedNoRider} بانتظار مندوب | |
+| Late | متأخرة | |
+| past the zone time | تجاوزت وقت المنطقة | |
+| none past the zone time | لا طلب تجاوز وقت المنطقة | |
+| ${late} late | ${late} متأخرة | |
+| Cash held | النقد مع المناديب | |
+| ${d.riders.length} on shift | ${d.riders.length} في الوردية | |
+| ${overCap.length} over the soft cap | ${overCap.length} فوق السقف المرن | |
+| Cases open | حالات مفتوحة | |
+| customers waiting for a person | زبائن بانتظار شخص | |
+| ${inbox.lateCases} late | ${inbox.lateCases} متأخرة | |
+| the ops lead is alerted | يُنبَّه مسؤول العمليات | |
+| the founder is alerted and the customer is told we are on it | يُنبَّه المؤسس ويُبلَّغ الزبون أننا نتابع | |
+| the case is marked late | تُعلَّم الحالة متأخرة | |
+| Claimed: the steps are stopped while someone is answering. | مستلمة: توقفت الخطوات ما دام أحدهم يرد. | |
+| done | تم | |
+| next | التالي | |
+| later | لاحقاً | |
+| min | د | |
+| Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; press I'm on it to take a case and step the bot back. | الزبائن الذين ينتظرون شخصاً، الأطول انتظاراً أولاً. الروبوت يواصل الرد عليهم؛ اضغط «أنا عليها» لتستلم الحالة ويتراجع الروبوت. | |
+| I'm on it | أنا عليها | |
+| I'm on it (the bot steps back) | أنا عليها (يتراجع الروبوت) | |
+| the closest match | الأقرب شبهاً | |
+| take it off the order | أزل البند من الطلب | |
+| ask me first | اسألني أولاً | |
+| no code needed | لا رمز مطلوب | |
+| code checked ${when_(h.verifiedAt)} | فُحص الرمز ${when_(h.verifiedAt)} | |
+| locked after ${h.attempts} wrong tries: a person decides | مقفل بعد ${h.attempts} محاولات خاطئة: يقرّر شخص | |
+| Cancel this order | إلغاء هذا الطلب | |
+| Free until picking starts. The customer is told by message. This cannot be taken back. | مجاني حتى يبدأ التجهيز. يُبلَّغ الزبون برسالة. لا يمكن التراجع. | |
+| ${usd(x.terms.paid_usd)} was paid: give it back on the Refunds page afterwards. | دُفع ${usd(x.terms.paid_usd)}: أعده من صفحة الاسترداد بعد ذلك. | |
+| Why (for the record) | السبب (للسجل) | |
+| Cancel the order | إلغاء الطلب | |
+| It cannot be cancelled here: ${why[x.terms?.reason ?? ""]?.[0] ?? "the database says no"}. | لا يمكن إلغاؤه من هنا: ${why[x.terms?.reason ?? ""]?.[1] ?? "قاعدة البيانات ترفض"}. | |
+| Confirm the payment | تأكيد الدفع | |
+| Hand over at the hub | التسليم في المركز | |
+| Decide it as a rider incident | قرّر بوصفها حادثة مندوب | |
+| It closes when its payment is recorded: delivered is not paid. | يُغلق عند تسجيل دفعه: التسليم لا يعني الدفع. | |
+| Payments | المدفوعات | |
+| Status | الحالة | |
+| Picker | المجهّز | |
+| nobody yet | لا أحد بعد | |
+| Rider | المندوب | |
+| none yet | لا مندوب بعد | |
+| paid | مدفوع | |
+| not paid yet | لم يُدفع بعد | |
+| Handover code | رمز التسليم | |
+| If an item is missing | إن نقص صنف | |
+| customer chose | اختار الزبون | |
+| What you can do | ما يمكنك فعله | |
+| No step is open to staff from this status. | لا خطوة متاحة للموظفين من هذه الحالة. | |
+| picked | مُلتقط | |
+| substituted | استُبدل | |
+| removed | أُزيل | |
+| replaces | بديل عن | |
+| Status history | سجل الحالات | |
+| No change yet. | لا تغيير بعد. | |
+| Put back | أعِده | |
+| Picked | تم الالتقاط | |
+| the closest match: the system keeps one for them | الأقرب شبهاً: يحتفظ النظام ببديل لهم | |
+| ask them first | اسألهم أولاً | |
+| If a line is missing, the customer chose: | إن نقص بند، اختار الزبون: | |
+| In walking order | بترتيب المشي في المركز | |
+| All picked: packing | تم الالتقاط: التعبئة | |
+| Packing (${l.lines.length - picked + pending.length} left) | التعبئة (بقي ${l.lines.length - picked + pending.length}) | |
+| Soft cap ${usd(soft)} warns. Hard cap ${usd(hard)} blocks new cash orders until a drop. | السقف المرن ${usd(soft)} للتنبيه. السقف الصارم ${usd(hard)} يمنع الطلبات النقدية الجديدة حتى التسليم. | |
+| has a job | لديه مهمة | |
+| at the door | عند الباب | |
+| delivered | سُلّم | |
+| The customer's 4-digit code | رمز الزبون المكوّن من 4 أرقام | |
+| Delivered | سُلّم | |
+| at the hard cap: no new cash order | عند السقف الصارم: لا طلب نقدي جديد | |
+| over the soft cap: plan a drop | فوق السقف المرن: خطّط لتسليم النقد | |
+| at the hub | في المركز | |
+| counting cash still to collect | مع النقد المنتظر تحصيله | |
+| soft ${usd(soft)}, hard ${usd(hard)} | مرن ${usd(soft)}، صارم ${usd(hard)} | |
+| Cash drop | تسليم النقد | |
+| Pick up at | الاستلام من | |
+| the hub | المركز | |
+| ,  | ،  | |
+| Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed. | ما زال قيد التجهيز في المركز: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز. | |
+| Cash to record | نقد بانتظار التسجيل | |
+| left on the road | تُرك في الطريق | |
+| Give to this rider | أعطه لهذا المندوب | |
+| No rider is on shift. Start a shift for one below. | لا مندوب في الوردية. ابدأ وردية أحدهم أدناه. | |
+| pickup: no rider, no fee | استلام: بلا مندوب ولا رسم | |
+| Dollars received | دولارات مستلمة | |
+| Lira received | ليرات مستلمة | |
+| Change given, dollars | الباقي بالدولار | |
+| Change given, lira | الباقي بالليرة | |
+| Collected | استُلم | |
+| Dispatch | التوزيع | |
+| Give packed orders to a rider. The rider keeps the whole delivery fee. You are acting for the rider: every tap is recorded under your name and shows on the order's timeline; the rider is not messaged, the customer is told when the goods leave. | أعطِ الطلبات الجاهزة لمندوب. يحتفظ المندوب بكامل رسم التوصيل. أنت تتصرف نيابةً عن المندوب: كل ضغطة تُسجَّل باسمك وتظهر في السجل الزمني للطلب؛ لا يُراسَل المندوب، ويُبلَغ الزبون عند خروج البضاعة. | |
+| Packed, waiting for a rider | جاهز بانتظار مندوب | |
+| No packed order is waiting for a rider. | لا طلب جاهز ينتظر مندوباً. | |
+| Not packed yet | لم يُجهَّز بعد | |
+| These can be given now; the rider leaves only when each is packed. | يمكن إعطاؤها الآن؛ لا يغادر المندوب إلا بعد تجهيز كل طلب. | |
+| The system also offers these to riders on its own every minute. Giving one here offers it and accepts it for that rider. | يعرض النظام هذه الطلبات على المناديب تلقائياً كل دقيقة. الإعطاء هنا يعرضها ويقبلها نيابةً عن ذلك المندوب. | |
+| Pickup shelf | رف الاستلام | |
+| No order waits to be collected at the hub. | لا طلب ينتظر الاستلام من المركز. | |
+| Riders on shift | المناديب في الوردية | |
+| No rider is on shift. | لا مندوب في الوردية. | |
+| Off shift | خارج الوردية | |
+| No rider is registered. | لا مندوب مسجّل. | |
+| Too many wrong tries: the code is locked and a person decides. | محاولات خاطئة كثيرة: الرمز مقفل ويقرّر شخص. | |
+| That is not the code. ${h.tries_left ?? 0} tries left. | هذا ليس الرمز. بقي ${h.tries_left ?? 0} محاولات. | |
+| Delivered. Now record the cash the rider collected (below). | سُلّم. سجّل الآن النقد الذي حصّله المندوب (أدناه). | |
+| Delivered. | سُلّم. | |
+| Already handed over. | سُلّم بالفعل. | |
+| That is not the code. ${r.tries_left ?? 0} tries left. | هذا ليس الرمز. بقي ${r.tries_left ?? 0} محاولات. | |
+| This order is not ready to be collected. | هذا الطلب ليس جاهزاً للاستلام. | |
+| Handed over and closed. | سُلّم وأُغلق. | |
+| ${num_(free)} available | المتاح ${num_(free)} | |
+| running low | ينفد قريباً | |
+| use by ${s.expiry_date} | يُستهلك قبل ${s.expiry_date} | |
+| on hand ${num_(onHand)}, reserved for open orders ${num_(reserved)} | في المخزن ${num_(onHand)}، محجوز لطلبات مفتوحة ${num_(reserved)} | |
+| , reorder at ${num_(n(l.reorder_point))} | ، يُعاد الطلب عند ${num_(n(l.reorder_point))} | |
+| Count or adjust | جرد أو تعديل | |
+| Count the shelf | جرد الرف | |
+| Counted | المعدود | |
+| Why it differs (needed if it does) | سبب الفرق (مطلوب إن وُجد) | |
+| Save the count | احفظ الجرد | |
+| Adjust the stock | تعديل المخزون | |
+| Change (+ or −) | التغيير (+ أو −) | |
+| Reason (required) | السبب (مطلوب) | |
+| Choose a reason | اختر سبباً | |
+| Note | ملاحظة | |
+| A movement is a record and is never edited: a mistake is put right by a new one with its own reason. | الحركة سجل لا يُعدَّل: يُصحَّح الخطأ بحركة جديدة بسببها. | |
+| Save the change | احفظ التغيير | |
+| The first ${LIMIT} are shown: search to find the rest. | المعروض أول ${LIMIT}: ابحث لتجد البقية. | |
+| No item matches. | لا صنف مطابق. | |
+| Out | نفد | |
+| Nothing is out. | لا شيء نافد. | |
+| Running low | ينفد قريباً | |
+| Nothing is below its reorder point. | لا شيء تحت حدّ إعادة الطلب. | |
+| Use within ${USE_SOON_DAYS} days | يُستهلك خلال ${USE_SOON_DAYS} أيام | |
+| Nothing expires soon. | لا شيء تنتهي صلاحيته قريباً. | |
+| Needs a look | يحتاج نظرة | |
+| Every item | كل الأصناف | |
+| Find an item | ابحث عن صنف | |
+| name, brand or SKU | الاسم أو العلامة أو الرمز | |
+| Search | بحث | |
+| More stock pages | صفحات مخزون أخرى | |
+| The books say ${num_(n(lvl?.on_hand ?? 0))}: write why the count differs. | الدفاتر تقول ${num_(n(lvl?.on_hand ?? 0))}: اكتب سبب اختلاف الجرد. | |
+| That count was already saved. | حُفظ هذا الجرد بالفعل. | |
+| Count saved: it matches the books. | حُفظ الجرد: يطابق الدفاتر. | |
+| Count saved: the books had ${num_(n(r.expected))}, a difference of ${diff > 0 ? "+" : ""}${num_(diff)}. | حُفظ الجرد: كان في الدفاتر ${num_(n(r.expected))}، والفرق ${diff > 0 ? "+" : ""}${num_(diff)}. | |
+| Choose the reason first: no change is saved without one. | اختر السبب أولاً: لا يُحفظ أي تغيير بدونه. | |
+| Write a note for the reason Other. | اكتب ملاحظة للسبب «أخرى». | |
+| That change was already saved. | حُفظ هذا التغيير بالفعل. | |
+| Saved. On hand now ${num_(n(r?.on_hand ?? 0))}. | حُفظ. في المخزن الآن ${num_(n(r?.on_hand ?? 0))}. | |
+| Found more | وُجدت زيادة | |
+| Damaged | تالف | |
+| Expired | منتهي الصلاحية | |
+| Spoiled | فاسد | |
+| Stolen | مسروق | |
+| Recalled | مسحوب من السوق | |
+| Sample | عيّنة | |
+| Other (write a note) | أخرى (اكتب ملاحظة) | |
+| Type an order code (AK-1042) and press Enter to open that order. Type a page name to filter the pages; anything else searches orders. | اكتب رمز طلب (AK-1042) واضغط Enter لفتحه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الطلبات. | |
+| Type an order code (AK-1042) and press Enter to open its pick list. Type a page name to filter the pages; anything else searches the catalog. | اكتب رمز طلب (AK-1042) واضغط Enter لفتح قائمة تجهيزه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الكتالوج. | |

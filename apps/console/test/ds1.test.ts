@@ -35,13 +35,13 @@ describe("the shell", () => {
     const { b } = await lead();
     const page = (await b.get("/")).text;
     const bar = /<dialog class="ak-cmdk"[\s\S]*?<\/dialog>/.exec(page)![0];
-    expect(bar).toContain('action="/orders"'); expect(bar).toContain('name="q"');
+    expect(bar).toContain('action="/go"'); expect(bar).toContain('name="q"');
     for (const href of ["/", "/inbox", "/orders", "/payments", "/names", "/catalog", "/templates", "/more"]) expect(bar, href).toContain(`<a href="${href}">`);
     expect(bar).not.toContain('href="/staff"');                                   // admin only
     expect(page).toContain("data-open-cmdk");
     const p = await lead("picker", "Pia");
     const pbar = /<dialog class="ak-cmdk"[\s\S]*?<\/dialog>/.exec((await p.b.get("/")).text)![0];
-    expect(pbar).toContain('action="/catalog"'); expect(pbar).not.toContain("/orders"); expect(pbar).not.toContain("/payments");
+    expect(pbar).toContain('action="/go"'); expect(pbar).not.toContain("/orders"); expect(pbar).not.toContain("/payments");
   });
 
   it("the bell carries the open high-priority exceptions, the ones a phone is told about, and nothing for a picker", async () => {

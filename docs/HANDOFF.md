@@ -46,6 +46,44 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ## Status
 
+### UX2a: Today, Inbox, Orders, Pick, Dispatch and Stock on the design system, 17 November 2026 (Sonnet 5.5); no migration
+Branch `claude/modest-mccarthy-82g4p5`, one pull request. The founder's reference was unpacked outside the repository and nothing of it is committed (only
+photographs of its screens, in `docs/screens/ux2a/`, as DS2 did). No simulation and no live model call (rule 12). Every SQL function, role and older test of
+these six pages stands; the four old test files that quoted words the label table replaced were changed on purpose (below). LV1's Listings page was not touched.
+Screenshots, ours beside the reference's: `docs/screens/ux2a/` (`README.md` there pairs them): the six pages (and one order as a page, and the picker's runner)
+at 390 and 1280 px, English and Arabic.
+
+**Built.**
+| Page | What it does now | Reads and writes (all existing) |
+|---|---|---|
+| Today | Four tiles that are one link each: **Orders waiting** (to pick; `/pick`), **Late** (`#at-risk`), **Cash held** by riders on shift (`/rider-jobs`), **Cases open** (`/inbox`). A state (late, over the soft cap, a packed order with no rider) is an icon and words beside the number; the border only repeats it. A picker gets the first two. The board has the reference's "Waiting on customer" column. Statuses are the label table's words. The old "Customers waiting for a person" KPI was removed (the new tile says it) | as before |
+| Inbox | "I'm on it" on every unclaimed case in the list (claims for this person and stays on the list) and on the case. The three escalation steps are shown on every case at the minutes in `settings.support` (3, 5 and 15 today): done, next, later, each with an icon and a word; a claimed case says its steps are stopped. Reply still goes through `/inbox/:case/reply` (the gateway: window, STOP, outbox) | `cases_inbox`, `case_context`, `claim_case`, `staff_replied`, `release_pause`, `resolve_case` |
+| Orders | The drawer (and the order page) has: status history (pills, when, who), items with their pick state, the customer's missing-item choice, payment (paid or not), picker and rider, **handover-code state** (no code needed, needed at the door, checked at, locked after N tries; never the code), and **What you can do**: only the steps `order_transitions` lets the `ops` actor take from that status. **Cancel** (before picking, with a reason) is the one the drawer does itself; the others link to the page that owns them (payments, rider incidents, the pickup shelf), so the drawer never moves money. Status cells are the label table's pills | `order_transitions`, `cancel_terms`, `transition_order`, `cancel_scheduled_order` (a booked order), plus the old reads. The customer is told by the notice cron (`customer_notices_due`: any cancel by someone other than the customer) |
+| Pick | The queue as before (one open pick per person). The runner: lines in walking order, each a card with a 56 px full-width **Picked** button and **Missing or short** below it, a progress bar, "If a line is missing, the customer chose: …" (`orders.missing_pref`), a bar for the packing step that stays above the phone bar (thumb reach), then the packing checklist from `settings.packing_checklist`. Short, substitute and take-off are the old functions | `pick_list`, `pick_mark_line`, `pick_item_missing`, `pick_offer_substitute`, `pick_remove_missing`, `finish_pick_packed` |
+| Dispatch (`/rider-jobs`) | "Packed, waiting for a rider" first, then "Not packed yet"; each with a rider select that shows the rider's cash against `settings.cash_cap`. Riders on shift as cards: cash held, a bar with the soft and hard marks, the cap state in words, "Cash drop" (links to Rider incidents, where the drop is received). **Assign** is `act_for_rider`'s `assign`, which calls `offer_delivery` (so the database refuses past the cap; the page only shows the numbers). A prepaid or gift order asks for the customer's **4-digit code** at "Delivered" (`rider_handover`); a **Pickup shelf** hands a pickup order over with `hub_handover` (code, and for cash what was received). The page title and the phone bar say Dispatch | `console_rider_board`, `act_for_rider`, `rider_handover`, `hub_handover`, `console_pick_board` |
+| Stock (`/stock`) | Out, Running low (`stock_levels.reorder_point`), Use within 2 days (`expiring_stock`), and every item with a search. Per item: **Count** (`count_stock`; a count that differs from the books needs a note) and **Adjust** (`adjust_stock`; the reason is required and chosen, Other needs a note). The picker's limit and "not below what is reserved" are the database's, said in words. The old hub's links are at the foot | `count_stock`, `adjust_stock`, `expiring_stock` |
+
+**Staff rules, in `packages/ui` and the console.**
+- 44 px targets: the new components (link tile, ladder, runner, details) follow `--ak-tap`; the screenshot test fails on any phone control under 44 px or any sideways scroll at 390 px.
+- No swipe: nothing new listens for one (`test/ui/ds2.test.ts` still reads every script).
+- **Undo toast** (`flashRedirect(…, undo)`, `html.ts` `FlashUndo`): the toast carries a small form that posts to the action's own way back; the route is sealed in the flash cookie by the server, so the browser cannot make one. It is offered **only where the database can take the action back as it is: a pick line marked or put back** (`pick_mark_line` both ways). Everything else has none, on purpose: a claim has no unclaim function, an exception cannot go from resolved to open, a cancel, an assignment, a message, a count or an adjustment is a record (stock movements are append-only; a mistake is put right by a new, named one), and money and messages are never undoable. If a later session adds an unclaim or reopen function, the toast takes one line.
+- **Command bar** (Ctrl+K, and the search button on a phone, which already existed): it now posts to `/go`. An order code (`AK-1042`, `ak 1042`, `1042`) opens that order (a lead: the order page; a picker: its pick list); anything else is a search (orders for a lead, the catalog for a picker). Page names still filter the list.
+- Arabic and English on every new line; the new Arabic is a table in `docs/ARABIC_REVIEW.md`, "UX2a", unread.
+
+**Tested.** `apps/console/test/ux2a.test.ts` (8 tests, on the real migrations): the tiles and their links and states; the ladder follows `settings.support`; claim from the list; the drawer's code and choice states and that the code is never printed; the actions follow `order_transitions` (remove the ops row and the button goes); cancel needs a reason, runs once, moves no ledger entry, the notice cron tells the customer, and is refused after picking starts and for a picker; the command bar's `/go`; the Undo toast on a pick line, and none on a rider action; Dispatch's cap text follows the setting, the database refuses past the cap, the code form and its tries; Stock's reason and note rules, the picker's limit, the reserved floor. Changed on purpose: `ds1.test.ts` (the command bar posts to `/go`), `today.test.ts` and `orders.test.ts` (the label table's words: "Closed", "To pick"), `d4b.test.ts` (two headings), `test/ui/design-system.test.ts` (the console's sheet budget 60,000 → 66,000 bytes: the new components cost 3.7 KB; staff only). `test/screens/ux2a.test.ts` makes the screenshots (needs Chromium; not in CI).
+
+**Not the same as the reference, and not proven.**
+- **Walking order** is `pick_list`'s order: storage zone (ambient, chilled, frozen, fresh), then name. The reference walks ambient, fresh, chilled, frozen, then by shelf. There are no shelf locations yet (WH1), and changing the order is a change to a database function, which this session was told to keep. One setting and a sort would do it.
+- **Orders waiting** means orders to pick (confirmed, no pick started); packed orders with no rider are in the tile's note and state. The reference's wording was not in the brief.
+- **Cash held** is the riders' USD-equivalent cash from `driver_cash_usd` via `console_rider_board`; the bar beside each rider uses exposure (cash held plus cash still to collect), as Today did.
+- The reference's "Right now" note (written by an assistant) and the KPI tiles with no source (reply time, missing-item rate) are not built (AN1).
+- Cancel from the drawer for a **paid** order does not credit or refund: it says how much was paid and sends the person to the Refunds page (a booked order's own cancel does credit, as the customer's does). The code form at "Delivered" is tested (`rider_handover`). **The pickup shelf form (`hub_handover`) is built but no test drives it** (pickup is off in `settings.pickup`; only its empty state is shown).
+- The drawer's "ready → delivered" is shown only for pickup orders; "failed delivery", "returned" and "out for delivery again" go to Rider incidents; "closed" says it needs its payment (invariant 12).
+- **Never seen on a phone or on staging.** Screenshots are Chromium on this machine with invented data. The Arabic is model-written and unread. The bidi of an order code inside an Arabic title (`AK-1006`) can wrap awkwardly on a narrow row; it is the case row component's, as before.
+- The Stock page's "Use within 2 days" is a display window (`USE_SOON_DAYS` in `stock.ts`), not a rule; the dates are `expiring_stock`'s. It was empty in the screenshots (no received lot in the seed).
+- Pick marks, the toast and the command bar were exercised through the routes, not by tapping; the 44 px and no-sideways-scroll checks ran in Chromium.
+**Founder actions.** None.
+
 ### DS2: the design reference applied, 17 November 2026 (Fable 5.2); no migration
 
 The founder's design reference (a React app on demo data, made in Lovable) was applied as a **pattern, never code**: it was unpacked outside
@@ -147,12 +185,12 @@ DS2; DS2 touches no SQL). CI runs them.
 | Food `/vendors`, `/vendors/:id`, menus | Not shown at launch | Later, Phase 8 (E1, E2) |
 | Privacy, terms, offline, gallery (no reference screen) | Restyled | DS2 |
 | Staff shell: sidebar, top bar, phone bar by role, command bar, bell | Restyled; the bar follows the role | DS2 |
-| Today `/ops` | DS1's page in the new look; "Needs you now" claim buttons exist; the "Waiting on customer" column and "Right now" note do not | UX2a |
-| Inbox `/ops/inbox` | DS1's page in the new look | UX2a |
-| Orders `/ops/orders` (saved views, drawer) | DS1's page in the new look | UX2a |
-| Pick `/ops/pick` (queue, runner, packing checklist) | D4b's page in the new look | UX2a |
-| Dispatch `/ops/dispatch` (runs, cash drop, pickup shelf) | D4b's rider jobs in the new look; in the lead's phone bar | UX2a |
-| Stock `/ops/stock` (low, out, use soon, not ready) | The hub and its older pages in the new look | UX2a |
+| Today `/ops` | Built (UX2a) | UX2a |
+| Inbox `/ops/inbox` | Built (UX2a) | UX2a |
+| Orders `/ops/orders` (saved views, drawer) | Built (UX2a) | UX2a |
+| Pick `/ops/pick` (queue, runner, packing checklist) | Built (UX2a) | UX2a |
+| Dispatch `/ops/dispatch` (runs, cash drop, pickup shelf) | Built (UX2a) | UX2a |
+| Stock `/ops/stock` (low, out, use soon, not ready) | Built (UX2a), without "not ready to sell" (the readiness page has it) | UX2a |
 | Approve `/ops/approve` (tabs, one card at a time) | Older pages (names, pictures, food facts, label approvals) in the new look | UX2b |
 | Intake `/ops/intake` (progress board, photograph, check) | LB1's photographing and label approvals in the new look; in the picker's phone bar | UX2b |
 | Money `/ops/money` | Older pages in the new look | UX2b |
