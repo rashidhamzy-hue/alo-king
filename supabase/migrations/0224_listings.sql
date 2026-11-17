@@ -61,7 +61,7 @@ create index if not exists listing_removal_requests_session on listing_removal_r
 create table if not exists listing_log (
   id          bigint generated always as identity primary key,
   listing_id  text not null references listings(listing_id),
-  action      text not null check (action in ('hide', 'removal_request', 'restore', 'keep_hidden', 'claim')),
+  action      text not null check (action in ('hide', 'removal_request', 'restore', 'keep_hidden', 'removal_declined', 'claim')),
   at          timestamptz not null default now(),
   by_party    uuid references parties(id),             -- staff for hide/restore/keep, the sender for a claim, null for a visitor's request
   request_id  uuid references listing_removal_requests(id),
@@ -243,19 +243,22 @@ begin
   return jsonb_build_object('ok', true, 'listing_id', l.listing_id);
 end $$;
 
--- The request is closed and the page stays hidden: a person looked, and the answer is to leave it.
+-- The request is closed and the page stays as it is: hidden stays hidden (keep_hidden), and a page a request left up stays up (removal_declined). A person
+-- looked, and the answer is to leave it. The log says which.
 create or replace function keep_listing_hidden(p_request uuid, p_by uuid, p_note text) returns jsonb language plpgsql set search_path = public, pg_temp as $$
-declare r listing_removal_requests%rowtype; v_note text := nullif(btrim(coalesce(p_note, '')), '');
+declare r listing_removal_requests%rowtype; v_note text := nullif(btrim(coalesce(p_note, '')), ''); v_hidden boolean;
 begin
   perform listing_staff_check(p_by);
   select * into r from listing_removal_requests where id = p_request for update;
   if not found or r.status <> 'open' then raise exception 'REQUEST_NOT_OPEN'; end if;
+  select hidden_at is not null into v_hidden from listings where listing_id = r.listing_id;
   update listing_removal_requests set status = 'closed', closed_at = now(), closed_by = p_by, closed_note = left(v_note, 500) where id = r.id;
-  insert into listing_log(listing_id, action, by_party, request_id, reason) values (r.listing_id, 'keep_hidden', p_by, r.id, left(v_note, 500));
+  insert into listing_log(listing_id, action, by_party, request_id, reason)
+    values (r.listing_id, case when v_hidden then 'keep_hidden' else 'removal_declined' end, p_by, r.id, left(v_note, 500));
   if not exists (select 1 from listing_removal_requests where listing_id = r.listing_id and status = 'open') then
     update ops_exceptions set status = 'resolved', resolved_by = p_by, resolved_at = now() where kind = 'listing_removal' and ref = r.listing_id and status <> 'resolved';
   end if;
-  return jsonb_build_object('ok', true, 'listing_id', r.listing_id);
+  return jsonb_build_object('ok', true, 'listing_id', r.listing_id, 'hidden', v_hidden);
 end $$;
 
 -- Staff hide a page themselves (an owner phoned; a request was over the limit). Closes the open requests for it.

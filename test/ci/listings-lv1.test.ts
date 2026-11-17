@@ -33,3 +33,37 @@ describe("the listings file and its seed migration", () => {
     expect(() => build("listing_id,name,category,village,km_from_hub,google_maps_url,rating\nx,y,Cafe,Z,1.0,https://www.google.com/maps/x,4.5\n")).toThrow(/unexpected columns/);
   });
 });
+
+// ---- the words ----
+import { DICTS } from "../../apps/web/src/lib/i18n";
+import { ar as arMessages, en as enMessages, fr as frMessages } from "@ak/agents/messages";
+
+describe("docs/ARABIC_REVIEW.md lists every word LV1 added, for a person to read", () => {
+  const doc = readFileSync(join(repo, "docs/ARABIC_REVIEW.md"), "utf8");
+  const section = doc.slice(doc.indexOf("## LV1, the Chouf food places listed before they sign"));
+  const cell = (t: string) => t.replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+
+  it("the website: every food and kind key, in Arabic, English and French, word for word", () => {
+    const listed = [...section.matchAll(/^\| `web\.(\w+)` \| (.*?) \| (.*?) \| (.*?) \| /gm)].map((m) => ({ key: m[1]!, ar: m[2]!, en: m[3]!, fr: m[4]! }));
+    const keys = Object.keys(DICTS.en).filter((k) => k.startsWith("food") || k.startsWith("kind_"));
+    expect(listed.map((x) => x.key)).toEqual(keys);
+    for (const row of listed) {
+      expect(row.ar, row.key).toBe(cell(DICTS.ar[row.key]!)); expect(row.en, row.key).toBe(cell(DICTS.en[row.key]!)); expect(row.fr, row.key).toBe(cell(DICTS.fr[row.key]!));
+      // every language has every word, and no praise, rating, health or diet word (invariants 14 and 15)
+      for (const l of ["ar", "en", "fr"] as const) expect(DICTS[l][row.key], `${l} ${row.key}`).toBeTruthy();
+      expect(row.ar + row.en + row.fr, row.key).not.toMatch(/الأفضل|صحي|مميز|best|healthy|top rated|meilleur|sain/i);
+    }
+  });
+
+  it("the WhatsApp line", () => {
+    for (const m of [arMessages, enMessages, frMessages]) expect(section).toContain(cell(m.fixed.listingClaimed("مخبز الشوف")));
+  });
+
+  it("no word in the website says a place can be ordered from, or is approved, verified or rated", () => {
+    for (const l of ["ar", "en", "fr"] as const) {
+      for (const k of Object.keys(DICTS.en).filter((x) => x.startsWith("food_") && x !== "food_want" && x !== "food_asked")) {
+        expect(DICTS[l][k]!, `${l} ${k}`).not.toMatch(/approved|verified|rated|rating|موافق عليه|موثّق|معتمد|vérifié|approuvé|noté/i);
+      }
+    }
+  });
+});

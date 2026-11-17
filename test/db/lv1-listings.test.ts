@@ -332,6 +332,16 @@ describe("Restore", () => {
     expect((await db.all<any>(`select action, reason from listing_log where listing_id = $1 order by id`, [id])).map((x) => x.action)).toEqual(["hide", "keep_hidden"]);
   });
 
+  it("closing a request that left the page up declines it: the log says so, and the page stays up", async () => {
+    const id = listingId(53);                                   // over the session cap in the rate-limit test: recorded, not hidden
+    const req = (await db.one(`select id, hidden from listing_removal_requests where listing_id = $1`, [id]));
+    expect(req.hidden).toBe(false);
+    expect((await db.rpc<any>("keep_listing_hidden", { p_request: req.id, p_by: lead, p_note: "nothing to remove" })).hidden).toBe(false);
+    expect((await asWeb<any>("web_food_place", { p_id: id })).ok).toBe(true);
+    expect((await db.all<any>(`select action from listing_log where listing_id = $1 order by id`, [id])).map((x) => x.action)).toEqual(["removal_request", "removal_declined"]);
+    expect((await db.one(`select status from ops_exceptions where kind = 'listing_removal' and ref = $1`, [id])).status).toBe("resolved");
+  });
+
   it("staff can hide a page themselves, with a reason: it is the way to act on a request that was over the cap", async () => {
     const id = listingId(52);                                   // a request over the session cap left this page up
     await expect(db.rpc("hide_listing", { p_listing: id, p_by: picker, p_reason: "asked by the owner" })).rejects.toThrow(/NOT_AUTHORISED/);

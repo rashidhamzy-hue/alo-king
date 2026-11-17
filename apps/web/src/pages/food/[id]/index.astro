@@ -18,7 +18,7 @@ try { r = validListingId(id) ? await listings().place(id) : { ok: false as const
 if (r && !r.ok) Astro.response.status = 404;
 const p = r && r.ok ? r.listing : null;
 const asked = Astro.url.searchParams.get("asked") === "1";
-const claim = p ? claimLink(r && r.ok ? r.whatsapp : null, p.listing_id) : null;
+const chatClaim = p ? claimLink(r && r.ok ? r.whatsapp : null, p.listing_id) : null;
 const base = placeHref(id);
 ---
 <Base title={p ? p.name : t(lang, "not_found")} lang={lang} description={p ? `${kindLabel(lang, p.kind)} · ${villageIn(lang, p)}. ${t(lang, "food_not_yet")}` : undefined} path={Astro.url.pathname}
@@ -33,8 +33,8 @@ const base = placeHref(id);
       <form method="post" action={`${base}/want`}><Button label={t(lang, "food_want")} variant="primary" icon="check" /></form>
       <Button label={t(lang, "food_map")} href={p.maps_url} variant="soft" icon="pin" external />
     </div>
-    {claim && <div class="actions"><Button label={t(lang, "food_claim")} href={claim} variant="whatsapp" icon="chat" external /></div>}
-    {claim && <p class="muted small">{t(lang, "food_claim_note")}</p>}
+    {chatClaim && <div class="actions"><Button label={t(lang, "food_claim")} href={chatClaim} variant="whatsapp" icon="chat" external /></div>}
+    {chatClaim && <p class="muted small">{t(lang, "food_claim_note")}</p>}
     <p><Button label={t(lang, "food_remove")} href={`${base}/remove`} variant="ghost" /></p>
   </>}
 </Base>
