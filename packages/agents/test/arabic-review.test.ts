@@ -50,3 +50,9 @@ describe("docs/ARABIC_REVIEW.md lists every B1c Arabic line", () => {
     b.minimum(5, 0.69, 4.31, ["1 × لبنة"]), ar.fixed.closedKept("08:00", ["1 × لبنة"])];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
 });
+
+describe("docs/ARABIC_REVIEW.md lists every CFG1 Arabic line", () => {
+  const lines = [ar.notice.confirmReminder("AK-1234"), ar.card.reopenedFrom("AK-1234"), ar.cx.reopenButton, ar.cx.handoverCodePickup("4821"),
+    ar.cx.pickupReady("AK-1234", "مستودع ألو كينغ")];
+  it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
+});

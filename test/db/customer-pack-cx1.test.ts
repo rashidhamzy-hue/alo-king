@@ -307,8 +307,11 @@ describe("pickup at the hub with no delivery fee", () => {
     const o = await pickupOrder("cod");
     const t = await total(h, o.id);
     const till = await balance(h, "hub_cash");
-    await expect(h.db.rpc("hub_handover", { p_order: o.id, p_by: h.picker })).rejects.toThrow(/AMOUNT_REQUIRED/);
-    const r = await h.db.rpc("hub_handover", { p_order: o.id, p_by: h.picker, p_usd: 20, p_change_usd: Number((20 - t).toFixed(2)) });
+    // CFG1: every pickup order has the handover code, cash too
+    const code = (await h.db.one(`select handover_code from orders where id = $1`, [o.id])).handover_code as string;
+    expect(code).toMatch(/^\d{4}$/);
+    await expect(h.db.rpc("hub_handover", { p_order: o.id, p_by: h.picker, p_code: code })).rejects.toThrow(/AMOUNT_REQUIRED/);
+    const r = await h.db.rpc("hub_handover", { p_order: o.id, p_by: h.picker, p_code: code, p_usd: 20, p_change_usd: Number((20 - t).toFixed(2)) });
     expect(r).toMatchObject({ ok: true, status: "closed" });
     expect(await balance(h, "hub_cash") - till).toBeCloseTo(t, 2);
     expect(Number(await h.db.rpc("driver_cash_usd", { p_driver: h.picker }))).toBeCloseTo(0, 2);

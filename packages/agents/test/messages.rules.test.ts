@@ -98,7 +98,7 @@ function render(m: Messages): Rendered[] {
   add("card.deliverNow", c.deliverNow); add("card.window", c.window(when)); add("card.payment", c.payment("cod"));
   for (const k of ["cod", "whish", "omt"] as const) add(`card.payName.${k}`, c.payName[k]);
   add("card.changeFor", c.changeFor); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
-  add("card.replaces", c.replaces("AK-1040")); add("card.consent", c.consent);
+  add("card.replaces", c.replaces("AK-1040")); add("card.reopenedFrom", c.reopenedFrom("AK-1040")); add("card.consent", c.consent);
   add("card.confirm", c.confirm); add("card.edit", c.edit); add("card.cancel", c.cancel);
   for (const x of cards(L)) formatOrderCard(x.input).forEach((o, i, all) => add(`${x.key}${all.length > 1 ? `.${i + 1}` : ""}`, bodyOf(o), { kind: i === all.length - 1 ? "card" : undefined }));
   const long = formatOrderCard({ orderId: ORDER, shortCode: CODE, quote: { ...QUOTE, lines: Array.from({ length: 40 }, (_, i) => ({ ...LINES[i % 3]!, qty: i + 1 })) }, paymentMethod: "cod", lang: L, address: ADDRESS },
@@ -178,7 +178,7 @@ function render(m: Messages): Rendered[] {
   add("cx.noteRow", cx.noteRow(20)); add("cx.noteSet", cx.noteSet(20, 12.73)); add("cx.keepSet", cx.keepSet(12.73)); add("cx.noteTooSmall", cx.noteTooSmall(7.27));
   add("cx.choiceTooLate", cx.choiceTooLate(CODE)); add("cx.cancelAsk", cx.cancelAsk(CODE, 0)); add("cx.cancelAsk.credit", cx.cancelAsk(CODE, 7.27));
   add("cx.cancelAfterPick", cx.cancelAfterPick(CODE, 5.27, [])); add("cx.cancelAfterPick.kept", cx.cancelAfterPick(CODE, 5.27, names));
-  add("cx.cancelAfterPickCash", cx.cancelAfterPickCash(CODE)); add("cx.cancelOnTheWay", cx.cancelOnTheWay(CODE)); add("cx.handoverCode", cx.handoverCode("4821"));
+  add("cx.cancelAfterPickCash", cx.cancelAfterPickCash(CODE)); add("cx.cancelOnTheWay", cx.cancelOnTheWay(CODE)); add("cx.handoverCode", cx.handoverCode("4821")); add("cx.handoverCodePickup", cx.handoverCodePickup("4821")); add("cx.reopenButton", cx.reopenButton);
   add("cx.pickupAt", cx.pickupAt(L === "ar" ? "مستودع ألو كينغ، بعقلين" : "the Alo King hub, Baakline")); add("cx.pickupReady", cx.pickupReady(CODE, L === "ar" ? "مستودع ألو كينغ، بعقلين" : "the Alo King hub, Baakline"));
   // HO1: the six case lines, their buttons, the technical lines and the Inbox drafts.
   const sp = m.support;
@@ -188,7 +188,7 @@ function render(m: Messages): Rendered[] {
   add("support.afterHours", sp.afterHours("08:00"));
   for (const k of ["person_requested", "order_problem", "complaint", "refund", "payment", "safety", "other"] as const) add(`support.draft.${k}`, sp.draft(k, CODE));
   const n = m.notice;
-  add("notice.orderCancelled", n.orderCancelled(CODE, "ما تأكّد الطلب بالوقت المحدد")); add("notice.riderAtDoor", n.riderAtDoor(CODE));
+  add("notice.orderCancelled", n.orderCancelled(CODE, "ما تأكّد الطلب بالوقت المحدد")); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
   add("notice.paymentReceived", n.paymentReceived(CODE, "12.50$ نقداً")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.riderWaiting", n.riderWaiting(CODE));
   add("notice.delayed", n.delayed(CODE)); add("notice.calledOff", n.calledOff(CODE, 0)); add("notice.calledOff.credit", n.calledOff(CODE, 7.27));
 
@@ -299,7 +299,7 @@ describe("message design rules (SYSTEM_BRIEF, M1)", () => {
       expect(card).toContain(lang === "ar" ? "📍 بعقلين، بيت الاختبار، الطابق 2" : "📍 Baakline, بيت الاختبار, الطابق 2");
     });
     it(`${lang}: buttons and list rows fit WhatsApp (20 and 24 characters)`, () => {
-      for (const t of [m.card.confirm, m.card.edit, m.card.cancel, m.fixed.keptButton, m.answer.repeatButton, m.sub.keep, m.sub.remove, m.windows.button,
+      for (const t of [m.card.confirm, m.card.edit, m.card.cancel, m.fixed.keptButton, m.answer.repeatButton, m.sub.keep, m.sub.remove, m.windows.button, m.cx.reopenButton,
                        m.ops.accept, m.ops.decline, m.ops.picked, m.ops.arrived, m.ops.delivered, m.ops.noAnswer, m.ops.exactButton, m.ops.pickDone, m.ops.pickMissing,
                        m.ops.countReturn, m.ops.returnDefault, m.ops.returnAllFit, m.ops.returnAllWaste, m.ops.riderCannot, m.ops.riderConfirmButton,
                        m.ops.cashReceivedButton, m.ops.dropHub, m.ops.dropOmt, m.ops.chooseSubButton, m.ops.whichMissingButton, m.ops.startButton("AK-1042"),

@@ -71,6 +71,8 @@ export interface Messages {
     prepayFirst: (how: S, cap: number) => S;
     prepay: (how: S) => S;
     replaces: (code: S) => S;
+    /** CFG1: this card is a lapsed order opened again (orders.reopened_from): the old order's code. */
+    reopenedFrom: (code: S) => S;
     consent: S;
     confirm: S; edit: S; cancel: S;
   };
@@ -219,6 +221,10 @@ export interface Messages {
     cancelOnTheWay: (code: S) => S;
     /** The handover code, told with the confirmation of a prepaid order. */
     handoverCode: (code: S) => S;
+    /** CFG1: every pickup order has a code; it is given to the hub, not to a rider. */
+    handoverCodePickup: (code: S) => S;
+    /** CFG1: the button under the lapsed-order notice (and the tap that opens it again). */
+    reopenButton: S;
     /** Pickup at the hub: the card's line, "not available yet", and the "ready" notice. */
     pickupAt: (place: S) => S;
     pickupOff: S;
@@ -229,6 +235,8 @@ export interface Messages {
   notice: {
     orderCancelled: (code: S, reason: S) => S;
     riderAtDoor: (code: S) => S;
+    /** CFG1: one reminder, at settings.timers.confirm_reminder_min, for a card still waiting on the customer's tap. */
+    confirmReminder: (code: S) => S;
     paymentReceived: (code: S, summary: S) => S;
     onTheWay: (code: S) => S;
     riderWaiting: (code: S) => S;

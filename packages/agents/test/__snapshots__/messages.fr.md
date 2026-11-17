@@ -139,6 +139,12 @@ Ce bon remplace votre commande AK-1040.
 Rien ne change avant votre confirmation.
 ```
 
+## card.reopenedFrom
+
+```text
+Rouverte à partir de AK-1040, aux prix d'aujourd'hui.
+```
+
 ## card.consent
 
 ```text
@@ -1788,6 +1794,19 @@ Une personne de l'équipe vous parle tout de suite.
 Donnez-le au livreur seulement quand vous avez votre commande.
 ```
 
+## cx.handoverCodePickup
+
+```text
+🔢 Votre code de remise : 4821
+Donnez-le à notre équipe au dépôt seulement quand vous prenez votre commande.
+```
+
+## cx.reopenButton
+
+```text
+Rouvrir la commande
+```
+
 ## cx.pickupAt
 
 ```text
@@ -1798,7 +1817,7 @@ Donnez-le au livreur seulement quand vous avez votre commande.
 
 ```text
 📦 La commande AK-1042 est prête à retirer à the Alo King hub, Baakline.
-Si elle est payée d'avance, apportez votre code de remise.
+Apportez votre code de remise.
 ```
 
 ## support.opened
@@ -2003,6 +2022,13 @@ Votre commande AK-1042 a été annulée : ما تأكّد الطلب بالوق�
 
 ```text
 🛵 Le livreur est à votre porte avec la commande AK-1042 et vous attend.
+```
+
+## notice.confirmReminder
+
+```text
+Votre commande AK-1042 attend toujours votre confirmation.
+Vous pouvez la confirmer ou la modifier depuis la carte ci-dessus.
 ```
 
 ## notice.paymentReceived

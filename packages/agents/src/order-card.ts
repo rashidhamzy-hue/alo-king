@@ -32,6 +32,8 @@ export interface CardInput { orderId: string; shortCode: string; quote: Quote; p
   window?: DeliveryWindow | null;
   /** 2.8: this card changes an order already confirmed (link_replacement_order): its short code. */
   replaces?: string | null;
+  /** CFG1: this card opens a lapsed order again (orders.reopened_from, 0223): the old order's short code. */
+  reopenedFrom?: string | null;
   /** M1: the conversation's language (default Arabic) and the delivery address. */
   lang?: Lang;
   address?: CardAddress | null;
@@ -41,10 +43,12 @@ export interface CardInput { orderId: string; shortCode: string; quote: Quote; p
   pickupPlace?: string | null }
 
 const qty = (q: number) => String(Number(q));
-export const orderButtonId = (action: "confirm" | "edit" | "cancel", orderId: string) => `order:${action}:${orderId}`;
-export function parseOrderButton(id: string): { action: "confirm" | "edit" | "cancel"; orderId: string } | null {
-  const m = /^order:(confirm|edit|cancel):([0-9a-f-]{36})$/.exec(id);
-  return m ? { action: m[1] as "confirm" | "edit" | "cancel", orderId: m[2]! } : null;
+/** CFG1: "reopen" is the button under the lapsed-order notice; a tap on a lapsed card's confirm or edit means the same. */
+export type OrderAction = "confirm" | "edit" | "cancel" | "reopen";
+export const orderButtonId = (action: OrderAction, orderId: string) => `order:${action}:${orderId}`;
+export function parseOrderButton(id: string): { action: OrderAction; orderId: string } | null {
+  const m = /^order:(confirm|edit|cancel|reopen):([0-9a-f-]{36})$/.exec(id);
+  return m ? { action: m[1] as OrderAction, orderId: m[2]! } : null;
 }
 
 /** K1: the button under the "we're closed, your order is kept" message. Tapped once we are open, it carries the kept basket on. */
@@ -131,6 +135,7 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
   // CX1: the missing-item choice, always said (the list under the confirmation changes it, until picking starts).
   terms.push(m.cx.missingLine(input.missingPref ?? "ask"));
   if (input.replaces) terms.push(m.card.replaces(input.replaces));
+  if (input.reopenedFrom) terms.push(m.card.reopenedFrom(input.reopenedFrom));
   terms.push("", m.card.consent);
 
   const buttonsOf = (body: string) => buttons(body, [

@@ -76,7 +76,9 @@ restyled page with the reference's screen).
 - **LB1's pages** (photographing, label approvals) and every older console page take the look from the stylesheet. Their markup, data
   attributes and actions are untouched, so the capture script and its tests did not move.
 
-**Tested** (`npm run typecheck && npm test`: green).
+**Tested.** `npm run typecheck` passes. `npm test` on the session's machine: 2,614 tests pass and none fails; the seven files under
+`test/pg` that need a real Postgres with pgvector could not start there (the machine's Postgres has no `vector` extension, the same before
+DS2; DS2 touches no SQL). CI runs them.
 - New: `test/ui/ds2.test.ts` (18 tests: the brand values; one token file; our own fonts; WhatsApp green only on chat buttons; the status
   table against the order machine and the decided words; the four staff-screen rules; fact row, price, stepper, field, toast).
 - Changed on purpose, three tests: the phone bar by role (`apps/console/test/shell.test.ts`: the three bars, and one place current at a
@@ -166,6 +168,34 @@ restyled page with the reference's screen).
    700, say which you prefer: a heavier page, or 700 in place of 600.
 4. **Read the Arabic status words** (`docs/ARABIC_REVIEW.md`, "DS2") before WEB2 shows them to a customer.
 5. **Confirm the build order** in the table above (UX2a, UX2b), or send the review note's own order.
+
+### CFG1: settings and small rules from the design review, 17 November 2026 (Sonnet 5.5); migrations 0222 and 0223
+Branch `claude/magical-planck-sqn56u`, one pull request. Decisions with their reasons: `docs/DECISIONS.md`, "Design reference, 17 November 2026, settings".
+No simulation and no live model call (rule 12); the flow tests use a scripted model. Each rule's tests were written before its code; with 0222 and
+0223 moved aside, 20 of the 27 new tests fail (the 7 that pass check message words and the settings that already held).
+
+| Item | What CFG1 built | Tested by |
+| --- | --- | --- |
+| 1. The reminder | `settings.timers.confirm_reminder_min` 20. `customer_notices_due` (0222, 0146's text plus one kind) returns `confirm_reminder` for a card whose latest `awaiting_confirmation` event is that old, while the order still waits; once per order (the notice key) and once per customer in 24 hours. `sendNotice` sends it as free text through the gateway: inside the window one message in the same chat; outside it nothing, recorded as `template_not_utility` (no template exists, none is wired); STOP and `can_send` hold (the notice is recorded refused and not retried). It counts against the order's four code-started messages and is not essential. `customer_notices.kind`'s check now lists the five kinds (0062's list lacked `pickup_ready`, 0146's: an insert would have failed once pickup is on). Arabic, English, French: `notice.confirmReminder`; `docs/ARABIC_REVIEW.md`, CFG1 | `test/db/cfg1.test.ts` (due at 20 not 19, follows the setting, not once confirmed, edited or cancelled, once and in the same chat, outside the window, STOP); `arabic-review.test.ts`; message rules and snapshots |
+| 2. Reopen | 0223: `orders.reopened_from`; `reopen_check` (only a card the timer cancelled; never one a customer cancelled or a newer card replaced; a reopened order that is not cancelled is shown, never copied); `link_reopened_order`. `reopenLapsed` (`answers.ts`) rebuilds the card from `basket_from_order` through `issueCard` (minimum, stock, window, restrictions as always) and links it; the card says "reopened from AK-xxxx" (`card.reopenedFrom`). A tap on Confirm or Edit of a lapsed card, or the new `order:reopen:` button, does it (`turn.ts`). The lapsed-card notice (`reopenable` on the due row) carries the Reopen button inside the window; the template path is unchanged | `test/db/cfg1-reopen.test.ts` (8: new order, today's price, linked, old stays cancelled, needs its own confirm tap, Edit and Reopen, never twice, a customer's own cancel is final, replaced and other customers' orders refused); `customer-notices.test.ts` (the notice is interactive now) |
+| 3. Pickup code | `orders_handover_code` also fires for `is_pickup` (0222); the confirmation tells a pickup customer to give the code to the hub's staff (`cx.handoverCodePickup`, `order_is_pickup`); `cx.pickupReady` no longer says "if it's prepaid". `hub_handover` was unchanged: it already asked for the code when one exists. Pickup stays off | `cfg1.test.ts` (a code for a cash pickup, none for cash delivery; wrong code, no code, right code at the hub; pickup off); `customer-pack-cx1.test.ts` updated |
+| 4. Approvals | `settings.approvals`: `refund_usd` 10, `price_change_pct` 10, `fx_rate_second_person` true. `set_fx_rate` queues a `pending_approvals` row (kind `fx`) and changes nothing; `decide_approval` (0106's text plus `fx`) sets it through `set_fx_rate_now`; the asker cannot approve; the approval replaces the 3% hold for that rate; a newer request replaces an older one; the first rate ever is set at once. Console: the Exchange rate page says it is waiting; Approvals lists it as "Exchange rate" (it listed a payment as "Refund" before: fixed by a name per kind) | `cfg1.test.ts` (waits, same person refused, a picker refused, approved, big move not held, rejected, replaced, setting off, first rate; refund 5 goes, 12 waits); `apps/console/test/fx.test.ts`; `lane-b-requests-b4.test.ts` sets the setting off for the 3% hold it tests |
+| 5. Cash cap | `settings.cash_cap` 100 and 150 (0222). Nothing in code (invariant 5) | `cfg1.test.ts` |
+| 6. Inbox timers | Already data since HO1: `settings.support` `claim_alert_min` 3, `founder_alert_min` 5, `late_min` 15, read by `case_timers_due`; the 5 already is the founder step. No value or code changed | `cfg1.test.ts` (each step moves when the setting does: lead, founder, late) |
+
+Existing tests changed on purpose: `customer-pack-cx1` (a cash pickup is handed over with its code), `customer-notices` (the lapse notice has a button), `lane-b-requests-b4` and the console `fx.test.ts` (the 3% hold, with the second-person rule off), the message snapshots (`__snapshots__/messages.*.md`: only the five new or changed lines).
+
+**Tested here:** `npm run typecheck` and the suite pass except `test/pg/*`, which needs a real Postgres with pgvector (not in this container; it fails the same way without this change; CI has it). **Not proven:** 0222 and 0223 are applied only in the test database until the next staging deploy; no WhatsApp or Kapso (the Reopen button, the reminder reaching a phone); the real cron minute.
+
+**What to know, and what is not built.**
+- A reminder is sent only inside the 24-hour window; there is no template for it (Meta would have to approve one as utility). Outside the window it is skipped and recorded, never silent.
+- **Reopening by words alone is not built.** A customer who writes "I still want it" gets the Concierge as before ("same as last time" can offer the last closed basket); only a tap on the lapsed card or its Reopen button links the new order to the old one. A scheduled order's reopen keeps its window if it is still open; if it closed, the window list is offered as for any card.
+- A pickup order confirmed before 0222 has no code, and `hub_handover` hands it over without one (as before); pickup is off, so none exists.
+- The inbox ladder's per-role push (3 minutes to the lead only, 5 to the founder) is still the HO1 and OPS1 note ("Not built", HO1); CFG1 did not touch it.
+- The new Arabic lines, and the changed second line of `cx.pickupReady`, wait for a reader (`docs/ARABIC_REVIEW.md`, CFG1).
+- Migration numbers: 0222 and 0223 used; 0224 is next (0219 and 0220 stay WEB3's).
+**Founder actions.** None.
+
 
 ### AR1: the Arabic read applied, 16 November 2026 (Sonnet 5.5); migration 0221
 
