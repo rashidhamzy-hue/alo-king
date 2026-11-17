@@ -643,7 +643,7 @@ Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three session
 | 5 | N2 nightly checks and learning | Sonnet, medium | COST1 merged | 0186 | Not started |
 | 6 | RD1 rider pack | Opus, high | L1 merged | 0160 to 0163 | Not started |
 | 6 | AN1 reports and the daily summary | Sonnet, high | L1, UX2 merged | 0164 to 0166 | Not started |
-| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | **Parked** (design pause, 15 Nov) |
+| 6 | UX3 join pages (riders and vendors; the Applicants tab) | Sonnet, high | DS2, UX2b merged | 0233 and 0234 | **Built 17 Nov** (`docs/HANDOFF.md`, UX3). Not built from the old row: the other website pages (how it works, ordering) stay WEB2's |
 | 7 | PAY1 payment core and adapters | Opus, high | CX1 merged (was WEB2; design pause, 15 Nov) | 0167 to 0171 | Not started |
 | 7 | RCPT1 receipts and lira display | Sonnet, medium | CX1 merged | 0172 to 0173 | Not started |
 | 7 | AUD1 audit of what the planning chat could not reach | Sonnet, high | Nothing | 0176 to 0177 | Not started |

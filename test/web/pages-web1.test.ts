@@ -893,3 +893,247 @@ describe("DS1: the gallery is staging only", () => {
     expect((await page("/")).html).not.toContain('href="/gallery"');
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// UX3: the join pages. /join/rider and /for-vendors take an application and nothing else: a number confirmed the WEB2 way (the visitor messages us first,
+// invariant 17), an application row and a staff case. Never a rider, never a merchant (invariant 11). Written before the pages and migration 0233.
+describe("UX3: /join/rider and /for-vendors", () => {
+  const flat = (h: string) => text(h).replace(/&#39;/g, "'");
+  const post = (path: string, form: Record<string, string | string[]>, h: Record<string, string> = {}) => {
+    const body = new URLSearchParams(); for (const [k, v] of Object.entries(form)) for (const x of Array.isArray(v) ? v : [v]) body.append(k, x);
+    return fetch(base + path, { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "accept-language": "en", ...h }, body });
+  };
+  const cookieOf = (r: Response) => /(?:^|,\s*)(ak_session=[0-9a-f]{64})/.exec(r.headers.get("set-cookie") ?? "")?.[1] ?? null;
+  const mainOf = (h: string) => /<main[\s\S]*<\/main>/.exec(body(h))![0];
+  /** A first visit's weight: the page, its stylesheet, its scripts and the font files a browser would fetch for it (a face is fetched when the page's text uses a character in its unicode-range; both weights are counted). */
+  async function weigh(path: string, h: Record<string, string> = {}) {
+    const { html } = await page(path, h);
+    let bytes = Buffer.byteLength(html);
+    const chars = new Set([...text(body(html))].map((c) => c.codePointAt(0)!));
+    const inRange = (range: string) => range.split(",").map((r) => r.trim().replace(/^U\+/i, "").split("-").map((x) => parseInt(x, 16))).some(([lo, hi]) => [...chars].some((c) => c >= lo! && c <= (hi ?? lo!)));
+    const fonts = new Set<string>();
+    for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) {
+      const css = await (await get(href)).text();
+      bytes += Buffer.byteLength(css);
+      for (const f of css.matchAll(/@font-face\s*\{[^}]*?url\(["']?([^"')]+\.woff2)["']?\)[^}]*?unicode-range:\s*([^;}]+)/g)) if (inRange(f[2]!)) fonts.add(new URL(f[1]!, new URL(href, base + "/")).pathname);
+    }
+    for (const f of fonts) bytes += (await (await get(f)).arrayBuffer()).byteLength;
+    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
+    return { bytes, html };
+  }
+  let seq = 0;
+  /** The visitor's whole journey as the page and the customer line would run it: a code from the page, then the sender's message (claim_link_code, by code). */
+  async function confirmed(path: string, lang = "en") {
+    const first = await post(path, { step: "code" }, { "accept-language": lang });
+    const cookie = cookieOf(first)!;
+    const html = (await page(path, { cookie, "accept-language": lang })).html;
+    const code = /ALO-[23456789A-HJ-NP-Z]{6}/.exec(html)![0];
+    seq++;
+    const party = (await db.one(`insert into parties(role, display_name) values ('customer', $1) returning id`, [`UX3 web ${seq}`])).id;
+    await db.pg.exec(`insert into party_identities(party_id, line, wa_user_id, phone_e164) values ('${party}', 'customer', 'wa-ux3w-${seq}', '+96170000${String(300 + seq)}')`);
+    await db.pg.exec(`insert into conversations(line, party_id, last_inbound_at) values ('customer', '${party}', now())`);
+    expect((await db.rpc<any>("claim_link_code", { p_party: party, p_code: code, p_wamid: `wamid-ux3w-${seq}` })).status).toBe("linked");
+    return { cookie, party, code };
+  }
+  const RIDER_FORM = { step: "apply", name: "Sami Webtest", village: "Baakline", vehicle: "motorbike", licence: "yes", days: ["mon", "sat"], shifts: ["morning", "evening"] };
+  let aListing: any;
+  beforeAll(async () => {
+    await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
+    aListing = await db.one(`select * from listings where kind = 'bakery' and hidden_at is null and village is not null order by km_from_hub limit 1`);
+  });
+
+  it("/join/rider says what a rider keeps, from the settings: the whole fee and all tips, the cash caps, the fee range, the shifts, the written terms", async () => {
+    const r = await page("/join/rider");
+    expect(r.status).toBe(200);
+    expect(r.html).toContain('<html lang="en" dir="ltr">');
+    const m = flat(mainOf(r.html));
+    expect(m).toMatch(/Keep the whole (delivery )?fee/i);
+    expect(m).toMatch(/100% of the delivery fee/); expect(m).toMatch(/100% of tips/);
+    const caps = await db.rpc<any>("setting", { p_key: "cash_cap" });
+    expect(m).toContain(`$${Number(caps.soft_usd).toFixed(2)}`); expect(m).toContain(`$${Number(caps.hard_usd).toFixed(2)}`);
+    const fees = await db.one<any>(`select min(z.delivery_fee_usd) as lo, max(z.delivery_fee_usd) as hi from villages v join zones z on z.id = v.zone_id where v.is_served and z.is_active`);
+    expect(m).toContain(`$${Number(fees.lo).toFixed(2)}`); expect(m).toContain(`$${Number(fees.hi).toFixed(2)}`);
+    expect(m).toContain("08:00–15:30"); expect(m).toContain("15:30–23:00");
+    expect(m).toMatch(/written terms/i);
+    expect(m).toMatch(/never taken out of your (delivery )?fees, tips or earnings/i);          // invariant 10
+    expect(m).toMatch(/never rated, scored or ranked/i);
+    expect(m).not.toMatch(/commission|hourly wage of|per hour/i);                               // no commission on a rider, and no promise of an hourly figure
+    // a number changed by a person changes the page: nothing is fixed in the page (invariant 13)
+    await db.pg.query(`update settings set value = '{"soft_usd": 111, "hard_usd": 222}' where key = 'cash_cap'`);
+    const changed = flat(mainOf((await page("/join/rider")).html));
+    expect(changed).toContain("$111.00"); expect(changed).toContain("$222.00");
+    await db.pg.query(`update settings set value = $1::jsonb where key = 'cash_cap'`, [JSON.stringify(caps)]);
+  });
+
+  it("before the number is confirmed the page offers the confirmation and not the form; there is no phone field anywhere", async () => {
+    const r = await page("/join/rider");
+    const m = mainOf(r.html);
+    expect(m).toMatch(/name="step" value="code"/);
+    expect(flat(m)).toMatch(/Confirm your number on WhatsApp/);
+    expect(m).not.toMatch(/name="step" value="apply"/);
+    expect(m).not.toMatch(/type="tel"|name="phone"|name="number"|name="whatsapp"/i);
+    expect(r.headers.get("cache-control")).toBe("no-cache"); expect(r.headers.get("x-page-cache")).toBeNull();
+    expect([...r.html.matchAll(/<script\b[^>]*>/g)].every((x) => /\ssrc="/.test(x[0]))).toBe(true);
+  });
+
+  it("asking for the code starts a session, shows the code and a WhatsApp link with the code already typed; nothing is sent to anyone", async () => {
+    const sent = Number((await db.one<any>(`select count(*)::int as n from outbox`).catch(() => ({ n: 0 }))).n);
+    const first = await post("/join/rider", { step: "code" });
+    expect(first.status).toBe(303); expect(first.headers.get("location")).toMatch(/^\/join\/rider(#|$|\?)/);
+    const cookie = cookieOf(first); expect(cookie).toBeTruthy();
+    const r = await page("/join/rider", { cookie: cookie! });
+    const code = /ALO-[23456789A-HJ-NP-Z]{6}/.exec(mainOf(r.html))![0];
+    expect(mainOf(r.html)).toContain(`href="https://wa.me/96100000000?text=${code}"`);
+    expect(flat(mainOf(r.html))).toMatch(/send (it|the code)/i);
+    expect((await db.one<any>(`select purpose from link_codes where code = $1`, [code])).purpose).toBe("rider");
+    expect(Number((await db.one<any>(`select count(*)::int as n from outbox`).catch(() => ({ n: 0 }))).n)).toBe(sent);
+  });
+
+  it("once the number is confirmed the form appears: name, village, vehicle, licence yes or no, the days and shifts; and it has no phone field", async () => {
+    const v = await confirmed("/join/rider");
+    const r = await page("/join/rider", { cookie: v.cookie });
+    const m = mainOf(r.html);
+    expect(flat(m)).toMatch(/Your number is confirmed/);
+    expect(m).toMatch(/name="step" value="apply"/);
+    for (const f of ["name", "village", "vehicle", "licence", "days", "shifts"]) expect(m, f).toContain(`name="${f}"`);
+    expect(m.match(/name="licence"[^>]*value="(yes|no)"/g)!.length).toBe(2);
+    expect(m.match(/name="days"/g)!.length).toBe(7);
+    expect(m.match(/name="shifts"/g)!.length).toBe(2);
+    expect(m).toMatch(/<option value="Baakline"/);
+    expect(m).not.toMatch(/type="tel"|name="phone"/i);
+    expect(m).not.toMatch(/name="licence"[^>]*checked/);                                      // no answer is pre-picked
+  });
+
+  it("an application creates an application row and a staff case, and no rider, shift or login; the page then says it is with us", async () => {
+    const v = await confirmed("/join/rider");
+    const drivers = Number((await db.one<any>(`select count(*)::int as n from parties where role = 'driver'`)).n);
+    const res = await post("/join/rider", RIDER_FORM, { cookie: v.cookie });
+    expect(res.status).toBe(303); expect(res.headers.get("location")).toMatch(/^\/join\/rider\?applied=1/);
+    const a = await db.one<any>(`select * from join_applications where party_id = $1`, [v.party]);
+    expect(a).toMatchObject({ kind: "rider", status: "open", name: "Sami Webtest", vehicle: "motorbike", licence: true, rider_party_id: null });
+    expect(a.days).toEqual(["mon", "sat"]); expect(a.shifts).toEqual(["evening", "morning"]);
+    expect((await db.one<any>(`select state, source from handoffs where id = $1`, [a.case_id]))).toMatchObject({ state: "open", source: "rider_application" });
+    expect(Number((await db.one<any>(`select count(*)::int as n from parties where role = 'driver'`)).n)).toBe(drivers);
+    const after = await page("/join/rider?applied=1", { cookie: v.cookie });
+    expect(flat(mainOf(after.html))).toMatch(/Your application is with us/);
+    expect(flat(mainOf(after.html))).toMatch(/A person reads it and decides/);
+    expect(mainOf(after.html)).not.toMatch(/name="step" value="apply"/);
+    // sent again: still one application
+    await post("/join/rider", { ...RIDER_FORM, name: "Someone Else" }, { cookie: v.cookie });
+    expect(Number((await db.one<any>(`select count(*)::int as n from join_applications where party_id = $1`, [v.party])).n)).toBe(1);
+  });
+
+  it("a missing answer is named, what was typed is kept, and nothing is written", async () => {
+    const v = await confirmed("/join/rider");
+    const res = await post("/join/rider", { ...RIDER_FORM, licence: "" }, { cookie: v.cookie });
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(flat(mainOf(html))).toMatch(/Tell us whether you have a licence/);
+    expect(mainOf(html)).toContain('value="Sami Webtest"');
+    expect(Number((await db.one<any>(`select count(*)::int as n from join_applications where party_id = $1`, [v.party])).n)).toBe(0);
+    const noHours = await post("/join/rider", { ...RIDER_FORM, days: [] }, { cookie: v.cookie });
+    expect(noHours.status).toBe(400); expect(flat(mainOf(await noHours.text()))).toMatch(/Choose at least one day and one shift/);
+  });
+
+  it("an application from a visitor whose number is not confirmed writes nothing and asks for the confirmation; a post from another origin is refused", async () => {
+    const s = await post("/join/rider", { step: "code" });
+    const cookie = cookieOf(s)!;
+    const before = Number((await db.one<any>(`select count(*)::int as n from join_applications`)).n);
+    const res = await post("/join/rider", RIDER_FORM, { cookie });
+    expect(res.status).toBe(400);
+    expect(flat(mainOf(await res.text()))).toMatch(/Confirm your number on WhatsApp first/);
+    expect(Number((await db.one<any>(`select count(*)::int as n from join_applications`)).n)).toBe(before);
+    expect((await fetch(base + "/join/rider", { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded", origin: "https://evil.example" }, body: new URLSearchParams({ step: "code" }) })).status).toBe(403);
+    expect((await post("/join/rider", RIDER_FORM)).status).toBe(400);                           // no cookie at all: a new session, and nothing confirmed
+  });
+
+  it("/for-vendors offers a kitchen or shop what we do, publishes no commission figure, and says an application opens nothing", async () => {
+    const r = await page("/for-vendors");
+    expect(r.status).toBe(200);
+    const m = flat(mainOf(r.html));
+    expect(m).toMatch(/WhatsApp/);
+    expect(m).toMatch(/Applying does not open your place/i);
+    expect(m).toMatch(/terms we agree with you before you start/i);                              // a commission exists and is agreed first; its figure is not published
+    expect(m).not.toMatch(/\d\s?%|percent|commission of|\$\s?\d/i);
+    expect(m).not.toMatch(/\b(best|top rated|popular|healthy|recommended)\b/i);
+    expect(mainOf(r.html)).toMatch(/href="\/food"/);                                              // already listed? find your place
+    expect(mainOf(r.html)).not.toMatch(/type="tel"|name="phone"/i);
+    expect(mainOf(r.html)).toMatch(/name="step" value="code"/);
+  });
+
+  it("a vendor application: the owner's number confirmed the same way, then name, kind and village; a staff case and nothing else", async () => {
+    const v = await confirmed("/for-vendors");
+    const sources = Number((await db.one<any>(`select count(*)::int as n from sources where kind = 'merchant'`)).n);
+    const form = await page("/for-vendors", { cookie: v.cookie });
+    for (const f of ["name", "kind", "village"]) expect(mainOf(form.html), f).toContain(`name="${f}"`);
+    const kinds = await db.rpc<any>("setting", { p_key: "join" });                              // the kinds to choose from are the setting's (invariant 13)
+    for (const k of kinds.vendor.kinds) expect(mainOf(form.html), k).toMatch(new RegExp(`<option value="${k}"`));
+    expect(mainOf(form.html)).not.toMatch(/type="tel"|name="phone"/i);
+    const res = await post("/for-vendors", { step: "apply", name: "Test Oven", kind: "bakery", village: "Baakline" }, { cookie: v.cookie });
+    expect(res.status).toBe(303); expect(res.headers.get("location")).toMatch(/^\/for-vendors\?applied=1/);
+    const a = await db.one<any>(`select * from join_applications where party_id = $1`, [v.party]);
+    expect(a).toMatchObject({ kind: "vendor", status: "open", name: "Test Oven", place_kind: "bakery", listing_id: null });
+    expect((await db.one<any>(`select source from handoffs where id = $1`, [a.case_id])).source).toBe("vendor_application");
+    expect(Number((await db.one<any>(`select count(*)::int as n from sources where kind = 'merchant'`)).n)).toBe(sources);
+    expect(Number((await db.one<any>(`select count(*)::int as n from sources where kind = 'merchant' and is_open`)).n)).toBe(0);
+    expect(flat(mainOf((await page("/for-vendors?applied=1", { cookie: v.cookie })).html))).toMatch(/Your application is with us/);
+  });
+
+  it("for one of the listed places: the page is prefilled, says this counts as the claim, and the application links to the listing", async () => {
+    const v = await confirmed("/for-vendors");
+    const r = await page(`/for-vendors?place=${encodeURIComponent(aListing.listing_id)}`, { cookie: v.cookie });
+    const m = mainOf(r.html);
+    expect(m).toContain(aListing.name.replace(/&/g, "&amp;"));
+    expect(flat(m)).toMatch(/counts as your claim/i);
+    expect(m).toContain(`name="listing" value="${aListing.listing_id}"`);
+    const res = await post("/for-vendors", { step: "apply", name: aListing.name, kind: aListing.kind, village: aListing.village, listing: aListing.listing_id }, { cookie: v.cookie });
+    expect(res.status).toBe(303);
+    expect((await db.one<any>(`select listing_id from join_applications where party_id = $1`, [v.party])).listing_id).toBe(aListing.listing_id);
+    expect(Number((await db.one<any>(`select count(*)::int as n from listing_claims where listing_id = $1 and party_id = $2`, [aListing.listing_id, v.party])).n)).toBe(1);
+    // a place that is not there is ignored, not an error: the page is the plain one
+    const odd = await page(`/for-vendors?place=${encodeURIComponent("no such place")}`);
+    expect(odd.status).toBe(200); expect(flat(mainOf(odd.html))).not.toMatch(/counts as your claim/i);
+  });
+
+  it("a listed place's page and the Food page lead to the vendor page; every page leads to both from the footer", async () => {
+    const place = await page(`/food/${encodeURIComponent(aListing.listing_id)}`);
+    expect(place.html).toContain(`href="/for-vendors?place=${encodeURIComponent(aListing.listing_id)}"`);
+    const home = await page("/");
+    expect(home.html).toContain('href="/join/rider"'); expect(home.html).toContain('href="/for-vendors"');
+  });
+
+  it("is in Arabic and French too: right to left in Arabic, the hub is «المستودع» and never «المركز», every word present in each language", async () => {
+    for (const path of ["/join/rider", "/for-vendors"]) {
+      const ar = await page(path, { "accept-language": "ar" });
+      expect(ar.html).toContain('<html lang="ar" dir="rtl">');
+      const m = text(mainOf(ar.html));
+      expect(m, path).toMatch(/[؀-ۿ]/);
+      expect(m, path).not.toContain("المركز");
+      expect(m, path).not.toMatch(/\{\w+\}/);
+      const fr = await page(path, { "accept-language": "fr" });
+      expect(fr.html).toContain('<html lang="fr" dir="ltr">'); expect(text(mainOf(fr.html)), path).not.toMatch(/\{\w+\}/);
+    }
+    expect(text(mainOf((await page("/join/rider", { "accept-language": "ar" })).html))).toContain("المستودع");
+    for (const k of Object.keys(DICTS.en).filter((k) => k.startsWith("join_") || k.startsWith("vend_"))) {
+      expect(DICTS.ar[k], `ar ${k}`).toBeTruthy(); expect(DICTS.fr[k], `fr ${k}`).toBeTruthy();
+    }
+  });
+
+  it("says nothing that rates, praises or promises: no rating, score, ranking, 'best', 'healthy' or income promise", async () => {
+    for (const path of ["/join/rider", "/for-vendors"]) for (const l of ["en", "ar", "fr"]) {
+      const t = flat(mainOf((await page(path, { "accept-language": l })).html));
+      expect(t, `${path} ${l}`).not.toMatch(/\b(best|top rated|top-rated|healthy|guaranteed|earn up to|per month|a month|sans commission)\b/i);
+      expect(t, `${path} ${l}`).not.toMatch(/\b\d+\s?(stars?|\/\s?5)\b|★|⭐/);
+    }
+  });
+
+  it("each page weighs under 100 KB on a first visit, Arabic included (the page, its stylesheet, its script and its fonts)", async () => {
+    const out: string[] = [];
+    for (const path of ["/join/rider", "/for-vendors", `/for-vendors?place=${encodeURIComponent(aListing.listing_id)}`, "/"]) for (const l of ["en", "ar", "fr"]) {
+      const w = await weigh(path, { "accept-language": l });
+      out.push(`${path} ${l} ${(w.bytes / 1024).toFixed(1)} KB`);
+      expect(w.bytes, `${path} ${l}: ${(w.bytes / 1024).toFixed(1)} KB`).toBeLessThan(100 * 1024);
+    }
+    writeFileSync(root + "dist/ux3-weights.txt", out.join("\n") + "\n");
+  });
+});

@@ -2,7 +2,7 @@
 // The Worker holds the project's anon key (the gateway of the API wants an `apikey`; it is a public key) and a token whose role claim
 // is web_channel. Those two and the project address are Worker secrets (docs/HANDOFF.md, WEB1). What the role may call is the nine
 // session functions and the four catalog functions; the database refuses everything else.
-import { webCatalog, webListings, type RpcSource } from "@ak/commerce/index";
+import { webCatalog, webJoin, webListings, type RpcSource } from "@ak/commerce/index";
 
 export interface WebEnv { ENVIRONMENT?: string; SENTRY_DSN?: string; SUPABASE_URL?: string; SUPABASE_ANON_KEY?: string; WEB_CHANNEL_JWT?: string; PICTURE_TRANSFORMS?: string; PAGE_CACHE?: string }
 
@@ -45,3 +45,5 @@ export function pictureUrl(env: Pick<WebEnv, "SUPABASE_URL" | "PICTURE_TRANSFORM
     ? `${base}/storage/v1/render/image/public/catalog/${key}?width=${width}&resize=contain`
     : `${base}/storage/v1/object/public/catalog/${key}`;
 }
+/** The join pages (UX3): /join/rider and /for-vendors, as the same role. */
+export const joinFor = (env: WebEnv, fetchImpl?: typeof fetch) => webJoin(postgrestSource(env, fetchImpl));

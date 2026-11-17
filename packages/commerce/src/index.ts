@@ -84,8 +84,10 @@ export const WEB_SESSION_FUNCTIONS = [
 export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category", "web_catalog_product", "web_catalog_search"] as const;
 /** The Food pages' functions (migration 0224, session LV1): the places listed before they sign. Never orderable; no price, stock or menu. */
 export const WEB_LISTING_FUNCTIONS = ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"] as const;
+/** The join pages' functions (migration 0233, session UX3): an application to ride or to sell. An application is a case for staff, never a rider or a merchant. */
+export const WEB_JOIN_FUNCTIONS = ["web_join_options", "web_join_state", "web_join_code", "web_apply_rider", "web_apply_vendor"] as const;
 /** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
-export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS] as const;
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
 
 // ---------- the catalog pages' shapes ----------
 export interface CatalogPicture {
@@ -157,6 +159,22 @@ export type ClaimListingResult =
   | { ok: false; status: "not_a_claim" | "unknown" }
   | { ok: true; status: "claimed"; again: boolean; listing_id: string; name: string; hidden: boolean; case: { case_id: string; opened?: boolean; after_hours?: boolean; opens?: string | null } };
 
+// ---------- the join pages (UX3): /join/rider and /for-vendors ----------
+export type JoinPurpose = "rider" | "vendor";
+export interface JoinOptions {
+  villages: { name_en: string; name_ar: string | null; served: boolean }[];
+  shifts: { id: string; from: string; to: string }[]; vehicles: string[]; vendor_kinds: string[];
+  cash_cap: { soft_usd: number; hard_usd: number }; fees: { min_usd: number; max_usd: number } | null; whatsapp: string | null;
+}
+export interface JoinState {
+  valid: boolean; linked: boolean; code_waiting?: { code: string; expires_at: string } | null; application?: { id: string; name: string; created_at: string } | null;
+}
+export type JoinCode = { ok: true; code: string; expires_at: string } | { ok: false; error: "bad_purpose" | "no_session" | "already_linked" };
+export type JoinError = "no_session" | "not_confirmed" | "bad_name" | "bad_village" | "bad_vehicle" | "bad_licence" | "bad_hours" | "bad_kind" | "limit";
+export type JoinApplied = { ok: true; again: boolean; id: string; listing?: string | null } | { ok: false; error: JoinError };
+export interface RiderApplication { name: string; village: string; vehicle: string; licence: boolean; days: string[]; shifts: string[] }
+export interface VendorApplication { name: string; kind: string; village: string; listing?: string | null }
+
 // ---------- the website (role web_channel) ----------
 export function webCommerce(db: RpcSource) {
   return {
@@ -207,6 +225,20 @@ export function webListings(db: RpcSource) {
   };
 }
 export type WebListings = ReturnType<typeof webListings>;
+
+/** The join pages' reads and writes, as web_channel. The applicant's party always comes from the confirmed session, never from the request. */
+export function webJoin(db: RpcSource) {
+  return {
+    options: () => call<JoinOptions>(db, "web_join_options", {}),
+    state: (token: string, purpose: JoinPurpose) => call<JoinState>(db, "web_join_state", { p_token: token, p_purpose: purpose }),
+    code: (token: string, purpose: JoinPurpose) => call<JoinCode>(db, "web_join_code", { p_token: token, p_purpose: purpose }),
+    applyRider: (token: string, a: RiderApplication) =>
+      call<JoinApplied>(db, "web_apply_rider", { p_token: token, p_name: a.name, p_village: a.village, p_vehicle: a.vehicle, p_licence: a.licence, p_days: a.days, p_shifts: a.shifts }),
+    applyVendor: (token: string, a: VendorApplication) =>
+      call<JoinApplied>(db, "web_apply_vendor", { p_token: token, p_name: a.name, p_kind: a.kind, p_village: a.village, p_listing: a.listing ?? null }),
+  };
+}
+export type WebJoin = ReturnType<typeof webJoin>;
 
 // ---------- the gateway and the console (service role) ----------
 export function channelCommerce(db: RpcSource) {

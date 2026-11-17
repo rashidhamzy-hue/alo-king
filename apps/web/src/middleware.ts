@@ -2,13 +2,13 @@
 // 60-second page cache for the catalog pages (keyed by language, because the page differs by language), and the security headers.
 // Price and stock on a cached page can be a minute old; the cart and checkout read them again through quote_order (WEBSITE.md).
 import { env as workerEnv } from "cloudflare:workers";
-import { catalogFor, listingsFor, type WebEnv } from "./lib/db";
+import { catalogFor, joinFor, listingsFor, type WebEnv } from "./lib/db";
 import { negotiate } from "./lib/i18n";
 import { makeLimiter } from "./lib/rate";
 import { guarded, reportCheckIn } from "./lib/sentry";
 
 const searchLimit = makeLimiter(30, 60_000);
-// LV1: the Food pages' two form posts ("I want to order from here", "Remove this listing"). Per address, in one isolate's memory like the search limit; the database also caps what they write.
+// UX3: the two join pages' posts count here too. LV1: the Food pages' two form posts ("I want to order from here", "Remove this listing"). Per address, in one isolate's memory like the search limit; the database also caps what they write.
 const foodPostLimit = makeLimiter(20, 60_000);
 const CACHEABLE = /^\/(?:$|c\/[^/]+$|p\/[^/]+$)/;
 
@@ -43,12 +43,13 @@ async function handle(ctx: any, next: () => Promise<Response>, env: WebEnv): Pro
   ctx.locals.lang = lang;
   ctx.locals.catalog = () => catalogFor(env);
   ctx.locals.listings = () => listingsFor(env);
+  ctx.locals.join = () => joinFor(env);
 
   if (url.pathname === "/search" && !searchLimit(req.headers.get("cf-connecting-ip") ?? "unknown")) {
     return new Response("Too many searches. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 
-  if (req.method === "POST" && /^\/food\/[^/]+\/(?:want|remove)$/.test(url.pathname) && !foodPostLimit(req.headers.get("cf-connecting-ip") ?? "unknown")) {
+  if (req.method === "POST" && /^\/(?:food\/[^/]+\/(?:want|remove)|join\/rider|for-vendors)$/.test(url.pathname) && !foodPostLimit(req.headers.get("cf-connecting-ip") ?? "unknown")) {
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 
