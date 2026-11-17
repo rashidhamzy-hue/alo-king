@@ -87,7 +87,7 @@ const en: Dict = {
   w2_how_first: "A first order is paid in cash up to {cap}; above that, by transfer.", w2_how_missing: "If something is missing",
   w2_how_missing_text: "You choose on each order: the closest match, a message first, or leave it out, for everything or per item.",
   w2_how_confirm: "Confirming", w2_how_confirm_text: "Nothing is held until you tap Confirm. One reminder after {r} minutes; the card lapses after {l} minutes, and you can open it again.",
-  w2_how_code: "The handover code", w2_how_code_text: "A prepaid order is handed over only against a 4-digit code we send you.",
+  w2_how_code: "The handover code", w2_how_code_text: "A prepaid order, and an order you collect at the hub, is handed over only against a 4-digit code we send you.",
   w2_how_account: "Your account and privacy", w2_how_account_text: "No password: one WhatsApp message confirms your number. Sign out at any time, and see or forget what we remember.",
   w2_how_cta: "Start shopping", w2_page_prev: "Previous", w2_page_next: "Next", w2_page_n: "Page {n} of {total}",
 };
@@ -126,7 +126,7 @@ const ar: Dict = {
   w2_house: "البيت أو المبنى", w2_floor: "الطابق", w2_directions: "إرشادات لعامل التوصيل (اختياري)", w2_save: "احفظ",
   w2_has_pin: "محدّد على الخريطة", w2_no_pin: "بلا موقع", w2_step_when: "متى؟", w2_now: "بأسرع وقت", w2_now_eta: "بأسرع وقت (حوالي {n} دقيقة)",
   w2_now_closed: "نحن مغلقون الآن. اختر موعدًا للتوصيل.", w2_windows_none: "لا مواعيد توصيل في الأيام القادمة.",
-  w2_step_missing: "إذا نقص منتج", w2_missing_best_match: "الأقرب إليه", w2_missing_ask: "راسلني أولًا", w2_missing_remove: "احذفه",
+  w2_step_missing: "إذا نقص منتج", w2_missing_best_match: "أقرب بديل", w2_missing_ask: "راسلني أولًا", w2_missing_remove: "احذفه",
   w2_missing_per_item: "اختر لكل منتج", w2_missing_same: "كما في الأعلى",
   w2_step_pay: "الدفع", w2_pay_usd: "نقدًا بالدولار", w2_pay_lbp: "نقدًا بالليرة، بسعر اليوم", w2_pay_rate: "سعر اليوم للدولار الواحد:",
   w2_pay_whish: "تحويل عبر Whish", w2_pay_omt: "تحويل عبر OMT",
@@ -174,7 +174,7 @@ const ar: Dict = {
   w2_how_first: "يُدفع الطلب الأول نقدًا حتى {cap}؛ وما فوق ذلك بالتحويل.", w2_how_missing: "إذا نقص شيء",
   w2_how_missing_text: "تختار في كل طلب: الأقرب إليه، أو رسالة أولًا، أو حذفه، للكل أو لكل منتج.",
   w2_how_confirm: "التأكيد", w2_how_confirm_text: "لا نحجز شيئًا قبل أن تضغط «تأكيد». تذكير واحد بعد {r} دقيقة؛ تنتهي البطاقة بعد {l} دقيقة، ويمكنك فتحها من جديد.",
-  w2_how_code: "رمز التسليم", w2_how_code_text: "الطلب المدفوع مسبقًا لا يُسلَّم إلا مقابل رمز من 4 أرقام نرسله لك.",
+  w2_how_code: "رمز التسليم", w2_how_code_text: "الطلب المدفوع مسبقًا، والطلب الذي تستلمه من المستودع، لا يُسلَّم إلا مقابل رمز من 4 أرقام نرسله لك.",
   w2_how_account: "حسابك وخصوصيتك", w2_how_account_text: "لا كلمة مرور: رسالة واحدة عبر واتساب تؤكد رقمك. سجّل الخروج متى شئت، واطّلع على ما نتذكّره أو امحُه.",
   w2_how_cta: "ابدأ التسوّق", w2_page_prev: "السابق", w2_page_next: "التالي", w2_page_n: "الصفحة {n} من {total}",
 };
@@ -261,7 +261,7 @@ const fr: Dict = {
   w2_how_first: "Une première commande se paie en espèces jusqu'à {cap} ; au-delà, par virement.", w2_how_missing: "Si quelque chose manque",
   w2_how_missing_text: "Vous choisissez à chaque commande : le plus proche, un message d'abord, ou le retirer, pour tout ou article par article.",
   w2_how_confirm: "Confirmer", w2_how_confirm_text: "Rien n'est réservé avant que vous touchiez Confirmer. Un rappel après {r} minutes ; le bon expire après {l} minutes, et vous pouvez le rouvrir.",
-  w2_how_code: "Le code de remise", w2_how_code_text: "Une commande payée d'avance n'est remise que contre un code à 4 chiffres que nous vous envoyons.",
+  w2_how_code: "Le code de remise", w2_how_code_text: "Une commande payée d'avance, et une commande que vous retirez au dépôt, ne sont remises que contre un code à 4 chiffres que nous vous envoyons.",
   w2_how_account: "Votre compte et votre vie privée", w2_how_account_text: "Pas de mot de passe : un message WhatsApp confirme votre numéro. Déconnectez-vous à tout moment, voyez ou effacez ce que nous retenons.",
   w2_how_cta: "Commencer les courses", w2_page_prev: "Précédent", w2_page_next: "Suivant", w2_page_n: "Page {n} sur {total}",
 };

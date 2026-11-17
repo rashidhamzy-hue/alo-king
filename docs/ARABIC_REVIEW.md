@@ -552,7 +552,7 @@ fixed message is. `{km}`, `{n}`, `{total}` and `{name}` are filled by code.
 
 ## WEB2, the website's basket, sign-in, checkout, order page, history, account and "How it works" (17 November 2026)
 
-Written by a model; **not yet read by a person**: the "Read by" column is empty and the Arabic, English and French all wait for a reader.
+Written by a model; **read by the coordinator on 17 November 2026 ("RA 17 Nov")**, who changed four Arabic lines (`w2_missing_best_match` «أقرب بديل», the customers' word since CX1; `w2_how_code_text`, which now names pickup orders too, with its English and French; `web.signedOut`; `web.codeUsed`); the rest were accepted as written.
 Three places hold words: the website (the `w2_` keys of `apps/web/src/lib/i18n-web2.ts`, merged into the site's dictionary; the test
 `test/ci/web2-words.test.ts` checks this table lists every one, word for word), the French words for the order statuses (`FR_STATUS` in
 `apps/web/src/lib/order.ts`; Arabic and English come from DS2's label table, read on 17 November), and the WhatsApp lines (`messages(...).web`,
@@ -565,249 +565,249 @@ from the database. The order card itself is the WhatsApp card's own words (read 
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `web.w2_basket` | السلة | Basket | Panier | |
-| `web.w2_basket_n` | السلة، {n} منتج | Basket, {n} items | Panier, {n} articles | |
-| `web.w2_account` | حسابي | Account | Compte | |
-| `web.w2_orders` | طلباتك | Your orders | Vos commandes | |
-| `web.w2_how` | كيف يعمل | How it works | Comment ça marche | |
-| `web.w2_add` | أضف إلى السلة | Add to basket | Ajouter au panier | |
-| `web.w2_added` | أُضيف إلى سلتك. | Added to your basket. | Ajouté à votre panier. | |
-| `web.w2_view_basket` | اعرض السلة | View basket | Voir le panier | |
-| `web.w2_basket_title` | سلتك | Your basket | Votre panier | |
-| `web.w2_basket_empty` | سلتك فارغة. | Your basket is empty. | Votre panier est vide. | |
-| `web.w2_basket_empty_text` | أضف منتجات من الأقسام أو من البحث. | Add items from the aisles or from search. | Ajoutez des articles depuis les rayons ou la recherche. | |
-| `web.w2_browse` | تصفّح الأقسام | Browse the aisles | Parcourir les rayons | |
-| `web.w2_qty` | الكمية | Quantity | Quantité | |
-| `web.w2_less` | أنقص واحدًا | One less | Un de moins | |
-| `web.w2_more` | زِد واحدًا | One more | Un de plus | |
-| `web.w2_remove` | احذف | Remove | Retirer | |
-| `web.w2_items_total` | المنتجات | Items | Articles | |
-| `web.w2_delivery` | التوصيل | Delivery | Livraison | |
-| `web.w2_delivery_to` | التوصيل إلى {village} | Delivery to {village} | Livraison à {village} | |
-| `web.w2_small_fee` | رسم الطلب الصغير | Small-order fee | Frais de petite commande | |
-| `web.w2_credit` | رصيدك | Your credit | Votre crédit | |
-| `web.w2_dues` | مستحق من قبل | Owed from before | Dû d'avant | |
-| `web.w2_total` | المجموع | Total | Total | |
-| `web.w2_in_lira` | بالليرة، بسعر اليوم | In lira, at today's rate | En livres, au taux du jour | |
-| `web.w2_fee_pick` | اختر قريتك لترى رسم التوصيل. | Choose your village to see the delivery fee. | Choisissez votre village pour voir les frais de livraison. | |
-| `web.w2_village` | قريتك | Your village | Votre village | |
-| `web.w2_village_show` | اعرض الرسم | Show the fee | Voir les frais | |
-| `web.w2_min_missing` | الحد الأدنى للطلب {min}. أضف {gap} لتتمكّن من إتمام الطلب. | The minimum order is {min}. Add {gap} more to check out. | La commande minimum est de {min}. Ajoutez encore {gap} pour commander. | |
-| `web.w2_min_ok` | بلغت الحد الأدنى للطلب. | The minimum order is reached. | La commande minimum est atteinte. | |
-| `web.w2_checkout` | أتمّ الطلب | Check out | Commander | |
-| `web.w2_sold_out` | نفد الآن، لذلك لم يُحسب: | Sold out now, so it is left out: | Épuisé pour l'instant, donc laissé de côté : | |
-| `web.w2_coming_soon` | قريباً، لا نستطيع أخذه بعد: | Coming soon, we can't take it yet: | Bientôt disponible, nous ne pouvons pas encore le prendre : | |
-| `web.w2_unknown` | لم يعد يُباع، لذلك لم يُحسب: | No longer sold, so it is left out: | Plus vendu, donc laissé de côté : | |
-| `web.w2_price_changed` | تغيّر السعر منذ أضفته: | The price changed since you added it: | Le prix a changé depuis l'ajout : | |
-| `web.w2_again_missing` | غير متوفر الآن، لذلك لم يُضَف: | Not available now, so not added: | Indisponible pour l'instant, donc pas ajouté : | |
-| `web.w2_again_done` | طلبك الأخير في السلة بأسعار اليوم. | Your last order is in the basket at today's prices. | Votre dernière commande est dans le panier, aux prix du jour. | |
-| `web.w2_prices_note` | نقرأ الأسعار والتوفر من متجرنا من جديد في كل مرة تفتح فيها هذه الصفحة. | Prices and stock are read again from our shop each time you open this page. | Les prix et le stock sont relus dans notre magasin à chaque ouverture de cette page. | |
-| `web.w2_rider_fee_note` | رسم التوصيل يذهب كاملًا إلى عامل التوصيل. | The delivery fee goes to the rider in full. | Les frais de livraison vont entièrement au livreur. | |
-| `web.w2_signin_title` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmez votre numéro sur WhatsApp | |
-| `web.w2_signin_lead` | لا كلمة مرور ولا شيء لتكتبه. رسالة واحدة من واتساب الخاص بك تؤكد رقمك وتُبقي هذا الجهاز مسجّلًا لمدة {days} يومًا. | No password, nothing to type. One message from your own WhatsApp confirms your number and signs in this device for {days} days. | Pas de mot de passe, rien à taper. Un message depuis votre propre WhatsApp confirme votre numéro et garde cet appareil connecté pendant {days} jours. | |
-| `web.w2_signin_button` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmer votre numéro sur WhatsApp | |
-| `web.w2_signin_step1` | اضغط الزر. يُفتح واتساب والرمز مكتوب مسبقًا. | Tap the button. WhatsApp opens with a code already typed. | Appuyez sur le bouton. WhatsApp s'ouvre avec un code déjà écrit. | |
-| `web.w2_signin_step2` | اضغط إرسال. لا تغيّر الرمز. | Press send. Do not change the code. | Appuyez sur envoyer. Ne changez pas le code. | |
-| `web.w2_signin_step3` | عُد إلى هذه الصفحة. تتحدّث وحدها. | Come back to this page. It updates by itself. | Revenez sur cette page. Elle se met à jour toute seule. | |
-| `web.w2_signin_code` | رمزك | Your code | Votre code | |
-| `web.w2_signin_open` | افتح واتساب | Open WhatsApp | Ouvrir WhatsApp | |
-| `web.w2_signin_waiting` | بانتظار رسالتك. | Waiting for your message. | En attente de votre message. | |
-| `web.w2_signin_expires` | يعمل الرمز لمدة {n} دقائق. | The code works for {n} minutes. | Le code est valable {n} minutes. | |
-| `web.w2_signin_done` | تأكّد رقمك. هذا الجهاز مسجّل الدخول. | Your number is confirmed. This device is signed in. | Votre numéro est confirmé. Cet appareil est connecté. | |
-| `web.w2_signin_continue` | تابِع | Continue | Continuer | |
-| `web.w2_signin_consent` | بإرسال الرمز تؤكد رقمك وتسمح لنا بإرسال تحديثات طلباتك في هذه المحادثة. | Sending the code confirms your number and lets us send your order updates in this chat. | Envoyer le code confirme votre numéro et nous permet d'envoyer le suivi de vos commandes dans cette conversation. | |
-| `web.w2_signin_no_wa` | عنوان واتساب الخاص بنا غير محدّد بعد، لذلك لا يمكن تسجيل الدخول الآن. | Our WhatsApp address is not set yet, so signing in is not possible yet. | Notre adresse WhatsApp n'est pas encore définie : la connexion n'est pas encore possible. | |
-| `web.w2_signin_b1` | كل طلباتك في مكان واحد | Every order in one place | Toutes vos commandes au même endroit | |
-| `web.w2_signin_b1_text` | الطلبات التي أرسلتها عبر واتساب وهنا. | Orders you placed on WhatsApp and here. | Les commandes passées sur WhatsApp et ici. | |
-| `web.w2_signin_b2` | أماكنك | Your places | Vos adresses | |
-| `web.w2_signin_b2_text` | تُحفظ مرة وتُستعمل في الاثنين. | Saved once, used on both. | Enregistrées une fois, utilisées des deux côtés. | |
-| `web.w2_signin_b3` | أنت فقط | Only you | Vous seul | |
-| `web.w2_signin_b3_text` | يُثبت رقمك برسالة من واتساب الخاص بك. يمكنك تسجيل الخروج من كل الأجهزة في أي وقت. | Your number is proven by a message from your own WhatsApp. Sign out on every device at any time. | Votre numéro est prouvé par un message depuis votre propre WhatsApp. Déconnectez tous vos appareils à tout moment. | |
-| `web.w2_checkout_title` | إتمام الطلب | Checkout | Commande | |
-| `web.w2_step_place` | إلى أين؟ | Where to? | Où livrer ? | |
-| `web.w2_saved_places` | الأماكن المحفوظة | Saved places | Adresses enregistrées | |
-| `web.w2_no_places` | لا يوجد مكان محفوظ بعد. | No saved place yet. | Aucune adresse enregistrée. | |
-| `web.w2_use_location` | استعمل موقعي | Use my location | Utiliser ma position | |
-| `web.w2_location_hint` | يطلب هاتفك مرة واحدة مشاركة موقعك. الموقع يحدّد القرية ورسم التوصيل. | Your phone asks once to share your location. The pin decides the village and the fee. | Votre téléphone demande une fois de partager votre position. La position décide du village et des frais. | |
-| `web.w2_paste_pin` | أو الصق رابط خريطة أو إحداثيات | Or paste a map link or coordinates | Ou collez un lien de carte ou des coordonnées | |
-| `web.w2_paste_hint` | مثلًا رابط من خرائط Google، أو 33.68, 35.56 | For example a Google Maps link, or 33.68, 35.56 | Par exemple un lien Google Maps, ou 33.68, 35.56 | |
-| `web.w2_save_pin` | احفظ هذا الموقع | Save this pin | Enregistrer cette position | |
-| `web.w2_send_location` | أرسل موقعي عبر واتساب | Send my location on WhatsApp | Envoyer ma position sur WhatsApp | |
-| `web.w2_send_location_hint` | في المحادثة، اضغط على المشبك، ثم الموقع، ثم إرسال. يظهر مكانك هنا بعد ذلك. | In the chat, tap the clip, then Location, then send. Your place then appears here. | Dans la conversation, touchez le trombone, puis Position, puis envoyer. Votre adresse apparaît ensuite ici. | |
-| `web.w2_refresh` | أرسلته، حدّث الصفحة | I sent it, refresh | Je l'ai envoyée, actualiser | |
-| `web.w2_pin_located` | الموقع في {village}. | Pinned in {village}. | Position à {village}. | |
-| `web.w2_pin_unsure` | في أي قرية هذا الموقع؟ | Which village is this pin in? | Dans quel village est cette position ? | |
-| `web.w2_pin_outside` | لا نوصّل إلى هناك بعد. يمكنك أن تسألنا عبر واتساب. | We don't deliver there yet. You can ask us on WhatsApp. | Nous ne livrons pas encore là-bas. Vous pouvez nous demander sur WhatsApp. | |
-| `web.w2_pin_not_served` | لا نوصّل إلى {village} بعد. | We don't deliver to {village} yet. | Nous ne livrons pas encore à {village}. | |
-| `web.w2_pin_bad` | لم نستطع قراءة موقع من هذا. | We could not read a position from that. | Nous n'avons pas pu lire de position. | |
-| `web.w2_pin_choose` | اختر | Choose | Choisir | |
-| `web.w2_house` | البيت أو المبنى | House or building | Maison ou immeuble | |
-| `web.w2_floor` | الطابق | Floor | Étage | |
-| `web.w2_directions` | إرشادات لعامل التوصيل (اختياري) | Directions for the rider (optional) | Indications pour le livreur (facultatif) | |
-| `web.w2_save` | احفظ | Save | Enregistrer | |
-| `web.w2_has_pin` | محدّد على الخريطة | Pinned | Position enregistrée | |
-| `web.w2_no_pin` | بلا موقع | No pin | Sans position | |
-| `web.w2_step_when` | متى؟ | When? | Quand ? | |
-| `web.w2_now` | بأسرع وقت | As soon as possible | Dès que possible | |
-| `web.w2_now_eta` | بأسرع وقت (حوالي {n} دقيقة) | As soon as possible (about {n} min) | Dès que possible (environ {n} min) | |
-| `web.w2_now_closed` | نحن مغلقون الآن. اختر موعدًا للتوصيل. | We're closed now. Choose a delivery window. | Nous sommes fermés. Choisissez un créneau de livraison. | |
-| `web.w2_windows_none` | لا مواعيد توصيل في الأيام القادمة. | No delivery windows in the coming days. | Aucun créneau de livraison dans les prochains jours. | |
-| `web.w2_step_missing` | إذا نقص منتج | If an item is missing | Si un article manque | |
-| `web.w2_missing_best_match` | الأقرب إليه | The closest match | Le plus proche | |
-| `web.w2_missing_ask` | راسلني أولًا | Message me first | M'écrire d'abord | |
-| `web.w2_missing_remove` | احذفه | Leave it out | Le retirer | |
-| `web.w2_missing_per_item` | اختر لكل منتج | Choose per item | Choisir article par article | |
-| `web.w2_missing_same` | كما في الأعلى | Same as above | Comme ci-dessus | |
-| `web.w2_step_pay` | الدفع | Payment | Paiement | |
-| `web.w2_pay_usd` | نقدًا بالدولار | Cash in dollars | Espèces en dollars | |
-| `web.w2_pay_lbp` | نقدًا بالليرة، بسعر اليوم | Cash in lira, at today's rate | Espèces en livres, au taux du jour | |
-| `web.w2_pay_rate` | سعر اليوم للدولار الواحد: | Today's rate for one dollar: | Le taux du jour pour un dollar : | |
-| `web.w2_pay_whish` | تحويل عبر Whish | Whish transfer | Virement Whish | |
-| `web.w2_pay_omt` | تحويل عبر OMT | OMT transfer | Virement OMT | |
-| `web.w2_pay_transfer_note` | يتحقق شخص من تحويلك قبل أن نجهّز الطلب. نرسل لك التفاصيل عبر واتساب بعد أن تؤكد. | A person checks your transfer before we pack. We send the details on WhatsApp after you confirm. | Une personne vérifie votre virement avant la préparation. Nous envoyons les détails sur WhatsApp après votre confirmation. | |
-| `web.w2_note` | بأي ورقة ستدفع؟ | Which note will you pay with? | Avec quel billet payerez-vous ? | |
-| `web.w2_note_exact` | المبلغ تمامًا | The exact amount | Le montant exact | |
-| `web.w2_note_lbp` | كم ستدفع؟ | How much will you hand over? | Combien donnerez-vous ? | |
-| `web.w2_no_card` | الدفع بالبطاقة أو Whish Pay لاحقًا. | Paying by card or Whish Pay comes later. | Le paiement par carte ou Whish Pay viendra plus tard. | |
-| `web.w2_first_cap` | يُدفع الطلب الأول نقدًا حتى {cap}. هذا الطلب أكبر، فاختر Whish أو OMT. | A first order is paid in cash up to {cap}. This order is larger, so choose Whish or OMT. | Une première commande se paie en espèces jusqu'à {cap}. Celle-ci est plus grande : choisissez Whish ou OMT. | |
-| `web.w2_step_notes` | شيء آخر؟ (اختياري) | Anything else? (optional) | Autre chose ? (facultatif) | |
-| `web.w2_card` | بطاقة طلبك | Your order card | Votre bon de commande | |
-| `web.w2_update` | حدّث البطاقة | Update the card | Mettre à jour le bon | |
-| `web.w2_send_card` | أرسل الطلب إلى واتساب الخاص بي | Send the order to my WhatsApp | Envoyer la commande sur mon WhatsApp | |
-| `web.w2_confirm_on_wa` | لم يُطلب شيء بعد. نرسل هذه البطاقة إلى واتساب الخاص بك، ويُرسل الطلب عندما تضغط «تأكيد» هناك. | Nothing is ordered yet. We send this card to your WhatsApp, and the order is placed when you tap Confirm there. | Rien n'est encore commandé. Nous envoyons ce bon sur votre WhatsApp, et la commande est passée quand vous touchez Confirmer là-bas. | |
-| `web.w2_need_place` | اختر مكانًا أو حدّد موقعًا أولًا. | Choose or pin a place first. | Choisissez ou enregistrez d'abord une adresse. | |
-| `web.w2_need_details` | أضف البيت والطابق ليجدك عامل التوصيل. | Add the house and floor, so the rider finds you. | Ajoutez la maison et l'étage, pour que le livreur vous trouve. | |
-| `web.w2_err_not_ready` | تغيّر شيء في البطاقة. راجعها وأرسلها من جديد. | Something on the card changed. Check it and send again. | Quelque chose a changé sur le bon. Vérifiez-le et renvoyez-le. | |
-| `web.w2_err_note_too_small` | هذا المبلغ ليس أكثر من المجموع. | That amount is not more than the total. | Ce montant n'est pas supérieur au total. | |
-| `web.w2_err_unknown_note` | اختر أحد المبالغ في القائمة. | Choose one of the amounts in the list. | Choisissez un des montants de la liste. | |
-| `web.w2_err_closed` | نحن مغلقون الآن. اختر موعدًا للتوصيل. | We're closed now. Choose a delivery window. | Nous sommes fermés. Choisissez un créneau de livraison. | |
-| `web.w2_err_village` | لا نوصّل إلى هذا المكان بعد. | We don't deliver to this place yet. | Nous ne livrons pas encore à cette adresse. | |
-| `web.w2_err_fx` | نحدّث سعر اليوم الآن. حاول بعد دقائق. | We're updating today's rate. Try again in a few minutes. | Nous mettons à jour le taux du jour. Réessayez dans quelques minutes. | |
-| `web.w2_err_empty` | سلتك فارغة. | Your basket is empty. | Votre panier est vide. | |
-| `web.w2_err_window` | لم يعد هذا الموعد متاحًا. اختر موعدًا آخر. | That delivery window is no longer open. Choose another. | Ce créneau n'est plus ouvert. Choisissez-en un autre. | |
-| `web.w2_err_not_linked` | أكّد رقمك أولًا. | Confirm your number first. | Confirmez d'abord votre numéro. | |
-| `web.w2_err_any` | لم نستطع الإرسال. حاول بعد قليل. | We could not send it. Try again in a moment. | L'envoi n'a pas abouti. Réessayez dans un instant. | |
-| `web.w2_order_title` | الطلب {code} | Order {code} | Commande {code} | |
-| `web.w2_order_waiting` | بطاقة طلبك على واتساب. اضغط «تأكيد» هناك لإرسال الطلب. | Your order card is on WhatsApp. Tap Confirm there to place the order. | Votre bon de commande est sur WhatsApp. Touchez Confirmer là-bas pour passer la commande. | |
-| `web.w2_order_waiting_note` | لا نحجز شيئًا قبل أن تؤكد. تنتهي البطاقة بعد {n} دقيقة من إنشائها. | Nothing is held until you confirm. The card lapses {n} minutes after it was made. | Rien n'est réservé avant votre confirmation. Le bon expire {n} minutes après sa création. | |
-| `web.w2_order_resend` | لم تصلك البطاقة؟ افتح واتساب وأرسل الرسالة المكتوبة: تعود البطاقة فورًا. | Didn't get the card? Open WhatsApp and send the message we typed: the card comes back at once. | Vous n'avez pas reçu le bon ? Ouvrez WhatsApp et envoyez le message préparé : le bon revient aussitôt. | |
-| `web.w2_order_open_wa` | افتح واتساب | Open WhatsApp | Ouvrir WhatsApp | |
-| `web.w2_order_steps` | أين طلبك | Where your order is | Où en est votre commande | |
-| `web.w2_order_window` | التوصيل: {when} | Delivery: {when} | Livraison : {when} | |
-| `web.w2_order_eta` | التوصيل خلال حوالي {n} دقيقة بعد خروجه من المستودع. | Delivery in about {n} minutes once it leaves the hub. | Livraison en environ {n} minutes une fois partie du dépôt. | |
-| `web.w2_order_changed` | ما الذي تغيّر | What changed | Ce qui a changé | |
-| `web.w2_order_removed` | حُذف: | Taken off: | Retiré : | |
-| `web.w2_order_substituted` | {name} بدل {for} | {name} instead of {for} | {name} à la place de {for} | |
-| `web.w2_order_code` | رمز التسليم | Your handover code | Votre code de remise | |
-| `web.w2_order_code_note` | أعطه فقط عندما يصبح طلبك بين يديك. | Give it only when you have your order in your hands. | Donnez-le seulement quand vous avez votre commande en main. | |
-| `web.w2_order_person` | تحدّث إلى شخص | Talk to a person | Parler à une personne | |
-| `web.w2_order_cancelled` | هذا الطلب مُلغى. | This order is cancelled. | Cette commande est annulée. | |
-| `web.w2_order_items` | في هذا الطلب | In this order | Dans cette commande | |
-| `web.w2_order_updates` | تتحدّث هذه الصفحة وحدها. | This page updates by itself. | Cette page se met à jour toute seule. | |
-| `web.w2_order_payment` | الدفع | Payment | Paiement | |
-| `web.w2_today` | اليوم | today | aujourd'hui | |
-| `web.w2_tomorrow` | غدًا | tomorrow | demain | |
-| `web.w2_orders_title` | طلباتك | Your orders | Vos commandes | |
-| `web.w2_orders_none` | لا طلبات بعد. | No orders yet. | Pas encore de commande. | |
-| `web.w2_on_whatsapp` | عبر واتساب | On WhatsApp | Sur WhatsApp | |
-| `web.w2_on_web` | عبر الموقع | On the website | Sur le site | |
-| `web.w2_order_again` | اطلبه مجددًا | Order again | Commander à nouveau | |
-| `web.w2_view` | اعرض | View | Voir | |
-| `web.w2_items_n` | {n} منتج | {n} items | {n} articles | |
-| `web.w2_account_title` | حسابك | Your account | Votre compte | |
-| `web.w2_places` | الأماكن المحفوظة | Saved places | Adresses enregistrées | |
-| `web.w2_language` | اللغة | Language | Langue | |
-| `web.w2_memory` | ما نتذكّره | What we remember | Ce que nous retenons | |
-| `web.w2_memory_intro` | ما نستعمله لتسريع الطلب. يمكنك أن تراه أو تمحوه أو توقفه، هنا أو عبر واتساب. | What we use to make ordering quicker. You can see it, forget it or stop it, here or on WhatsApp. | Ce qui nous sert à rendre la commande plus rapide. Vous pouvez le voir, l'effacer ou l'arrêter, ici ou sur WhatsApp. | |
-| `web.w2_mem_restrictions` | القيود التي طلبت أن نحفظها (تُطبَّق دائمًا) | Restrictions you asked us to keep (always applied) | Restrictions que vous nous avez demandé de garder (toujours appliquées) | |
-| `web.w2_mem_usuals` | منتجات تطلبها كثيرًا | Items you often order | Articles que vous commandez souvent | |
-| `web.w2_mem_brands` | ماركات اخترتها | Brands you chose | Marques choisies | |
-| `web.w2_mem_notes` | ملاحظات | Notes | Notes | |
-| `web.w2_mem_payment` | طريقة دفعك المعتادة | How you usually pay | Votre façon habituelle de payer | |
-| `web.w2_mem_none` | لا شيء بعد. | Nothing yet. | Rien pour l'instant. | |
-| `web.w2_mem_paused` | التذكّر متوقف: لا نتعلّم شيئًا جديدًا ولا نستعمل ما تعلّمناه. القيود التي طلبت حفظها ما زالت تُطبَّق. | Remembering is stopped: we learn nothing new and use nothing learned. Restrictions you asked us to keep still apply. | La mémoire est arrêtée : nous n'apprenons rien de nouveau et n'utilisons rien d'appris. Les restrictions que vous avez demandé de garder s'appliquent toujours. | |
-| `web.w2_forget` | امحُ ما تعلّمناه | Forget what we learned | Effacer ce que nous avons appris | |
-| `web.w2_forget_done` | تم. محونا ما تعلّمناه، هنا وعلى واتساب. | Done. We forgot what we had learned, here and on WhatsApp. | C'est fait. Nous avons effacé ce que nous avions appris, ici et sur WhatsApp. | |
-| `web.w2_stop` | أوقف التذكّر | Stop remembering | Arrêter de retenir | |
-| `web.w2_start` | تذكّر من جديد | Remember again | Retenir à nouveau | |
-| `web.w2_signout` | سجّل الخروج من هذا الجهاز | Sign out of this device | Se déconnecter de cet appareil | |
-| `web.w2_signout_all` | سجّل الخروج من كل الأجهزة | Sign out on every device | Se déconnecter de tous les appareils | |
-| `web.w2_signout_all_done` | سُجّل الخروج من كل الأجهزة. | Signed out on every device. | Déconnecté de tous les appareils. | |
-| `web.w2_signed_out` | سُجّل خروجك من هذا الجهاز. | You're signed out of this device. | Vous êtes déconnecté de cet appareil. | |
-| `web.w2_signed_in_until` | يبقى هذا الجهاز مسجّلًا حتى {date}. | This device stays signed in until {date}. | Cet appareil reste connecté jusqu'au {date}. | |
-| `web.w2_signout_wa` | يمكنك أيضًا أن ترسل لنا «تسجيل الخروج» عبر واتساب. | You can also send "sign out" to us on WhatsApp. | Vous pouvez aussi nous envoyer « déconnexion » sur WhatsApp. | |
-| `web.w2_need_signin` | أكّد رقمك لترى هذه الصفحة. | Confirm your number to see this page. | Confirmez votre numéro pour voir cette page. | |
-| `web.w2_pay_cod` | نقدًا عند الاستلام | Cash on delivery | Espèces à la livraison | |
-| `web.w2_how_title` | كيف يعمل ألو كينغ | How Alo King works | Comment fonctionne Alo King | |
-| `web.w2_how_lead` | بقالة من متجرنا في الشوف، يوصلها عمّال التوصيل لدينا. اطلب عبر واتساب أو هنا؛ وتؤكد كل طلب عبر واتساب. | Groceries from our own shop in the Chouf, brought by our riders. Order on WhatsApp or here; you confirm every order on WhatsApp. | Des courses de notre propre magasin dans le Chouf, apportées par nos livreurs. Commandez sur WhatsApp ou ici ; vous confirmez chaque commande sur WhatsApp. | |
-| `web.w2_how_ways` | ثلاث طرق للطلب | Three ways to order | Trois façons de commander | |
-| `web.w2_how_way_text` | اكتب طلبك على واتساب. | Type your order on WhatsApp. | Écrivez votre commande sur WhatsApp. | |
-| `web.w2_how_way_voice` | أرسل رسالة صوتية على واتساب. | Send a voice note on WhatsApp. | Envoyez un message vocal sur WhatsApp. | |
-| `web.w2_how_way_web` | املأ سلة هنا، ثم أكّد عبر واتساب. | Fill a basket here, then confirm on WhatsApp. | Remplissez un panier ici, puis confirmez sur WhatsApp. | |
-| `web.w2_how_steps` | من السلة إلى الباب | From basket to door | Du panier à la porte | |
-| `web.w2_how_step1` | اختر منتجاتك. الأسعار والتوفر من متجرنا. | Choose your items. Prices and stock come from our shop. | Choisissez vos articles. Prix et stock viennent de notre magasin. | |
-| `web.w2_how_step2` | نرسل بطاقة الطلب إلى واتساب الخاص بك. | We send the order card to your WhatsApp. | Nous envoyons le bon de commande sur votre WhatsApp. | |
-| `web.w2_how_step3` | اضغط «تأكيد» على البطاقة. عندها فقط يُرسل الطلب. | Tap Confirm on the card. Only then is it ordered. | Touchez Confirmer sur le bon. C'est seulement alors que c'est commandé. | |
-| `web.w2_how_step4` | نجهّزه ويوصله عامل التوصيل. تدفع عند الاستلام. | We pack it and our rider brings it. Pay when it arrives. | Nous préparons et notre livreur l'apporte. Vous payez à l'arrivée. | |
-| `web.w2_how_when` | الساعات والحد الأدنى | Hours and minimum | Horaires et minimum | |
-| `web.w2_how_hours` | مفتوح كل يوم، {hours}. | Open every day, {hours}. | Ouvert tous les jours, {hours}. | |
-| `web.w2_how_min` | الحد الأدنى للطلب: | Minimum order: | Commande minimum : | |
-| `web.w2_how_fees` | رسم التوصيل حسب القرية | Delivery fee by village | Frais de livraison par village | |
-| `web.w2_how_village` | القرية | Village | Village | |
-| `web.w2_how_fee` | الرسم | Fee | Frais | |
-| `web.w2_how_time` | الوقت | Time | Délai | |
-| `web.w2_how_small` | رسم الطلب الصغير دون {below}: | Small-order fee under {below}: | Frais de petite commande en dessous de {below} : | |
-| `web.w2_how_pay` | الدفع | Paying | Payer | |
-| `web.w2_how_pay_cash` | نقدًا بالدولار، أو بالليرة بسعر اليوم. قل بأي ورقة ستدفع ويحضر لك عامل التوصيل الباقي. | Cash in dollars, or in lira at the day's rate. Say which note you'll pay with and the rider brings change. | En espèces, en dollars ou en livres au taux du jour. Dites avec quel billet vous payez et le livreur apporte la monnaie. | |
-| `web.w2_how_pay_rate` | سعر اليوم للدولار الواحد: | Today's rate for one dollar: | Le taux du jour pour un dollar : | |
-| `web.w2_how_pay_transfer` | تحويل عبر Whish أو OMT: أرسل صورة الإيصال في المحادثة. يتحقق منه شخص قبل أن نجهّز الطلب. | Whish or OMT transfer: send the receipt photo in the chat. A person checks it before we pack. | Virement Whish ou OMT : envoyez la photo du reçu dans la conversation. Une personne le vérifie avant la préparation. | |
-| `web.w2_how_first` | يُدفع الطلب الأول نقدًا حتى {cap}؛ وما فوق ذلك بالتحويل. | A first order is paid in cash up to {cap}; above that, by transfer. | Une première commande se paie en espèces jusqu'à {cap} ; au-delà, par virement. | |
-| `web.w2_how_missing` | إذا نقص شيء | If something is missing | Si quelque chose manque | |
-| `web.w2_how_missing_text` | تختار في كل طلب: الأقرب إليه، أو رسالة أولًا، أو حذفه، للكل أو لكل منتج. | You choose on each order: the closest match, a message first, or leave it out, for everything or per item. | Vous choisissez à chaque commande : le plus proche, un message d'abord, ou le retirer, pour tout ou article par article. | |
-| `web.w2_how_confirm` | التأكيد | Confirming | Confirmer | |
-| `web.w2_how_confirm_text` | لا نحجز شيئًا قبل أن تضغط «تأكيد». تذكير واحد بعد {r} دقيقة؛ تنتهي البطاقة بعد {l} دقيقة، ويمكنك فتحها من جديد. | Nothing is held until you tap Confirm. One reminder after {r} minutes; the card lapses after {l} minutes, and you can open it again. | Rien n'est réservé avant que vous touchiez Confirmer. Un rappel après {r} minutes ; le bon expire après {l} minutes, et vous pouvez le rouvrir. | |
-| `web.w2_how_code` | رمز التسليم | The handover code | Le code de remise | |
-| `web.w2_how_code_text` | الطلب المدفوع مسبقًا لا يُسلَّم إلا مقابل رمز من 4 أرقام نرسله لك. | A prepaid order is handed over only against a 4-digit code we send you. | Une commande payée d'avance n'est remise que contre un code à 4 chiffres que nous vous envoyons. | |
-| `web.w2_how_account` | حسابك وخصوصيتك | Your account and privacy | Votre compte et votre vie privée | |
-| `web.w2_how_account_text` | لا كلمة مرور: رسالة واحدة عبر واتساب تؤكد رقمك. سجّل الخروج متى شئت، واطّلع على ما نتذكّره أو امحُه. | No password: one WhatsApp message confirms your number. Sign out at any time, and see or forget what we remember. | Pas de mot de passe : un message WhatsApp confirme votre numéro. Déconnectez-vous à tout moment, voyez ou effacez ce que nous retenons. | |
-| `web.w2_how_cta` | ابدأ التسوّق | Start shopping | Commencer les courses | |
-| `web.w2_page_prev` | السابق | Previous | Précédent | |
-| `web.w2_page_next` | التالي | Next | Suivant | |
-| `web.w2_page_n` | الصفحة {n} من {total} | Page {n} of {total} | Page {n} sur {total} | |
+| `web.w2_basket` | السلة | Basket | Panier | RA 17 Nov |
+| `web.w2_basket_n` | السلة، {n} منتج | Basket, {n} items | Panier, {n} articles | RA 17 Nov |
+| `web.w2_account` | حسابي | Account | Compte | RA 17 Nov |
+| `web.w2_orders` | طلباتك | Your orders | Vos commandes | RA 17 Nov |
+| `web.w2_how` | كيف يعمل | How it works | Comment ça marche | RA 17 Nov |
+| `web.w2_add` | أضف إلى السلة | Add to basket | Ajouter au panier | RA 17 Nov |
+| `web.w2_added` | أُضيف إلى سلتك. | Added to your basket. | Ajouté à votre panier. | RA 17 Nov |
+| `web.w2_view_basket` | اعرض السلة | View basket | Voir le panier | RA 17 Nov |
+| `web.w2_basket_title` | سلتك | Your basket | Votre panier | RA 17 Nov |
+| `web.w2_basket_empty` | سلتك فارغة. | Your basket is empty. | Votre panier est vide. | RA 17 Nov |
+| `web.w2_basket_empty_text` | أضف منتجات من الأقسام أو من البحث. | Add items from the aisles or from search. | Ajoutez des articles depuis les rayons ou la recherche. | RA 17 Nov |
+| `web.w2_browse` | تصفّح الأقسام | Browse the aisles | Parcourir les rayons | RA 17 Nov |
+| `web.w2_qty` | الكمية | Quantity | Quantité | RA 17 Nov |
+| `web.w2_less` | أنقص واحدًا | One less | Un de moins | RA 17 Nov |
+| `web.w2_more` | زِد واحدًا | One more | Un de plus | RA 17 Nov |
+| `web.w2_remove` | احذف | Remove | Retirer | RA 17 Nov |
+| `web.w2_items_total` | المنتجات | Items | Articles | RA 17 Nov |
+| `web.w2_delivery` | التوصيل | Delivery | Livraison | RA 17 Nov |
+| `web.w2_delivery_to` | التوصيل إلى {village} | Delivery to {village} | Livraison à {village} | RA 17 Nov |
+| `web.w2_small_fee` | رسم الطلب الصغير | Small-order fee | Frais de petite commande | RA 17 Nov |
+| `web.w2_credit` | رصيدك | Your credit | Votre crédit | RA 17 Nov |
+| `web.w2_dues` | مستحق من قبل | Owed from before | Dû d'avant | RA 17 Nov |
+| `web.w2_total` | المجموع | Total | Total | RA 17 Nov |
+| `web.w2_in_lira` | بالليرة، بسعر اليوم | In lira, at today's rate | En livres, au taux du jour | RA 17 Nov |
+| `web.w2_fee_pick` | اختر قريتك لترى رسم التوصيل. | Choose your village to see the delivery fee. | Choisissez votre village pour voir les frais de livraison. | RA 17 Nov |
+| `web.w2_village` | قريتك | Your village | Votre village | RA 17 Nov |
+| `web.w2_village_show` | اعرض الرسم | Show the fee | Voir les frais | RA 17 Nov |
+| `web.w2_min_missing` | الحد الأدنى للطلب {min}. أضف {gap} لتتمكّن من إتمام الطلب. | The minimum order is {min}. Add {gap} more to check out. | La commande minimum est de {min}. Ajoutez encore {gap} pour commander. | RA 17 Nov |
+| `web.w2_min_ok` | بلغت الحد الأدنى للطلب. | The minimum order is reached. | La commande minimum est atteinte. | RA 17 Nov |
+| `web.w2_checkout` | أتمّ الطلب | Check out | Commander | RA 17 Nov |
+| `web.w2_sold_out` | نفد الآن، لذلك لم يُحسب: | Sold out now, so it is left out: | Épuisé pour l'instant, donc laissé de côté : | RA 17 Nov |
+| `web.w2_coming_soon` | قريباً، لا نستطيع أخذه بعد: | Coming soon, we can't take it yet: | Bientôt disponible, nous ne pouvons pas encore le prendre : | RA 17 Nov |
+| `web.w2_unknown` | لم يعد يُباع، لذلك لم يُحسب: | No longer sold, so it is left out: | Plus vendu, donc laissé de côté : | RA 17 Nov |
+| `web.w2_price_changed` | تغيّر السعر منذ أضفته: | The price changed since you added it: | Le prix a changé depuis l'ajout : | RA 17 Nov |
+| `web.w2_again_missing` | غير متوفر الآن، لذلك لم يُضَف: | Not available now, so not added: | Indisponible pour l'instant, donc pas ajouté : | RA 17 Nov |
+| `web.w2_again_done` | طلبك الأخير في السلة بأسعار اليوم. | Your last order is in the basket at today's prices. | Votre dernière commande est dans le panier, aux prix du jour. | RA 17 Nov |
+| `web.w2_prices_note` | نقرأ الأسعار والتوفر من متجرنا من جديد في كل مرة تفتح فيها هذه الصفحة. | Prices and stock are read again from our shop each time you open this page. | Les prix et le stock sont relus dans notre magasin à chaque ouverture de cette page. | RA 17 Nov |
+| `web.w2_rider_fee_note` | رسم التوصيل يذهب كاملًا إلى عامل التوصيل. | The delivery fee goes to the rider in full. | Les frais de livraison vont entièrement au livreur. | RA 17 Nov |
+| `web.w2_signin_title` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmez votre numéro sur WhatsApp | RA 17 Nov |
+| `web.w2_signin_lead` | لا كلمة مرور ولا شيء لتكتبه. رسالة واحدة من واتساب الخاص بك تؤكد رقمك وتُبقي هذا الجهاز مسجّلًا لمدة {days} يومًا. | No password, nothing to type. One message from your own WhatsApp confirms your number and signs in this device for {days} days. | Pas de mot de passe, rien à taper. Un message depuis votre propre WhatsApp confirme votre numéro et garde cet appareil connecté pendant {days} jours. | RA 17 Nov |
+| `web.w2_signin_button` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmer votre numéro sur WhatsApp | RA 17 Nov |
+| `web.w2_signin_step1` | اضغط الزر. يُفتح واتساب والرمز مكتوب مسبقًا. | Tap the button. WhatsApp opens with a code already typed. | Appuyez sur le bouton. WhatsApp s'ouvre avec un code déjà écrit. | RA 17 Nov |
+| `web.w2_signin_step2` | اضغط إرسال. لا تغيّر الرمز. | Press send. Do not change the code. | Appuyez sur envoyer. Ne changez pas le code. | RA 17 Nov |
+| `web.w2_signin_step3` | عُد إلى هذه الصفحة. تتحدّث وحدها. | Come back to this page. It updates by itself. | Revenez sur cette page. Elle se met à jour toute seule. | RA 17 Nov |
+| `web.w2_signin_code` | رمزك | Your code | Votre code | RA 17 Nov |
+| `web.w2_signin_open` | افتح واتساب | Open WhatsApp | Ouvrir WhatsApp | RA 17 Nov |
+| `web.w2_signin_waiting` | بانتظار رسالتك. | Waiting for your message. | En attente de votre message. | RA 17 Nov |
+| `web.w2_signin_expires` | يعمل الرمز لمدة {n} دقائق. | The code works for {n} minutes. | Le code est valable {n} minutes. | RA 17 Nov |
+| `web.w2_signin_done` | تأكّد رقمك. هذا الجهاز مسجّل الدخول. | Your number is confirmed. This device is signed in. | Votre numéro est confirmé. Cet appareil est connecté. | RA 17 Nov |
+| `web.w2_signin_continue` | تابِع | Continue | Continuer | RA 17 Nov |
+| `web.w2_signin_consent` | بإرسال الرمز تؤكد رقمك وتسمح لنا بإرسال تحديثات طلباتك في هذه المحادثة. | Sending the code confirms your number and lets us send your order updates in this chat. | Envoyer le code confirme votre numéro et nous permet d'envoyer le suivi de vos commandes dans cette conversation. | RA 17 Nov |
+| `web.w2_signin_no_wa` | عنوان واتساب الخاص بنا غير محدّد بعد، لذلك لا يمكن تسجيل الدخول الآن. | Our WhatsApp address is not set yet, so signing in is not possible yet. | Notre adresse WhatsApp n'est pas encore définie : la connexion n'est pas encore possible. | RA 17 Nov |
+| `web.w2_signin_b1` | كل طلباتك في مكان واحد | Every order in one place | Toutes vos commandes au même endroit | RA 17 Nov |
+| `web.w2_signin_b1_text` | الطلبات التي أرسلتها عبر واتساب وهنا. | Orders you placed on WhatsApp and here. | Les commandes passées sur WhatsApp et ici. | RA 17 Nov |
+| `web.w2_signin_b2` | أماكنك | Your places | Vos adresses | RA 17 Nov |
+| `web.w2_signin_b2_text` | تُحفظ مرة وتُستعمل في الاثنين. | Saved once, used on both. | Enregistrées une fois, utilisées des deux côtés. | RA 17 Nov |
+| `web.w2_signin_b3` | أنت فقط | Only you | Vous seul | RA 17 Nov |
+| `web.w2_signin_b3_text` | يُثبت رقمك برسالة من واتساب الخاص بك. يمكنك تسجيل الخروج من كل الأجهزة في أي وقت. | Your number is proven by a message from your own WhatsApp. Sign out on every device at any time. | Votre numéro est prouvé par un message depuis votre propre WhatsApp. Déconnectez tous vos appareils à tout moment. | RA 17 Nov |
+| `web.w2_checkout_title` | إتمام الطلب | Checkout | Commande | RA 17 Nov |
+| `web.w2_step_place` | إلى أين؟ | Where to? | Où livrer ? | RA 17 Nov |
+| `web.w2_saved_places` | الأماكن المحفوظة | Saved places | Adresses enregistrées | RA 17 Nov |
+| `web.w2_no_places` | لا يوجد مكان محفوظ بعد. | No saved place yet. | Aucune adresse enregistrée. | RA 17 Nov |
+| `web.w2_use_location` | استعمل موقعي | Use my location | Utiliser ma position | RA 17 Nov |
+| `web.w2_location_hint` | يطلب هاتفك مرة واحدة مشاركة موقعك. الموقع يحدّد القرية ورسم التوصيل. | Your phone asks once to share your location. The pin decides the village and the fee. | Votre téléphone demande une fois de partager votre position. La position décide du village et des frais. | RA 17 Nov |
+| `web.w2_paste_pin` | أو الصق رابط خريطة أو إحداثيات | Or paste a map link or coordinates | Ou collez un lien de carte ou des coordonnées | RA 17 Nov |
+| `web.w2_paste_hint` | مثلًا رابط من خرائط Google، أو 33.68, 35.56 | For example a Google Maps link, or 33.68, 35.56 | Par exemple un lien Google Maps, ou 33.68, 35.56 | RA 17 Nov |
+| `web.w2_save_pin` | احفظ هذا الموقع | Save this pin | Enregistrer cette position | RA 17 Nov |
+| `web.w2_send_location` | أرسل موقعي عبر واتساب | Send my location on WhatsApp | Envoyer ma position sur WhatsApp | RA 17 Nov |
+| `web.w2_send_location_hint` | في المحادثة، اضغط على المشبك، ثم الموقع، ثم إرسال. يظهر مكانك هنا بعد ذلك. | In the chat, tap the clip, then Location, then send. Your place then appears here. | Dans la conversation, touchez le trombone, puis Position, puis envoyer. Votre adresse apparaît ensuite ici. | RA 17 Nov |
+| `web.w2_refresh` | أرسلته، حدّث الصفحة | I sent it, refresh | Je l'ai envoyée, actualiser | RA 17 Nov |
+| `web.w2_pin_located` | الموقع في {village}. | Pinned in {village}. | Position à {village}. | RA 17 Nov |
+| `web.w2_pin_unsure` | في أي قرية هذا الموقع؟ | Which village is this pin in? | Dans quel village est cette position ? | RA 17 Nov |
+| `web.w2_pin_outside` | لا نوصّل إلى هناك بعد. يمكنك أن تسألنا عبر واتساب. | We don't deliver there yet. You can ask us on WhatsApp. | Nous ne livrons pas encore là-bas. Vous pouvez nous demander sur WhatsApp. | RA 17 Nov |
+| `web.w2_pin_not_served` | لا نوصّل إلى {village} بعد. | We don't deliver to {village} yet. | Nous ne livrons pas encore à {village}. | RA 17 Nov |
+| `web.w2_pin_bad` | لم نستطع قراءة موقع من هذا. | We could not read a position from that. | Nous n'avons pas pu lire de position. | RA 17 Nov |
+| `web.w2_pin_choose` | اختر | Choose | Choisir | RA 17 Nov |
+| `web.w2_house` | البيت أو المبنى | House or building | Maison ou immeuble | RA 17 Nov |
+| `web.w2_floor` | الطابق | Floor | Étage | RA 17 Nov |
+| `web.w2_directions` | إرشادات لعامل التوصيل (اختياري) | Directions for the rider (optional) | Indications pour le livreur (facultatif) | RA 17 Nov |
+| `web.w2_save` | احفظ | Save | Enregistrer | RA 17 Nov |
+| `web.w2_has_pin` | محدّد على الخريطة | Pinned | Position enregistrée | RA 17 Nov |
+| `web.w2_no_pin` | بلا موقع | No pin | Sans position | RA 17 Nov |
+| `web.w2_step_when` | متى؟ | When? | Quand ? | RA 17 Nov |
+| `web.w2_now` | بأسرع وقت | As soon as possible | Dès que possible | RA 17 Nov |
+| `web.w2_now_eta` | بأسرع وقت (حوالي {n} دقيقة) | As soon as possible (about {n} min) | Dès que possible (environ {n} min) | RA 17 Nov |
+| `web.w2_now_closed` | نحن مغلقون الآن. اختر موعدًا للتوصيل. | We're closed now. Choose a delivery window. | Nous sommes fermés. Choisissez un créneau de livraison. | RA 17 Nov |
+| `web.w2_windows_none` | لا مواعيد توصيل في الأيام القادمة. | No delivery windows in the coming days. | Aucun créneau de livraison dans les prochains jours. | RA 17 Nov |
+| `web.w2_step_missing` | إذا نقص منتج | If an item is missing | Si un article manque | RA 17 Nov |
+| `web.w2_missing_best_match` | أقرب بديل | The closest match | Le plus proche | RA 17 Nov |
+| `web.w2_missing_ask` | راسلني أولًا | Message me first | M'écrire d'abord | RA 17 Nov |
+| `web.w2_missing_remove` | احذفه | Leave it out | Le retirer | RA 17 Nov |
+| `web.w2_missing_per_item` | اختر لكل منتج | Choose per item | Choisir article par article | RA 17 Nov |
+| `web.w2_missing_same` | كما في الأعلى | Same as above | Comme ci-dessus | RA 17 Nov |
+| `web.w2_step_pay` | الدفع | Payment | Paiement | RA 17 Nov |
+| `web.w2_pay_usd` | نقدًا بالدولار | Cash in dollars | Espèces en dollars | RA 17 Nov |
+| `web.w2_pay_lbp` | نقدًا بالليرة، بسعر اليوم | Cash in lira, at today's rate | Espèces en livres, au taux du jour | RA 17 Nov |
+| `web.w2_pay_rate` | سعر اليوم للدولار الواحد: | Today's rate for one dollar: | Le taux du jour pour un dollar : | RA 17 Nov |
+| `web.w2_pay_whish` | تحويل عبر Whish | Whish transfer | Virement Whish | RA 17 Nov |
+| `web.w2_pay_omt` | تحويل عبر OMT | OMT transfer | Virement OMT | RA 17 Nov |
+| `web.w2_pay_transfer_note` | يتحقق شخص من تحويلك قبل أن نجهّز الطلب. نرسل لك التفاصيل عبر واتساب بعد أن تؤكد. | A person checks your transfer before we pack. We send the details on WhatsApp after you confirm. | Une personne vérifie votre virement avant la préparation. Nous envoyons les détails sur WhatsApp après votre confirmation. | RA 17 Nov |
+| `web.w2_note` | بأي ورقة ستدفع؟ | Which note will you pay with? | Avec quel billet payerez-vous ? | RA 17 Nov |
+| `web.w2_note_exact` | المبلغ تمامًا | The exact amount | Le montant exact | RA 17 Nov |
+| `web.w2_note_lbp` | كم ستدفع؟ | How much will you hand over? | Combien donnerez-vous ? | RA 17 Nov |
+| `web.w2_no_card` | الدفع بالبطاقة أو Whish Pay لاحقًا. | Paying by card or Whish Pay comes later. | Le paiement par carte ou Whish Pay viendra plus tard. | RA 17 Nov |
+| `web.w2_first_cap` | يُدفع الطلب الأول نقدًا حتى {cap}. هذا الطلب أكبر، فاختر Whish أو OMT. | A first order is paid in cash up to {cap}. This order is larger, so choose Whish or OMT. | Une première commande se paie en espèces jusqu'à {cap}. Celle-ci est plus grande : choisissez Whish ou OMT. | RA 17 Nov |
+| `web.w2_step_notes` | شيء آخر؟ (اختياري) | Anything else? (optional) | Autre chose ? (facultatif) | RA 17 Nov |
+| `web.w2_card` | بطاقة طلبك | Your order card | Votre bon de commande | RA 17 Nov |
+| `web.w2_update` | حدّث البطاقة | Update the card | Mettre à jour le bon | RA 17 Nov |
+| `web.w2_send_card` | أرسل الطلب إلى واتساب الخاص بي | Send the order to my WhatsApp | Envoyer la commande sur mon WhatsApp | RA 17 Nov |
+| `web.w2_confirm_on_wa` | لم يُطلب شيء بعد. نرسل هذه البطاقة إلى واتساب الخاص بك، ويُرسل الطلب عندما تضغط «تأكيد» هناك. | Nothing is ordered yet. We send this card to your WhatsApp, and the order is placed when you tap Confirm there. | Rien n'est encore commandé. Nous envoyons ce bon sur votre WhatsApp, et la commande est passée quand vous touchez Confirmer là-bas. | RA 17 Nov |
+| `web.w2_need_place` | اختر مكانًا أو حدّد موقعًا أولًا. | Choose or pin a place first. | Choisissez ou enregistrez d'abord une adresse. | RA 17 Nov |
+| `web.w2_need_details` | أضف البيت والطابق ليجدك عامل التوصيل. | Add the house and floor, so the rider finds you. | Ajoutez la maison et l'étage, pour que le livreur vous trouve. | RA 17 Nov |
+| `web.w2_err_not_ready` | تغيّر شيء في البطاقة. راجعها وأرسلها من جديد. | Something on the card changed. Check it and send again. | Quelque chose a changé sur le bon. Vérifiez-le et renvoyez-le. | RA 17 Nov |
+| `web.w2_err_note_too_small` | هذا المبلغ ليس أكثر من المجموع. | That amount is not more than the total. | Ce montant n'est pas supérieur au total. | RA 17 Nov |
+| `web.w2_err_unknown_note` | اختر أحد المبالغ في القائمة. | Choose one of the amounts in the list. | Choisissez un des montants de la liste. | RA 17 Nov |
+| `web.w2_err_closed` | نحن مغلقون الآن. اختر موعدًا للتوصيل. | We're closed now. Choose a delivery window. | Nous sommes fermés. Choisissez un créneau de livraison. | RA 17 Nov |
+| `web.w2_err_village` | لا نوصّل إلى هذا المكان بعد. | We don't deliver to this place yet. | Nous ne livrons pas encore à cette adresse. | RA 17 Nov |
+| `web.w2_err_fx` | نحدّث سعر اليوم الآن. حاول بعد دقائق. | We're updating today's rate. Try again in a few minutes. | Nous mettons à jour le taux du jour. Réessayez dans quelques minutes. | RA 17 Nov |
+| `web.w2_err_empty` | سلتك فارغة. | Your basket is empty. | Votre panier est vide. | RA 17 Nov |
+| `web.w2_err_window` | لم يعد هذا الموعد متاحًا. اختر موعدًا آخر. | That delivery window is no longer open. Choose another. | Ce créneau n'est plus ouvert. Choisissez-en un autre. | RA 17 Nov |
+| `web.w2_err_not_linked` | أكّد رقمك أولًا. | Confirm your number first. | Confirmez d'abord votre numéro. | RA 17 Nov |
+| `web.w2_err_any` | لم نستطع الإرسال. حاول بعد قليل. | We could not send it. Try again in a moment. | L'envoi n'a pas abouti. Réessayez dans un instant. | RA 17 Nov |
+| `web.w2_order_title` | الطلب {code} | Order {code} | Commande {code} | RA 17 Nov |
+| `web.w2_order_waiting` | بطاقة طلبك على واتساب. اضغط «تأكيد» هناك لإرسال الطلب. | Your order card is on WhatsApp. Tap Confirm there to place the order. | Votre bon de commande est sur WhatsApp. Touchez Confirmer là-bas pour passer la commande. | RA 17 Nov |
+| `web.w2_order_waiting_note` | لا نحجز شيئًا قبل أن تؤكد. تنتهي البطاقة بعد {n} دقيقة من إنشائها. | Nothing is held until you confirm. The card lapses {n} minutes after it was made. | Rien n'est réservé avant votre confirmation. Le bon expire {n} minutes après sa création. | RA 17 Nov |
+| `web.w2_order_resend` | لم تصلك البطاقة؟ افتح واتساب وأرسل الرسالة المكتوبة: تعود البطاقة فورًا. | Didn't get the card? Open WhatsApp and send the message we typed: the card comes back at once. | Vous n'avez pas reçu le bon ? Ouvrez WhatsApp et envoyez le message préparé : le bon revient aussitôt. | RA 17 Nov |
+| `web.w2_order_open_wa` | افتح واتساب | Open WhatsApp | Ouvrir WhatsApp | RA 17 Nov |
+| `web.w2_order_steps` | أين طلبك | Where your order is | Où en est votre commande | RA 17 Nov |
+| `web.w2_order_window` | التوصيل: {when} | Delivery: {when} | Livraison : {when} | RA 17 Nov |
+| `web.w2_order_eta` | التوصيل خلال حوالي {n} دقيقة بعد خروجه من المستودع. | Delivery in about {n} minutes once it leaves the hub. | Livraison en environ {n} minutes une fois partie du dépôt. | RA 17 Nov |
+| `web.w2_order_changed` | ما الذي تغيّر | What changed | Ce qui a changé | RA 17 Nov |
+| `web.w2_order_removed` | حُذف: | Taken off: | Retiré : | RA 17 Nov |
+| `web.w2_order_substituted` | {name} بدل {for} | {name} instead of {for} | {name} à la place de {for} | RA 17 Nov |
+| `web.w2_order_code` | رمز التسليم | Your handover code | Votre code de remise | RA 17 Nov |
+| `web.w2_order_code_note` | أعطه فقط عندما يصبح طلبك بين يديك. | Give it only when you have your order in your hands. | Donnez-le seulement quand vous avez votre commande en main. | RA 17 Nov |
+| `web.w2_order_person` | تحدّث إلى شخص | Talk to a person | Parler à une personne | RA 17 Nov |
+| `web.w2_order_cancelled` | هذا الطلب مُلغى. | This order is cancelled. | Cette commande est annulée. | RA 17 Nov |
+| `web.w2_order_items` | في هذا الطلب | In this order | Dans cette commande | RA 17 Nov |
+| `web.w2_order_updates` | تتحدّث هذه الصفحة وحدها. | This page updates by itself. | Cette page se met à jour toute seule. | RA 17 Nov |
+| `web.w2_order_payment` | الدفع | Payment | Paiement | RA 17 Nov |
+| `web.w2_today` | اليوم | today | aujourd'hui | RA 17 Nov |
+| `web.w2_tomorrow` | غدًا | tomorrow | demain | RA 17 Nov |
+| `web.w2_orders_title` | طلباتك | Your orders | Vos commandes | RA 17 Nov |
+| `web.w2_orders_none` | لا طلبات بعد. | No orders yet. | Pas encore de commande. | RA 17 Nov |
+| `web.w2_on_whatsapp` | عبر واتساب | On WhatsApp | Sur WhatsApp | RA 17 Nov |
+| `web.w2_on_web` | عبر الموقع | On the website | Sur le site | RA 17 Nov |
+| `web.w2_order_again` | اطلبه مجددًا | Order again | Commander à nouveau | RA 17 Nov |
+| `web.w2_view` | اعرض | View | Voir | RA 17 Nov |
+| `web.w2_items_n` | {n} منتج | {n} items | {n} articles | RA 17 Nov |
+| `web.w2_account_title` | حسابك | Your account | Votre compte | RA 17 Nov |
+| `web.w2_places` | الأماكن المحفوظة | Saved places | Adresses enregistrées | RA 17 Nov |
+| `web.w2_language` | اللغة | Language | Langue | RA 17 Nov |
+| `web.w2_memory` | ما نتذكّره | What we remember | Ce que nous retenons | RA 17 Nov |
+| `web.w2_memory_intro` | ما نستعمله لتسريع الطلب. يمكنك أن تراه أو تمحوه أو توقفه، هنا أو عبر واتساب. | What we use to make ordering quicker. You can see it, forget it or stop it, here or on WhatsApp. | Ce qui nous sert à rendre la commande plus rapide. Vous pouvez le voir, l'effacer ou l'arrêter, ici ou sur WhatsApp. | RA 17 Nov |
+| `web.w2_mem_restrictions` | القيود التي طلبت أن نحفظها (تُطبَّق دائمًا) | Restrictions you asked us to keep (always applied) | Restrictions que vous nous avez demandé de garder (toujours appliquées) | RA 17 Nov |
+| `web.w2_mem_usuals` | منتجات تطلبها كثيرًا | Items you often order | Articles que vous commandez souvent | RA 17 Nov |
+| `web.w2_mem_brands` | ماركات اخترتها | Brands you chose | Marques choisies | RA 17 Nov |
+| `web.w2_mem_notes` | ملاحظات | Notes | Notes | RA 17 Nov |
+| `web.w2_mem_payment` | طريقة دفعك المعتادة | How you usually pay | Votre façon habituelle de payer | RA 17 Nov |
+| `web.w2_mem_none` | لا شيء بعد. | Nothing yet. | Rien pour l'instant. | RA 17 Nov |
+| `web.w2_mem_paused` | التذكّر متوقف: لا نتعلّم شيئًا جديدًا ولا نستعمل ما تعلّمناه. القيود التي طلبت حفظها ما زالت تُطبَّق. | Remembering is stopped: we learn nothing new and use nothing learned. Restrictions you asked us to keep still apply. | La mémoire est arrêtée : nous n'apprenons rien de nouveau et n'utilisons rien d'appris. Les restrictions que vous avez demandé de garder s'appliquent toujours. | RA 17 Nov |
+| `web.w2_forget` | امحُ ما تعلّمناه | Forget what we learned | Effacer ce que nous avons appris | RA 17 Nov |
+| `web.w2_forget_done` | تم. محونا ما تعلّمناه، هنا وعلى واتساب. | Done. We forgot what we had learned, here and on WhatsApp. | C'est fait. Nous avons effacé ce que nous avions appris, ici et sur WhatsApp. | RA 17 Nov |
+| `web.w2_stop` | أوقف التذكّر | Stop remembering | Arrêter de retenir | RA 17 Nov |
+| `web.w2_start` | تذكّر من جديد | Remember again | Retenir à nouveau | RA 17 Nov |
+| `web.w2_signout` | سجّل الخروج من هذا الجهاز | Sign out of this device | Se déconnecter de cet appareil | RA 17 Nov |
+| `web.w2_signout_all` | سجّل الخروج من كل الأجهزة | Sign out on every device | Se déconnecter de tous les appareils | RA 17 Nov |
+| `web.w2_signout_all_done` | سُجّل الخروج من كل الأجهزة. | Signed out on every device. | Déconnecté de tous les appareils. | RA 17 Nov |
+| `web.w2_signed_out` | سُجّل خروجك من هذا الجهاز. | You're signed out of this device. | Vous êtes déconnecté de cet appareil. | RA 17 Nov |
+| `web.w2_signed_in_until` | يبقى هذا الجهاز مسجّلًا حتى {date}. | This device stays signed in until {date}. | Cet appareil reste connecté jusqu'au {date}. | RA 17 Nov |
+| `web.w2_signout_wa` | يمكنك أيضًا أن ترسل لنا «تسجيل الخروج» عبر واتساب. | You can also send "sign out" to us on WhatsApp. | Vous pouvez aussi nous envoyer « déconnexion » sur WhatsApp. | RA 17 Nov |
+| `web.w2_need_signin` | أكّد رقمك لترى هذه الصفحة. | Confirm your number to see this page. | Confirmez votre numéro pour voir cette page. | RA 17 Nov |
+| `web.w2_pay_cod` | نقدًا عند الاستلام | Cash on delivery | Espèces à la livraison | RA 17 Nov |
+| `web.w2_how_title` | كيف يعمل ألو كينغ | How Alo King works | Comment fonctionne Alo King | RA 17 Nov |
+| `web.w2_how_lead` | بقالة من متجرنا في الشوف، يوصلها عمّال التوصيل لدينا. اطلب عبر واتساب أو هنا؛ وتؤكد كل طلب عبر واتساب. | Groceries from our own shop in the Chouf, brought by our riders. Order on WhatsApp or here; you confirm every order on WhatsApp. | Des courses de notre propre magasin dans le Chouf, apportées par nos livreurs. Commandez sur WhatsApp ou ici ; vous confirmez chaque commande sur WhatsApp. | RA 17 Nov |
+| `web.w2_how_ways` | ثلاث طرق للطلب | Three ways to order | Trois façons de commander | RA 17 Nov |
+| `web.w2_how_way_text` | اكتب طلبك على واتساب. | Type your order on WhatsApp. | Écrivez votre commande sur WhatsApp. | RA 17 Nov |
+| `web.w2_how_way_voice` | أرسل رسالة صوتية على واتساب. | Send a voice note on WhatsApp. | Envoyez un message vocal sur WhatsApp. | RA 17 Nov |
+| `web.w2_how_way_web` | املأ سلة هنا، ثم أكّد عبر واتساب. | Fill a basket here, then confirm on WhatsApp. | Remplissez un panier ici, puis confirmez sur WhatsApp. | RA 17 Nov |
+| `web.w2_how_steps` | من السلة إلى الباب | From basket to door | Du panier à la porte | RA 17 Nov |
+| `web.w2_how_step1` | اختر منتجاتك. الأسعار والتوفر من متجرنا. | Choose your items. Prices and stock come from our shop. | Choisissez vos articles. Prix et stock viennent de notre magasin. | RA 17 Nov |
+| `web.w2_how_step2` | نرسل بطاقة الطلب إلى واتساب الخاص بك. | We send the order card to your WhatsApp. | Nous envoyons le bon de commande sur votre WhatsApp. | RA 17 Nov |
+| `web.w2_how_step3` | اضغط «تأكيد» على البطاقة. عندها فقط يُرسل الطلب. | Tap Confirm on the card. Only then is it ordered. | Touchez Confirmer sur le bon. C'est seulement alors que c'est commandé. | RA 17 Nov |
+| `web.w2_how_step4` | نجهّزه ويوصله عامل التوصيل. تدفع عند الاستلام. | We pack it and our rider brings it. Pay when it arrives. | Nous préparons et notre livreur l'apporte. Vous payez à l'arrivée. | RA 17 Nov |
+| `web.w2_how_when` | الساعات والحد الأدنى | Hours and minimum | Horaires et minimum | RA 17 Nov |
+| `web.w2_how_hours` | مفتوح كل يوم، {hours}. | Open every day, {hours}. | Ouvert tous les jours, {hours}. | RA 17 Nov |
+| `web.w2_how_min` | الحد الأدنى للطلب: | Minimum order: | Commande minimum : | RA 17 Nov |
+| `web.w2_how_fees` | رسم التوصيل حسب القرية | Delivery fee by village | Frais de livraison par village | RA 17 Nov |
+| `web.w2_how_village` | القرية | Village | Village | RA 17 Nov |
+| `web.w2_how_fee` | الرسم | Fee | Frais | RA 17 Nov |
+| `web.w2_how_time` | الوقت | Time | Délai | RA 17 Nov |
+| `web.w2_how_small` | رسم الطلب الصغير دون {below}: | Small-order fee under {below}: | Frais de petite commande en dessous de {below} : | RA 17 Nov |
+| `web.w2_how_pay` | الدفع | Paying | Payer | RA 17 Nov |
+| `web.w2_how_pay_cash` | نقدًا بالدولار، أو بالليرة بسعر اليوم. قل بأي ورقة ستدفع ويحضر لك عامل التوصيل الباقي. | Cash in dollars, or in lira at the day's rate. Say which note you'll pay with and the rider brings change. | En espèces, en dollars ou en livres au taux du jour. Dites avec quel billet vous payez et le livreur apporte la monnaie. | RA 17 Nov |
+| `web.w2_how_pay_rate` | سعر اليوم للدولار الواحد: | Today's rate for one dollar: | Le taux du jour pour un dollar : | RA 17 Nov |
+| `web.w2_how_pay_transfer` | تحويل عبر Whish أو OMT: أرسل صورة الإيصال في المحادثة. يتحقق منه شخص قبل أن نجهّز الطلب. | Whish or OMT transfer: send the receipt photo in the chat. A person checks it before we pack. | Virement Whish ou OMT : envoyez la photo du reçu dans la conversation. Une personne le vérifie avant la préparation. | RA 17 Nov |
+| `web.w2_how_first` | يُدفع الطلب الأول نقدًا حتى {cap}؛ وما فوق ذلك بالتحويل. | A first order is paid in cash up to {cap}; above that, by transfer. | Une première commande se paie en espèces jusqu'à {cap} ; au-delà, par virement. | RA 17 Nov |
+| `web.w2_how_missing` | إذا نقص شيء | If something is missing | Si quelque chose manque | RA 17 Nov |
+| `web.w2_how_missing_text` | تختار في كل طلب: الأقرب إليه، أو رسالة أولًا، أو حذفه، للكل أو لكل منتج. | You choose on each order: the closest match, a message first, or leave it out, for everything or per item. | Vous choisissez à chaque commande : le plus proche, un message d'abord, ou le retirer, pour tout ou article par article. | RA 17 Nov |
+| `web.w2_how_confirm` | التأكيد | Confirming | Confirmer | RA 17 Nov |
+| `web.w2_how_confirm_text` | لا نحجز شيئًا قبل أن تضغط «تأكيد». تذكير واحد بعد {r} دقيقة؛ تنتهي البطاقة بعد {l} دقيقة، ويمكنك فتحها من جديد. | Nothing is held until you tap Confirm. One reminder after {r} minutes; the card lapses after {l} minutes, and you can open it again. | Rien n'est réservé avant que vous touchiez Confirmer. Un rappel après {r} minutes ; le bon expire après {l} minutes, et vous pouvez le rouvrir. | RA 17 Nov |
+| `web.w2_how_code` | رمز التسليم | The handover code | Le code de remise | RA 17 Nov |
+| `web.w2_how_code_text` | الطلب المدفوع مسبقًا، والطلب الذي تستلمه من المستودع، لا يُسلَّم إلا مقابل رمز من 4 أرقام نرسله لك. | A prepaid order, and an order you collect at the hub, is handed over only against a 4-digit code we send you. | Une commande payée d'avance, et une commande que vous retirez au dépôt, ne sont remises que contre un code à 4 chiffres que nous vous envoyons. | RA 17 Nov |
+| `web.w2_how_account` | حسابك وخصوصيتك | Your account and privacy | Votre compte et votre vie privée | RA 17 Nov |
+| `web.w2_how_account_text` | لا كلمة مرور: رسالة واحدة عبر واتساب تؤكد رقمك. سجّل الخروج متى شئت، واطّلع على ما نتذكّره أو امحُه. | No password: one WhatsApp message confirms your number. Sign out at any time, and see or forget what we remember. | Pas de mot de passe : un message WhatsApp confirme votre numéro. Déconnectez-vous à tout moment, voyez ou effacez ce que nous retenons. | RA 17 Nov |
+| `web.w2_how_cta` | ابدأ التسوّق | Start shopping | Commencer les courses | RA 17 Nov |
+| `web.w2_page_prev` | السابق | Previous | Précédent | RA 17 Nov |
+| `web.w2_page_next` | التالي | Next | Suivant | RA 17 Nov |
+| `web.w2_page_n` | الصفحة {n} من {total} | Page {n} of {total} | Page {n} sur {total} | RA 17 Nov |
 
 ### French status words (the label table has Arabic and English; French reads these for the same ids)
 
 | Status id | French | Read by |
 |---|---|---|
-| `draft` | Pas encore envoyée | |
-| `awaiting_confirmation` | En attente de votre confirmation | |
-| `awaiting_payment` | En attente du paiement | |
-| `confirmed` | Confirmée | |
-| `preparing` | En préparation au dépôt | |
-| `ready` | Prête | |
-| `out_for_delivery` | En route | |
-| `arrived` | À votre porte | |
-| `delivered` | Livrée | |
-| `failed_delivery` | Non livrée | |
-| `returned` | Retournée | |
-| `closed` | Livrée | |
-| `cancelled` | Annulée | |
+| `draft` | Pas encore envoyée | RA 17 Nov |
+| `awaiting_confirmation` | En attente de votre confirmation | RA 17 Nov |
+| `awaiting_payment` | En attente du paiement | RA 17 Nov |
+| `confirmed` | Confirmée | RA 17 Nov |
+| `preparing` | En préparation au dépôt | RA 17 Nov |
+| `ready` | Prête | RA 17 Nov |
+| `out_for_delivery` | En route | RA 17 Nov |
+| `arrived` | À votre porte | RA 17 Nov |
+| `delivered` | Livrée | RA 17 Nov |
+| `failed_delivery` | Non livrée | RA 17 Nov |
+| `returned` | Retournée | RA 17 Nov |
+| `closed` | Livrée | RA 17 Nov |
+| `cancelled` | Annulée | RA 17 Nov |
 
 ### On WhatsApp (read by code before any model; and two new lines on the order card)
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `web.linked` | ✅ تأكّد رقمك.<br>ارجع عالموقع وكمّل طلبك من هونيك. | ✅ Your number is confirmed.<br>Go back to the website to finish your order. | ✅ Votre numéro est confirmé.<br>Retournez sur le site pour terminer votre commande. | |
-| `web.codeExpired` | هالرمز انتهت صلاحيته.<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | This code has expired.<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | Ce code a expiré.<br>Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ». | |
-| `web.codeUsed` | هالرمز استُعمل من رقم تاني.<br>ارجع عالموقع واطلب رمز جديد. | Another number already used this code.<br>Go back to the website for a new one. | Un autre numéro a déjà utilisé ce code.<br>Retournez sur le site pour en avoir un nouveau. | |
-| `web.codeUnknown` | ما عرفنا هالرمز.<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | We don't know this code.<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | Nous ne connaissons pas ce code.<br>Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ». | |
-| `web.signedOut(1)` | ✅ سكّرنا حسابك على الموقع.<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ You are signed out of the website.<br>Your orders and this chat stay as they are. | ✅ Vous êtes déconnecté du site.<br>Vos commandes et cette conversation restent telles quelles. | |
-| `web.signedOut(2)` | ✅ سكّرنا حسابك على الموقع على كل الأجهزة.<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ You are signed out of the website on every device.<br>Your orders and this chat stay as they are. | ✅ Vous êtes déconnecté du site sur tous vos appareils.<br>Vos commandes et cette conversation restent telles quelles. | |
-| `web.notSignedIn` | ما في جهاز مسجّل دخول على الموقع برقمك. | No device is signed in to the website with your number. | Aucun appareil n'est connecté au site avec votre numéro. | |
-| `web.cardNotWaiting("AK-1042")` | الطلب AK-1042 ما عاد ناطر تأكيد.<br>إذا بدك تعرف وين صار، اسألني هون. | Order AK-1042 is no longer waiting for your Confirm.<br>Ask me here if you want to know where it is. | La commande AK-1042 n'attend plus votre confirmation.<br>Demandez-moi ici si vous voulez savoir où elle en est. | |
-| `web.cardUnknown` | ما لقينا طلب إلك بهالرقم.<br>اكتبلي شو بدك ومنساعدك. | We found no order of yours with that number.<br>Tell me what you need and we'll help. | Nous n'avons trouvé aucune commande à vous avec ce numéro.<br>Dites-moi ce qu'il vous faut et nous vous aiderons. | |
-| `card.changeForLbp` | رح تدفع بالليرة، ومعك:<br>2,000,000 ل.ل | You pay in lira, with:<br>2,000,000 LBP | Vous payez en livres, avec :<br>2,000,000 LBP | |
-| `cx.missingItemLine("Labneh 500 g", best_match)` | Labneh 500 g: منحطّ أقرب بديل | Labneh 500 g: we put the closest match | Labneh 500 g : nous mettons le plus proche | |
-| `cx.missingItemLine("Labneh 500 g", ask)` | Labneh 500 g: منسألك | Labneh 500 g: we ask you | Labneh 500 g : nous vous demandons | |
-| `cx.missingItemLine("Labneh 500 g", remove)` | Labneh 500 g: منشيلو من الطلب | Labneh 500 g: we take it off | Labneh 500 g : nous le retirons | |
+| `web.linked` | ✅ تأكّد رقمك.<br>ارجع عالموقع وكمّل طلبك من هونيك. | ✅ Your number is confirmed.<br>Go back to the website to finish your order. | ✅ Votre numéro est confirmé.<br>Retournez sur le site pour terminer votre commande. | RA 17 Nov |
+| `web.codeExpired` | هالرمز انتهت صلاحيته.<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | This code has expired.<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | Ce code a expiré.<br>Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ». | RA 17 Nov |
+| `web.codeUsed` | هالرمز انستعمل من رقم تاني.<br>ارجع عالموقع واطلب رمز جديد. | Another number already used this code.<br>Go back to the website for a new one. | Un autre numéro a déjà utilisé ce code.<br>Retournez sur le site pour en avoir un nouveau. | RA 17 Nov |
+| `web.codeUnknown` | ما عرفنا هالرمز.<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | We don't know this code.<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | Nous ne connaissons pas ce code.<br>Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ». | RA 17 Nov |
+| `web.signedOut(1)` | ✅ طلّعناك من حسابك عالموقع.<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ You are signed out of the website.<br>Your orders and this chat stay as they are. | ✅ Vous êtes déconnecté du site.<br>Vos commandes et cette conversation restent telles quelles. | RA 17 Nov |
+| `web.signedOut(2)` | ✅ طلّعناك من حسابك عالموقع على كل الأجهزة.<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ You are signed out of the website on every device.<br>Your orders and this chat stay as they are. | ✅ Vous êtes déconnecté du site sur tous vos appareils.<br>Vos commandes et cette conversation restent telles quelles. | RA 17 Nov |
+| `web.notSignedIn` | ما في جهاز مسجّل دخول على الموقع برقمك. | No device is signed in to the website with your number. | Aucun appareil n'est connecté au site avec votre numéro. | RA 17 Nov |
+| `web.cardNotWaiting("AK-1042")` | الطلب AK-1042 ما عاد ناطر تأكيد.<br>إذا بدك تعرف وين صار، اسألني هون. | Order AK-1042 is no longer waiting for your Confirm.<br>Ask me here if you want to know where it is. | La commande AK-1042 n'attend plus votre confirmation.<br>Demandez-moi ici si vous voulez savoir où elle en est. | RA 17 Nov |
+| `web.cardUnknown` | ما لقينا طلب إلك بهالرقم.<br>اكتبلي شو بدك ومنساعدك. | We found no order of yours with that number.<br>Tell me what you need and we'll help. | Nous n'avons trouvé aucune commande à vous avec ce numéro.<br>Dites-moi ce qu'il vous faut et nous vous aiderons. | RA 17 Nov |
+| `card.changeForLbp` | رح تدفع بالليرة، ومعك:<br>2,000,000 ل.ل | You pay in lira, with:<br>2,000,000 LBP | Vous payez en livres, avec :<br>2,000,000 LBP | RA 17 Nov |
+| `cx.missingItemLine("Labneh 500 g", best_match)` | Labneh 500 g: منحطّ أقرب بديل | Labneh 500 g: we put the closest match | Labneh 500 g : nous mettons le plus proche | RA 17 Nov |
+| `cx.missingItemLine("Labneh 500 g", ask)` | Labneh 500 g: منسألك | Labneh 500 g: we ask you | Labneh 500 g : nous vous demandons | RA 17 Nov |
+| `cx.missingItemLine("Labneh 500 g", remove)` | Labneh 500 g: منشيلو من الطلب | Labneh 500 g: we take it off | Labneh 500 g : nous le retirons | RA 17 Nov |
 
