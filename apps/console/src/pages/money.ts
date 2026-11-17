@@ -3,9 +3,14 @@
 // The drawer must match the count at day close (3.11); these are the movements that explain the difference between the cash
 // the riders brought in and the cash in the drawer.
 import { act, html, num, render, text, upload, UserError, type Ctx, type Section } from "../app";
+import type { Raw } from "../html";
 import { form, lbp, usd, when } from "../html";
+import { pick } from "../i18n";
 import { LEADS } from "../roles";
 import { beirutMidnight } from "./today";
+import { moneyCounts, moneyTabs } from "./moneyframe";
+import type { DayReport } from "./dayclose";
+import { button, empty, icon, input, kpis, kpiTile, tileLink } from "@ak/ui/components";
 
 type Native = { usd: number | string; lbp: number | string; lbp_carried_usd: number | string };
 type Movement = { id: string; kind: string; usd: number | string; lbp: number | string; value_usd: number | string; paid_from: string; category: string | null;
@@ -23,39 +28,47 @@ export function amounts(c: Ctx): { usd: number; lbp: number } {
   return { usd: u, lbp: l };
 }
 
+const KIND_AR: Record<string, string> = { bank_deposit: "إلى البنك", petty_cash: "نثرية", expense: "مصروف" };
+
+/** The ledger: the drawer and the bank by the books, today's takings by method, and the day's movements, with the three ways cash leaves the drawer. */
 async function page(c: Ctx) {
+  const L = c.lang;
   const since = beirutMidnight(c.deps.now()).toISOString();
   const v = await c.deps.db.rpc<HubCash>("hub_cash_view", { p_since: since });
   const cats = ((await c.deps.db.rpc<{ categories?: string[] } | null>("setting", { p_key: "hub_expenses" }))?.categories ?? ["other"]).filter((x) => x !== "petty_cash");
   const links = await Promise.all(v.movements.map((m) => (m.media_path ? c.deps.media.sign(m.media_path, 300) : Promise.resolve(null))));
-  return render(c, "Hub money", html`
-<p>Drawer by the books: <strong>${usd(v.drawer.usd)} + ${lbp(v.drawer.lbp)}</strong> · bank: ${usd(v.bank.usd)} + ${lbp(v.bank.lbp)}</p>
-<p class="muted">Count the drawer at day close; what is in it must match the books. Everything that leaves it is recorded here.</p>
-<h2>Cash to the bank</h2>
-${form(c.f, "/money/deposit", html`<p><label>Dollars <input type="number" name="usd" step="0.01" min="0"></label>
-<label>Lira <input type="number" name="lbp" step="1000" min="0"></label>
-<label>Slip number <input name="slip_ref" minlength="3" maxlength="60" required></label>
-<label>Slip photo <input type="file" name="slip" accept="image/*,application/pdf"></label> <button>Record deposit</button></p>`, { files: true })}
-<h2>Petty cash</h2>
-${form(c.f, "/money/petty", html`<p><label>Dollars <input type="number" name="usd" step="0.01" min="0"></label>
-<label>Lira <input type="number" name="lbp" step="1000" min="0"></label>
-<label>For what <input name="reason" minlength="3" maxlength="200" required></label>
-<label>Who spent it or was paid <input name="name" minlength="2" maxlength="80" required></label>
-<label>Receipt photo <input type="file" name="receipt" accept="image/*,application/pdf"></label> <button>Record</button></p>`, { files: true })}
-<h2>Expense</h2>
-${form(c.f, "/money/expense", html`<p><label>Dollars <input type="number" name="usd" step="0.01" min="0"></label>
-<label>Lira <input type="number" name="lbp" step="1000" min="0"></label>
-<label>Paid from <select name="paid_from"><option value="hub_cash">the drawer</option><option value="bank">the bank</option></select></label>
-<label>Category <select name="category">${cats.map((x) => html`<option>${x}</option>`)}</select></label></p>
-<p><label>For what <input name="reason" minlength="3" maxlength="200" required></label>
-<label>Paid to <input name="payee" maxlength="80"></label>
-<label>Invoice or receipt number <input name="reference" maxlength="60"></label>
-<label>Receipt photo <input type="file" name="receipt" accept="image/*,application/pdf"></label> <button>Record expense</button></p>`, { files: true })}
-<h2>Today (${v.movements.length})</h2>
-${v.movements.length === 0 ? html`<p class="muted">Nothing yet today.</p>` : html`<table><tr><th>When</th><th>What</th><th>Amount</th><th>From</th><th>Why</th><th>Who</th><th>By</th><th>Proof</th></tr>
-${v.movements.map((m, i) => html`<tr><td>${when(m.at)}</td><td>${KIND_WORDS[m.kind] ?? m.kind}${m.category && m.kind === "expense" ? ` (${m.category})` : ""}</td>
-<td>${Number(m.usd) ? usd(m.usd) : ""}${Number(m.usd) && Number(m.lbp) ? " + " : ""}${Number(m.lbp) ? lbp(m.lbp) : ""}</td><td>${m.paid_from === "bank" ? "bank" : "drawer"}</td>
-<td>${m.reason}</td><td>${m.payee ?? ""}</td><td>${m.by}</td><td>${m.reference ?? ""}${links[i] ? html` <a href="${links[i]}" target="_blank" rel="noopener">photo</a>` : ""}</td></tr>`)}</table>`}`);
+  const report = await c.deps.db.rpc<DayReport | null>("day_close_report", {}).catch(() => null);
+  const counts = await moneyCounts(c);
+  const takings = Object.entries(report?.payments ?? {});
+  const amountCell = (m: Movement) => `${Number(m.usd) ? usd(m.usd) : ""}${Number(m.usd) && Number(m.lbp) ? " + " : ""}${Number(m.lbp) ? lbp(m.lbp) : ""}`;
+  const fields = (extra: Raw = html``) => html`<div class="ak-money-fields">${input({ name: "usd", label: pick(L, "Dollars", "دولار"), type: "number", attrs: { step: "0.01", min: "0", inputmode: "decimal" } })}${input({ name: "lbp", label: pick(L, "Lira", "ليرة"), type: "number", attrs: { step: "1000", min: "0", inputmode: "numeric" } })}${extra}</div>`;
+  return render(c, pick(L, "Money", "المال"), html`${await moneyTabs(c, "ledger")}
+${kpis([
+    kpiTile({ label: pick(L, "The drawer, by the books", "الصندوق بحسب الدفاتر"), value: usd(v.drawer.usd), note: `+ ${lbp(v.drawer.lbp)}` }),
+    kpiTile({ label: pick(L, "The bank", "البنك"), value: usd(v.bank.usd), note: `+ ${lbp(v.bank.lbp)}` }),
+    tileLink({ label: pick(L, "To confirm", "للتأكيد"), value: String(counts.confirm), href: "/payments", icon: "money", state: counts.confirm > 0 ? "warn" : "ok", stateWord: pick(L, "transfers to check", "تحويلات للتحقق") }),
+    tileLink({ label: pick(L, "Cash drops", "تسليم النقد"), value: String(counts.drops), href: "/money/drops", icon: "wallet", state: counts.drops > 0 ? "warn" : "ok", stateWord: pick(L, "to count with a rider", "للعدّ مع مندوب") })])}
+<p>${pick(L, "Drawer by the books: ", "الصندوق بحسب الدفاتر: ")}<strong>${usd(v.drawer.usd)} + ${lbp(v.drawer.lbp)}</strong> · ${pick(L, "bank:", "البنك:")} ${usd(v.bank.usd)} + ${lbp(v.bank.lbp)}</p>
+<p class="muted">${pick(L, "Count the drawer at day close; what is in it must match the books. Everything that leaves it is recorded here.", "اعدّ الصندوق عند إغلاق اليوم؛ ما فيه يجب أن يطابق الدفاتر. كل ما يخرج منه يُسجَّل هنا.")}</p>
+${takings.length ? html`<h2>${pick(L, "Today's takings by method", "مقبوضات اليوم حسب الطريقة")}</h2><ul class="ak-rows">${takings.map(([m, x]) => html`<li><div class="head"><strong>${m.replace(/_/g, " ")}</strong><span><bdi>${usd(x.usd)}</bdi> <span class="muted">(${Number(x.count)})</span></span></div></li>`)}</ul>` : ""}
+<h2>${pick(L, `Today (${v.movements.length})`, `اليوم (${v.movements.length})`)}</h2>
+${v.movements.length === 0 ? empty({ title: pick(L, "Nothing yet today.", "لا شيء بعد اليوم."), icon: "wallet" }) : html`<div class="ak-table-wrap"><table class="ak-table"><caption class="ak-sr">${pick(L, "The day's cash movements", "حركات النقد اليوم")}</caption><thead><tr><th scope="col">${pick(L, "When", "الوقت")}</th><th scope="col">${pick(L, "What", "ماذا")}</th><th scope="col" class="num">${pick(L, "Amount", "المبلغ")}</th><th scope="col">${pick(L, "From", "من")}</th><th scope="col">${pick(L, "Why", "السبب")}</th><th scope="col">${pick(L, "Who", "لمن")}</th><th scope="col">${pick(L, "By", "بواسطة")}</th><th scope="col">${pick(L, "Proof", "الإثبات")}</th></tr></thead><tbody>
+${v.movements.map((m, i) => html`<tr><td>${when(m.at)}</td><td>${L === "ar" ? KIND_AR[m.kind] ?? m.kind : KIND_WORDS[m.kind] ?? m.kind}${m.category && m.kind === "expense" ? ` (${m.category})` : ""}</td>
+<td class="num">${amountCell(m)}</td><td>${m.paid_from === "bank" ? pick(L, "bank", "البنك") : pick(L, "drawer", "الصندوق")}</td>
+<td class="wrap">${m.reason}</td><td>${m.payee ?? ""}</td><td>${m.by}</td><td>${m.reference ?? ""}${links[i] ? html` <a href="${links[i]}" target="_blank" rel="noopener">${pick(L, "photo", "صورة")}</a>` : ""}</td></tr>`)}</tbody></table></div>`}
+<h2>${pick(L, "Cash out of the drawer", "نقد يخرج من الصندوق")}</h2>
+<details class="ak-more" id="deposit"><summary>${icon("coins")} ${pick(L, "Cash to the bank", "نقد إلى البنك")}</summary>
+${form(c.f, "/money/deposit", html`${fields(html`${input({ name: "slip_ref", label: pick(L, "Slip number", "رقم الإيصال"), required: true, maxlength: 60, attrs: { minlength: "3" } })}<label class="ak-field"><span>${pick(L, "Slip photo", "صورة الإيصال")}</span><input class="ak-input" type="file" name="slip" accept="image/*,application/pdf"></label>`)}
+<div class="actions-row">${button({ label: pick(L, "Record deposit", "سجّل الإيداع"), icon: "check" })}</div>`, { files: true })}</details>
+<details class="ak-more" id="petty"><summary>${icon("wallet")} ${pick(L, "Petty cash", "النثرية")}</summary>
+${form(c.f, "/money/petty", html`${fields(html`${input({ name: "reason", label: pick(L, "For what", "لأي غرض"), required: true, maxlength: 200, attrs: { minlength: "3" } })}${input({ name: "name", label: pick(L, "Who spent it or was paid", "من أنفقها أو دُفعت له"), required: true, maxlength: 80, attrs: { minlength: "2" } })}<label class="ak-field"><span>${pick(L, "Receipt photo", "صورة الإيصال")}</span><input class="ak-input" type="file" name="receipt" accept="image/*,application/pdf"></label>`)}
+<div class="actions-row">${button({ label: pick(L, "Record", "سجّل"), icon: "check" })}</div>`, { files: true })}</details>
+<details class="ak-more" id="expense"><summary>${icon("coins")} ${pick(L, "Expense", "مصروف")}</summary>
+${form(c.f, "/money/expense", html`${fields(html`<label class="ak-field"><span>${pick(L, "Paid from", "دُفع من")}</span><select class="ak-select" name="paid_from"><option value="hub_cash">${pick(L, "the drawer", "الصندوق")}</option><option value="bank">${pick(L, "the bank", "البنك")}</option></select></label>
+<label class="ak-field"><span>${pick(L, "Category", "الفئة")}</span><select class="ak-select" name="category">${cats.map((x) => html`<option>${x}</option>`)}</select></label>
+${input({ name: "reason", label: pick(L, "For what", "لأي غرض"), required: true, maxlength: 200, attrs: { minlength: "3" } })}${input({ name: "payee", label: pick(L, "Paid to", "دُفع إلى"), maxlength: 80 })}${input({ name: "reference", label: pick(L, "Invoice or receipt number", "رقم الفاتورة أو الإيصال"), maxlength: 60 })}
+<label class="ak-field"><span>${pick(L, "Receipt photo", "صورة الإيصال")}</span><input class="ak-input" type="file" name="receipt" accept="image/*,application/pdf"></label>`)}
+<div class="actions-row">${button({ label: pick(L, "Record expense", "سجّل المصروف"), icon: "check" })}</div>`, { files: true })}</details>`, { translated: true });
 }
 
 async function deposit(c: Ctx) {
@@ -109,7 +122,7 @@ async function expense(c: Ctx) {
 }
 
 export const moneySection: Section = {
-  nav: { href: "/money", label: "Hub money", roles: LEADS },
+  nav: { href: "/money", label: "Money", roles: LEADS },
   routes: [
     { method: "GET", path: "/money", roles: LEADS, handler: page },
     { method: "POST", path: "/money/deposit", roles: LEADS, handler: deposit },

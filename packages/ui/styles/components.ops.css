@@ -78,7 +78,7 @@
   .ak-money-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); gap: var(--ak-space-2); }
   .ak-money-fields > * { min-inline-size: 0; }
   .ak-money-fields label { display: grid; gap: 2px; font-size: var(--ak-text-sm); color: var(--ak-muted); }
-  .ak-money-fields input { inline-size: 100%; }
+  .ak-money-fields input, .ak-money-fields select { inline-size: 100%; min-inline-size: 0; max-inline-size: 100%; }
   /* cards one under another on a phone, side by side from a tablet up */
   .ak-cards { display: grid; gap: var(--ak-space-3); grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 900px) { .ak-cards { grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr)); align-items: start; } }
@@ -172,4 +172,34 @@
   .ak-board li .row { display: flex; justify-content: space-between; align-items: center; gap: var(--ak-space-2); }
   .ak-board li .sub { display: block; color: var(--ak-muted); font-size: var(--ak-text-xs); }
   .ak-board .none { color: var(--ak-muted); font-size: var(--ak-text-sm); padding: var(--ak-space-2); }
+  /* ---------- UX2b: Approve (one card at a time), Intake steps, Settings, Riders ---------- */
+  .ak-approve-card { display: grid; gap: var(--ak-space-3); margin: var(--ak-space-3) 0; }
+  .ak-approve-card form { margin: 0; }
+  .ak-approve-card .head p { margin: 0 0 var(--ak-space-1); }
+  .ak-approve-step { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-3); flex-wrap: wrap; margin-block: var(--ak-space-3); }
+  .ak-approve-step p { margin: 0; }
+  .ak-approve-foot { margin-block: var(--ak-space-2); }
+  .ak-compare { display: grid; gap: var(--ak-space-3); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 700px) { .ak-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .ak-compare h3 { margin: 0 0 var(--ak-space-2); font-size: var(--ak-text-sm); color: var(--ak-muted); }
+  .ak-facts dt { font-size: var(--ak-text-xs); color: var(--ak-muted); }
+  .ak-facts dd { margin: 0 0 var(--ak-space-2); }
+  .ak-changed { background: var(--ak-accent-soft); border-radius: var(--ak-radius-sm); padding-inline: var(--ak-space-2); }
+  .ak-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); gap: var(--ak-space-2); }
+  .ak-photos figure { margin: 0; min-inline-size: 0; }
+  .ak-photos figcaption { font-size: var(--ak-text-xs); color: var(--ak-muted); }
+  .ak-photos img.proof { inline-size: 100%; max-block-size: 260px; object-fit: contain; background: var(--ak-surface-2); }
+  .ak-what { font-size: var(--ak-text-lg); margin: 0; }
+  .ak-two { display: grid; gap: var(--ak-space-1); background: var(--ak-surface-2); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); padding: var(--ak-space-3) var(--ak-space-4); }
+  .ak-two p { display: flex; align-items: center; gap: var(--ak-space-2); margin: 0; }
+  .ak-reject { border-block-start: 1px solid var(--ak-line); padding-block-start: var(--ak-space-3) !important; }
+  .ak-steps { list-style: none; margin: var(--ak-space-3) 0; padding: 0; display: grid; gap: var(--ak-space-2); counter-reset: step; }
+  .ak-steps > li { counter-increment: step; display: grid; grid-template-columns: auto 1fr; gap: var(--ak-space-3); align-items: start; background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); padding: var(--ak-space-3) var(--ak-space-4); }
+  .ak-steps > li::before { content: counter(step); display: grid; place-items: center; inline-size: 1.75rem; block-size: 1.75rem; border-radius: var(--ak-radius-full); background: var(--ak-surface-2); font-size: var(--ak-text-sm); font-variant-numeric: tabular-nums; }
+  .ak-steps > li[data-state="done"]::before { background: var(--ak-ok-bg); content: "\2713"; }
+  .ak-steps p { margin: 0; }
+  .ak-setting { display: grid; gap: var(--ak-space-2); }
+  .ak-setting form { margin: 0; display: grid; gap: var(--ak-space-2); }
+  .ak-setting .now { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); }
+  .ak-who { color: var(--ak-muted); font-size: var(--ak-text-xs); }
 }

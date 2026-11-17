@@ -1,14 +1,14 @@
 // 3.13 Second approval: price changes above settings.approvals.price_change_pct and refunds above settings.approvals.refund_usd
 // wait in pending_approvals (0046). Another ops lead or admin approves (decide_approval runs the change as it was asked, in the
 // asker's name) or rejects it. The database refuses an approval by the person who asked.
-import { act, html, render, text, UserError, UUID, type Ctx, type Section } from "../app";
+import { act, html, render, returnTo, text, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, when } from "../html";
 import { LEADS } from "../roles";
 
 /** What each pending_approvals kind is called on the page. */
-const KIND: Record<string, string> = { price: "Price", refund: "Refund", payment: "Payment", fx: "Exchange rate" };
+export const KIND: Record<string, string> = { price: "Price", refund: "Refund", payment: "Payment", fx: "Exchange rate", setting: "Setting" };
 
-type Approval = { id: string; kind: string; summary: string; requested_by: string; requested_at: string; status: string; decided_by: string | null; decided_at: string | null; note: string | null };
+export type Approval = { id: string; kind: string; summary: string; requested_by: string; requested_at: string; status: string; decided_by: string | null; decided_at: string | null; note: string | null };
 
 async function page(c: Ctx) {
   const { db } = c.deps;
@@ -42,7 +42,7 @@ async function decide(c: Ctx) {
     const r = await c.deps.db.rpc<{ already: string | null; status: string }>("decide_approval", { p_id: id, p_by: c.staff.partyId, p_approve: approve, p_note: note });
     if (r.already) return `Already ${r.already}.`;
     return approve ? "Approved: the change is made." : "Rejected: nothing changes.";
-  }, "/approvals");
+  }, returnTo(c, "/approvals"));
 }
 
 export const approvalsSection: Section = {

@@ -17,8 +17,6 @@ function links(g: NavGroup | undefined, lang: Lang): Raw {
 }
 const groupOf = (c: Ctx, id: string) => buildNav(c.sections, c.staff.role, c.lang, c.url.pathname, c.badges).groups.find((g) => g.id === id);
 
-const approve = async (c: Ctx) => render(c, t(c.lang, "nav_approve"), html`<p class="muted">${t(c.lang, "hub_approve_intro")}</p>${links(groupOf(c, "approve"), c.lang)}`, { translated: true });
-
 async function more(c: Ctx) {
   const L = c.lang;
   const push = LEADS.includes(c.staff.role) ? pushBox(c) : html`<p class="muted">${t(L, "push_leads_only")}</p>`;
@@ -95,7 +93,6 @@ export const hubsSection: Section = {
   // No menu entry of its own: the bottom navigation links to these three.
   nav: { href: "/more", label: "More", roles: [] },
   routes: [
-    { method: "GET", path: "/approve", roles: ALL, handler: approve },
     { method: "GET", path: "/more", roles: ALL, handler: more },
     { method: "GET", path: "/install", roles: ALL, handler: install },
     { method: "POST", path: "/push/subscribe", roles: LEADS, handler: subscribe },

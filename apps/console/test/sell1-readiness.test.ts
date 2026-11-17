@@ -14,13 +14,14 @@ describe("Readiness page: packaged items and their labels", () => {
     await gate(false);
     let t = (await b.get("/readiness")).text;
     expect(t).toContain("Selling requires a label: off");
-    expect(t).toMatch(/packaged food<\/td><td>\d+<\/td><td>0 of \d+/i);
+    // UX2b: one table per template with its sellable, fact-complete, packaged and label-ready counts (the label count is "x of the packaged")
+    expect(t).toMatch(/packaged food<\/td><td class="num">\d+<\/td><td class="num">\d+ of \d+<\/td><td class="num">\d+ of \d+<\/td><td class="num">\d+<\/td><td class="num">0 of \d+/i);
     await gate(true);
     t = (await b.get("/readiness")).text;
     expect(t).toContain("Selling requires a label: on");
-    // a template with no packaged item is not in the table (fresh produce is loose)
-    const table = t.slice(t.indexOf("Packaged items and their labels"), t.indexOf("<form"));
-    expect(table).not.toMatch(/fresh produce/i);
+    // a template with no packaged item is in the table with nothing to label (fresh produce is loose): "0" packaged and a dash for label-ready
+    const table = t.slice(t.indexOf("Packaged items and their labels"), t.indexOf(`<form method="get" action="/readiness"`));
+    expect(table).toMatch(/fresh produce<\/td><td class="num">\d+<\/td><td class="num">\d+ of \d+<\/td><td class="num">\d+ of \d+<\/td><td class="num">0<\/td><td class="num">—<\/td>/i);
     await gate(false);
   });
 

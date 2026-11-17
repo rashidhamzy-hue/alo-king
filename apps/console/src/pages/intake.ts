@@ -8,6 +8,11 @@
 import { act, can, html, render, text, upload, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, when } from "../html";
 import { ALL, LEADS } from "../roles";
+import { pick } from "../i18n";
+import { badge, button, dataTable, empty, kpis, tileLink } from "@ak/ui/components";
+import type { Raw } from "../html";
+import { intakeTabs } from "./intakeframe";
+import type { Ready } from "./readiness";
 import { readingClaims, readingFacts, readingFields, templateHint, type LabelImage, type LabelReading } from "../label";
 import { basisWords } from "../basis";
 import { conflictsOf, conflictWords, factsOf, factText, NUTRIENTS, type Fact } from "./foodfacts";
@@ -15,21 +20,69 @@ import { conflictsOf, conflictWords, factsOf, factText, NUTRIENTS, type Fact } f
 type Product = { id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null };
 const PRODUCT_COLS = "id,sku,name_en,name_ar,brand,barcode";
 
+type Progress = { total: number; done: number; left: number };
+type Waiting = { product_id: string; name_en: string; sku: string | null; barcode: string | null; fields: number; from_open_food_facts: number; from_label_reading: number; from_staff: number };
+const quietly = async <T,>(f: () => Promise<T>): Promise<T | null> => { try { return await f(); } catch { return null; } };
+
+/** The board (the reference's Intake): where the label day stands, the steps to selling-requires-a-label, and the pack check. */
 async function queue(c: Ctx) {
-  const q = await c.deps.db.rpc<{ product_id: string; name_en: string; sku: string | null; barcode: string | null; fields: number; from_open_food_facts: number; from_label_reading: number; from_staff: number }[]>(
-    "food_fact_review_queue", { p_limit: 200 });
-  return render(c, "Label intake", html`
-<h2>Scan a pack</h2>
-${form(c.f, "/intake/scan", html`<p><label>Barcode or SKU <input name="code" maxlength="40" required></label></p>
-<p><label>Label <input type="file" name="photo_1" accept="image/*" required></label> <label>Ingredients and allergens <input type="file" name="photo_2" accept="image/*"></label>
-<label>Nutrition panel <input type="file" name="photo_3" accept="image/*"></label></p>
-<p><button>Save the photos${c.deps.readLabel ? " and read the label" : ""}</button></p>`, { files: true })}
-${c.deps.readLabel ? html`<p class="muted">The label is read by a model to save typing. What it reads is only a proposal: a person checks every field against the pack.</p>`
-  : html`<p class="note">No label reader is set up on this console (no model key): the photos are saved, and the fields are typed from the pack on the item's page.</p>`}
-<h2>Waiting to be checked against the pack (${q.length} items)</h2>
-${q.length === 0 ? html`<p class="muted">Nothing waits.</p>` : html`<table><tr><th>Item</th><th>SKU</th><th>Barcode</th><th>Fields</th><th>Open Food Facts</th><th>Label reading</th><th>Staff</th></tr>
-${q.map((x) => html`<tr><td><a href="/intake/${x.product_id}">${x.name_en}</a></td><td>${x.sku ?? ""}</td><td>${x.barcode ?? ""}</td><td>${Number(x.fields)}</td>
-<td>${Number(x.from_open_food_facts)}</td><td>${Number(x.from_label_reading)}</td><td>${Number(x.from_staff)}</td></tr>`)}</table>`}`);
+  const L = c.lang;
+  const lead = can(c, LEADS);
+  const { db } = c.deps;
+  const [waiting, progress, ready, approvals, on, hub] = await Promise.all([
+    db.rpc<Waiting[]>("food_fact_review_queue", { p_limit: 200 }),
+    quietly(() => db.rpc<Progress>("label_capture_progress", {})),
+    lead ? quietly(() => db.rpc<Ready[]>("product_readiness", {})) : Promise.resolve(null),
+    lead ? quietly(() => db.rpc<unknown[]>("approval_queue", { p_limit: 400 })) : Promise.resolve(null),
+    quietly(() => db.rpc<boolean>("sell_requires_label", {})),
+    lead ? quietly(async () => (await db.rows<{ id: string }>("sources", { select: "id", where: { kind: "dark_store" }, order: [{ col: "id" }], limit: 1 }))[0]?.id ?? null) : Promise.resolve(null),
+  ]);
+  const stocked = new Set(hub ? (await quietly(() => db.rows<{ product_id: string; on_hand: number | string }>("stock_levels", { select: "product_id,on_hand", where: { source_id: hub }, limit: 5000 })) ?? []).filter((x) => Number(x.on_hand) > 0).map((x) => x.product_id) : []);
+  const packaged = (ready ?? []).filter((r) => r.packaged);
+  const labelReady = packaged.filter((r) => r.label_ready).length;
+  const notReadyInStock = packaged.filter((r) => !r.label_ready && stocked.has(r.product_id)).length;
+  const sellable = (ready ?? []).filter((r) => r.level && r.level !== "not_sellable").length;
+  const waitingForPerson = approvals?.length ?? null;
+  const flag = on === true;
+
+  const tiles = [
+    progress ? tileLink({ label: pick(L, "Photographed", "صُوّر"), value: `${progress.done} / ${progress.total}`, href: "/capture", icon: "camera", state: progress.left > 0 ? "warn" : "ok",
+      stateWord: pick(L, `${progress.left} left`, `بقي ${progress.left}`), note: pick(L, "front and back of every pack", "واجهة كل عبوة وخلفها") }) : null,
+    lead && waitingForPerson !== null ? tileLink({ label: pick(L, "Waiting for a person", "بانتظار شخص"), value: String(waitingForPerson), href: "/approve?tab=labels", icon: "approve", state: waitingForPerson > 0 ? "warn" : "ok",
+      stateWord: pick(L, "to decide", "للبتّ"), note: pick(L, "label readings, allergens first", "قراءات الملصقات، مسبّبات الحساسية أولاً") }) : null,
+    lead && ready ? tileLink({ label: pick(L, "Sellable", "قابل للبيع"), value: `${sellable} / ${ready.length}`, href: "/readiness?show=not_sellable", icon: "stock", note: pick(L, "the core is complete", "الأساسيات مكتملة") }) : null,
+    lead && ready ? tileLink({ label: pick(L, "Label-ready", "جاهز بملصقه"), value: `${labelReady} / ${packaged.length}`, href: "/readiness?show=label", icon: "shield", note: pick(L, "of the packaged items", "من المنتجات المعبّأة") }) : null,
+  ].filter((x): x is Raw => x !== null);
+
+  const step = (done: boolean | null, title: string, text: string) => html`<li data-state="${done ? "done" : ""}"><div><p><strong>${title}</strong> ${done === null ? "" : done ? badge(pick(L, "done", "تم"), "ok", "check") : badge(pick(L, "to do", "للعمل"), "neutral", "clock")}</p><p class="muted">${text}</p></div></li>`;
+  const steps = html`<section class="ak-card" id="sell-requires-label"><h2>${pick(L, "Selling requires a label", "لا بيع قبل الملصق")}</h2>
+<p>${flag ? badge(pick(L, "On", "مفعّل"), "ok", "check") : badge(pick(L, "Off", "معطّل"), "neutral", "clock")} ${pick(L, "Shown here and never changed from here. It is the setting", "يُعرض هنا ولا يتغيّر من هنا. إنه الإعداد")} <code>sell_requires_label</code>.</p>
+<p class="muted">${pick(L, "When it is on, a packaged item whose label has not been read and approved by a person cannot be quoted, added to a card or shown as orderable: the chat and the site say “coming soon”. Loose produce, meat and bakery with no real barcode are not packaged and sell on the core.",
+  "عند تفعيله لا يمكن تسعير منتج معبّأ لم يُقرأ ملصقه ويعتمده شخص، ولا إضافته إلى بطاقة ولا عرضه قابلاً للطلب: تقول المحادثة والموقع «جايي قريباً». الخضار والفواكه واللحوم والمخبوزات السائبة بلا باركود حقيقي ليست معبّأة وتُباع على الأساسيات.")}</p>
+<h3>${pick(L, "The steps to turn it on", "خطوات التفعيل")}</h3>
+<ol class="ak-steps">
+${step(progress ? progress.left === 0 : null, pick(L, "Photograph every pack", "صوّر كل عبوة"), pick(L, "Front and back of each item, on the Photograph tab (the label day).", "واجهة كل منتج وخلفه، في تبويب التصوير (يوم الملصقات)."))}
+${step(ready ? labelReady > 0 : null, pick(L, "Run the label reading", "شغّل قراءة الملصقات"), pick(L, "Once the photos are in: GitHub, Actions, label-read, Run workflow (the Founder actions in the handoff say exactly where).", "بعد وصول الصور: GitHub ثم Actions ثم label-read ثم Run workflow (يوضّح قسم إجراءات المؤسس في وثيقة التسليم المكان بالضبط)."))}
+${step(lead && waitingForPerson !== null ? waitingForPerson === 0 && labelReady > 0 : null, pick(L, "Approve the readings", "اعتمد القراءات"), pick(L, "Label approvals: allergens first, then halal and certificates, warnings, disagreements, the rest. Each against the photo.", "موافقات الملصقات: مسبّبات الحساسية أولاً ثم الحلال والشهادات والتحذيرات والاختلافات وبقية القراءات. كل واحدة مقابل الصورة."))}
+${step(lead && ready ? notReadyInStock === 0 : null, pick(L, "Nothing in stock is left unlabelled", "لا شيء في المخزون بلا ملصق"), lead && ready ? pick(L, `${notReadyInStock} packaged item(s) in stock are not label-ready. The Readiness tab lists them under “packaged, not label-ready”.`, `${notReadyInStock} منتج معبّأ في المخزون ليس جاهزاً بملصقه. تعرضها تبويب الجاهزية تحت «معبّأ، ملصقه غير جاهز».`) : pick(L, "The Readiness tab lists what is left.", "يعرض تبويب الجاهزية ما تبقّى."))}
+${step(on === null ? null : flag, pick(L, "Switch it on in Settings", "فعّله من الإعدادات"), pick(L, "The admin turns it on under Settings, Switches; it needs a second person to approve (the ops lead or another admin). It can be switched off at once.", "يفعّله المدير من الإعدادات ثم المفاتيح؛ ويحتاج موافقة شخص ثانٍ (مسؤول العمليات أو مدير آخر). ويمكن إيقافه فوراً."))}
+</ol>
+${c.staff.role === "admin" ? html`<p>${button({ label: pick(L, "Open Settings", "افتح الإعدادات"), href: "/settings#switches", variant: "soft", icon: "settings" })}</p>` : ""}</section>`;
+
+  return render(c, pick(L, "Intake", "الإدخال"), html`${intakeTabs(c, "progress")}
+${tiles.length ? kpis(tiles) : ""}
+${steps}
+<h2>${pick(L, "Scan a pack", "امسح عبوة")}</h2>
+${form(c.f, "/intake/scan", html`<p><label>${pick(L, "Barcode or SKU", "الباركود أو الرمز")} <input name="code" maxlength="40" required></label></p>
+<p><label>${pick(L, "Label", "الملصق")} <input type="file" name="photo_1" accept="image/*" required></label> <label>${pick(L, "Ingredients and allergens", "المكوّنات ومسبّبات الحساسية")} <input type="file" name="photo_2" accept="image/*"></label>
+<label>${pick(L, "Nutrition panel", "جدول القيم الغذائية")} <input type="file" name="photo_3" accept="image/*"></label></p>
+<p>${button({ label: pick(L, "Save the photos", "احفظ الصور") + (c.deps.readLabel ? pick(L, " and read the label", " واقرأ الملصق") : ""), icon: "camera" })}</p>`, { files: true })}
+${c.deps.readLabel ? html`<p class="muted">${pick(L, "The label is read by a model to save typing. What it reads is only a proposal: a person checks every field against the pack.", "يقرأ نموذج الملصق لتوفير الكتابة. ما يقرأه مجرد اقتراح: يتحقق شخص من كل حقل مقابل العبوة.")}</p>`
+  : html`<p class="note">${pick(L, "No label reader is set up on this console (no model key): the photos are saved, and the fields are typed from the pack on the item's page.", "لا قارئ ملصقات مهيّأ في هذه اللوحة (لا مفتاح نموذج): تُحفظ الصور وتُكتب الحقول من العبوة في صفحة الصنف.")}</p>`}
+<h2>${pick(L, `Waiting to be checked against the pack (${waiting.length} items)`, `بانتظار التحقق مقابل العبوة (${waiting.length} منتج)`)}</h2>
+${dataTable({ caption: pick(L, "Items with fields to check", "منتجات فيها حقول للتحقق"), empty: empty({ title: pick(L, "Nothing waits.", "لا شيء ينتظر."), ok: true, icon: "check" }),
+  columns: [{ label: pick(L, "Item", "المنتج") }, { label: "SKU" }, { label: pick(L, "Barcode", "الباركود") }, { label: pick(L, "Fields", "الحقول"), num: true }, { label: "Open Food Facts", num: true }, { label: pick(L, "Label reading", "قراءة الملصق"), num: true }, { label: pick(L, "Staff", "الموظفون"), num: true }],
+  rows: waiting.map((x) => ({ cells: [html`<a href="/intake/${x.product_id}">${x.name_en}</a>`, x.sku ?? "", x.barcode ?? "", Number(x.fields), Number(x.from_open_food_facts), Number(x.from_label_reading), Number(x.from_staff)] })) })}`, { translated: true });
 }
 
 async function findProduct(c: Ctx, code: string): Promise<Product | null> {
@@ -116,7 +169,7 @@ ${form(c.f, `/intake/fact/${f.id}/reject`, html`<input name="note" placeholder="
   : html`<span class="muted">The ops lead checks this.</span>`}</td></tr>`;
   };
 
-  return render(c, `Intake: ${p.name_en}`, html`
+  return render(c, `Intake: ${p.name_en}`, html`${intakeTabs(c, "progress")}
 <p><a href="/intake">← Label intake</a> · <a href="/food-facts/${product}">Food facts</a></p>
 <div class="pair"><div>${photoLinks.length ? photoLinks.map((l) => (l ? html`<img class="proof" src="${l}" alt="pack photo">` : "")) : html`<p class="warn">No photo of the pack yet: scan it first.</p>`}</div>
 <div><table><tr><th></th><th>Catalog</th><th>Read from the label</th></tr>

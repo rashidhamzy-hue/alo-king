@@ -89,6 +89,20 @@ if(names){
   blocks.forEach(function(b,k){b.addEventListener("focusin",function(){cur=k;mark(false);});b.addEventListener("click",function(){cur=k;mark(false);});});
   mark(false);
 }
+// Approve (UX2b): one card at a time. a approves, r goes to the reject reason (it is needed), the arrow keys and space skip. Never while typing, never by touch.
+var card=document.querySelector("[data-approve] .ak-approve-card");
+if(card){
+  document.addEventListener("keydown",function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    var el=e.target,tag=el&&el.tagName;
+    if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||tag==="BUTTON"||tag==="A")return;
+    var k=e.key,go=function(sel){var x=document.querySelector("[data-approve] "+sel);if(x){e.preventDefault();return x;}return null;};
+    if(k==="a"){var b=go("[data-key=a]");if(b)b.click();}
+    else if(k==="r"){var f=go("[data-key=reason]");if(f)f.focus();}
+    else if(k==="ArrowRight"||k===" "){var s=go("[data-key=skip]");if(s)location.href=s.getAttribute("href");}
+    else if(k==="ArrowLeft"){var p=go("[data-key=prev]");if(p)location.href=p.getAttribute("href");}
+  });
+}
 // The command bar (Ctrl+K, Cmd+K or the search button): type to filter the pages; Enter opens the first match, or submits the search.
 var cmdk=document.querySelector("[data-cmdk]");
 if(cmdk&&cmdk.showModal){

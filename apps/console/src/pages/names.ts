@@ -11,20 +11,20 @@
 //     of exactly what was shown, with a fingerprint of what each looked like (proposal and catalog name), and an item that changed
 //     since the page was drawn, or was decided meanwhile, is skipped and said so.
 // This page stays in English (the 24 older pages do): the Arabic reader of the proposals is the person using it.
-import { act, attempt, audit, auditQuietly, flashRedirect, html, id, render, text, UserError, UUID, type Ctx, type Section } from "../app";
+import { act, attempt, audit, auditQuietly, flashRedirect, html, id, render, returnTo, text, UserError, UUID, type Ctx, type Section } from "../app";
 import { DbError } from "../db";
 import { form, when } from "../html";
 import { LEADS } from "../roles";
 import { hmac, randomToken, same } from "../session";
 
-type Proposal = {
+export type Proposal = {
   id: string; sku: string; current_name_en: string; current_name_ar: string | null; current_brand: string | null; current_sell_unit: string | null;
   name_en: string; name_ar: string | null; size_en: string | null; size_ar: string | null; ar_source: "catalog" | "model_written"; added_words: string[];
   off_hint: { name?: string | null; brands?: string | null; quantity?: string | null } | null; original: Record<string, string | null> | null;
   status: "proposed" | "approved" | "rejected"; corrected: boolean; decided_by: string | null; decided_at: string | null; review_note: string | null;
   applied_name_en: string | null; applied_name_ar: string | null;
 };
-type Live = { sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string };
+export type Live = { sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string };
 const SHOW = ["proposed", "approved", "rejected", "all"] as const;
 const PER_PAGE = 15;
 export const MAX_BATCH = 20;
@@ -35,7 +35,7 @@ async function fingerprint(r: Proposal, p: Live | undefined): Promise<string> {
   const data = [r.id, r.status, r.name_en, r.name_ar, r.size_en, r.size_ar, p?.name_en, p?.name_ar].map((x) => x ?? "").join("\u241f");
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(data))).slice(0, 6)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-const drifted = (p: Live | undefined, r: Proposal) => !!p && (diff(p.name_en, r.current_name_en) || diff(p.name_ar, r.current_name_ar)) && r.status === "proposed";
+export const drifted = (p: Live | undefined, r: Proposal) => !!p && (diff(p.name_en, r.current_name_en) || diff(p.name_ar, r.current_name_ar)) && r.status === "proposed";
 const batchSig = (c: Ctx, items: string) => hmac(c.deps.secret, `names-batch:${c.staff.partyId}:${items}`);
 type Batch = { ref: string; approved: string[]; at: string };
 
@@ -52,8 +52,8 @@ async function lastBatch(c: Ctx): Promise<Batch | null> {
 
 /** The name the product will carry: the proposed name with its size after it, as migration 0110 writes it. */
 export const withSize = (name: string | null, size: string | null) => (name ? [name, size].filter(Boolean).join(" ") : null);
-const ar = (s: string | null) => (s ? html`<span dir="rtl" lang="ar">${s}</span>` : html`<span class="muted">none</span>`);
-const diff = (a: string | null, b: string | null) => (a ?? "") !== (b ?? "");
+export const ar = (s: string | null) => (s ? html`<span dir="rtl" lang="ar">${s}</span>` : html`<span class="muted">none</span>`);
+export const diff = (a: string | null, b: string | null) => (a ?? "") !== (b ?? "");
 
 async function page(c: Ctx) {
   const { db } = c.deps;
@@ -139,15 +139,23 @@ async function decide(c: Ctx) {
   const status = (SHOW as readonly string[]).includes(c.form.back_status ?? "") ? c.form.back_status : "proposed";
   const q = encodeURIComponent((c.form.back_q ?? "").slice(0, 60));
   const pg = Math.max(1, Math.min(200, Number(c.form.back_page) || 1));
-  const back = `/names?status=${status}${q ? `&q=${q}` : ""}${pg > 1 ? `&page=${pg}` : ""}`;
-  return act(c, `name_${decision}`, { proposal, ...(decision === "correct" ? { name_en: args.p_name_en, name_ar: args.p_name_ar, size_en: args.p_size_en, size_ar: args.p_size_ar } : {}) }, async () => {
+  const back = returnTo(c, `/names?status=${status}${q ? `&q=${q}` : ""}${pg > 1 ? `&page=${pg}` : ""}`);
+  // UX2b: an approval made from an Approve card carries Undo, because the database can take it back as it is: rejecting an approved
+  // proposal puts the earlier name back (review_product_name), unless the catalog name was changed since.
+  const fromCard = back.startsWith("/approve?");
+  let approvedNow = false;
+  const out = await attempt(c, `name_${decision}`, { proposal, ...(decision === "correct" ? { name_en: args.p_name_en, name_ar: args.p_name_ar, size_en: args.p_size_en, size_ar: args.p_size_ar } : {}) }, async () => {
     const r = await c.deps.db.rpc<{ already: boolean; status: string; sku?: string; name_en?: string; changed?: boolean; reverted?: boolean; words_queued?: boolean }>("review_product_name", {
       p_proposal: proposal, p_by: c.staff.partyId, p_decision: decision, p_note: note, ...args,
     });
     if (r.already) return `Already ${r.status}.`;
     if (r.status === "rejected") return r.reverted ? `Undone: the earlier name of ${r.sku} is back.` : `Rejected: ${r.sku} keeps the catalog's name.`;
+    approvedNow = r.status === "approved";
     return `${decision === "correct" ? "Saved your correction" : "Approved"}: ${r.sku} is now “${r.name_en}”.${r.changed ? (r.words_queued ? " Its search words are queued again." : "") : " The name did not change."}`;
-  }, back);
+  });
+  if (!out.logged) return flashRedirect(c.deps, back, { err: "Not done: the action log could not be written. Try again in a minute." });
+  const undo = fromCard && approvedNow && decision === "approve" ? { label: c.lang === "ar" ? "تراجع" : "Undo", action: `/names/${proposal}`, fields: { decision: "reject", note: "undone from the approve card", return_to: back } } : undefined;
+  return flashRedirect(c.deps, back, out.msg, undo);
 }
 
 const backOf = (c: Ctx) => {
