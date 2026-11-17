@@ -48,7 +48,9 @@ describe("the shell", () => {
       const rule = rules.find((x) => x.sel.split(",").map((s) => s.trim()).includes(sel) && /min-block-size/.test(x.body));
       expect(rule, `a min-block-size rule for ${sel}`).toBeTruthy();
       const v = /min-block-size:([^;]+)/.exec(rule!.body)![1]!.trim();
-      const px = v === "var(--tap)" ? 44 : v === "var(--nav-h)" ? Number(/--nav-h:(\d+)px/.exec(CSS)![1]) : Number.parseFloat(v);
+      // DS2: a height may be any token (--tap, --nav-h, --ak-control ...): read its value from the sheet itself
+      const token = /^var\((--[a-z-]+)\)$/.exec(v)?.[1];
+      const px = token ? Number(new RegExp(`${token}:(\\d+)px`).exec(CSS)?.[1]) : Number.parseFloat(v);
       expect(px, `${sel} is ${v}`).toBeGreaterThanOrEqual(44);
     }
     expect(CSS).toMatch(/input\[type=checkbox\],input\[type=radio\]\{inline-size:var\(--tap\);block-size:var\(--tap\)/);
@@ -74,16 +76,27 @@ describe("the shell", () => {
     expect((await b.get("/more")).text).toContain('<html lang="en" dir="ltr">');
   });
 
-  it("shows five places on a phone, by role, with a badge on the ones that have something waiting", async () => {
+  it("shows the phone bar of the role, with a badge on the places that have something waiting", async () => {
+    // DS2 (the design reference): admin Today, Orders, Inbox, Approve; lead Today, Orders, Inbox, Dispatch; picker Pick, Stock, Intake; More for all
+    const bar = (page: string) => /<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(page)![0];
+    const places = (page: string) => [...bar(page).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1]);
+    const admin = await r.staff("admin", "Rasheed"); const a = r.browser(); await a.signIn(admin);
+    const bottom = bar((await a.get("/")).text);
+    expect(places(bottom)).toEqual(["/", "/orders", "/inbox", "/approve", "/more"]);
+    expect(bottom).toMatch(/href="\/approve"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);           // 282 names wait: capped at 99+
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
-    const bottom = /<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(page)![0];
-    expect([...bottom.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/orders", "/inbox", "/approve", "/more"]);       // DS1: the five places of strategy 05, section A
-    expect(bottom).toMatch(/href="\/approve"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);           // 282 names wait: capped at 99+
+    expect(places(page)).toEqual(["/", "/orders", "/inbox", "/rider-jobs", "/more"]);
+    expect(bar(page)).toMatch(/href="\/more"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);              // a lead's approvals wait under More
+    expect(bar((await b.get("/rider-jobs")).text)).toMatch(/<a href="\/rider-jobs" aria-current="page">/);
+    expect(bar((await b.get("/rider-jobs")).text)).not.toMatch(/<a href="\/more" aria-current="page">/);       // one place is current, never two
     expect(page).toContain('<aside class="sidebar"');                                                       // the wide-screen list is in the same page
     const picker = await r.staff("picker", "Pia"); const p = r.browser(); await p.signIn(picker);
     const pp = (await p.get("/")).text;
-    expect([...(/<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(pp)![0]).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/pick", "/approve", "/stock", "/more"]);       // D4b: the pick queue is a picker's main place
+    expect(places(pp)).toEqual(["/pick", "/stock", "/capture", "/more"]);       // D4b: the pick queue is a picker's main place; DS2: then Stock and Intake
+    expect(pp).toContain('<a class="side-brand" href="/">');                                             // Today stays one tap away: the crown
+    expect(bar((await p.get("/capture")).text)).toMatch(/<a href="\/capture" aria-current="page">/);
+    expect(bar((await p.get("/pick")).text)).toMatch(/<a href="\/pick" aria-current="page">/);
     expect(pp).not.toContain('href="/orders"'); expect(pp).not.toContain('href="/names"'); expect(pp).not.toContain('href="/inbox"');
     expect((await p.get("/orders")).status).toBe(403);
     const hub = (await b.get("/approve")).text;

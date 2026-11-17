@@ -299,6 +299,21 @@ disagrees.
 | 5 | **The out-of-stock question and the out-of-stock first message** (sim-029: a question whose buttons leave out the product named; sim-099: a first message that drops its other line) **are cases for T1 to measure** (HANDOFF, B1d, F3 and F4), **fixed only if the friends hit them.** | T1 |
 | 6 | **Migration numbers.** 0210 and 0211, left free by PD1, are LB1's. | LB1 |
 
+## Design reference, 17 November 2026
+Recorded by session DS2 (first commit, documents only) from the coordinator's review of the founder's design reference (a React app on
+demo data, made in Lovable; the review is the project note DESIGN-REFERENCE-REVIEW-2026-11-17). The reference is a pattern, never code:
+nothing from it is committed (it also holds test phone numbers the repository's guard refuses). Decision 11 of "Founder decisions,
+15 November 2026" stands: no React in the console, Astro on the website, `packages/ui` the one component set (HTML functions for the console,
+Astro components for the website). Each line supersedes any earlier line that disagrees.
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | **Brand.** Ink `#0E0F12`; gold `#C9A227`; gold-deep `#8A6A12` for gold text on paper; paper `#FAF8F3`; green `#14663B` only for "available" and "done"; WhatsApp green only on WhatsApp actions. IBM Plex Sans, self-hosted, Arabic and Latin. One token file (`packages/ui/tokens.css`). | DS2 |
+| 2 | **Statuses keep the database's ids.** One label table (staff words and customer words, Arabic and English) maps them; no id is renamed to match the reference. `awaiting_confirmation`: "Waiting for your Confirm" (customer), "Awaiting confirm" (staff). `confirmed`: "Confirmed", "To pick". `preparing`: "Packing at the hub", "Picking". `ready`: "Packed" (or "Ready for pickup" for a pickup). `out_for_delivery`: "On the way". Then arrived, delivered, failed delivery, returned, closed, and cancelled with its reason. | DS2 (`packages/ui/src/status.ts`) |
+| 3 | **Restaurants are not shown at launch.** The reference's Food door, vendor pages and menus wait for Phase 8 (invariant 11: a restaurant is orderable only through `approve_merchant()`). | DS2 (nothing built), Phase 8 |
+| 4 | **The reference's rules for staff screens are part of `packages/ui`:** every tap target at least 44 px; no swipe decides anything; a reversible action shows a toast with Undo instead of "are you sure"; a timer always carries words and an icon, never colour alone. | DS2 (`packages/ui`, its tests) |
+| 5 | **DS2 is a restyle.** The same data, the same functions, the same tests: tokens, fonts and components change, behaviour does not. The reference's screens that do not exist yet are built by WEB2, UX2a, UX2b, UX3 and later sessions, in the review's build order (`docs/HANDOFF.md`, DS2). | DS2 |
+
 ## Design reference, 17 November 2026, settings
 Recorded by session CFG1 (Sonnet 5.5) from the design review's small rules. Each is a setting or a small rule; none adds a model, an agent or a
 new way to send. Migrations 0222 and 0223. Where a row says "already", the review's number was found in the repository and only pinned by a test.

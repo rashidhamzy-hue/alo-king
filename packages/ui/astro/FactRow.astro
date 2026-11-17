@@ -1,0 +1,6 @@
+---
+// One fact with its status: the approved value and its source, or "not confirmed yet" (inside a <dl class="ak-facts">).
+import { factRow } from "../src/components";
+type Props = Parameters<typeof factRow>[0];
+---
+<Fragment set:html={factRow(Astro.props).s} />

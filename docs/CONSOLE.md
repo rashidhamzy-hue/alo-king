@@ -12,6 +12,16 @@ the live board with timers, riders against the caps as bars), the Inbox (case ro
 columns, CSV, and the drawer). A gallery of every component is at `/gallery` on staging. The other pages wear the new tokens and are moved
 onto the components, with Arabic, by UX2. What was left out because no read gives it yet is a table in `docs/HANDOFF.md`, DS1.
 
+## The design reference applied, 17 November (session DS2)
+The look is now the founder's design reference (`docs/DECISIONS.md`, "Design reference, 17 November 2026"), a pattern and never code.
+The frame: a full-height ink sidebar from 900 px (the chosen page on paper, badges in gold); a paper top bar with the search pill, the
+bell and sign-out; the test-data strip drawn with the preview notice; and on a phone a bottom bar **by role**: admin Today, Orders, Inbox,
+Approve; lead Today, Orders, Inbox, Dispatch (the rider jobs page); picker Pick, Stock, Intake (the label day's photographing page); More
+for everyone. The label day's two pages (photographing, label approvals) and every older page take the new look from the stylesheet;
+their markup, data and actions did not change. The reference's rules for staff screens are part of `packages/ui` and its tests: 44 px
+targets, no swipes, a toast with Undo instead of "are you sure", timers and statuses with words and an icon. The screens of the
+reference that are not built yet, each with its session, are a table in `docs/HANDOFF.md`, DS2.
+
 ## What never changes
 - The browser never holds a database key; the acting person comes from the session; every action is logged before it runs and
   does not run if the log cannot be written; the console has no insert, update or delete of its own (`no-direct-writes.test.ts`).

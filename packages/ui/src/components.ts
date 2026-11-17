@@ -1,4 +1,6 @@
-// The components of docs/strategy/05, section C, as HTML functions. The console calls them directly; the website's Astro
+// The components of docs/strategy/05, section C, as HTML functions, in the look of the founder's design reference (session DS2;
+// docs/DECISIONS.md, "Design reference, 17 November 2026"). Its rules for staff screens are built in here: no control under 44 px,
+// nothing decided by a swipe, a toast with Undo instead of "are you sure", a timer that always carries words and an icon. The console calls them directly; the website's Astro
 // components (packages/ui/astro) wrap the same functions, so both apps print the same markup for the same thing.
 // No function here reads data, formats money or knows a business rule: the caller passes words and numbers already decided.
 // Styles: packages/ui/styles/components*.css. No inline style and no inline script is ever written (both apps' content policy).
@@ -6,6 +8,8 @@ import { Raw, attr, html } from "./h";
 import { ICONS, type IconName } from "./icons";
 
 export { crown } from "./crown";
+export { STATUS_LABELS, ORDER_STATUS_IDS, statusLabel, statusPill } from "./status";
+export type { OrderStatusId, StatusAudience, StatusLang, StatusOpts } from "./status";
 export type { IconName } from "./icons";
 type Body = Raw | Raw[] | string;
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
@@ -17,16 +21,17 @@ export function icon(name: IconName, opts: { label?: string; flip?: boolean; bac
 }
 
 // ---------- button ----------
-export type ButtonVariant = "default" | "primary" | "gold" | "on-ink" | "ghost" | "danger";
+/** `whatsapp` is for a WhatsApp action and nothing else (the brand rule); `gold` is the one most important action of a screen. */
+export type ButtonVariant = "default" | "primary" | "gold" | "on-ink" | "ghost" | "soft" | "whatsapp" | "danger";
 export interface ButtonOpts {
-  label: string; variant?: ButtonVariant; icon?: IconName; iconOnly?: boolean; block?: boolean;
+  label: string; variant?: ButtonVariant; icon?: IconName; iconOnly?: boolean; block?: boolean; size?: "sm" | "md" | "lg";
   /** A link when set, a <button> otherwise. */
   href?: string; external?: boolean; type?: "submit" | "button"; name?: string; value?: string; disabled?: boolean; cls?: string;
   /** Extra attributes, already safe (data-*, aria-*). */
   attrs?: Record<string, string | boolean>;
 }
 export function button(o: ButtonOpts): Raw {
-  const cls = cx("ak-btn", o.variant && o.variant !== "default" && `ak-btn--${o.variant}`, o.block && "ak-btn--block", o.iconOnly && "ak-btn--icon", o.cls);
+  const cls = cx("ak-btn", o.variant && o.variant !== "default" && `ak-btn--${o.variant}`, o.block && "ak-btn--block", o.iconOnly && "ak-btn--icon", o.size && o.size !== "md" && `ak-btn--${o.size}`, o.cls);
   const inner = html`${o.icon ? icon(o.icon) : ""}${o.iconOnly ? html`<span class="ak-sr">${o.label}</span>` : html`<span>${o.label}</span>`}`;
   const extra = Object.entries(o.attrs ?? {}).map(([k, v]) => attr(k, v));
   if (o.href !== undefined) return html`<a class="${cls}" href="${o.href}"${o.external ? new Raw(' rel="noopener"') : ""}${extra}>${inner}</a>`;
@@ -45,6 +50,11 @@ export function select(o: SelectOpts): Raw {
   const extra = Object.entries(o.attrs ?? {}).map(([k, v]) => attr(k, v));
   const field = html`<select class="ak-select" name="${o.name}"${o.hideLabel ? attr("aria-label", o.label) : ""}${extra}>${o.options.map((x) => html`<option value="${x.value}"${attr("selected", x.value === (o.value ?? ""))}>${x.label}</option>`)}</select>`;
   return o.hideLabel ? field : html`<label class="ak-field"><span>${o.label}</span>${field}</label>`;
+}
+
+/** A control with its label, a hint under it and, when the value was refused, the reason in words (never a red edge alone). */
+export function field(o: { label: string; control: Raw; hint?: string; error?: string; cls?: string }): Raw {
+  return html`<label class="${cx("ak-field", o.error && "ak-field--error", o.cls)}"><span>${o.label}</span>${o.control}${o.hint ? html`<small class="hint">${o.hint}</small>` : ""}${o.error ? html`<small class="err" role="alert">${icon("alert")}${o.error}</small>` : ""}</label>`;
 }
 
 // ---------- chip ----------
@@ -125,7 +135,14 @@ export function drawer(o: { title: string; closeHref: string; closeLabel: string
 export function dialog(o: { id: string; title: string; body: Body; actions: Body; open?: boolean }): Raw {
   return html`<dialog class="ak-dialog" id="${o.id}" aria-labelledby="${o.id}-t"${attr("open", o.open)}><h2 id="${o.id}-t">${o.title}</h2>${o.body}<div class="actions">${o.actions}</div></dialog>`;
 }
-export const toast = (o: { text: string; tone?: "ok" | "err" }): Raw => html`<div class="${cx("ak-toast", `ak-toast--${o.tone ?? "ok"}`)}" role="status">${icon(o.tone === "err" ? "alert" : "check")}<span>${o.text}</span></div>`;
+/**
+ * What just happened, in words. A reversible action carries Undo here instead of asking "are you sure" before it: `undo` is a link,
+ * or a form the caller built (the console's forms carry their token). Undo is an action like any other: the server logs it.
+ */
+export function toast(o: { text: string; tone?: "ok" | "err"; undo?: Raw | { href: string; label: string } }): Raw {
+  const undo = o.undo instanceof Raw ? o.undo : o.undo ? html`<a class="ak-toast-undo" href="${o.undo.href}">${o.undo.label}</a>` : "";
+  return html`<div class="${cx("ak-toast", `ak-toast--${o.tone ?? "ok"}`)}" role="status">${icon(o.tone === "err" ? "alert" : "check")}<span>${o.text}</span>${undo}</div>`;
+}
 
 // ---------- command bar ----------
 export interface Command { label: string; href: string; hint?: string; icon?: IconName }
@@ -154,9 +171,44 @@ export function errorState(o: { title: string; text?: string; action?: Raw }): R
   return html`<div class="ak-error" role="alert">${icon("alert")}<div><p><strong>${o.title}</strong></p>${o.text ? html`<p>${o.text}</p>` : ""}${o.action ?? ""}</div></div>`;
 }
 
+// ---------- a fact with its status ----------
+/**
+ * One fact of a product: its label, the approved value and where it came from; or, when no approved value exists, the words
+ * "not confirmed yet" (the caller's, in its language). Unknown is never shown as safe, and never as an empty line (invariant 15).
+ */
+export function factRow(o: { label: string; value?: Raw | string | null; source?: string | null; notConfirmed: string }): Raw {
+  const known = o.value !== null && o.value !== undefined && o.value !== "";
+  return html`<div class="${cx("ak-fact", !known && "ak-fact--open")}"><dt>${o.label}</dt><dd>${known ? html`<bdi>${o.value}</bdi>${o.source ? html` <small>${o.source}</small>` : ""}` : html`<span class="ak-unconfirmed">${icon("clock")}${o.notConfirmed}</span>`}</dd></div>`;
+}
+export const factList = (rows: Raw[]): Raw => html`<dl class="ak-facts">${rows}</dl>`;
+/** The same tag on its own, for a section whose facts are not approved. */
+export const notConfirmed = (words: string): Raw => html`<span class="ak-unconfirmed">${icon("clock")}${words}</span>`;
+
+// ---------- price ----------
+/** A price, and under it the price per unit when the caller has one (both already formatted: this never computes money). */
+export function price(o: { amount: string; unit?: { amount: string; per: string } | null; big?: boolean }): Raw {
+  return html`<span class="${cx("ak-price", o.big && "ak-price--big")}"><bdi>${o.amount}</bdi>${o.unit ? html`<small><bdi>${o.unit.amount}</bdi>/${o.unit.per}</small>` : ""}</span>`;
+}
+
+// ---------- stepper ----------
+/**
+ * A quantity with one less and one more. Two real buttons of 44 px inside the caller's form, each sending the next value under
+ * `name`, so it works with no script and a double tap is the form's to refuse. At `min` the less button is off.
+ */
+export function stepper(o: { name: string; value: number; min?: number; max?: number; labels: { less: string; more: string; quantity: string }; big?: boolean }): Raw {
+  const min = o.min ?? 0;
+  return html`<div class="${cx("ak-stepper", o.big && "ak-stepper--big")}" role="group" aria-label="${o.labels.quantity}"><button type="submit" name="${o.name}" value="${Math.max(min, o.value - 1)}" aria-label="${o.labels.less}"${attr("disabled", o.value <= min)}>${icon("minus")}</button><output aria-live="polite" class="ak-num">${o.value}</output><button type="submit" name="${o.name}" value="${o.value + 1}" aria-label="${o.labels.more}"${attr("disabled", o.max !== undefined && o.value >= o.max)}>${icon("plus")}</button></div>`;
+}
+
+// ---------- preview notice ----------
+/** The strip that says what on this screen is not final yet (test data, placeholder figures), in the caller's words. */
+export const previewNotice = (text: string, opts: { tone?: "gold" | "ink" } = {}): Raw => html`<p class="${cx("ak-preview", opts.tone === "ink" && "ak-preview--ink")}" role="note">${text}</p>`;
+
 // ---------- product card ----------
 export interface ProductCardOpts {
   href: string; name: string; meta?: string; price: string; inStock: boolean;
+  /** The price per unit, when the catalogue gives one: already formatted. */
+  unitPrice?: { amount: string; per: string } | null;
   picture: { src: string; width: number; height: number } | null;
   labels: { inStock: string; outOfStock: string; noPicture: string };
   /** The one-tap action. Until the cart exists (WEB2) it is "order this on WhatsApp"; then it becomes "add". */
@@ -169,8 +221,8 @@ export function productCard(o: ProductCardOpts): Raw {
   return html`<li class="${cx("ak-product", !o.inStock && "ak-product--out")}"${md ? new Raw(' itemscope itemtype="https://schema.org/Product"') : ""}><a class="cover" href="${o.href}"${md ? new Raw(' itemprop="url"') : ""}>${o.picture
     ? html`<img class="pic" src="${o.picture.src}" alt="" loading="lazy" decoding="async" width="${o.picture.width}" height="${o.picture.height}"${md ? new Raw(' itemprop="image"') : ""}>`
     : html`<span class="ph" role="img" aria-label="${o.labels.noPicture}">${icon("image")}</span>`}
-<span class="body"><span class="name"${md ? new Raw(' itemprop="name"') : ""}>${o.name}</span>${o.meta ? html`<span class="meta">${o.meta}</span>` : ""}${o.inStock ? badge(o.labels.inStock, "ok") : badge(o.labels.outOfStock, "warn")}</span></a>
-<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}<span class="price"><bdi>${o.price}</bdi></span>${o.action ? button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external }) : ""}</div></li>`;
+<span class="body"><span class="price"><bdi>${o.price}</bdi></span><span class="name"${md ? new Raw(' itemprop="name"') : ""}>${o.name}</span>${o.meta || o.unitPrice ? html`<span class="meta">${o.meta ?? ""}${o.unitPrice ? html`${o.meta ? " · " : ""}<bdi>${o.unitPrice.amount}</bdi>/${o.unitPrice.per}` : ""}</span>` : ""}${o.inStock ? badge(o.labels.inStock, "ok") : badge(o.labels.outOfStock, "warn")}</span></a>
+<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}${o.action ? button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external }) : ""}</div></li>`;
 }
 
 // ---------- cart bar ----------

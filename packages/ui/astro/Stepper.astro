@@ -1,0 +1,6 @@
+---
+// One less, the number, one more: two 44 px buttons inside the page's own form (works with no script).
+import { stepper } from "../src/components";
+type Props = Parameters<typeof stepper>[0];
+---
+<Fragment set:html={stepper(Astro.props).s} />

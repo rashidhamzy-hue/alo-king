@@ -1,0 +1,8 @@
+---
+// A control with its label, a hint and, when the value was refused, the reason in words.
+import { field } from "../src/components";
+import { Raw } from "../src/h";
+interface Props { label: string; hint?: string; error?: string; cls?: string }
+const inner = await Astro.slots.render("default");
+---
+<Fragment set:html={field({ ...Astro.props, control: new Raw(inner) }).s} />

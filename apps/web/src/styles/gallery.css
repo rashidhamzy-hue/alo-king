@@ -1,4 +1,5 @@
 /* The gallery page only (staging): the operations components and the gallery's own layout, which the shop's pages never load. */
+@import "../../../../packages/ui/styles/components.more.css";
 @import "../../../../packages/ui/styles/components.ops.css";
 @import "../../../../packages/ui/styles/gallery.css";
 @layer components {

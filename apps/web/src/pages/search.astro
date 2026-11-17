@@ -37,7 +37,7 @@ const anyCredit = found.some((i) => i.picture?.licence === "cc_by_sa");
     </>}
     {r && found.length === 0 && <>
       <p>{t(lang, "search_none", { q })}</p>
-      {ask && <p><Button label={t(lang, "try_whatsapp")} href={withGreeting(ask, lang)!} icon="chat" external /></p>}
+      {ask && <p><Button label={t(lang, "try_whatsapp")} href={withGreeting(ask, lang)!} icon="chat" variant="whatsapp" external /></p>}
     </>}
   </div>}
 </Base>

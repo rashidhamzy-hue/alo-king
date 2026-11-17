@@ -1,0 +1,91 @@
+/* Components a page loads only when it shows one: chips, the status pill, a field's hint and refusal, tabs, toast (with Undo), the
+   preview notice, loading and error states, the order timeline, the dialog, the stepper and the cart bar. The console's sheet includes them all; the website loads this file on its gallery, and from
+   WEB2 on the pages that need it (cart, order), so a shop page that needs none stays under 100 KB with its fonts. */
+
+@layer components {
+  /* ---------- chip (a filter that is a link, or a choice): a pill, ink when chosen ---------- */
+  .ak-chips { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); margin: var(--ak-space-2) 0; padding: 0; list-style: none; }
+  .ak-chip { display: inline-flex; align-items: center; gap: var(--ak-space-2); min-block-size: var(--ak-tap); padding: 0 var(--ak-space-4); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-full); background: var(--ak-surface); color: var(--ak-text); text-decoration: none; font-size: var(--ak-text-sm); font-weight: var(--ak-weight-strong); white-space: nowrap; }
+  .ak-chip:hover { border-color: var(--ak-line-strong); }
+  .ak-chip .ak-num { padding: 0 0.4em; border-radius: var(--ak-radius-full); background: var(--ak-surface-2); font-size: var(--ak-text-xs); }
+  .ak-chip[aria-current="true"], .ak-chip[aria-pressed="true"] { background: var(--ak-primary); border-color: var(--ak-primary); color: var(--ak-on-primary); }
+  .ak-chip[aria-current="true"] .ak-num, .ak-chip[aria-pressed="true"] .ak-num { background: var(--ak-gold); color: var(--ak-ink); }
+
+  /* ---------- preview notice: what on this screen is not final ---------- */
+  .ak-preview { margin: 0; padding: 5px var(--ak-space-4); background: var(--ak-gold); color: var(--ak-ink); font-size: 0.72rem; font-weight: var(--ak-weight-strong); text-align: center; }
+  .ak-preview--ink { background: var(--ak-ink); color: var(--ak-paper); }
+
+  .ak-field .hint { font-weight: var(--ak-weight); color: var(--ak-muted); font-size: var(--ak-text-xs); }
+  .ak-field .err { display: flex; align-items: center; gap: var(--ak-space-1); font-weight: var(--ak-weight-strong); color: var(--ak-danger); font-size: var(--ak-text-xs); }
+  .ak-field--error .ak-input, .ak-field--error .ak-select { border-color: var(--ak-danger); }
+  /* ---------- status pill: an icon and the words, on the status's tone ---------- */
+  .ak-status { display: inline-flex; align-items: center; gap: var(--ak-space-1); padding: 2px var(--ak-space-2); border-radius: var(--ak-radius-full); background: var(--ak-surface-2); color: var(--ak-text-2); font-size: var(--ak-text-xs); font-weight: var(--ak-weight-strong); line-height: 1.5; white-space: nowrap; }
+  .ak-status .ak-icon { inline-size: 1em; block-size: 1em; vertical-align: 0; }
+  .ak-status--ok { background: var(--ak-ok-bg); color: var(--ak-ok); }
+  .ak-status--warn { background: var(--ak-warn-bg); color: var(--ak-warn); }
+  .ak-status--danger { background: var(--ak-danger-bg); color: var(--ak-danger); }
+  .ak-status--gold { background: var(--ak-accent-soft); color: var(--ak-accent); }
+  .ak-status--ink { background: var(--ak-primary); color: var(--ak-on-primary); }
+  .ak-status--info { background: var(--ak-info-bg); color: var(--ak-info); }
+  .ak-status--transit { background: var(--ak-transit-bg); color: var(--ak-transit); }
+  /* ---------- tabs: a row of pills that scrolls sideways inside itself; the chosen one is ink, its count gold ---------- */
+  .ak-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: var(--ak-space-3) 0; padding: 2px; list-style: none; }
+  .ak-tabs::-webkit-scrollbar { display: none; }
+  .ak-tab { display: inline-flex; align-items: center; gap: 6px; min-block-size: var(--ak-tap); padding: 0 14px; border-radius: var(--ak-radius-full); background: var(--ak-surface); box-shadow: 0 0 0 1px var(--ak-line); color: var(--ak-text); font-size: var(--ak-text-sm); font-weight: var(--ak-weight-strong); text-decoration: none; white-space: nowrap; }
+  .ak-tab .ak-count { background: var(--ak-surface-2); color: var(--ak-text); }
+  .ak-tab[aria-current="page"] { background: var(--ak-primary); color: var(--ak-on-primary); box-shadow: none; }
+  .ak-tab[aria-current="page"] .ak-count { background: var(--ak-gold); color: var(--ak-ink); }
+
+  /* ---------- toast: what happened, and Undo where the action can be taken back ---------- */
+  .ak-toasts { position: fixed; inset-inline: var(--ak-space-3); inset-block-end: calc(var(--ak-space-4) + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: var(--ak-space-2); z-index: 40; pointer-events: none; }
+  .ak-toast { display: flex; align-items: center; gap: var(--ak-space-3); max-inline-size: 32rem; min-block-size: var(--ak-control); padding: var(--ak-space-2) var(--ak-space-4); border-radius: var(--ak-radius); background: var(--ak-ink); color: var(--ak-paper); border: 1px solid var(--ak-ink-soft); box-shadow: var(--ak-shadow-2); font-weight: var(--ak-weight-strong); font-size: var(--ak-text-sm); pointer-events: auto; }
+  .ak-toast > span { flex: 1; min-inline-size: 0; }
+  .ak-toast--ok .ak-icon { color: #5FCB8F; }
+  .ak-toast--err .ak-icon { color: #FF8A80; }
+  .ak-toast form { margin: 0; }
+  .ak-toast-undo, .ak-toast form button { display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--ak-tap); min-inline-size: var(--ak-tap); padding: 0 var(--ak-space-3); margin: 0; border: 0; border-radius: var(--ak-radius-full); background: transparent; color: var(--ak-gold); font: inherit; font-weight: var(--ak-weight-strong); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .ak-toast-undo:hover, .ak-toast form button:hover { background: rgb(250 248 243 / 0.1); filter: none; }
+
+  /* ---------- loading and error ---------- */
+  .ak-skeleton { display: block; block-size: 1em; border-radius: var(--ak-radius-sm); background: linear-gradient(90deg, var(--ak-surface-2) 25%, var(--ak-line) 37%, var(--ak-surface-2) 63%); background-size: 400% 100%; animation: ak-shimmer 1.4s ease infinite; }
+  .ak-skeleton--tile { block-size: 88px; border-radius: var(--ak-radius-lg); }
+  .ak-skeleton--row { block-size: var(--ak-tap); margin-block: var(--ak-space-2); }
+  @keyframes ak-shimmer { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+  .ak-error { display: flex; gap: var(--ak-space-3); align-items: flex-start; padding: var(--ak-space-3) var(--ak-space-4); border-radius: var(--ak-radius); background: var(--ak-danger-bg); color: var(--ak-danger); }
+  .ak-error p { margin: 0; }
+  /* ---------- order timeline ---------- */
+  .ak-timeline { list-style: none; margin: var(--ak-space-3) 0; padding: 0; }
+  .ak-timeline li { position: relative; padding-block-end: var(--ak-space-4); padding-inline-start: var(--ak-space-6); }
+  .ak-timeline li::before { content: ""; position: absolute; inset-inline-start: 7px; inset-block: 18px 0; inline-size: 2px; background: var(--ak-line); }
+  .ak-timeline li:last-child::before { display: none; }
+  .ak-timeline li::after { content: ""; position: absolute; inset-inline-start: 2px; inset-block-start: 6px; inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--ak-surface); border: 2px solid var(--ak-line-strong); }
+  .ak-timeline li.done::after { background: var(--ak-ok); border-color: var(--ak-ok); }
+  .ak-timeline li.now::after { background: var(--ak-gold); border-color: var(--ak-gold); box-shadow: 0 0 0 4px var(--ak-accent-soft); }
+  .ak-timeline li.bad::after { background: var(--ak-danger); border-color: var(--ak-danger); }
+  .ak-timeline time { display: block; color: var(--ak-muted); font-size: var(--ak-text-xs); font-variant-numeric: tabular-nums; }
+  .ak-timeline .k { display: inline-block; font-size: var(--ak-text-xs); font-weight: var(--ak-weight-strong); color: var(--ak-accent); margin-inline-end: var(--ak-space-1); }
+
+  /* ---------- dialog ---------- */
+  .ak-dialog { border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); background: var(--ak-surface); color: var(--ak-text); box-shadow: var(--ak-shadow-2); padding: var(--ak-space-5); inline-size: min(92vw, 30rem); }
+  .ak-dialog::backdrop { background: var(--ak-scrim); }
+  .ak-dialog h2 { margin-block-start: 0; }
+  .ak-dialog .actions { display: flex; gap: var(--ak-space-2); justify-content: flex-end; flex-wrap: wrap; margin-block-start: var(--ak-space-4); }
+  /* ---------- stepper: one less, the number, one more; each button 44 px ---------- */
+  .ak-stepper { display: inline-flex; align-items: center; block-size: var(--ak-tap); border-radius: var(--ak-radius-full); background: var(--ak-ink); color: var(--ak-paper); box-shadow: var(--ak-shadow-2); }
+  .ak-stepper button { display: grid; place-items: center; inline-size: var(--ak-tap); block-size: var(--ak-tap); min-block-size: var(--ak-tap); margin: 0; padding: 0; border: 0; border-radius: var(--ak-radius-full); background: transparent; color: inherit; cursor: pointer; }
+  .ak-stepper button:hover { background: rgb(250 248 243 / 0.12); filter: none; }
+  .ak-stepper button[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .ak-stepper button:focus-visible { outline-color: var(--ak-gold); }
+  .ak-stepper output { min-inline-size: 1.5rem; text-align: center; font-weight: var(--ak-weight-strong); font-size: var(--ak-text-sm); }
+  .ak-stepper--big { display: flex; inline-size: 100%; justify-content: space-between; block-size: 56px; border-radius: var(--ak-radius-lg); background: var(--ak-surface); color: var(--ak-text); border: 2px solid var(--ak-line); box-shadow: none; }
+  .ak-stepper--big button { inline-size: 56px; block-size: 52px; }
+  .ak-stepper--big button:hover { background: var(--ak-surface-2); }
+  .ak-stepper--big button:focus-visible { outline-color: var(--ak-accent); }
+
+  /* ---------- cart bar (the shell WEB2 fills): the total, the fee, progress to the minimum ---------- */
+  .ak-cartbar { display: flex; align-items: center; gap: var(--ak-space-3); padding: var(--ak-space-3) var(--ak-space-4); background: var(--ak-ink); color: var(--ak-paper); border-radius: var(--ak-radius); box-shadow: var(--ak-shadow-2); }
+  .ak-cartbar .sum { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; line-height: 1.3; }
+  .ak-cartbar .sum small { color: #C9C6BD; font-size: var(--ak-text-xs); }
+  .ak-cartbar progress { inline-size: 100%; block-size: 6px; accent-color: var(--ak-gold); margin-block-start: 4px; }
+  .ak-cartbar .ak-btn { min-block-size: var(--ak-tap); }
+}

@@ -8,6 +8,10 @@ no stock figure and no order state (invariant 19).
 The page-by-page decisions are now `docs/strategy/05-console-website-design-handoff.md`, section B; where this file differs, that one wins.
 Built by DS1 on the design system (`packages/ui`, Tailwind v4 compiled in the Astro build, our own fonts): the frame with the crown and
 Order on WhatsApp on every page, home with "Do we deliver to you?", category with filters, search that follows the typing, and product.
+**17 November, session DS2:** the pages wear the founder's design reference (`docs/DECISIONS.md`, "Design reference, 17 November 2026"):
+the warm band and the ink delivery check on home, pill buttons, WhatsApp green on the WhatsApp buttons only, the product card with its
+action on the picture's corner, the "not confirmed yet" tag on the product page, an ink footer. Same data, same reads, same tests.
+Restaurants are not shown (Phase 8). The reference's pages that do not exist yet are listed with their session in `docs/HANDOFF.md`, DS2.
 One small script (`public/site.js`) makes the delivery check and the search quicker; every page works without it. A gallery of every
 component is at `/gallery` on staging. Cart, checkout and tracking are WEB2's; what DS1 left out is a table in `docs/HANDOFF.md`, DS1.
 

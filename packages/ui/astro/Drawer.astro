@@ -1,0 +1,8 @@
+---
+// A side panel rendered by the server: closing it is a link to the same page without it.
+import { drawer } from "../src/components";
+import { Raw } from "../src/h";
+interface Props { title: string; closeHref: string; closeLabel: string; id?: string }
+const inner = await Astro.slots.render("default");
+---
+<Fragment set:html={drawer({ ...Astro.props, body: new Raw(inner) }).s} />
