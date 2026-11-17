@@ -3,24 +3,26 @@
 // A person (the ops lead or an admin) decides each row against the pack photo: confirm as read, confirm with a correction, or reject. The
 // database approves (review_proposed_fact, review_field_value, review_claim, review_certificate) and refuses anyone else; nothing here
 // approves by itself, and a web or Open Food Facts proposal on its own is never in the list (the label replaces them). Functional only.
-import { attempt, flashRedirect, html, id, render, text, UserError, type Ctx, type Section } from "../app";
+import { attempt, flashRedirect, html, id, render, returnTo, text, UserError, type Ctx, type Section } from "../app";
 import { form } from "../html";
 import { pick } from "../i18n";
 import { LEADS } from "../roles";
+import { intakeTabs } from "./intakeframe";
+import { button } from "@ak/ui/components";
 
-type Row = { group: number; kind: "fact" | "field" | "claim" | "certificate"; id: string; product_id: string; sku: string; name_en: string; name_ar: string | null; aisle: string;
+export type Row = { group: number; kind: "fact" | "field" | "claim" | "certificate"; id: string; product_id: string; sku: string; name_en: string; name_ar: string | null; aisle: string;
   label: string; value_text: string; quote: string | null; source: string; disagrees: { source: string; value?: unknown; page_url?: string }[] | null;
   photos: { front: string | null; back: string | null; side: string | null } };
 const SHOWN = 60;
-const GROUP = (L: "en" | "ar", g: number) => [
+export const GROUP = (L: "en" | "ar", g: number) => [
   [pick(L, "Allergens", "مسبّبات الحساسية"), pick(L, "Each answered from the pack: contains, may contain or free.", "كل واحد يُجاب من العبوة: يحتوي أو قد يحتوي أو خالٍ.")],
   [pick(L, "Halal, diet labels and certificates", "الحلال وبطاقات الحمية والشهادات"), pick(L, "Only where the pack or the certificate says it.", "فقط حيث تقوله العبوة أو الشهادة.")],
   [pick(L, "Hazard and printed warnings", "تحذيرات الخطر والتحذيرات المطبوعة"), pick(L, "Each line exactly as printed.", "كل سطر كما هو مطبوع.")],
   [pick(L, "Disagreements between sources", "اختلاف المصادر"), pick(L, "The label's reading is shown with what another source said.", "قراءة الملصق مع ما قالته مصادر أخرى.")],
   [pick(L, "The rest of the label readings", "بقية قراءات الملصقات"), pick(L, "Ingredients, nutrition, claims and other fields.", "المكوّنات والقيم الغذائية والادعاءات وحقول أخرى.")],
 ][g - 1]!;
-const LIST_FIELDS = new Set(["hazard_warnings", "warnings_as_printed", "pictograms"]);
-const label = (s: string) => s.replace(/_/g, " ");
+export const LIST_FIELDS = new Set(["hazard_warnings", "warnings_as_printed", "pictograms"]);
+export const label = (s: string) => s.replace(/_/g, " ");
 
 async function page(c: Ctx) {
   const L = c.lang;
@@ -51,7 +53,8 @@ ${form(c.f, `/label-queue/${x.kind}/${x.id}/confirm`, html`<p>${edit(x)}</p><p><
 ${form(c.f, `/label-queue/${x.kind}/${x.id}/reject`, html`<input name="note" placeholder="${pick(L, "why (optional)", "السبب (اختياري)")}" maxlength="200"> <button class="secondary">${pick(L, "Reject", "ارفض")}</button>`)}</li>`;
   };
   const groups = [1, 2, 3, 4, 5].map((g) => ({ g, rows: rows.filter((x) => x.group === g), total: all.filter((x) => x.group === g).length })).filter((x) => x.total > 0);
-  return render(c, pick(L, "Label approvals", "موافقات الملصقات"), html`
+  return render(c, pick(L, "Label approvals", "موافقات الملصقات"), html`${intakeTabs(c, "approvals", { approvals: all.length })}
+<p>${button({ label: pick(L, "Decide one card at a time", "قرّر بطاقة بطاقة"), href: "/approve?tab=labels", variant: "gold", icon: "approve" })}</p>
 <p class="muted">${pick(L, "In the order of one sitting. Decide each row against the pack photo; nothing is published until you confirm it. A web page on its own never appears here: the label replaces it.",
   "بترتيب جلسة واحدة. قرّر في كل صف بالنظر إلى صورة العبوة؛ لا يُنشر شيء حتى تؤكده. صفحة الويب وحدها لا تظهر هنا: الملصق يحلّ محلها.")}</p>
 ${all.length === 0 ? html`<p class="flash ok">${pick(L, "Nothing waits for a person.", "لا شيء ينتظر شخصاً.")}</p>` : html`<p>${all.length} ${pick(L, "waiting", "بالانتظار")}${all.length > SHOWN ? ` (${pick(L, `the first ${SHOWN} are shown; the rest after you decide these`, `أول ${SHOWN} معروضة؛ والبقية بعد أن تقرّر هذه`)})` : ""}</p>`}
@@ -87,7 +90,7 @@ async function decide(c: Ctx) {
     } else if (kind === "claim") await db.rpc("review_claim", { p_claim: rid, p_by: c.staff.partyId, p_decision: decision, p_note: note });
     else await db.rpc("review_certificate", { p_certificate: rid, p_by: c.staff.partyId, p_decision: decision, p_note: note });
     return decision === "confirm" ? pick(L, "Confirmed against the pack and published.", "تم التأكيد مقابل العبوة والنشر.") : pick(L, "Rejected: nothing is published from it.", "رُفض: لا يُنشر منه شيء.");
-  }).then((r) => flashRedirect(c.deps, "/label-queue", r.logged ? r.msg : { err: pick(L, "Not done: the action log could not be written. Try again in a minute.", "لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة.") }));
+  }).then((r) => flashRedirect(c.deps, returnTo(c, "/label-queue"), r.logged ? r.msg : { err: pick(L, "Not done: the action log could not be written. Try again in a minute.", "لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة.") }));
 }
 
 export const labelQueueSection: Section = {

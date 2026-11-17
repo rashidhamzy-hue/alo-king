@@ -18,8 +18,8 @@ describe("the shell", () => {
     const page = (await b.get("/")).text;
     const side = /<aside class="sidebar"[\s\S]*?<\/aside>/.exec(page)![0];
     const heads = [...side.matchAll(/<(?:summary|a href="[^"]+"[^>]*)>(?:<svg[\s\S]*?<\/svg>)<span>([^<]+)<\/span>/g)].map((m) => m[1]);
-    expect(heads).toEqual(["Today", "Inbox", "Orders", "Approve", "Stock", "Money", "Settings"]);
-    for (const [group, href] of [["Money", "/payments"], ["Money", "/riders"], ["Settings", "/staff"], ["Settings", "/templates"], ["Settings", "/zones"], ["Stock", "/readiness"], ["Approve", "/names"]] as const) {
+    expect(heads).toEqual(["Today", "Inbox", "Orders", "Approve", "Stock", "Money", "Riders", "Settings"]);
+    for (const [group, href] of [["Money", "/payments"], ["Riders", "/riders"], ["Money", "/refunds"], ["Settings", "/staff"], ["Settings", "/templates"], ["Settings", "/zones"], ["Stock", "/readiness"], ["Approve", "/names"]] as const) {
       const block = side.split("<details").find((x) => x.includes(`<span>${group}</span>`))!;
       expect(block, `${href} under ${group}`).toContain(`href="${href}"`);
     }

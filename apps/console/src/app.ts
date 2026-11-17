@@ -195,6 +195,15 @@ export function id(c: Ctx, field: string): string {
 }
 
 /**
+ * UX2b: the Approve page's cards post to the same routes as the older list pages (names, pictures, label approvals, second approvals), and
+ * come back to the next card. `return_to` is honoured only for an address of that page and nothing else; anything else is the page's own way back.
+ */
+export function returnTo(c: Ctx, fallback: string): string {
+  const v = c.form.return_to ?? "";
+  return /^\/approve\?tab=(names|pictures|labels|money)(&n=\d{1,4})?$/.test(v) ? v : fallback;
+}
+
+/**
  * Runs one staff action: log the intent, call the SQL function(s), log the outcome, come back with a message.
  * If the log cannot be written, nothing runs ("every admin action logged", task 3.1).
  */

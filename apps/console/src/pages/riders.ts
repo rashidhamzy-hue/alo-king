@@ -5,10 +5,13 @@
 // F1: the hub pays the part of a rider's earnings their cash does not cover only from what the drawer holds (0105); a damaged
 // note found in a confirmed hub drop is recorded once per form (record_damaged_note, 0105); and each rider's cash over/short at
 // the door today, with what they owe for shortfalls beyond the tolerance, comes from day_close_report (0104).
-import { act, html, id, num, render, UserError, type Ctx, type Section } from "../app";
+import { act, can, html, id, num, render, text, upload, UserError, type Ctx, type Section } from "../app";
 import { DbError } from "../db";
 import { form, lbp, usd, when } from "../html";
+import { pick } from "../i18n";
 import { LEADS } from "../roles";
+import { moneyTabs } from "./moneyframe";
+import { badge, button, card, empty, icon, input, limitBar } from "@ak/ui/components";
 
 type Drop = { id: string; driver_id: string; method: string; declared_usd: number | string; declared_lbp: number | string; receipt_ref: string | null;
   receipt_media_path: string | null; created_at: string };
@@ -38,59 +41,133 @@ async function riderFigures(c: Ctx, driver: string) {
            usd: Number(n?.usd ?? 0), lbp: Number(n?.lbp ?? 0) };
 }
 
-async function page(c: Ctx) {
+/** Money, Cash drops: what each rider holds and is owed, the drop they declared (to count and confirm), payouts, statements and damaged notes. */
+async function drops(c: Ctx) {
   const { db, media } = c.deps;
-  const drops = await db.rows<Drop>("cash_drops", { select: "id,driver_id,method,declared_usd,declared_lbp,receipt_ref,receipt_media_path,created_at", where: { status: "declared" }, order: [{ col: "created_at" }] });
+  const L = c.lang;
+  const declared = await db.rows<Drop>("cash_drops", { select: "id,driver_id,method,declared_usd,declared_lbp,receipt_ref,receipt_media_path,created_at", where: { status: "declared" }, order: [{ col: "created_at" }] });
   const drivers = await db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { role: "driver", is_blocked: false }, order: [{ col: "display_name" }], limit: 200 });
   const open = new Map((await db.rows<{ id: string; driver_id: string; started_at: string }>("driver_shifts", { select: "id,driver_id,started_at", where: { ended_at: null } })).map((s) => [s.driver_id, s]));
-  const name = (d: string) => drivers.find((x) => x.id === d)?.display_name ?? "Rider";
+  const name = (d: string) => drivers.find((x) => x.id === d)?.display_name ?? pick(L, "Rider", "مندوب");
   const figures = await Promise.all(drivers.map((d) => riderFigures(c, d.id)));
-  const rows = drivers.map((d, i) => ({ ...d, f: figures[i]!, shift: open.get(d.id) })).filter((x) => x.shift || Math.abs(x.f.held) > 0.004 || Math.abs(x.f.earnings) > 0.004);
-  const receipts = await Promise.all(drops.map((d) => (d.receipt_media_path ? media.sign(d.receipt_media_path, 300) : Promise.resolve(null))));
+  const rows = drivers.map((d, i) => ({ ...d, f: figures[i]!, shift: open.get(d.id), drops: declared.filter((x) => x.driver_id === d.id) }))
+    .filter((x) => x.shift || Math.abs(x.f.held) > 0.004 || Math.abs(x.f.earnings) > 0.004 || x.drops.length);
+  const receipts = new Map(await Promise.all(declared.map(async (d) => [d.id, d.receipt_media_path ? await media.sign(d.receipt_media_path, 300) : null] as const)));
   const today = new Map(((await db.rpc<{ riders?: DayRider[] }>("day_close_report", {}))?.riders ?? []).map((x) => [x.rider_id, x]));
   const confirmed = (await db.rows<Drop & { confirmed_at: string }>("cash_drops", { select: "id,driver_id,method,declared_usd,declared_lbp,confirmed_at",
     where: { status: "confirmed", method: "hub" }, order: [{ col: "confirmed_at", desc: true }], limit: 10 }));
   const notes = confirmed.length ? await db.rows<Note>("damaged_notes", { select: "drop_id,amount_usd,absorbed_by", where: { drop_id: { in: confirmed.map((d) => d.id) } } }) : [];
   const overShort = (d: string) => {
     const t = today.get(d);
-    if (!t || (Math.abs(Number(t.over_short_usd)) < 0.005 && Number(t.cod_flags) === 0)) return html`<span class="muted">none</span>`;
+    if (!t || (Math.abs(Number(t.over_short_usd)) < 0.005 && Number(t.cod_flags) === 0)) return html`<span class="muted">${pick(L, "none", "لا شيء")}</span>`;
     const os = Number(t.over_short_usd), owed = Number(t.short_owed_usd);
-    return html`${os < 0 ? "short" : "over"} ${usd(Math.abs(os))}${owed > 0.004 ? html` · <strong>owes ${usd(owed)}</strong>` : ""}`;
+    return L === "ar"
+      ? html`${os < 0 ? "ناقص" : "زائد"} ${usd(Math.abs(os))}${owed > 0.004 ? html` · <strong>عليه ${usd(owed)}</strong>` : ""}`
+      : html`${os < 0 ? "short" : "over"} ${usd(Math.abs(os))}${owed > 0.004 ? html` · <strong>owes ${usd(owed)}</strong>` : ""}`;
   };
 
-  return render(c, "Cash drops and rider payouts", html`
-<h2>Cash drops to confirm (${drops.length})</h2>
-<p class="muted">Count the cash with the rider, note by note, per currency. Confirm only what you counted.</p>
-${drops.length === 0 ? html`<p class="muted">None declared.</p>` : html`<table><tr><th>Rider</th><th>Declared</th><th>How</th><th>Receipt</th><th>When</th><th></th></tr>
-${drops.map((d, i) => html`<tr><td>${name(d.driver_id)}</td><td>${usd(d.declared_usd)} + ${lbp(d.declared_lbp)}</td><td>${d.method}</td>
-<td>${d.receipt_ref ?? ""}${receipts[i] ? html` <a href="${receipts[i]}" target="_blank" rel="noopener">receipt</a>` : ""}</td><td>${when(d.created_at)}</td>
-<td>${form(c.f, `/riders/drop/${d.id}`, html`<button>Counted: confirm</button>`, { cls: "inline" })}</td></tr>`)}</table>`}
-<h2>Riders</h2>
-${rows.length === 0 ? html`<p class="muted">No rider on shift or holding money.</p>` : html`<table><tr><th>Rider</th><th>Shift</th><th>Cash held</th><th>Earnings owed (fees and tips)</th><th>To hand over</th><th>Cash over/short today</th><th></th></tr>
-${rows.map((x) => html`<tr><td>${x.display_name ?? "Rider"}</td><td>${x.shift ? html`since ${when(x.shift.started_at)}` : "ended"}</td>
-<td>${usd(x.f.usd)} + ${lbp(x.f.lbp)} <span class="muted">(${usd(x.f.held)})</span></td><td>${usd(x.f.earnings)}</td><td>${usd(x.f.handOver)}</td>
-<td>${overShort(x.id)}</td>
-<td>${x.f.earnings > 0.004 ? form(c.f, `/riders/${x.id}/pay`, html`<button>Pay earnings</button>`, { cls: "inline" }) : ""}
-${form(c.f, `/riders/${x.id}/statement`, html`<button>Send statement on WhatsApp</button>`, { cls: "inline" })}
-${x.shift ? form(c.f, `/riders/${x.id}/end-shift`, html`<button>End shift</button>`, { cls: "inline" }) : ""}</td></tr>`)}</table>
-<p class="muted">Pay earnings: the rider keeps their fees and tips out of the cash they carry (dollars first, then lira); anything more is paid from the hub till, never more than it holds. The database works it out.</p>
-<p class="muted">Over/short: a few cents of lira rounding at the door is the company's; a shortfall beyond it (up to a dollar) is owed by the rider and flagged. More than a dollar is refused at the door.</p>`}
-<h2>Damaged notes</h2>
-<p class="muted">A note in a confirmed drop that cannot be used. It leaves the drawer once: the first this month is the company's, later ones are the rider's.</p>
-${confirmed.length === 0 ? html`<p class="muted">No confirmed drop at the hub yet.</p>` : html`<table><tr><th>Rider</th><th>Drop</th><th>Confirmed</th><th>Damaged so far</th><th></th></tr>
-${confirmed.map((d) => {
+  return render(c, pick(L, "Cash drops and rider payouts", "تسليم النقد ودفعات المناديب"), html`${await moneyTabs(c, "drops")}
+<p class="muted">${pick(L, "Count the cash with the rider, note by note, per currency. Confirm only what you counted. The counted figure is recorded; the expected one is never edited.", "اعدّ النقد مع المندوب ورقة ورقة لكل عملة. أكّد ما عددته فقط. يُسجَّل المبلغ المعدود ولا يُعدَّل المتوقع أبداً.")}</p>
+<h2>${pick(L, `Cash drops to confirm (${declared.length})`, `تسليمات نقد للتأكيد (${declared.length})`)}</h2>
+${rows.length === 0 ? empty({ title: pick(L, "No rider on shift or holding money.", "لا مندوب في الوردية ولا يحمل مالاً."), icon: "wallet" }) : html`<div class="ak-cards">${rows.map((x) => card(html`
+<p class="head">${x.shift ? badge(`${pick(L, "on shift since", "في الوردية منذ")} ${when(x.shift.started_at)}`, "ok", "bike") : badge(pick(L, "shift ended", "انتهت الوردية"))}</p>
+<dl class="ak-facts"><dt>${pick(L, "Cash held", "النقد معه")}</dt><dd><strong>${usd(x.f.usd)} + ${lbp(x.f.lbp)}</strong> <span class="muted">(${usd(x.f.held)})</span></dd>
+<dt>${pick(L, "Earnings owed (fees and tips)", "الأرباح المستحقة (الرسوم والإكراميات)")}</dt><dd>${usd(x.f.earnings)}</dd>
+<dt>${pick(L, "To hand over", "يسلّم للمحل")}</dt><dd>${usd(x.f.handOver)}</dd>
+<dt>${pick(L, "Cash over/short today", "فائض أو عجز النقد اليوم")}</dt><dd>${overShort(x.id)}</dd></dl>
+${x.drops.map((d) => html`<div class="ak-two"><p><strong>${pick(L, "Declared", "المُصرَّح به")}: ${usd(d.declared_usd)} + ${lbp(d.declared_lbp)}</strong> · ${d.method} · ${when(d.created_at)}${d.receipt_ref ? ` · ${d.receipt_ref}` : ""}${receipts.get(d.id) ? html` <a href="${receipts.get(d.id)}" target="_blank" rel="noopener">${pick(L, "receipt", "الإيصال")}</a>` : ""}</p>
+${form(c.f, `/riders/drop/${d.id}`, html`${button({ label: pick(L, "Counted: confirm", "عددتُه: أكّد"), variant: "gold", icon: "check" })}`, { cls: "inline" })}</div>`)}
+<div class="actions-row">${x.f.earnings > 0.004 ? form(c.f, `/riders/${x.id}/pay`, button({ label: pick(L, "Pay earnings", "ادفع الأرباح"), icon: "coins" }), { cls: "inline" }) : ""}
+${form(c.f, `/riders/${x.id}/statement`, button({ label: pick(L, "Send statement on WhatsApp", "أرسل الكشف عبر واتساب"), variant: "soft", icon: "message" }), { cls: "inline" })}</div>`, { title: x.display_name ?? pick(L, "Rider", "مندوب") }))}</div>
+<p class="muted">${pick(L, "Pay earnings: the rider keeps their fees and tips out of the cash they carry (dollars first, then lira); anything more is paid from the hub till, never more than it holds. The database works it out.", "دفع الأرباح: يحتفظ المندوب برسومه وإكرامياته من النقد الذي يحمله (الدولار أولاً ثم الليرة)؛ وأي زيادة تُدفع من صندوق المستودع ولا تتجاوز ما فيه. تحسبها قاعدة البيانات.")}</p>
+<p class="muted">${pick(L, "Over/short: a few cents of lira rounding at the door is the company's; a shortfall beyond it (up to a dollar) is owed by the rider and flagged. More than a dollar is refused at the door.", "الفائض والعجز: بضعة سنتات تقريب بالليرة عند الباب على الشركة؛ وما زاد عنها (حتى دولار) يدين به المندوب ويُعلَّم. وأكثر من دولار يُرفض عند الباب.")}</p>`}
+<h2>${pick(L, "Damaged notes", "الأوراق التالفة")}</h2>
+<p class="muted">${pick(L, "A note in a confirmed drop that cannot be used. It leaves the drawer once: the first this month is the company's, later ones are the rider's.", "ورقة في تسليم مؤكّد لا يمكن استعمالها. تخرج من الصندوق مرة واحدة: أول واحدة هذا الشهر على الشركة والتالية على المندوب.")}</p>
+${confirmed.length === 0 ? empty({ title: pick(L, "No confirmed drop at the hub yet.", "لا تسليم مؤكّد في المستودع بعد."), icon: "wallet" }) : html`<ul class="ak-rows">${confirmed.map((d) => {
   const taken = notes.filter((n) => n.drop_id === d.id).reduce((a, n) => a + Number(n.amount_usd), 0);
-  return html`<tr><td>${name(d.driver_id)}</td><td>${usd(d.declared_usd)} + ${lbp(d.declared_lbp)}</td><td>${when(d.confirmed_at)}</td><td>${taken > 0 ? usd(taken) : ""}</td>
-<td>${form(c.f, `/riders/drop/${d.id}/damaged`, html`<input type="number" name="amount_usd" step="0.01" min="0.01" placeholder="USD" required> <button>Record damaged note</button>`, { cls: "inline" })}</td></tr>`;
-})}</table>`}`);
+  return html`<li><div class="head"><strong>${name(d.driver_id)}</strong><span class="muted">${usd(d.declared_usd)} + ${lbp(d.declared_lbp)} · ${when(d.confirmed_at)}${taken > 0 ? ` · ${pick(L, "damaged so far", "التالف حتى الآن")} ${usd(taken)}` : ""}</span></div>
+${form(c.f, `/riders/drop/${d.id}/damaged`, html`<div class="ak-money-fields">${input({ name: "amount_usd", label: pick(L, "USD", "دولار"), type: "number", required: true, attrs: { step: "0.01", min: "0.01", inputmode: "decimal" } })}</div><div class="actions-row">${button({ label: pick(L, "Record damaged note", "سجّل ورقة تالفة"), icon: "check" })}</div>`)}</li>`;
+})}</ul>`}`, { translated: true });
+}
+
+/** Riders: the roster. Who is on shift (start and end), the cash each holds against the caps, and whether their written terms are on file. No rating, no score. */
+async function roster(c: Ctx) {
+  const { db } = c.deps;
+  const L = c.lang;
+  const [board, caps, terms] = await Promise.all([
+    db.rpc<{ riders: { driver_id: string; name: string | null; on_shift: boolean; shift_since: string | null; cash_usd: number | string; cash_lbp: number | string; exposure_usd: number | string;
+      delivery: { status: string } | null }[] } | null>("console_rider_board", {}),
+    db.rpc<{ soft_usd?: number; hard_usd?: number } | null>("setting", { p_key: "cash_cap" }),
+    db.rpc<{ driver_id: string; reference: string; signed_on: string; has_document: boolean; document_path: string | null; recorded_by_name: string | null; recorded_at: string }[] | null>("rider_terms_on_file", {}).catch(() => null),
+  ]);
+  const riders = board?.riders ?? [];
+  const soft = Number(caps?.soft_usd ?? 0), hard = Number(caps?.hard_usd ?? 0);
+  const termsOf = new Map((terms ?? []).map((t) => [t.driver_id, t]));
+  const links = new Map(await Promise.all([...termsOf.values()].map(async (t) => [t.driver_id, t.document_path ? await c.deps.media.sign(t.document_path, 300) : null] as const)));
+  const hm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" }) : "");
+  const today = c.deps.now().toISOString().slice(0, 10);
+  const lead = can(c, LEADS);
+  const cardOf = (r: (typeof riders)[number]) => {
+    const exposure = Number(r.exposure_usd);
+    const t = termsOf.get(r.driver_id);
+    const capState = hard && exposure >= hard ? badge(pick(L, "at the hard cap: no new cash order", "عند السقف الصارم: لا طلب نقدي جديد"), "danger", "alert")
+      : soft && exposure >= soft ? badge(pick(L, "over the soft cap", "فوق السقف المرن"), "warn", "alert") : badge(pick(L, "under the caps", "تحت السقفين"), "ok", "check");
+    return card(html`
+<p class="head">${r.on_shift ? badge(`${pick(L, "on shift since", "في الوردية منذ")} ${hm(r.shift_since)}`, "ok", "bike") : badge(pick(L, "off shift", "خارج الوردية"))}
+${r.delivery ? badge(pick(L, "a job in hand", "في مهمة"), "gold", "truck") : ""}</p>
+<p>${pick(L, "Cash held", "النقد معه")}: <strong><bdi>${usd(r.cash_usd)}</bdi> + <bdi>${lbp(r.cash_lbp)}</bdi></strong> ${capState}</p>
+${hard ? limitBar({ value: exposure, soft: soft || null, hard, label: pick(L, `${usd(exposure)} of the ${usd(hard)} hard cap`, `${usd(exposure)} من السقف الصارم ${usd(hard)}`) }) : ""}
+<p class="muted"><bdi>${usd(exposure)}</bdi> ${pick(L, "counting cash still to collect", "مع النقد المنتظر تحصيله")}${hard ? pick(L, ` · soft ${usd(soft)}, hard ${usd(hard)} (set in Settings)`, ` · مرن ${usd(soft)}، صارم ${usd(hard)} (من الإعدادات)`) : ""}</p>
+<h3>${pick(L, "Written terms", "الشروط المكتوبة")}</h3>
+${t ? html`<p>${badge(pick(L, "on file", "محفوظة"), "ok", "check")} <bdi>${t.reference}</bdi> · ${pick(L, "signed", "وُقّعت")} <bdi>${t.signed_on}</bdi>${links.get(r.driver_id) ? html` · <a href="${links.get(r.driver_id)}" target="_blank" rel="noopener">${pick(L, "open the document", "افتح المستند")}</a>` : ""}</p>
+<p class="muted">${pick(L, "Recorded by", "سجّلها")} ${t.recorded_by_name ?? ""} · ${when(t.recorded_at)}</p>`
+  : html`<p>${badge(pick(L, "not on file", "غير محفوظة"), "warn", "alert")} ${pick(L, "A rider carries cash and fees only with their written terms on file.", "لا يحمل المندوب نقداً ورسوماً إلا بعد حفظ شروطه المكتوبة.")}</p>`}
+${lead ? html`<details class="ak-more"><summary>${icon("list")} ${t ? pick(L, "Record newer terms", "سجّل شروطاً أحدث") : pick(L, "Record the written terms", "سجّل الشروط المكتوبة")}</summary>
+${form(c.f, `/riders/${r.driver_id}/terms`, html`<div class="ak-money-fields">${input({ name: "reference", label: pick(L, "Document and version", "المستند والإصدار"), required: true, maxlength: 120 })}${input({ name: "signed_on", label: pick(L, "Signed on", "تاريخ التوقيع"), type: "date", required: true, value: today, attrs: { max: today } })}
+<label class="ak-field"><span>${pick(L, "Scan or photo (optional)", "مسح أو صورة (اختياري)")}</span><input class="ak-input" type="file" name="terms" accept="image/*,application/pdf"></label></div>
+<div class="actions-row">${button({ label: pick(L, "Save", "احفظ"), icon: "check" })}</div>`, { files: true })}</details>
+<div class="actions-row">${r.on_shift ? form(c.f, `/riders/${r.driver_id}/end-shift`, button({ label: pick(L, "End shift", "أنهِ الوردية"), icon: "bike", variant: "soft" }), { cls: "inline" })
+  : form(c.f, `/riders/${r.driver_id}/start-shift`, button({ label: pick(L, "Start shift", "ابدأ الوردية"), icon: "bike", variant: "gold" }), { cls: "inline" })}
+${button({ label: pick(L, "Cash drops and payouts", "تسليم النقد والدفعات"), href: "/money/drops", icon: "wallet", variant: "ghost" })}</div>` : ""}`, { title: r.name ?? pick(L, "Rider", "مندوب") });
+  };
+  const on = riders.filter((r) => r.on_shift), off = riders.filter((r) => !r.on_shift);
+  return render(c, pick(L, "Riders", "المناديب"), html`
+<p class="muted">${pick(L, "Who rides, who is on shift, the cash each holds against the caps, and whether their written terms are on file. Riders are never rated or scored here: this page measures the service, not people.", "من يوصّل، ومن في الوردية، والنقد الذي يحمله كل واحد مقابل السقفين، وهل شروطه المكتوبة محفوظة. لا تقييم ولا درجات للمناديب هنا: تقيس هذه الصفحة الخدمة لا الأشخاص.")}</p>
+<h2>${pick(L, `On shift (${on.length})`, `في الوردية (${on.length})`)}</h2>
+${on.length === 0 ? empty({ title: pick(L, "No rider is on shift.", "لا مندوب في الوردية."), icon: "bike" }) : html`<div class="ak-cards">${on.map(cardOf)}</div>`}
+${off.length ? html`<h2>${pick(L, `Off shift (${off.length})`, `خارج الوردية (${off.length})`)}</h2><div class="ak-cards">${off.map(cardOf)}</div>` : ""}
+<p class="muted">${pick(L, "Dispatching, jobs and incidents are on the ", "التوزيع والمهام والحوادث في صفحة ")}<a href="/rider-jobs">${pick(L, "Dispatch page", "التوزيع")}</a>.</p>`, { translated: true });
+}
+
+async function startShift(c: Ctx) {
+  const driver = id(c, "driver");
+  const L = c.lang;
+  return act(c, "rider_start_shift", { driver }, async () => {
+    const r = await c.deps.db.rpc<{ started?: boolean }>("act_for_rider", { p_by: c.staff.partyId, p_driver: driver, p_action: "start_shift" });
+    return r.started === false ? pick(L, "Their shift was already open.", "ورديته مفتوحة بالفعل.") : pick(L, "Their shift is open. They can be offered jobs.", "فُتحت ورديته. يمكن عرض مهام عليه.");
+  }, "/riders");
+}
+
+async function recordTerms(c: Ctx) {
+  const driver = id(c, "driver");
+  const L = c.lang;
+  const reference = text(c, "reference", 120);
+  const signed = (c.form.signed_on ?? "").trim();
+  if (reference.length < 3) throw new UserError(pick(L, "Name the document and its version.", "سمِّ المستند وإصداره."));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(signed)) throw new UserError(pick(L, "Choose the day it was signed.", "اختر يوم التوقيع."));
+  const path = await upload(c, "terms", `rider_terms/${driver}`);
+  return act(c, "rider_terms", { driver, reference, signed_on: signed, document: !!path }, async () => {
+    const r = await c.deps.db.rpc<{ replaced: boolean }>("record_rider_terms", { p_driver: driver, p_by: c.staff.partyId, p_reference: reference, p_signed_on: signed, p_path: path });
+    return r.replaced ? pick(L, "Newer terms recorded; the earlier ones stay as history.", "سُجّلت شروط أحدث؛ وتبقى السابقة في السجل.") : pick(L, "The written terms are on file.", "حُفظت الشروط المكتوبة.");
+  }, "/riders");
 }
 
 async function confirmDrop(c: Ctx) {
   const drop = id(c, "drop");
   return act(c, "cash_drop_confirm", { drop }, async () => {
     const left = await c.deps.db.rpc<number | string>("confirm_cash_drop", { p_drop: drop, p_by: c.staff.partyId });
-    return `Drop confirmed. The rider still holds ${usd(left)} in value.`;
-  }, "/riders");
+    return pick(c.lang, `Drop confirmed. The rider still holds ${usd(left)} in value.`, `تم تأكيد التسليم. ما زال المندوب يحمل ما قيمته ${usd(left)}.`);
+  }, "/money/drops");
 }
 
 async function pay(c: Ctx) {
@@ -100,7 +177,7 @@ async function pay(c: Ctx) {
       "Not paid: the rider's cash does not cover their earnings and the drawer does not hold the rest by the books. Confirm a cash drop first, then pay.");
     return `Paid. Kept from cash: ${usd(r.kept_usd)} and ${lbp(r.kept_lbp)}; from the hub till: ${usd(r.paid_from_hub_usd)}. ` +
       `The rider hands over ${usd(r.to_hand_over_usd)} and ${lbp(r.to_hand_over_lbp)}.`;
-  }, "/riders");
+  }, "/money/drops");
 }
 
 async function damagedNote(c: Ctx) {
@@ -114,7 +191,7 @@ async function damagedNote(c: Ctx) {
       "The drawer does not hold that much by the books. Confirm the drop first.");
     if (r.duplicate) return "That damaged note was already recorded; nothing changed.";
     return `Damaged note of ${usd(r.amount_usd)} taken out of the drawer, ${r.absorbed_by === "company" ? "absorbed by the company (the first this month)" : "owed by the rider"}.`;
-  }, "/riders");
+  }, "/money/drops");
 }
 
 async function endShift(c: Ctx) {
@@ -151,13 +228,16 @@ async function statement(c: Ctx) {
     const r = await c.deps.send({ line: "ops", partyId: driver, to, category: "utility", dedupeKey: key, msg: { type: "text", text: { body: statementText(f) } } });
     if (!r.ok) throw new UserError(`Not sent: ${r.refused}.`);
     return r.wamid === "already_sent" ? "This statement was already sent; not sent twice." : "Statement sent to the rider.";
-  }, "/riders");
+  }, "/money/drops");
 }
 
 export const ridersSection: Section = {
-  nav: { href: "/riders", label: "Cash and riders", roles: LEADS },
+  nav: { href: "/riders", label: "Riders", roles: LEADS },
   routes: [
-    { method: "GET", path: "/riders", roles: LEADS, handler: page },
+    { method: "GET", path: "/riders", roles: LEADS, handler: roster },
+    { method: "GET", path: "/money/drops", roles: LEADS, handler: drops },
+    { method: "POST", path: "/riders/:driver/start-shift", roles: LEADS, handler: startShift },
+    { method: "POST", path: "/riders/:driver/terms", roles: LEADS, handler: recordTerms },
     { method: "POST", path: "/riders/drop/:drop", roles: LEADS, handler: confirmDrop },
     { method: "POST", path: "/riders/drop/:drop/damaged", roles: LEADS, handler: damagedNote },
     { method: "POST", path: "/riders/:driver/pay", roles: LEADS, handler: pay },
