@@ -15,6 +15,7 @@ import { ACTIVE, beirutMidnight, statusWord } from "./today";
 import { badge, button, chips, dataTable, drawer, empty, icon, input, orderTimeline, select, type Column, type Tone } from "@ak/ui/components";
 import { statusPill } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
+import { messageWords } from "../message-words";
 
 type Row = { id: string; short_code: string; status: string; created_at: string; total_usd: number | string; payment_method: string; channel: string; customer_name: string | null; village_name: string | null };
 type Order = { id: string; short_code: string; customer_id: string; conversation_id: string | null; status: string; village_id: string | null; is_pickup: boolean; subtotal_usd: number | string;
@@ -211,7 +212,7 @@ function orderBody(c: Ctx, x: Loaded): Raw {
       : `${e.from_status ? statusWord(L, e.from_status) + " → " : ""}${statusWord(L, e.to_status)} (${e.actor}${e.reason ? `, ${e.reason}` : ""})` })),
     ...pays.map((p) => ({ at: p.confirmed_at ?? p.created_at, kind: pick(L, "payment", "دفعة"), text: `${p.method} · ${p.status} · ${usd(p.amount_usd)}${Number(p.received_usd) ? ` (${pick(L, "received", "المستلم")} ${usd(p.received_usd)})` : ""}` })),
     ...refunds.map((r) => ({ at: r.created_at, kind: pick(L, "refund", "استرداد"), text: `${usd(r.amount_usd)} · ${r.reason} · ${r.settle}` })),
-    ...around.map((m) => ({ at: m.created_at, kind: pick(L, "message", "رسالة"), text: `${m.direction === "inbound" ? pick(L, "customer", "الزبون") : pick(L, "us", "نحن")}: ${m.body ?? `[${m.type}]`}` })),
+    ...around.map((m) => ({ at: m.created_at, kind: pick(L, "message", "رسالة"), text: `${m.direction === "inbound" ? pick(L, "customer", "الزبون") : pick(L, "us", "نحن")}: ${messageWords(m.type, m.body, L)}` })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const paidConfirmed = x.pays.filter((p) => p.status === "confirmed").reduce((a, p) => a + Number(p.amount_usd), 0);
