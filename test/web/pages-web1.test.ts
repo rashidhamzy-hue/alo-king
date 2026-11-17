@@ -921,7 +921,7 @@ describe("UX3: /join/rider and /for-vendors", () => {
     const { html } = await page(path, h);
     let bytes = Buffer.byteLength(html); let css = "";
     for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) { const c = await (await get(href)).text(); bytes += Buffer.byteLength(c); css += c; }
-    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
+    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/gi)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
     const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => ({ family: /font-family:\s*["']?([^"';]+)["']?/.exec(m[1]!)?.[1] ?? "", url: /url\(["']?([^"')]+)["']?\)/.exec(m[1]!)?.[1] ?? "",
       spans: (/unicode-range:([^;}]+)/.exec(m[1]!)?.[1] ?? "").split(",").map((r) => r.trim().replace(/^U\+/i, "").split("-").map((x) => parseInt(x, 16))) }));
     const stack = lang === "ar" ? ["IBM Plex Sans Arabic", "IBM Plex Figures"] : ["IBM Plex Sans", "IBM Plex Sans Arabic"];
@@ -987,7 +987,7 @@ describe("UX3: /join/rider and /for-vendors", () => {
     expect(m).not.toMatch(/name="step" value="apply"/);
     expect(m).not.toMatch(/type="tel"|name="phone"|name="number"|name="whatsapp"/i);
     expect(r.headers.get("cache-control")).toBe("no-cache"); expect(r.headers.get("x-page-cache")).toBeNull();
-    expect([...r.html.matchAll(/<script\b[^>]*>/g)].every((x) => /\ssrc="/.test(x[0]))).toBe(true);
+    expect([...r.html.matchAll(/<script\b[^>]*>/gi)].every((x) => /\ssrc="/.test(x[0]))).toBe(true);
   });
 
   it("asking for the code starts a session, shows the code and a WhatsApp link with the code already typed; nothing is sent to anyone", async () => {
