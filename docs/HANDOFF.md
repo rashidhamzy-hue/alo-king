@@ -46,6 +46,44 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ## Status
 
+### WEB2: the website's day-one ordering, 17 November 2026 (Opus 5.5); migrations 0228 to 0230
+Branch `claude/friendly-cray-qx7f65`, one pull request. Decisions with their reasons: `docs/DECISIONS.md`, "WEB2, 17 November 2026". The founder's design
+reference was a pattern only (unpacked outside the repository; nothing of it is committed); the pages use DS2's components and status label table.
+No simulation and no live model call (rule 12): every turn in the tests has a model that fails the test if it is called. Each behaviour's tests were written
+before its code: with 0228 to 0230 moved aside, all 21 database tests fail; with the turn change stashed, 6 of the 8 turn tests fail (the 2 that pass check that
+STOP still wins and that a longer message still reaches the Concierge).
+
+| Item | What WEB2 built | Tested by |
+| --- | --- | --- |
+| 1. Basket | `/cart`: lines with one less, one more and Remove (forms, no script); "Add to basket" on the aisle, product and search pages (one shared form per card list; the button posts `sku:price`); the header's basket count (an `ak_b` cookie the one script reads, since catalogue pages are cached for everyone). Every view reads prices again (`cart_view`, or `checkout_quote` with the chosen village, over `plan_cart` and `quote_order`); a sold-out, no-longer-sold or coming-soon item (SELL1) is named and left out; a price that moved is named; the minimum ("Add $x more") and the village's fee come from the quote. Never cached | `test/web/web2-pages.test.ts` (part 1) |
+| 2. Sign-in | `/signin` and the checkout's first step: "Confirm your number on WhatsApp" makes a code (`web_link_code`, 0129) and shows our number's link with the code typed; the page reloads itself until linked. `turn.ts` reads `ALO-XXXXXX` by code after STOP and before any model (`claim_link_code`: links the session, records consent, one fixed line `web.linked` or why not); the cookie then lasts the session's 90 days. "Sign out" (and its Arabic and French forms, alone) on WhatsApp ends every website session (`web_sessions_revoke`). Sign out on the account page: this device, or every device | `test/db/web2-turn.test.ts`, `web2-pages` (part 2) |
+| 3. Checkout | `/checkout`, one page with no script: saved places, or a pin (the phone's location through the one script, a pasted map link or coordinates, or a location sent on WhatsApp), then house and floor; the pin decides the village and the fee (`web_save_pin` over `save_customer_pin`; an unsure pin offers its villages; outside or not served is said). When: now, or the database's windows for that village. The missing-item choice for the order, with a choice per item (`order_items.missing_pref`, read first by `pick_decide_missing`). Payment: cash in dollars with the note (the chat's rule), cash in lira at today's rate with a round amount above the lira total, Whish or OMT confirmed by a person. No card and no Whish Pay. The card preview is the WhatsApp card's own words (`orderCardParts`, split from `order-card.ts` into `order-card-text.ts`, which has no WhatsApp client) | `test/db/web2.test.ts`, `web2-pages` (parts 3 and 4) |
+| 4. Confirmation | `web_place_order` (0228, over C4's `checkout_order`) makes the card (channel `web`, the request key making a retried submit one order), applies the customer's credit as the chat's card does, and writes a card request. **It never confirms**; `settings.web.confirm_on_page` is now false. The gateway's minute cron (`customerLineCron` → `sendWebCards`) sends the stored card (`order_card`, 0229, now carrying the lira amount and the missing-item choices) through the gateway, once, in the page's language; outside the window it is recorded (`refused:window_closed_use_template`) and the page offers "Card AK-xxxx" on WhatsApp, which `turn.ts` answers by code with the card. The card's Confirm tap confirms, as for any chat order; the order page reloads itself and turns into the tracking view | `web2-turn` (the card, the tap, the window), `web2-pages` (part 4) |
+| 5. Order page | `/o/<code>?k=<expiry>.<HMAC>` (`web_order_page`, 0229; the key lives only in the database, `web_link_key`): the status steps from DS2's label table with their times (French words in `order.ts`), the window or the time, the lines and totals, what changed at the shelf, the handover code while it is needed, "talk to a person". No address, no phone, no party. A wrong, missing or expired link, or one 48 hours after the order ended, is a plain 404 | `web2` (link, expiry, 48 hours, no personal field), `web2-pages` (part 5) |
+| 6. History and account | `/orders`: WhatsApp and website orders together (`web_orders`), each with a fresh link and "Order again" (`web_order_again` over `basket_from_order`: today's prices into the basket, what cannot be sold named first). `/account`: saved places, language, what we remember (`customer_memory_view` without the contact phone), forget (the chat's own function, so it forgets in the chat), stop or start remembering, sign out here or everywhere | `web2`, `web2-pages` (part 6) |
+| 7. How it works | `/how`: hours, minimum, fee and time per served village, the small-order fee when there is one, today's rate, the first-order cap, the confirm timers, the payment ways (`web_service_facts`, 0229, all from settings) | `web2` (settings move the numbers), `web2-pages` (part 7) |
+| 8. Page weight | Every page under 100 KB on a first visit with its fonts, Arabic included. How: Arabic pages take a small figures font (digits, capitals, signs: 3.5 KB a weight) instead of the whole Latin font (12 KB a weight), and fonts are never inlined in the stylesheet; card lists draw their icons once (`iconSprite`) and share one add form; an aisle shows 24 cards a page. Heaviest pages measured by the browser (`docs/screens/web2/web-weights.txt`): Arabic aisle after an add 92.3 KB, Arabic basket 88.1 KB; the Arabic home is about 84 KB (was 96.4) and the Arabic dairy aisle about 98 KB (was 115.4) by the test's arithmetic | `web2-pages` (part 8: every page and every aisle, Arabic and English, weighed cold with the fonts its text needs, in CI); `test/screens/web2.test.ts` (the browser's own count, not in CI) |
+| 9. Words | Arabic, English and French: `docs/ARABIC_REVIEW.md`, WEB2 (the website's `w2_` keys, the French status words, the WhatsApp lines); the message snapshots gained only the new lines | `test/ci/web2-words.test.ts`, `messages.rules.test.ts` |
+
+**The done-when.** `test/web/web2-pages.test.ts`, "the done-when": one basket placed on the site (pin, card sent by the gateway, the WhatsApp tap) and the same basket sent from the WhatsApp catalogue by another customer in the same village: the same lines, unit prices, subtotal, fee, small-order fee and total; both delivered and paid in cash; **the same ledger**, and the books balance. Every call the Worker made is on `web_channel`'s list, and none is `web_confirm_order`.
+
+**Screens.** `docs/screens/web2/` (README pairs each with the reference's screen): basket, sign-in, checkout, order waiting and confirmed, history, account, How it works, an aisle after an add, at 390 and 1280 px in Arabic and English (`SCREENS=docs/screens/web2 npx vitest run test/screens/web2.test.ts`, needs Chromium). Nothing scrolls sideways at 390 px.
+
+**Changed on purpose.** `test/db/commerce-c4.test.ts` (the default of `confirm_on_page` is false; C4's tests of the page's confirm turn it on for themselves); `test/web/pages-web1.test.ts` (the header has the basket; a card's action is "Add to basket"; an aisle is followed across its pages; the Food weight check counts the figures font for Arabic); `test/ci/web-web1.test.ts` (the Worker may import exactly `@ak/agents/order-card-text`, the card's words, and nothing else of the agents' package); `packages/commerce/test/client.test.ts` (0230's grants); `test/ui/ds2.test.ts` unchanged (the sign-in buttons that post are not green: only a button that opens the chat is). `resendCard` now sends the card's stored choices (the missing-item choice, the lira amount), which it left out before.
+
+**Not proven, and what to know.**
+- Not on a phone, not on staging: 0228 to 0230 are applied only in the test database until the next staging deploy, and no card has reached a real WhatsApp. The order card arrives within the cron's minute, not at once.
+- A card sent outside the 24-hour window cannot go (there is no template for it); a customer who signed in more than a day ago is told on the order page to send "Card AK-xxxx". A sign-in from a device with no WhatsApp (a laptop) works through WhatsApp Web or the phone; the reference's "send `account`, get a link" is not built.
+- **A newer card replaces an older one that still waits** for the same customer (0101, as in the chat): placing a second web order before confirming the first cancels the first card.
+- The rider reads the lira amount on the order's note, not in a field of its own (the rider's job card shows `change_for_usd` only). The console shows it the same way.
+- "Use my location" needs the script and the phone's permission; with neither, the pasted link or "send my location on WhatsApp" work. There is no map to drop a pin on (a map needs a tile host the content policy does not allow yet).
+- An Arabic page writes lower-case Latin (a brand name) in the phone's own font, not IBM Plex.
+- The header gained two buttons; at 390 px they sit on a second row beside the logo (see the screenshots).
+- Rate limits: 60 posts a minute per address in one isolate's memory (`WEB_POST_LIMIT`); the real limit is still the Cloudflare rule on the founder's list.
+- Words wait for a reader (`docs/ARABIC_REVIEW.md`, WEB2). `scripts/check_permissions.sh` lists the 14 new functions; it needs a real Postgres (CI).
+- Migration numbers: 0228 to 0230 used; 0231 is next (0178 to 0180 stay unused; 0219 and 0220 stay WEB3's).
+**Founder actions.** None to build. Optional: decide whether the page's own Confirm button should ever be turned on (`settings.web.confirm_on_page`); today the tap on WhatsApp confirms.
+
 ### LV1: Chouf places listed before they sign, 17 November 2026 (Sonnet 5.5); migrations 0224 and 0225
 Founder decision of 17 November: `docs/DECISIONS.md`, "Listings before they sign, 17 November 2026" (first commit; it also changed the prospect-list line of `CLAUDE.md`
 and the sentence of BUILD_PLAN 8.13 that said there is no claim page). No simulation and no live model call (rule 12); the claim turn runs with a scripted model that fails if asked.
@@ -185,7 +223,7 @@ DS2; DS2 touches no SQL). CI runs them.
 | Reference screen | Where it stands | Session |
 |---|---|---|
 | Home `/`: promise, delivery check, categories, trust strip | Restyled | DS2 |
-| Home: village picker and "Delivering to", product rails, "most ordered" | Not built: needs the web session and reads | WEB2 |
+| Home: village picker and "Delivering to", product rails, "most ordered" | Not built (WEB2 put the village choice on the basket; rails and "most ordered" have no read yet) | Later (UX3) |
 | Home: the three WhatsApp ways (type, voice note, photo of a list), "No app needed" | Not built (the photo of a list is BK1) | UX3 |
 | Home: Ask Alo King, the assistant in search | Not built | WEB3 |
 | Home: Food door, open kitchens, vendor strip | Not shown at launch (invariant 11) | Later, Phase 8 (E1, E2) |
@@ -194,12 +232,12 @@ DS2; DS2 touches no SQL). CI runs them.
 | Aisle `/c/:slug` | Restyled (filters as built: brand, sold by, sort, in stock) | DS2; sub-type chips, unit-price sort: WEB2 |
 | Product `/product/:sku` | Restyled, with the "not confirmed yet" tag | DS2; add to basket, favourite, similar item, "tell me when it's back", delivery and payment block: WEB2 |
 | Search `/search` | Restyled | DS2 |
-| Basket (drawer and `/cart`), the basket bar | Components ready (stepper, cart bar) | WEB2 |
-| Checkout `/checkout` | Not built | WEB2 |
-| Order `/order/:id` (timeline, lapse clock, code, cancel) | Components ready (status pill, timeline) | WEB2 |
-| Account `/account`, sign-in `/signin` | Not built | WEB2 |
+| Basket (drawer and `/cart`), the basket bar | **Built** as a page (`/cart`), with the stepper; no drawer | WEB2 |
+| Checkout `/checkout` | **Built** (no card, Whish Pay, gift, tip or pickup) | WEB2 |
+| Order `/order/:id` (timeline, lapse clock, code, cancel) | **Built** as `/o/<code>?k=<signed link>` (timeline, code, lapse minutes; cancel is the card's own button on WhatsApp) | WEB2 |
+| Account `/account`, sign-in `/signin` | **Built** (no favourites or rewards) | WEB2 |
 | Pay `/pay/:id` (preview of the hosted page) | Not built | Later (PAY1) |
-| How it works `/how` | Not built | UX3 |
+| How it works `/how` | **Built** (from settings; UX3 may add the FAQ) | WEB2 |
 | Sell on Alo King `/for-vendors`, claiming a listing | Not built; behind a switch | UX3 (page), later Phase 8 (E1) for claims |
 | Ride with Alo King `/join/rider` | Not built | UX3 (page), RD1 (the application) |
 | Send home `/send-home` | Not built | Later (SH1) |
