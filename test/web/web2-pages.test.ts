@@ -34,9 +34,22 @@ const freePort = () => new Promise<number>((ok) => { const s = createServer(); s
 let h: Hub; let db: TestDb; let fake: Fake; let base = ""; let stop: () => Promise<void> = async () => {};
 let svc: ReturnType<typeof channelCommerce>;
 const WA = "https://wa.me/96100000000";
-/** The words a person reads on a page: scripts and styles out (any case), then every tag, repeated until none is left, then the entities. */
+/** A page without its <script> or <style> blocks: found by a plain search (any letter case), each cut from its opening tag to the end of its
+ *  closing tag, so nothing of a block is left. Only this test's own pages are read with it. */
+const dropBlocks = (html: string, tag: "script" | "style"): string => {
+  let out = html;
+  for (;;) {
+    const low = out.toLowerCase();
+    const from = low.indexOf(`<${tag}`);
+    if (from < 0) return out;
+    const close = low.indexOf(`</${tag}`, from);
+    const end = close < 0 ? out.length : (low.indexOf(">", close) < 0 ? out.length : low.indexOf(">", close) + 1);
+    out = out.slice(0, from) + " " + out.slice(end);
+  }
+};
+/** The words a person reads on a page: scripts and styles out, then every tag (repeated until none is left), then the entities. */
 const untag = (html: string): string => { let out = html, prev = ""; while (out !== prev) { prev = out; out = out.replace(/<[^<>]*>/g, " "); } return out.replace(/[<>]/g, " "); };
-const text = (html: string) => untag(html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, "")).replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+const text = (html: string) => untag(dropBlocks(dropBlocks(html, "script"), "style")).replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const price = async (sku: string) => Number((await db.one(`select o.price_usd from offers o join products p on p.id = o.product_id where p.sku = $1 and o.source_id = $2`, [sku, h.hub])).price_usd);
 const money = (n: number) => `$${n.toFixed(2)}`;
 
@@ -428,7 +441,7 @@ async function coldWeight(path: string, lang: "ar" | "en") {
       if (fam) for (const f of faces) if (f.family === fam) fonts.add(f.url);
     }
   };
-  const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "");      // text() drops the data blocks (JSON-LD) itself
   // Each element marked lang="…": its opening tag found by a plain search, its words up to its own closing tag.
   const foreign: { whole: string; tag: string; lang: string; inner: string }[] = [];
   for (const m of noSwitch.matchAll(/<(\w+) [^<>]{0,300}lang="(ar|en|fr)"[^<>]{0,300}>/g)) {
