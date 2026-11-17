@@ -12,8 +12,14 @@ import latin400 from "../../../../packages/ui/fonts/plex-latin-400.woff2?url";
 import { LANGS, LANG_NAMES, dirOf, t, withGreeting, type Lang } from "../lib/i18n";
 import { jsonLdScript } from "../lib/jsonld";
 // `jsonld`: schema.org objects for this page (LD1). Each becomes a data block, not a script that runs: the content security policy has no inline script.
-interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean; jsonld?: unknown[] }
-const { title, lang, description, q = "", path = "/", whatsapp = null, live = false, jsonld = [] } = Astro.props;
+// WEB2: `basket` is the basket's count on a page that is never cached (the basket, checkout, account); a cached catalogue page leaves it out and
+// the one small script fills it from the `ak_b` cookie. `noindex` keeps a person's pages out of search engines. `refresh` (seconds) makes a
+// page that waits for WhatsApp follow it with no script.
+interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean; jsonld?: unknown[];
+  basket?: number | null; noindex?: boolean; refresh?: number | null }
+const { title, lang, description, q = "", path = "/", whatsapp = null, live = false, jsonld = [], basket = null, noindex = false, refresh = null } = Astro.props;
+// WEB2: "Added to your basket", after an add from a card with no script (/cart/line sends the visitor back with ?added=<sku>).
+const added = /^AK-\d{1,8}$/.test(Astro.url.searchParams.get("added") ?? "");
 const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}`;
 const chat = withGreeting(whatsapp, lang);
 ---
@@ -25,6 +31,8 @@ const chat = withGreeting(whatsapp, lang);
   <title>{full}</title>
   {description && <meta name="description" content={description}>}
   <meta name="theme-color" content="#0E0F12">
+  {noindex && <meta name="robots" content="noindex">}
+  {refresh && <meta http-equiv="refresh" content={String(refresh)}>}
   <link rel="preload" href={lang === "ar" ? arabic400 : latin400} as="font" type="font/woff2" crossorigin>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -45,14 +53,21 @@ const chat = withGreeting(whatsapp, lang);
           ? <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l} aria-current="true">{LANG_NAMES[l]}</a>
           : <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l}>{LANG_NAMES[l]}</a>)}
       </nav>
+      <a class="ak-btn ak-btn--ghost ak-btn--icon me" href="/account"><Icon name="user" /><span class="ak-sr">{t(lang, "w2_account")}</span></a>
+      <a class="ak-btn ak-btn--soft basket" href="/cart"><Icon name="cart" /><span class="ak-sr">{t(lang, "w2_basket")}</span><span class="n" data-basket-n>{basket ? String(basket) : ""}</span></a>
       {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" external cls="wa" />}
     </div>
   </header>
-  <main id="main" class="wrap"><slot /></main>
+  <main id="main" class="wrap">
+    {added && <p class="added" role="status"><Icon name="check" /><span>{t(lang, "w2_added")}</span> <a href="/cart">{t(lang, "w2_view_basket")}</a></p>}
+    <slot />
+  </main>
   <footer class="site">
     <div class="wrap">
       <a class="ak-logo" href="/"><Crown /><span>{t(lang, "site")}</span></a>
       <span>{t(lang, "footer_note")}</span>
+      <a href="/how">{t(lang, "w2_how")}</a>
+      <a href="/orders">{t(lang, "w2_orders")}</a>
       <a href="/privacy">{t(lang, "privacy")}</a>
       <a href="/terms">{t(lang, "terms")}</a>
       <a href="/join/rider">{t(lang, "join_footer_rider")}</a>

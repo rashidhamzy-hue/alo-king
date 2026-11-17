@@ -86,8 +86,14 @@ export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category"
 export const WEB_LISTING_FUNCTIONS = ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"] as const;
 /** The join pages' functions (migration 0233, session UX3): an application to ride or to sell. An application is a case for staff, never a rider or a merchant. */
 export const WEB_JOIN_FUNCTIONS = ["web_join_options", "web_join_state", "web_join_code", "web_apply_rider", "web_apply_vendor"] as const;
+/** The website's ordering (migrations 0228 to 0230, session WEB2): place an order (the card goes to WhatsApp; the page never confirms), the order
+ *  page behind a signed link, history, order again, the account, the map pin, windows and the service facts. */
+export const WEB_ORDER_FUNCTIONS = [
+  "web_place_order", "web_order_page", "web_orders", "web_order_again", "web_account", "web_memory_forget", "web_memory_pref",
+  "web_sign_out_everywhere", "web_save_pin", "web_pin_village", "web_place_details", "web_windows", "web_service_facts", "web_cart_count",
+] as const;
 /** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
-export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_ORDER_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
 
 // ---------- the catalog pages' shapes ----------
 export interface CatalogPicture {
@@ -239,6 +245,61 @@ export function webJoin(db: RpcSource) {
   };
 }
 export type WebJoin = ReturnType<typeof webJoin>;
+// ---------- the website's ordering (role web_channel; WEB2) ----------
+export type MissingPref = "best_match" | "ask" | "remove";
+/** The card as stored (order_card, 0229): what the WhatsApp card is built from, so the page shows the same content. */
+export interface StoredCard {
+  order_id: string; short_code: string; status: string; payment_method: PaymentMethod; change_for_usd: number | null;
+  cash_currency: "usd" | "lbp" | null; change_for_lbp: number | null; missing_pref: MissingPref | null; keep_change: boolean;
+  missing_items: { product_id: string; name: string; name_ar: string | null; pref: MissingPref }[];
+  window: DeliveryWindow | null; replaces: string | null; prepay: { reason: "first_order"; maxCodUsd: number } | null;
+  address?: { village_en: string | null; village_ar: string | null; building: string | null; floor: string | null } | null;
+  quote: Quote & { credit_usd?: number };
+}
+export interface PlaceOrderInput {
+  requestKey: string; place: string; slot?: string | null; payment: PaymentMethod; cash?: "usd" | "lbp" | null; note?: number | null;
+  missing?: MissingPref | null; items?: Record<string, MissingPref>; notes?: string | null; lang: "ar" | "en" | "fr";
+}
+export interface PlacedOrder extends CardResult { link?: string; card?: StoredCard | any }
+export interface OrderPage {
+  ok: boolean; short_code: string; status: string; channel: Channel; pickup: boolean; created_at: string; window: DeliveryWindow | null;
+  eta_minutes: number | null; payment_method: PaymentMethod; cash_currency: "usd" | "lbp" | null;
+  events: { status: string; at: string }[]; lines: { sku: string; name_en: string; name_ar: string | null; qty: number; unit: string | null; line_total_usd: number }[];
+  removed: { sku: string; name_en: string; name_ar: string | null; qty: number }[];
+  substituted: { sku: string; name_en: string; name_ar: string | null; for_sku: string; for_name_en: string; for_name_ar: string | null }[];
+  totals: { subtotal_usd: number; delivery_fee_usd: number; small_order_fee_usd: number; credit_usd: number; dues_usd: number; total_usd: number; total_lbp: number | null };
+  handover_code: string | null; card: StoredCard | null; card_sent: string | null; cancel_reason: string | null;
+}
+export interface ServiceFacts {
+  hours: { open: string; close: string; tz: string }; open_now: boolean | null; min_order_usd: number;
+  small_order_fee: { below_subtotal_usd: number; fee_usd: number }; served: ServedVillage[]; fx_rate_lbp: number | null;
+  payments: ("cod_usd" | "cod_lbp" | "whish" | "omt")[]; first_order_max_cod_usd: number; notes_usd: number[]; lbp_steps: number[];
+  confirm_reminder_min: number; confirm_lapse_min: number; pickup: boolean; whatsapp: string | null;
+}
+export function webOrdering(db: RpcSource) {
+  return {
+    /** The card: an order waiting for the customer's Confirm tap on WhatsApp. The gateway sends it; this never confirms. */
+    placeOrder: (token: string, o: PlaceOrderInput) => call<PlacedOrder & Record<string, any>>(db, "web_place_order", {
+      p_token: token, p_request_key: o.requestKey, p_place: o.place, p_slot: o.slot ?? null, p_payment: o.payment, p_cash: o.cash ?? null,
+      p_note: o.note ?? null, p_missing: o.missing ?? null, p_items: o.items ?? {}, p_notes: o.notes ?? null, p_lang: o.lang }),
+    /** The order page: needs the order's code and its signed link, nothing else. `{ ok: false }` and nothing more otherwise. */
+    orderPage: (code: string, link: string) => call<OrderPage & Record<string, any>>(db, "web_order_page", { p_code: code, p_link: link }),
+    orders: (token: string) => call<any>(db, "web_orders", { p_token: token }),
+    orderAgain: (token: string, order: string) => call<any>(db, "web_order_again", { p_token: token, p_order: order }),
+    account: (token: string) => call<any>(db, "web_account", { p_token: token }),
+    forget: (token: string) => call<any>(db, "web_memory_forget", { p_token: token }),
+    memoryPref: (token: string, remember: boolean) => call<any>(db, "web_memory_pref", { p_token: token, p_remember: remember }),
+    signOutEverywhere: (token: string) => call<any>(db, "web_sign_out_everywhere", { p_token: token }),
+    savePin: (token: string, lat: number, lng: number) => call<any>(db, "web_save_pin", { p_token: token, p_lat: lat, p_lng: lng }),
+    pinVillage: (token: string, place: string, village: string) => call<any>(db, "web_pin_village", { p_token: token, p_place: place, p_village: village }),
+    placeDetails: (token: string, place: string, d: { building?: string | null; floor?: string | null; directions?: string | null }) =>
+      call<any>(db, "web_place_details", { p_token: token, p_place: place, p_building: d.building ?? null, p_floor: d.floor ?? null, p_directions: d.directions ?? null }),
+    windows: (token: string, village: string | null, fresh: boolean) => call<any>(db, "web_windows", { p_token: token, p_village: village, p_fresh: fresh }),
+    serviceFacts: () => call<ServiceFacts & Record<string, any>>(db, "web_service_facts", {}),
+    cartCount: (token: string) => call<number>(db, "web_cart_count", { p_token: token }),
+  };
+}
+export type WebOrdering = ReturnType<typeof webOrdering>;
 
 // ---------- the gateway and the console (service role) ----------
 export function channelCommerce(db: RpcSource) {

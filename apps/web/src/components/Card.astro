@@ -1,6 +1,7 @@
 ---
-// One item in a list (redesigned in DS1): the shared product card of packages/ui, filled from the catalog. The one-tap action is
-// "order this item on WhatsApp" until the cart exists (session WEB2), and only when a person has set the chat's address.
+// One item in a list (redesigned in DS1): the shared product card of packages/ui, filled from the catalog. WEB2: the one-tap action is "Add to
+// basket", a form with no script that posts to /cart/line and comes back to this page; only for an item in stock and orderable (a sold-out or
+// "coming soon" item has no action). The price sent is only the price the page showed: the basket reads the price again (invariant 7).
 import type { CatalogCard } from "@ak/commerce/index";
 import ProductCard from "@ak/ui-astro/ProductCard.astro";
 import { nameIn, t, unitLabel, usd, type Lang } from "../lib/i18n";
@@ -10,9 +11,11 @@ const { item, lang, env, whatsapp = null } = Astro.props;
 const name = nameIn(lang, item.name_en, item.name_ar);
 const unit = unitLabel(lang, item.sell_unit);
 const pic = item.picture;
-const ask = whatsapp && whatsapp.includes("{sku}") && item.in_stock ? whatsapp.replaceAll("{sku}", encodeURIComponent(item.sku)) : null;
+void whatsapp;
+// The button belongs to the page's one form (CardKit.astro); its value is the item and the price this page showed ("sku:price").
+const add = item.in_stock && item.coming_soon !== true && item.orderable !== false;
 ---
 <ProductCard href={`/p/${encodeURIComponent(item.sku)}`} name={name} meta={[item.brand, unit].filter(Boolean).join(" · ") || undefined} price={usd(item.price_usd)} inStock={item.in_stock}
   picture={pic ? { src: pictureUrl(env, pic.path, 400), width: pic.width_px ?? 400, height: pic.height_px ?? 400 } : null}
   labels={{ inStock: t(lang, "in_stock"), outOfStock: t(lang, item.coming_soon ? "coming_soon" : "out_of_stock"), noPicture: t(lang, "no_picture") }}
-  action={ask ? { href: ask, label: t(lang, "order_item_whatsapp"), icon: "chat", external: true } : null} />
+  action={add ? { submit: { form: "ak-add", name: "sku", value: `${item.sku}:${Number(item.price_usd)}` }, label: t(lang, "w2_add"), icon: "plus" } : null} iconRefs />

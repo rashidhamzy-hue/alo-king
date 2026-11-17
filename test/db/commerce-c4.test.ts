@@ -64,12 +64,15 @@ beforeAll(async () => {
   svc = channelCommerce(asSupabase(db));
   web = webCommerce(asWebChannel(db));
   for (const l of BASKET) pid[l.sku] = (await db.one(`select id from products where sku = $1`, [l.sku])).id;
+  // WEB2 (0228) turned confirm on the page off: the website sends the card to WhatsApp and the tap there confirms. C4's own tests of the
+  // page's confirm (its idempotency, its checks) still hold for the function, so they run with the setting on; the first test reads the default.
 }, 120_000);
 afterAll(async () => { await db?.pg.close(); });
 
 describe("settings and schema (0128)", () => {
-  it("C1 is approved: confirm on the page is on; every order made before C4 is a WhatsApp order", async () => {
-    expect((await db.one(`select value from settings where key = 'web'`)).value).toMatchObject({ confirm_on_page: true, link_code_minutes: 10, session_days: 90 });
+  it("confirm on the page is off since WEB2 (0228; C1 as decided for WEB2); every order made before C4 is a WhatsApp order", async () => {
+    expect((await db.one(`select value from settings where key = 'web'`)).value).toMatchObject({ confirm_on_page: false, link_code_minutes: 10, session_days: 90 });
+    await setConfirmOnPage(true);       // the rest of this file tests the function itself with the setting on
     expect((await db.one(`select column_default from information_schema.columns where table_name = 'orders' and column_name = 'channel'`)).column_default).toContain("whatsapp");
     await expect(db.one(`update orders set channel = 'fax' where false returning id`)).resolves.toBeUndefined();
     await expect(db.pg.query(`insert into orders(short_code, customer_id, channel) select 'AK-X', id, 'fax' from parties limit 1`)).rejects.toThrow(/orders_channel/);

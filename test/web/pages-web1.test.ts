@@ -420,10 +420,10 @@ describe("DS1: the redesigned pages", () => {
       expect(html.match(/href="https:\/\/wa\.me\/96100000000\?text=Hello%2C%20I%20would%20like%20to%20order"/g)!.length, path).toBeGreaterThanOrEqual(2);
       expect(html, path).toMatch(/<link rel="preload" href="\/_astro\/plex-latin-400\.[\w-]+\.woff2" as="font" type="font\/woff2" crossorigin>/);
       expect(html, path).not.toMatch(/fonts\.googleapis|fonts\.gstatic|cdn\./);
-      expect(html, path).not.toMatch(/\/cart|class="ak-cartbar"/);                     // no cart until it exists (WEB2)
+      expect(html, path).toContain('href="/cart"');                                       // WEB2: the basket is in every page's header
     }
     const css = await (await get(/href="(\/_astro\/[^"]+\.css)"/.exec((await page("/")).html)![1]!)).text();
-    expect([...css.matchAll(/url\(([^)]+)\)/g)].every((m) => /^\/_astro\/plex-(latin|arabic)-(400|600)\.[\w-]+\.woff2$/.test(m[1]!.replace(/["']/g, "")))).toBe(true);
+    expect([...css.matchAll(/url\(([^)]+)\)/g)].every((m) => /^\/_astro\/plex-(latin|arabic|figures)-(400|600)\.[\w-]+\.woff2$/.test(m[1]!.replace(/["']/g, "")))).toBe(true);
     expect(css).toContain("--ak-gold:#c9a227"); expect(css).toContain("prefers-color-scheme:dark");
     expect((await page("/", { "accept-language": "ar" })).html).toContain(encodeURIComponent("مرحبا، بدي اطلب"));
   });
@@ -443,32 +443,37 @@ describe("DS1: the redesigned pages", () => {
   });
 
   it("a category filters by brand, how it is sold and stock, and sorts by price only; the filtered address is not cached", async () => {
+    // WEB2: an aisle shows 24 cards a page; every page is followed (rel="next") so the whole aisle is compared.
+    const every = async (path: string) => { const out: string[] = []; const htmls: string[] = []; let at: string | null = path;
+      while (at) { const h = (await page(at)).html; htmls.push(h); out.push(...skus(h)); at = /<a [^>]*href="([^"]+)" rel="next"/.exec(h)?.[1]?.replace(/&amp;/g, "&") ?? null; }
+      return { skus: out, html: htmls.join("\n") }; };
     await db.pg.exec(`update stock_levels set on_hand = 0 where product_id = (select id from products where sku = 'AK-0042')`);
     try {
       const plain = await page("/c/dairy_eggs");
-      const all = skus(plain.html);
+      const all = (await every("/c/dairy_eggs")).skus;
       const stock = await page("/c/dairy_eggs?stock=1");
-      expect(skus(stock.html)).toEqual(all.filter((x) => x !== "AK-0042"));
+      expect((await every("/c/dairy_eggs?stock=1")).skus).toEqual(all.filter((x) => x !== "AK-0042"));
       expect(stock.headers.get("cache-control")).toBe("no-store");
       const brand = /<select class="ak-select" name="brand">[\s\S]*?<option value="([^"]+)"/.exec(plain.html.replace(/<option value="">[^<]*<\/option>/g, ""))![1]!;
       const byBrand = await page(`/c/dairy_eggs?brand=${encodeURIComponent(brand)}`);
-      expect(skus(byBrand.html).length).toBeGreaterThan(0); expect(skus(byBrand.html).length).toBeLessThan(all.length);
-      expect(text(byBrand.html)).toMatch(new RegExp(`${skus(byBrand.html).length} of ${all.length} items`));
+      const byBrandAll = (await every(`/c/dairy_eggs?brand=${encodeURIComponent(brand)}`)).skus;
+      expect(byBrandAll.length).toBeGreaterThan(0); expect(byBrandAll.length).toBeLessThan(all.length);
+      expect(text(byBrand.html)).toMatch(new RegExp(`${byBrandAll.length} of ${all.length} items`));
       const prices = (h: string) => [...h.matchAll(/<span class="price"><bdi>\$([\d.]+)<\/bdi>/g)].map((m) => Number(m[1]));
-      const up = prices((await page("/c/dairy_eggs?sort=price_asc")).html), down = prices((await page("/c/dairy_eggs?sort=price_desc")).html);
+      const up = prices((await every("/c/dairy_eggs?sort=price_asc")).html), down = prices((await every("/c/dairy_eggs?sort=price_desc")).html);
       expect(up.length).toBe(all.length); expect([...up].sort((a, b) => a - b)).toEqual(up); expect([...down].sort((a, b) => b - a)).toEqual(down);
       // a filter that is not one is ignored; nothing but facts can sort (invariant 14)
-      expect(skus((await page("/c/dairy_eggs?brand=%3Cscript%3E&sort=best&unit=x")).html)).toEqual(all);
+      expect((await every("/c/dairy_eggs?brand=%3Cscript%3E&sort=best&unit=x")).skus).toEqual(all);
       expect(plain.html).not.toMatch(/value="(popular|best|rating|recommended)[^"]*"/i);
     } finally { await db.pg.exec(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = 'AK-0042')`); }
   });
 
-  it("a card's one tap orders that item on WhatsApp, only when it is in stock; the product page says what a search engine may read, with no script", async () => {
+  it("a card's one tap adds that item to the basket (WEB2), only when it is in stock; the product page says what a search engine may read, with no script", async () => {
     await db.pg.exec(`update stock_levels set on_hand = 0 where product_id = (select id from products where sku = 'AK-0046')`);
     try {
       const cat = (await page("/c/dairy_eggs")).html;
       const card = (sku: string) => body(cat).split('<li class="ak-product').find((c) => c.includes(`/p/${sku}"`))!;
-      expect(card("AK-0042")).toContain('href="https://wa.me/96100000000?text=AK-0042"'); expect(card("AK-0046")).not.toContain("wa.me");
+      expect(card("AK-0042")).toMatch(/form="ak-add" name="sku" value="AK-0042:[\d.]+"/); expect(card("AK-0046")).not.toContain("ak-add");
       const prod = (await page("/p/AK-0042")).html;
       expect(ld(prod).offers).toMatchObject({ priceCurrency: "USD", availability: "https://schema.org/InStock" });
       expect(ld((await page("/p/AK-0046")).html).offers.availability).toBe("https://schema.org/OutOfStock");
@@ -770,9 +775,13 @@ describe("LV1: Chouf places listed before they sign", () => {
         const css = await (await get(/href="(\/_astro\/[^"]+\.css)"/.exec(html)![1]!)).text();
         const faces = [...css.matchAll(/url\(([^)]+\.woff2)\)/g)].map((x) => x[1]!.replace(/["']/g, ""));
         let fonts = 0;
-        const needsLatin = /[A-Za-z]/.test(text(html)); const needsArabic = /[\u0600-\u06FF]/.test(text(html));
+        // WEB2: an Arabic page writes its digits and codes in the small figures font, an English one in the Latin font; the language switch's
+        // names are in the phone's own font (site.css), so they ask for nothing.
+        const words = text(html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, ""));
+        const needsLatin = /[A-Za-z0-9]/.test(words); const needsArabic = /[\u0600-\u06FF]/.test(words);
         for (const f of new Set(faces)) {
-          const arabic = f.includes("plex-arabic"); if ((arabic && !needsArabic) || (!arabic && !needsLatin)) continue;
+          const arabic = f.includes("plex-arabic"), figures = f.includes("plex-figures");
+          if ((arabic && !needsArabic) || (!arabic && !needsLatin) || (figures && lang !== "ar") || (f.includes("plex-latin") && lang === "ar")) continue;
           fonts += (await (await get(f)).arrayBuffer()).byteLength;
         }
         expect(bytes + fonts, `${lang} ${path}: ${bytes + fonts} bytes`).toBeLessThan(100 * 1024);

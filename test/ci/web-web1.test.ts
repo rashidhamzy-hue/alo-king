@@ -63,7 +63,9 @@ describe("the website's deploy and code", () => {
     for (const f of files(join(root, "apps/web/src"))) {
       if (!/\.(ts|astro)$/.test(f)) continue;
       const imports = [...readFileSync(f, "utf8").matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]!);
-      for (const i of imports) expect(i, `${f}: ${i}`).not.toMatch(/@ak\/(agents|wa|core)|apps\/(gateway|console)|supabase-js/);
+      // WEB2: one exception, by name: the order card's words (order-card-text.ts: the message files, no WhatsApp client, no database), so the
+      // page prints the same card as WhatsApp. Nothing else of the agents' package.
+      for (const i of imports) if (i !== "@ak/agents/order-card-text") expect(i, `${f}: ${i}`).not.toMatch(/@ak\/(agents|wa|core)|apps\/(gateway|console)|supabase-js/);
     }
   });
   it("no page calls a function web_channel does not have, and the catalog pages call only the four catalog ones", () => {

@@ -18,7 +18,8 @@ import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/a
 import type { OrderIntent } from "@ak/agents/schemas";
 import { catalogueReady, makeConciergeTools, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
-import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
+import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/windows";
+import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
@@ -457,7 +458,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       const body = m.text?.body ?? "";
       // LV1: "Claim <listing_id>" is a code we typed for the owner, not the customer's own words: it says nothing of their language.
       const claimShaped = /^\s*claim\s+\S+\s*$/i.test(body);
-      if (!claimShaped) learnLang([body]);
+      // WEB2: the website's sign-in code and "Card AK-xxxx" are typed by the website too: only the words around a code are the customer's.
+      const linkCode = body.length <= 80 ? LINK_CODE.exec(body) : null;
+      const cardAgain = CARD_AGAIN.exec(webWords(body));
+      const own = linkCode ? body.replace(linkCode[0], " ").trim() : body;
+      if (!claimShaped && !cardAgain && own) learnLang([own]);
       const signal = detectConsentSignal(body);
       if (signal === "opt_out") {
         await say(T().fixed.optOut);                                    // the one permitted confirmation, sent before the gate closes
@@ -476,6 +481,28 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         const claim = await call<ClaimListingResult>(db, "claim_listing", { p_party: conv.party_id, p_conversation: conv.conversation_id, p_text: body, p_wamid: m.id });
         if (claim.ok) { await say(T().fixed.listingClaimed(claim.name)); claimed = true; continue; }
         learnLang([body]);                          // not a claim after all: ordinary words
+      }
+      // WEB2: "Confirm your number on WhatsApp" on the website opens this chat with its code typed. Read by code, before any model: the
+      // message proves the number, links the website's session and records consent (claim_link_code, 0129); one fixed line answers.
+      if (linkCode) {
+        const link = await call<{ ok: boolean; status: string }>(db, "claim_link_code", { p_party: conv.party_id, p_code: body, p_wamid: m.id });
+        const W = T().web;
+        const line = link.ok ? W.linked : link.status === "expired" ? W.codeExpired : link.status === "used" ? W.codeUsed : link.status === "unknown" ? W.codeUnknown : null;
+        if (line) { await say(line); claimed = true; continue; }
+      }
+      // WEB2: "Sign out" on WhatsApp ends every website session of this number (docs/WEBSITE.md, "Identity and consent", step 3).
+      if (SIGN_OUT.test(webWords(body))) {
+        const ended = await call<number>(db, "web_sessions_revoke", { p_party: conv.party_id, p_reason: "sign_out_whatsapp" });
+        await say(ended > 0 ? T().web.signedOut(ended) : T().web.notSignedIn);
+        claimed = true; continue;
+      }
+      // WEB2: "Card AK-xxxx", typed by the order page's button: the card of the sender's own order that still waits, sent again. It never
+      // confirms anything; only the card's Confirm button does (invariant 4).
+      if (cardAgain) {
+        const again = await call<{ ok: boolean; status?: string; order_id?: string; short_code?: string }>(db, "web_card_again", { p_party: conv.party_id, p_code: cardAgain[1] });
+        if (again.ok && again.order_id && (await resendCard(ctx, again.order_id))) { sent.push(...ctx.sent.texts.splice(0)); claimed = true; continue; }
+        await say(again.status === "not_waiting" ? T().web.cardNotWaiting(again.short_code ?? cardAgain[1]!.toUpperCase()) : T().web.cardUnknown);
+        claimed = true; continue;
       }
       // The number a rider can call, when we have just asked for it (1.19). Read only then, so a quantity is never taken for a phone.
       if (state.awaiting === "phone") {
@@ -537,7 +564,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // language of what they said or spoke (sim-test 43772497024: a first English voice note got it in Arabic when it went before the
   // note was read). STOP and START returned above, so a first message that is either gets none. Asked of the database once per
   // conversation (open_turn's welcome_due); claim_welcome records it.
-  if (!state.welcomed && !claimed) {                // a claim is answered by its own line; the welcome comes with the next message
+  if (!state.welcomed && !claimed) {                // a claim (or WEB2's code, sign out, card) is answered by its own line; the welcome comes with the next message
     if (conv.welcome_due) {
       welcome = await sendWelcome(ctx, turnIds);
       if (welcome) sent.push(welcome);

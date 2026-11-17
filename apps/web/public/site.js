@@ -1,6 +1,8 @@
 // The website's one small script (DS1). Every page works without it; it only makes two things quicker:
 //   1. "Do we deliver to you?": the answer appears as soon as a village is picked (the form still works with no script).
 //   2. Search: results follow the typing. After a pause it asks this site's own /search page and swaps the results in.
+//   3. WEB2: the header's basket count, from the `ak_b` cookie the basket sets (a catalogue page is cached for everyone, so it cannot print it).
+//   4. WEB2: the checkout's "Use my location": the phone's own position fills the form, once, when the visitor taps it.
 // It talks to this site only, keeps nothing, and sets no cookie.
 (function () {
   "use strict";
@@ -41,6 +43,21 @@
           if (window.history && history.replaceState) history.replaceState(null, "", url);
         }).catch(function () { live.removeAttribute("aria-busy"); });
       }, 600);
+    });
+  }
+
+  var badge = document.querySelector("[data-basket-n]"), m = /(?:^|;\s*)ak_b=(\d+)/.exec(document.cookie);
+  if (badge && !badge.textContent && m && m[1] !== "0") badge.textContent = m[1];
+
+  var geo = document.querySelector("[data-geo]");
+  if (geo && navigator.geolocation) {
+    geo.addEventListener("click", function (e) {
+      var f = geo.form; if (!f) return;
+      e.preventDefault();
+      navigator.geolocation.getCurrentPosition(function (p) {
+        f.elements.lat.value = String(p.coords.latitude); f.elements.lng.value = String(p.coords.longitude);
+        var h = document.createElement("input"); h.type = "hidden"; h.name = "do"; h.value = "pin"; f.appendChild(h); f.submit();
+      }, function () { geo.disabled = true; }, { enableHighAccuracy: true, timeout: 15000 });
     });
   }
 })();

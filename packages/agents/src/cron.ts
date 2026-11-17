@@ -8,6 +8,7 @@ import { runSearchWordJobs } from "./search-words";
 import { buttons } from "@ak/wa/kapso";
 import { KEPT_BUTTON } from "./order-card";
 import { sendCodeStarted } from "./messages/notify";
+import { sendWebCards } from "./web-orders";
 
 export interface CronDeps { db: SupabaseClient; send: (r: SendRequest) => Promise<SendResult>; model: ModelClient; modelName: string }
 
@@ -27,7 +28,9 @@ export async function offerKeptOrders(deps: { db: SupabaseClient; send: (r: Send
   return n;
 }
 
-export async function customerLineCron(deps: CronDeps, now = new Date()): Promise<{ feedback: number; searchWords: number; stale: number | null; kept: number }> {
+export async function customerLineCron(deps: CronDeps, now = new Date()): Promise<{ feedback: number; searchWords: number; stale: number | null; kept: number; webCards: number }> {
+  // WEB2: the card of an order placed on the website goes first: the customer is waiting on the page for it.
+  const webCards = await sendWebCards(deps).catch((err) => { console.error("web_cards", String(err).slice(0, 200)); return 0; });
   const addressOf = async (partyId: string) => ((await deps.db.rpc("party_address", { p_party: partyId, p_line: "customer" })).data as string | null) ?? null;
   // 2.9: one tap after delivery, once per order.
   const feedback = await sendFeedbackRequests(deps, addressOf).catch(() => 0);
@@ -37,5 +40,5 @@ export async function customerLineCron(deps: CronDeps, now = new Date()): Promis
   const searchWords = (await runSearchWordJobs(deps, now).catch(() => [])).length;
   // Audit item 4: orders kept overnight, offered once when we open.
   const kept = await offerKeptOrders(deps).catch(() => 0);
-  return { feedback, searchWords, stale, kept };
+  return { feedback, searchWords, stale, kept, webCards };
 }

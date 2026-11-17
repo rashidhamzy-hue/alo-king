@@ -40,8 +40,9 @@ import { ar as arMessages, en as enMessages, fr as frMessages } from "@ak/agents
 
 describe("docs/ARABIC_REVIEW.md lists every word LV1 added, for a person to read", () => {
   const doc = readFileSync(join(repo, "docs/ARABIC_REVIEW.md"), "utf8");
-  const start = doc.indexOf("## LV1, the Chouf food places listed before they sign");
-  const section = doc.slice(start, doc.indexOf("\n## ", start + 10));            // this section only: later sessions' tables (UX3's) come after it
+  const from = doc.indexOf("## LV1, the Chouf food places listed before they sign");
+  const next = doc.indexOf("\n## ", from + 5);
+  const section = doc.slice(from, next === -1 ? undefined : next);      // WEB2's section follows this one
   const cell = (t: string) => t.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
 
   it("the website: every food and kind key, in Arabic, English and French, word for word", () => {

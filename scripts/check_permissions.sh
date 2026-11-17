@@ -108,6 +108,9 @@ do $$ declare web_allowed text[] := array['web_session_start', 'web_session_stat
                                            'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order',
                                            'web_catalog_home', 'web_catalog_category', 'web_catalog_product', 'web_catalog_search',
                                            'web_food_list', 'web_food_place', 'web_listing_want', 'web_listing_remove',
+                                           'web_place_order', 'web_order_page', 'web_orders', 'web_order_again', 'web_account', 'web_memory_forget',
+                                           'web_memory_pref', 'web_sign_out_everywhere', 'web_save_pin', 'web_pin_village', 'web_place_details',
+                                           'web_windows', 'web_service_facts', 'web_cart_count',
                                            'web_join_options', 'web_join_state', 'web_join_code', 'web_apply_rider', 'web_apply_vendor'];
               t text; n int; begin
   if not exists (select 1 from pg_roles where rolname = 'web_channel') then raise exception 'role web_channel is missing (migration 0132)'; end if;

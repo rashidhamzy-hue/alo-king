@@ -116,6 +116,13 @@ virement OMT
 Nous apporterons la monnaie pour un billet de :
 ```
 
+## card.changeForLbp
+
+```text
+Vous payez en livres, avec :
+2,000,000 LBP
+```
+
 ## card.prepayFirst
 
 ```text
@@ -1407,6 +1414,68 @@ Nous n'avons pas pu ouvrir l'image.
 Pouvez-vous renvoyer la photo du reçu ?
 ```
 
+## web.linked
+
+```text
+✅ Votre numéro est confirmé.
+Retournez sur le site pour terminer votre commande.
+```
+
+## web.codeExpired
+
+```text
+Ce code a expiré.
+Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ».
+```
+
+## web.codeUsed
+
+```text
+Un autre numéro a déjà utilisé ce code.
+Retournez sur le site pour en avoir un nouveau.
+```
+
+## web.codeUnknown
+
+```text
+Nous ne connaissons pas ce code.
+Retournez sur le site et appuyez de nouveau sur « Confirmer votre numéro sur WhatsApp ».
+```
+
+## web.notSignedIn
+
+```text
+Aucun appareil n'est connecté au site avec votre numéro.
+```
+
+## web.cardUnknown
+
+```text
+Nous n'avons trouvé aucune commande à vous avec ce numéro.
+Dites-moi ce qu'il vous faut et nous vous aiderons.
+```
+
+## web.signedOut.one
+
+```text
+✅ Vous êtes déconnecté du site.
+Vos commandes et cette conversation restent telles quelles.
+```
+
+## web.signedOut.many
+
+```text
+✅ Vous êtes déconnecté du site sur tous vos appareils.
+Vos commandes et cette conversation restent telles quelles.
+```
+
+## web.cardNotWaiting
+
+```text
+La commande AK-1042 n'attend plus votre confirmation.
+Demandez-moi ici si vous voulez savoir où elle en est.
+```
+
 ## honest.notCarried
 
 ```text
@@ -1678,6 +1747,12 @@ Le retrait n'est pas encore possible : nous livrons chez vous.
 Si un article manque : nous mettons le plus proche
 ```
 
+## cx.missingItemLine.best_match
+
+```text
+Labneh 500 g : nous mettons le plus proche
+```
+
 ## cx.missingRow.best_match
 
 ```text
@@ -1696,6 +1771,12 @@ Le plus proche
 Si un article manque : nous vous demandons
 ```
 
+## cx.missingItemLine.ask
+
+```text
+Labneh 500 g : nous vous demandons
+```
+
 ## cx.missingRow.ask
 
 ```text
@@ -1712,6 +1793,12 @@ Demandez-moi
 
 ```text
 Si un article manque : nous le retirons
+```
+
+## cx.missingItemLine.remove
+
+```text
+Labneh 500 g : nous le retirons
 ```
 
 ## cx.missingRow.remove
