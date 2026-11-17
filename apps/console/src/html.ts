@@ -32,6 +32,8 @@ export { CSS } from "./style";
 import { UI_TOKENS } from "./ui.generated";
 
 export type Theme = "auto" | "light" | "dark";
+/** A reversible action's way back: a POST to a route of the console itself, with its fields (UX2a; see flashRedirect in app.ts). */
+export interface FlashUndo { label: string; action: string; fields?: Record<string, string> }
 export const THEMES: readonly Theme[] = ["auto", "light", "dark"];
 
 export interface PageOpts {
@@ -41,7 +43,7 @@ export interface PageOpts {
   lang?: Lang;
   /** True for a page whose words follow the language choice (the shell, Today, Inbox, Orders, the hubs). Older pages stay English inside. */
   translated?: boolean;
-  flash?: { ok?: string; err?: string } | null;
+  flash?: { ok?: string; err?: string; undo?: FlashUndo } | null;
   environment: string;
   body: Raw | Raw[];
   /** The address, so the language switch comes back to the same page. */
@@ -77,12 +79,15 @@ ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), 
   const who = opts.staff ? html`<div class="who"><span class="name">${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
 <form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button aria-label="${t(lang, "sign_out")}" title="${t(lang, "sign_out")}">${icon("signout", { flip: true })}</button></form></div>` : "";
   const banner = opts.environment === "production" ? "" : html`<div class="env">${previewNotice(t(lang, "test_data", { env: opts.environment.toUpperCase() }))}</div>`;
-  const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? html`<p class="flash ok">${opts.flash.ok}</p>` : "";
+  // A toast: what happened, in words; with Undo (a small form that posts to the action's own way back) only where the database can take it back.
+  const undo = opts.flash?.ok && opts.flash.undo && opts.staff
+    ? html`<form method="post" action="${opts.flash.undo.action}"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><input type="hidden" name="_key" value="${crypto.randomUUID().replace(/-/g, "")}">${Object.entries(opts.flash.undo.fields ?? {}).map(([k, v]) => html`<input type="hidden" name="${k}" value="${v}">`)}<button class="ak-toast-undo">${opts.flash.undo.label}</button></form>` : "";
+  const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? (undo ? html`<div class="flash-row" role="status"><p class="flash ok">${opts.flash.ok}</p>${undo}</div>` : html`<p class="flash ok">${opts.flash.ok}</p>`) : "";
   // A page not yet translated keeps its own language inside an Arabic shell, so assistive technology is not told English is Arabic.
   const mainAttrs = lang === "ar" && !opts.translated ? new Raw(' lang="en" dir="ltr"') : "";
   const theme = opts.theme && opts.theme !== "auto" ? new Raw(` data-theme="${opts.theme}"`) : "";
   const cmdk = nav ? commandBar({ id: "cmdk", label: t(lang, "cmd_label"), placeholder: t(lang, opts.canSearchOrders ? "cmd_ph" : "cmd_ph_pages"), commands,
-    searchAction: opts.canSearchOrders ? "/orders" : "/catalog", searchName: "q", hint: t(lang, opts.canSearchOrders ? "cmd_hint" : "cmd_hint_pages") }) : "";
+    searchAction: "/go", searchName: "q", hint: t(lang, opts.canSearchOrders ? "cmd_hint" : "cmd_hint_pages") }) : "";
   const doc = html`<!doctype html><html lang="${lang}" dir="${dirOf(lang)}"${theme}><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="${THEME_COLOR}">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Alo King">

@@ -33,8 +33,8 @@ const D = {
   cmd_label: { en: "Jump to a page or find an order", ar: "انتقل إلى صفحة أو ابحث عن طلب" },
   cmd_ph: { en: "A page, an order code, a customer", ar: "صفحة، رمز طلب، زبون" },
   cmd_ph_pages: { en: "A page or a product", ar: "صفحة أو منتج" },
-  cmd_hint: { en: "Type to filter the pages. Enter opens the first one, or searches orders for what you typed.", ar: "اكتب لتصفية الصفحات. زر الإدخال يفتح الأولى، أو يبحث في الطلبات عمّا كتبته." },
-  cmd_hint_pages: { en: "Type to filter the pages. Enter opens the first one, or searches the catalog for what you typed.", ar: "اكتب لتصفية الصفحات. زر الإدخال يفتح الأولى، أو يبحث في الكتالوج عمّا كتبته." },
+  cmd_hint: { en: "Type an order code (AK-1042) and press Enter to open that order. Type a page name to filter the pages; anything else searches orders.", ar: "اكتب رمز طلب (AK-1042) واضغط Enter لفتحه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الطلبات." },
+  cmd_hint_pages: { en: "Type an order code (AK-1042) and press Enter to open its pick list. Type a page name to filter the pages; anything else searches the catalog.", ar: "اكتب رمز طلب (AK-1042) واضغط Enter لفتح قائمة تجهيزه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الكتالوج." },
   bell_label: { en: "Alerts", ar: "التنبيهات" },
   bell_empty: { en: "No high-priority exception is open.", ar: "لا يوجد استثناء عالي الأولوية مفتوح." },
   bell_all: { en: "All exceptions", ar: "كل الاستثناءات" },
@@ -126,7 +126,7 @@ const D = {
   file_h: { en: "Report a language mistake", ar: "الإبلاغ عن خطأ في الفهم" },
   file_intro: { en: "Files one case for the next evaluation round. It changes nothing on the order.", ar: "يسجّل حالة واحدة لجولة التقييم القادمة. لا يغيّر شيئاً في الطلب." },
   wrong_product: { en: "Wrong product", ar: "منتج خاطئ" },
-  bot_at_fault: { en: "Bot at fault", ar: "الخطأ من الروبوت" },
+  bot_at_fault: { en: "Bot at fault", ar: "الخطأ من البوت" },
   note_ph: { en: "What went wrong (optional)", ar: "ما الذي حدث (اختياري)" },
 } satisfies Record<string, Entry>;
 
@@ -140,7 +140,7 @@ export function t(lang: Lang, key: Key, vars: Record<string, string | number> = 
 export const NAV_AR: Record<string, string> = {
   "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور",
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
-  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المركز", "/payments": "المدفوعات",
+  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المستودع", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
   "/riders": "المناديب والنقد", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام",
 };

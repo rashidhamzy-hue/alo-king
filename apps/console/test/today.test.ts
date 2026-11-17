@@ -33,7 +33,7 @@ describe("Today", () => {
     expect(page).toContain("no rider yet");
     expect(page).toContain("Rami");
     expect(page).toContain(`$${(cod.total - 2).toFixed(2)} + 179,000 LBP`);
-    expect(page).toContain("closed: 1");                 // the cash order closed when the rider recorded the cash
+    expect(page).toContain("Closed: 1");                 // the cash order closed when the rider recorded the cash
   });
 
   it("works out Beirut midnight across the DST change", () => {

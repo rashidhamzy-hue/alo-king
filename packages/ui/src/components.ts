@@ -94,6 +94,16 @@ export function kpiTile(o: KpiOpts): Raw {
 }
 export const kpis = (tiles: Raw[]): Raw => html`<ul class="ak-kpis">${tiles}</ul>`;
 
+/**
+ * A tile that is one link (UX2a, the reference's "what needs you" tiles): the whole tile opens the page where the work is. A state other
+ * than "ok" is said in words and an icon beside the number, never by the border colour alone.
+ */
+export interface TileLinkOpts { label: string; value: string; href: string; note?: string; state?: "ok" | "warn" | "late"; /** The state in words ("2 late"); required when the state is not ok. */ stateWord?: string; icon?: IconName }
+export function tileLink(o: TileLinkOpts): Raw {
+  const state = o.state ?? "ok";
+  return html`<li class="${cx("ak-kpi", "ak-kpi--link", state !== "ok" && `ak-kpi--${state}`)}"><a href="${o.href}"><span class="label">${o.icon ? icon(o.icon) : ""}${o.label}</span><span class="value"><bdi>${o.value}</bdi></span>${state !== "ok" && o.stateWord ? html`<span class="cmp state">${icon(state === "late" ? "warn" : "clock")}${o.stateWord}</span>` : ""}${o.note ? html`<span class="cmp">${o.note}</span>` : ""}</a></li>`;
+}
+
 // ---------- timer chip ----------
 /** The share of a promise after which a timer turns amber. A display choice, not a business rule: the promise itself comes from the database. */
 export const TIMER_AMBER_SHARE = 0.75;
@@ -244,8 +254,23 @@ export const orderTimeline = (steps: TimelineStep[]): Raw =>
   html`<ol class="ak-timeline">${steps.map((s) => html`<li${attr("class", s.state && s.state !== "todo" ? s.state : null)}>${s.at ? html`<time>${s.at}</time>` : ""}${s.kind ? html`<span class="k">${s.kind}</span>` : ""}${s.text}</li>`)}</ol>`;
 
 // ---------- case row ----------
-export interface CaseRowOpts { href: string; timer: Raw; title: string; order?: string | null; last?: string; tags?: Raw[]; state?: "open" | "claimed" | "late"; openLabel: string }
+export interface CaseRowOpts { href: string; timer: Raw; title: string; order?: string | null; last?: string; tags?: Raw[]; state?: "open" | "claimed" | "late"; openLabel: string;
+  /** UX2a: the escalation steps of the case (see `ladder`), shown under the row. */ steps?: Raw;
+  /** UX2a: the row's own buttons (I'm on it), beside the link and never inside it. */ actions?: Raw }
 export function caseRow(o: CaseRowOpts): Raw {
-  return html`<li><a class="${cx("ak-case", o.state === "late" && "ak-case--late", o.state === "claimed" && "ak-case--claimed")}" href="${o.href}">${o.timer}<span class="what"><strong>${o.title}${o.order ? html` · <bdi>${o.order}</bdi>` : ""}</strong>${o.last ? html`<span class="last">${o.last}</span>` : ""}${o.tags?.length ? html`<span class="tags">${o.tags}</span>` : ""}</span>${icon("chevron", { flip: true, label: o.openLabel })}</a></li>`;
+  return html`<li><a class="${cx("ak-case", o.state === "late" && "ak-case--late", o.state === "claimed" && "ak-case--claimed")}" href="${o.href}">${o.timer}<span class="what"><strong>${o.title}${o.order ? html` · <bdi>${o.order}</bdi>` : ""}</strong>${o.last ? html`<span class="last">${o.last}</span>` : ""}${o.tags?.length ? html`<span class="tags">${o.tags}</span>` : ""}</span>${icon("chevron", { flip: true, label: o.openLabel })}</a>${o.steps ? html`<div class="ak-case-steps">${o.steps}</div>` : ""}${o.actions ? html`<div class="ak-case-actions">${o.actions}</div>` : ""}</li>`;
+}
+/**
+ * The escalation steps of a case, at the minutes the settings give (settings.support: claim_alert_min, founder_alert_min, late_min; the numbers are never
+ * written here). Each step is a word and an icon: done (it has happened), now (the next one to come), later. A claimed case's steps are stopped and say so.
+ */
+export interface LadderStep { at: number; words: string }
+export function ladder(o: { minutes: number; steps: LadderStep[]; stopped?: string; labels: { done: string; next: string; later: string; min: string } }): Raw {
+  if (o.stopped) return html`<p class="ak-ladder-stopped">${icon("check")}${o.stopped}</p>`;
+  const next = o.steps.findIndex((x) => o.minutes < x.at);
+  return html`<ol class="ak-ladder">${o.steps.map((x, i) => {
+    const st = o.minutes >= x.at ? "done" : i === next ? "next" : "later";
+    return html`<li data-state="${st}">${icon(st === "done" ? "check" : st === "next" ? "hourglass" : "clock")}<span><bdi>${x.at} ${o.labels.min}</bdi>: ${x.words}</span><small>${o.labels[st]}</small></li>`;
+  })}</ol>`;
 }
 export const caseList = (rows: Raw[]): Raw => html`<ul class="ak-cases">${rows}</ul>`;

@@ -152,7 +152,7 @@ export const ar: Messages = {
     houseDefault: (said, name) => `«${said}»: حطّينالك ${name}.\nإذا بدك غيرو، قلّي.`,
     changed: (rows) => `✅ عدّلنا طلبك:\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ مش متوفّر هلّق:\n${bullets(names)}\nقلّي شو بدك بدالو، أو منشيلو.`,
-    comingSoon: (names) => `جاي قريباً، لسّا ما فينا نبيعو:\n${bullets(names)}\nقلّي شو بدك بدالو، أو منشيلو.`,
+    comingSoon: (names) => `جايي قريباً، لسّا ما فينا نبيعو:\n${bullets(names)}\nقلّي شو بدك بدالو، أو منشيلو.`,
     cancelRefused: (code) => `طلبك ${code} عم يتحضّر هلّق، فما فينا نلغيه من هون.\nحدا من فريقنا رح يتّصل فيك بخصوصه.`,
   },
 

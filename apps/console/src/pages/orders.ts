@@ -10,20 +10,24 @@
 import { act, audit, html, id, render, text, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, money, usd, when } from "../html";
 import { pick, t, type Lang } from "../i18n";
-import { LEADS } from "../roles";
+import { ALL, LEADS } from "../roles";
 import { ACTIVE, beirutMidnight, statusWord } from "./today";
 import { badge, button, chips, dataTable, drawer, empty, icon, input, orderTimeline, select, type Column, type Tone } from "@ak/ui/components";
+import { statusPill } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
 
 type Row = { id: string; short_code: string; status: string; created_at: string; total_usd: number | string; payment_method: string; channel: string; customer_name: string | null; village_name: string | null };
 type Order = { id: string; short_code: string; customer_id: string; conversation_id: string | null; status: string; village_id: string | null; is_pickup: boolean; subtotal_usd: number | string;
   delivery_fee_usd: number | string; tip_usd: number | string; total_usd: number | string; payment_method: string; channel: string; customer_notes: string | null; cancel_reason: string | null;
-  created_at: string; confirmed_at: string | null; delivered_at: string | null };
+  created_at: string; confirmed_at: string | null; delivered_at: string | null;
+  /** The code itself is never drawn: only whether one is needed, whether it was checked, and the tries used. */
+  handover_code: string | null; handover_verified_at: string | null; handover_attempts: number | null; missing_pref: string | null };
 type Item = { id: string; name_snapshot: string; qty: number | string; unit_price_usd: number | string; status: string; substitution_of: string | null; note: string | null; modifiers: unknown };
 type Ev = { created_at: string; from_status: string | null; to_status: string; actor: string; reason: string | null };
 type Pay = { id: string; method: string; status: string; amount_usd: number | string; received_usd: number | string; received_lbp: number | string; external_ref: string | null; confirmed_at: string | null; created_at: string };
 type Ref = { id: string; amount_usd: number | string; charged_to: string; reason: string; settle: string; note: string | null; created_at: string };
 type Msg = { direction: string; type: string; body: string | null; created_at: string; order_id: string | null };
+type Terms = { cancellable: boolean; reason: string | null; paid_usd: number | string; refundable_usd: number | string };
 
 const when_ = (t_: unknown) => when(t_);
 const STATUSES = [...ACTIVE, "closed", "cancelled"] as const;
@@ -117,7 +121,7 @@ async function search(c: Ctx) {
     sortHref: address(f, { sort: col, dir: f.sort === col && f.dir === "desc" ? "asc" : "desc", before: "", open: "" }),
     sorted: f.sort === col ? (f.dir === "asc" ? "ascending" : "descending") : null });
   const columns: Column[] = [{ label: pick(L, "Order", "الطلب") }, ...f.cols.map((col): Column => ({ label: colLabel(L, col), ...(col === "total" ? { ...sortable("total"), num: true } : col === "placed" ? sortable("created_at") : col === "status" ? sortable("status") : {}) }))];
-  const cell = (o: Row, col: Col): Raw | string => col === "status" ? badge(statusWord(L, o.status), statusTone(o.status)) : col === "customer" ? o.customer_name ?? "" : col === "village" ? o.village_name ?? ""
+  const cell = (o: Row, col: Col): Raw | string => col === "status" ? statusPill(o.status, { lang: L }) : col === "customer" ? o.customer_name ?? "" : col === "village" ? o.village_name ?? ""
     : col === "total" ? money(o.total_usd) : col === "payment" ? o.payment_method : col === "channel" ? o.channel : when_(o.created_at);
   const opened = f.open ? await loadOrder(c, f.open) : null;
   const last = rows[rows.length - 1];
@@ -158,7 +162,8 @@ async function csv(c: Ctx) {
   return new Response("﻿" + lines.map((l) => l.map(cell).join(",")).join("\r\n") + "\r\n", { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="orders-${c.deps.now().toISOString().slice(0, 10)}.csv"` } });
 }
 
-type Loaded = { o: Order; customer: string; village: string; items: Item[]; events: Ev[]; pays: Pay[]; refunds: Ref[]; around: Msg[] };
+type Loaded = { o: Order; customer: string; village: string; items: Item[]; events: Ev[]; pays: Pay[]; refunds: Ref[]; around: Msg[];
+  picked: Set<string>; picker: string | null; rider: string | null; allowed: string[]; terms: Terms | null; handover: { needed: boolean; verifiedAt: string | null; attempts: number; max: number } };
 async function loadOrder(c: Ctx, ref: string): Promise<Loaded | null> {
   const { db } = c.deps;
   const o = (await db.rows<Order>("orders", { where: UUID.test(ref) ? { id: ref } : { short_code: ref.toUpperCase() }, limit: 1 }))[0];
@@ -174,7 +179,23 @@ async function loadOrder(c: Ctx, ref: string): Promise<Loaded | null> {
     db.rows<Msg>("wa_messages", { select: "direction,type,body,created_at,order_id", where: { party_id: o.customer_id, line: "customer", created_at: { gte: new Date(new Date(o.created_at).getTime() - 2 * 3600_000).toISOString() } }, order: [{ col: "created_at" }], limit: 120 }),
   ]);
   const until = new Date(o.delivered_at ?? c.deps.now().toISOString()).getTime() + 6 * 3600_000;
-  return { o, customer: customer[0]?.display_name ?? "", village: village[0]?.name_en ?? "", items, events, pays, refunds, around: msgs.filter((m) => m.order_id === o.id || new Date(m.created_at).getTime() <= until).slice(-40) };
+  // UX2a: what the drawer adds. Each read is on its own: a database that lags costs that block, never the page.
+  const [marks, session, stops, trans, terms, handover] = await Promise.all([
+    db.rows<{ item_id: string }>("pick_line_marks", { select: "item_id", where: { order_id: o.id } }).catch(() => [] as { item_id: string }[]),
+    db.rows<{ picker_id: string | null }>("pick_sessions", { select: "picker_id", where: { order_id: o.id }, limit: 1 }).catch(() => [] as { picker_id: string | null }[]),
+    db.rows<{ delivery_id: string }>("delivery_stops", { select: "delivery_id", where: { order_id: o.id, kind: "dropoff" }, limit: 1 }).catch(() => [] as { delivery_id: string }[]),
+    db.rows<{ to_status: string; actors: string[] | string }>("order_transitions", { select: "to_status,actors", where: { from_status: o.status } }).catch(() => [] as { to_status: string; actors: string[] | string }[]),
+    db.rpc<Terms | null>("cancel_terms", { p_order: o.id }).catch(() => null),
+    db.rpc<{ max_attempts?: number } | null>("setting", { p_key: "handover" }).catch(() => null),
+  ]);
+  const deliveries = stops[0] ? await db.rows<{ driver_id: string }>("deliveries", { select: "driver_id", where: { id: stops[0].delivery_id }, limit: 1 }).catch(() => [] as { driver_id: string }[]) : [];
+  const people = [session[0]?.picker_id, deliveries[0]?.driver_id].filter((x): x is string => !!x);
+  const named = people.length ? await db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: people } } }).catch(() => []) : [];
+  const nameOf = (pid: string | null | undefined) => (pid ? named.find((p) => p.id === pid)?.display_name ?? "" : null);
+  // The only steps the drawer ever offers are the ones order_transitions allows the ops actor from this status (the table is the authority).
+  const allowed = trans.filter((r) => (Array.isArray(r.actors) ? r.actors : String(r.actors).replace(/[{}]/g, "").split(",")).includes("ops")).map((r) => r.to_status);
+  return { o, customer: customer[0]?.display_name ?? "", village: village[0]?.name_en ?? "", items, events, pays, refunds, around: msgs.filter((m) => m.order_id === o.id || new Date(m.created_at).getTime() <= until).slice(-40),
+    picked: new Set(marks.map((m) => m.item_id)), picker: nameOf(session[0]?.picker_id), rider: nameOf(deliveries[0]?.driver_id), allowed, terms, handover: { needed: !!o.handover_code, verifiedAt: o.handover_verified_at, attempts: Number(o.handover_attempts ?? 0), max: Number(handover?.max_attempts ?? 5) } };
 }
 
 /** One order as a story. The same body in the page and in the drawer. */
@@ -193,19 +214,52 @@ function orderBody(c: Ctx, x: Loaded): Raw {
     ...around.map((m) => ({ at: m.created_at, kind: pick(L, "message", "رسالة"), text: `${m.direction === "inbound" ? pick(L, "customer", "الزبون") : pick(L, "us", "نحن")}: ${m.body ?? `[${m.type}]`}` })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
+  const paidConfirmed = x.pays.filter((p) => p.status === "confirmed").reduce((a, p) => a + Number(p.amount_usd), 0);
+  const choice = { best_match: pick(L, "the closest match", "أقرب بديل"), remove: pick(L, "take it off the order", "أزل البند من الطلب"), ask: pick(L, "ask me first", "اسألني أولاً") }[o.missing_pref ?? "ask"] ?? pick(L, "ask me first", "اسألني أولاً");
+  const h = x.handover;
+  const handover = !h.needed ? html`${badge(pick(L, "no code needed", "لا رمز مطلوب"))}`
+    : h.verifiedAt ? badge(pick(L, `code checked ${when_(h.verifiedAt)}`, `فُحص الرمز ${when_(h.verifiedAt)}`), "ok", "check")
+    : h.attempts >= h.max ? badge(pick(L, `locked after ${h.attempts} wrong tries: a person decides`, `مقفل بعد ${h.attempts} محاولات خاطئة: يقرّر شخص`), "danger", "alert")
+    : badge(pick(L, `code needed at the door${h.attempts ? ` (${h.attempts} wrong of ${h.max})` : ""}`, `الرمز مطلوب عند الباب${h.attempts ? ` (${h.attempts} خاطئة من ${h.max})` : ""}`), "warn", "alert");
+  const why: Record<string, [string, string]> = { finished: ["the order is finished", "الطلب منتهٍ"], on_the_way: ["it is on the way", "هو في الطريق"], picking_started: ["picking has started", "بدأ التجهيز"],
+    with_rider: ["a rider has it", "مع مندوب"], cut_off: ["its booked window has passed the cut-off", "تجاوزت نافذته الحجز موعد الإغلاق"] };
+
+  // Only what order_transitions lets the ops actor do from this status is offered; each goes by the one path that does it safely (cancel here,
+  // the rest on the page that owns it), so the drawer never moves money and never makes a step the table does not allow.
+  const steps: Raw[] = [];
+  for (const to of x.allowed) {
+    if (to === "cancelled") {
+      if (x.terms?.cancellable) steps.push(form(c.f, `/orders/${o.id}/cancel`, html`<p><strong>${pick(L, "Cancel this order", "إلغاء هذا الطلب")}</strong><br><span class="muted">${pick(L, "Free until picking starts. The customer is told by message. This cannot be taken back.", "مجاني حتى يبدأ التجهيز. يُبلَّغ الزبون برسالة. لا يمكن التراجع.")}${Number(x.terms.paid_usd) > 0 ? ` ${pick(L, `${usd(x.terms.paid_usd)} was paid: give it back on the Refunds page afterwards.`, `دُفع ${usd(x.terms.paid_usd)}: أعده من صفحة الاسترداد بعد ذلك.`)}` : ""}</span></p>
+${input({ name: "reason", label: pick(L, "Why (for the record)", "السبب (للسجل)"), required: true, maxlength: 200 })}
+<div class="actions-row">${button({ label: pick(L, "Cancel the order", "إلغاء الطلب"), variant: "danger" })}</div>`));
+      else steps.push(html`<p>${icon("alert")} ${pick(L, `It cannot be cancelled here: ${why[x.terms?.reason ?? ""]?.[0] ?? "the database says no"}.`, `لا يمكن إلغاؤه من هنا: ${why[x.terms?.reason ?? ""]?.[1] ?? "قاعدة البيانات ترفض"}.`)}</p>`);
+    } else if (to === "confirmed") steps.push(html`<p>${button({ label: pick(L, "Confirm the payment", "تأكيد الدفع"), href: "/payments", icon: "wallet" })}</p>`);
+    else if (to === "delivered" && o.is_pickup) steps.push(html`<p>${button({ label: pick(L, "Hand over at the hub", "التسليم في المستودع"), href: "/rider-jobs#pickup", icon: "store" })}</p>`);
+    else if (to === "failed_delivery" || to === "returned" || (to === "out_for_delivery" && o.status === "failed_delivery")) steps.push(html`<p>${button({ label: pick(L, "Decide it as a rider incident", "قرّر بوصفها حادثة مندوب"), href: "/rider-incidents", icon: "bike" })}</p>`);
+    else if (to === "closed") steps.push(html`<p>${icon("wallet")} ${pick(L, "It closes when its payment is recorded: delivered is not paid.", "يُغلق عند تسجيل دفعه: التسليم لا يعني الدفع.")} ${button({ label: pick(L, "Payments", "المدفوعات"), href: "/payments", variant: "ghost" })}</p>`);
+  }
+
   return html`<div class="card"><dl class="facts">
-<dt>${pick(L, "Status", "الحالة")}</dt><dd>${badge(statusWord(L, o.status), statusTone(o.status))}${o.cancel_reason ? html` · ${o.cancel_reason}` : ""}</dd>
+<dt>${pick(L, "Status", "الحالة")}</dt><dd>${statusPill(o.status, { lang: L, reason: o.cancel_reason })}</dd>
 <dt>${t(L, "customer")}</dt><dd>${x.customer}</dd>
-<dt>${t(L, "village")}</dt><dd>${o.is_pickup ? pick(L, "pickup at the hub", "استلام من المركز") : x.village}</dd>
+<dt>${t(L, "village")}</dt><dd>${o.is_pickup ? pick(L, "pickup at the hub", "استلام من المستودع") : x.village}</dd>
 <dt>${t(L, "channel")}</dt><dd>${o.channel}</dd>
-<dt>${t(L, "payment")}</dt><dd>${o.payment_method}</dd>
+<dt>${pick(L, "Picker", "المجهّز")}</dt><dd>${x.picker ?? pick(L, "nobody yet", "لا أحد بعد")}</dd>
+<dt>${pick(L, "Rider", "المندوب")}</dt><dd>${x.rider ?? pick(L, "none yet", "لا مندوب بعد")}</dd>
+<dt>${t(L, "payment")}</dt><dd>${o.payment_method} · ${paidConfirmed >= Number(o.total_usd) - 0.005 ? badge(pick(L, "paid", "مدفوع"), "ok", "check") : badge(pick(L, "not paid yet", "لم يُدفع بعد"), "warn", "wallet")}</dd>
+<dt>${pick(L, "Handover code", "رمز التسليم")}</dt><dd>${handover}</dd>
+<dt>${pick(L, "If an item is missing", "إن نقص صنف")}</dt><dd>${pick(L, "customer chose", "اختار الزبون")}: ${choice}</dd>
 <dt>${t(L, "total")}</dt><dd><strong>${usd(o.total_usd)}</strong> <span class="muted">(${usd(o.subtotal_usd)} + ${pick(L, "delivery", "توصيل")} ${usd(o.delivery_fee_usd)}${Number(o.tip_usd) ? ` + ${pick(L, "tip", "بقشيش")} ${usd(o.tip_usd)}` : ""})</span></dd>
 <dt>${t(L, "placed")}</dt><dd>${when_(o.created_at)}</dd>
 ${o.customer_notes ? html`<dt>${pick(L, "Notes", "ملاحظات")}</dt><dd>${o.customer_notes}</dd>` : ""}</dl></div>
+<h2>${pick(L, "What you can do", "ما يمكنك فعله")}</h2>
+${steps.length ? html`<div class="card stack">${steps}</div>` : html`<p class="muted">${pick(L, "No step is open to staff from this status.", "لا خطوة متاحة للموظفين من هذه الحالة.")}</p>`}
 <h2>${t(L, "lines_h")}</h2>
 ${dataTable({ caption: t(L, "lines_h"), columns: [{ label: pick(L, "Item", "الصنف"), wrap: true }, { label: pick(L, "Qty", "الكمية"), num: true }, { label: pick(L, "Price", "السعر"), num: true }, { label: pick(L, "Change", "التغيير") }],
     rows: items.map((i) => ({ cells: [html`${i.name_snapshot}${i.note ? html`<br><span class="muted">${i.note}</span>` : ""}`, Number(i.qty), usd(i.unit_price_usd),
-      html`${i.status === "substituted" ? badge(pick(L, "substituted", "استُبدل"), "warn") : i.status === "removed" ? badge(pick(L, "removed", "أُزيل"), "danger") : ""}${i.substitution_of ? html`${pick(L, "replaces", "بديل عن")} ${name.get(i.substitution_of) ?? ""}` : ""}`] })) })}
+      html`${x.picked.has(i.id) ? badge(pick(L, "picked", "أُخذ"), "ok", "check") : ""}${i.status === "substituted" ? badge(pick(L, "substituted", "استُبدل"), "warn") : i.status === "removed" ? badge(pick(L, "removed", "أُزيل"), "danger") : ""}${i.substitution_of ? html`${pick(L, "replaces", "بديل عن")} ${name.get(i.substitution_of) ?? ""}` : ""}`] })) })}
+<h2>${pick(L, "Status history", "سجل الحالات")}</h2>
+${events.length === 0 ? html`<p class="muted">${pick(L, "No change yet.", "لا تغيير بعد.")}</p>` : html`<ol class="ak-history">${events.filter((e) => e.from_status !== e.to_status).map((e) => html`<li>${statusPill(e.to_status, { lang: L })}<span class="muted">${when_(e.created_at)} · ${e.actor}${e.reason ? html` · <bdi>${e.reason}</bdi>` : ""}</span></li>`)}</ol>`}
 <h2>${t(L, "timeline_h")}</h2>
 ${orderTimeline(line.map((s) => ({ at: when_(s.at), kind: s.kind, text: html` <span dir="auto">${s.text}</span>` })))}
 <h2>${t(L, "file_h")}</h2><p class="muted">${t(L, "file_intro")}</p>
@@ -231,12 +285,48 @@ async function file(c: Ctx) {
   }, `/orders/${order}`);
 }
 
+/**
+ * The command bar's search (Ctrl+K, or the search button on a phone): an order code goes straight to that order, for a lead its page, for a
+ * picker its pick list; anything else is a search (orders for a lead, the catalog for a picker). It reads one row and changes nothing.
+ */
+async function go(c: Ctx) {
+  const q = (c.url.searchParams.get("q") ?? "").trim().slice(0, 60);
+  const lead = LEADS.includes(c.staff.role);
+  const m = /^(?:ak)?[\s-]*(\d{3,8})$/i.exec(q);
+  if (m) {
+    const o = (await c.deps.db.rows<{ id: string; short_code: string }>("orders", { select: "id,short_code", where: { short_code: `AK-${m[1]}` }, limit: 1 }))[0];
+    if (o) return new Response(null, { status: 303, headers: { location: lead ? `/orders/${o.short_code}` : `/pick/${o.id}` } });
+  }
+  return new Response(null, { status: 303, headers: { location: `${lead ? "/orders" : "/catalog"}${q ? `?q=${encodeURIComponent(q)}` : ""}` } });
+}
+
+/** Cancels an order before picking (the only step the drawer does itself). The database decides: order_transitions must allow ops, cancel_terms must say it is free. The customer is told by the notice cron (customer_notices_due); money is never moved here. */
+async function cancel(c: Ctx) {
+  const order = id(c, "id");
+  const reason = text(c, "reason", 200);
+  if (reason.length < 3) throw new UserError(pick(c.lang, "Write why you cancel it.", "اكتب سبب الإلغاء."));
+  return act(c, "order_cancel", { order, reason }, async () => {
+    const terms = await c.deps.db.rpc<Terms>("cancel_terms", { p_order: order });
+    if (!terms.cancellable) throw new UserError(pick(c.lang, "This order can no longer be cancelled here.", "لم يعد ممكناً إلغاء هذا الطلب من هنا."));
+    const o = (await c.deps.db.rows<{ status: string; delivery_slot_id: string | null }>("orders", { select: "status,delivery_slot_id", where: { id: order }, limit: 1 }))[0];
+    // A booked order has its own cancel (0040): it also hands back the slot and credits what was paid, as the customer's own cancel does.
+    if (o?.delivery_slot_id && ["confirmed", "awaiting_payment"].includes(o.status)) {
+      const r = await c.deps.db.rpc<{ credit_usd?: number | string }>("cancel_scheduled_order", { p_order: order, p_actor: "ops", p_by: c.staff.partyId, p_reason: reason });
+      return Number(r.credit_usd ?? 0) > 0 ? pick(c.lang, `Cancelled. ${usd(r.credit_usd)} went to the customer's credit.`, `أُلغي. أُضيف ${usd(r.credit_usd)} إلى رصيد الزبون.`) : pick(c.lang, "Cancelled. The customer is told.", "أُلغي. يُبلَّغ الزبون.");
+    }
+    await c.deps.db.rpc("transition_order", { p_order: order, p_to: "cancelled", p_actor: "ops", p_actor_id: c.staff.partyId, p_reason: reason });
+    return Number(terms.paid_usd) > 0 ? pick(c.lang, `Cancelled. ${usd(terms.paid_usd)} was paid: give it back on the Refunds page.`, `أُلغي. دُفع ${usd(terms.paid_usd)}: أعده من صفحة الاسترداد.`) : pick(c.lang, "Cancelled. The customer is told.", "أُلغي. يُبلَّغ الزبون.");
+  }, `/orders/${order}`);
+}
+
 export const ordersSection: Section = {
   nav: { href: "/orders", label: "Orders", roles: LEADS },
   routes: [
     { method: "GET", path: "/orders", roles: LEADS, handler: search },
     { method: "GET", path: "/orders.csv", roles: LEADS, handler: csv },
+    { method: "GET", path: "/go", roles: ALL, handler: go },
     { method: "GET", path: "/orders/:ref", roles: LEADS, handler: one },
     { method: "POST", path: "/orders/:id/eval", roles: LEADS, handler: file },
+    { method: "POST", path: "/orders/:id/cancel", roles: LEADS, handler: cancel },
   ],
 };

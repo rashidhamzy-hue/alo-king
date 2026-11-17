@@ -7,6 +7,7 @@
 // every minute, as before; with the queue switched on (settings.picking.console_queue) only once picking has started, and nothing
 // leaves the hub before it is packed (0033, 0147). The packing steps are data (settings.packing_checklist), not words in this file.
 import { attempt, flashRedirect, html, id, render, UserError, type Ctx, type Section } from "../app";
+import type { FlashUndo } from "../html";
 import { DbError } from "../db";
 import { Raw, form, usd } from "../html";
 import { pick, t, type Lang } from "../i18n";
@@ -37,7 +38,7 @@ function plain(L: Lang, e: unknown): unknown {
   if (!(e instanceof DbError)) return e;
   const m = e.message;
   const say = (en: string, ar: string) => new UserError(pick(L, en, ar));
-  if (/LINES_NOT_CHECKED (\d+)/.test(m)) { const n = /LINES_NOT_CHECKED (\d+)/.exec(m)![1]; return say(`${n} line(s) are neither ticked as picked nor recorded as missing.`, `${n} بند لم يُؤشَّر عليه كملتقط ولم يُسجَّل كناقص.`); }
+  if (/LINES_NOT_CHECKED (\d+)/.test(m)) { const n = /LINES_NOT_CHECKED (\d+)/.exec(m)![1]; return say(`${n} line(s) are neither ticked as picked nor recorded as missing.`, `${n} بند لم يُؤشَّر عليه بأنه أُخذ من الرف ولم يُسجَّل كناقص.`); }
   if (/^NOT_BEING_PICKED/.test(m)) return say("This order is not being picked now.", "هذا الطلب ليس قيد التجهيز الآن.");
   if (/^SUBSTITUTES_OFF/.test(m)) return say("Substitutes are switched off.", "البدائل متوقفة.");
   if (/^OFFER_ALREADY_OPEN/.test(m)) return say("A substitute is already offered for this line.", "عُرض بديل لهذا البند بالفعل.");
@@ -49,15 +50,15 @@ function plain(L: Lang, e: unknown): unknown {
 }
 
 /** Runs one action: logged first, the SQL called, logged again; success goes to `to`, a refusal back to `back`. */
-async function doit(c: Ctx, action: string, args: Record<string, unknown>, back: string, run: () => Promise<{ msg: string; to?: string }>): Promise<Response> {
-  let to = back;
+async function doit(c: Ctx, action: string, args: Record<string, unknown>, back: string, run: () => Promise<{ msg: string; to?: string; undo?: FlashUndo }>): Promise<Response> {
+  let to = back, undo: FlashUndo | undefined;
   const r = await attempt(c, action, args, async () => {
-    try { const x = await run(); if (x.to) to = x.to; return x.msg; } catch (e) { throw plain(c.lang, e); }
+    try { const x = await run(); if (x.to) to = x.to; undo = x.undo; return x.msg; } catch (e) { throw plain(c.lang, e); }
   });
-  return flashRedirect(c.deps, r.logged && r.ok ? to : back, r.logged ? r.msg : { err: pick(c.lang, "Not done: the action log could not be written. Try again in a minute.", "لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة.") });
+  return flashRedirect(c.deps, r.logged && r.ok ? to : back, r.logged ? r.msg : { err: pick(c.lang, "Not done: the action log could not be written. Try again in a minute.", "لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة.") }, r.ok ? undo : undefined);
 }
 
-const village = (b: Pick<Board, "village_ar" | "village_en" | "is_pickup">, L: Lang) => (b.is_pickup ? pick(L, "pickup at the hub", "استلام من المركز") : (L === "ar" ? b.village_ar || b.village_en : b.village_en || b.village_ar) ?? "");
+const village = (b: Pick<Board, "village_ar" | "village_en" | "is_pickup">, L: Lang) => (b.is_pickup ? pick(L, "pickup at the hub", "استلام من المستودع") : (L === "ar" ? b.village_ar || b.village_en : b.village_en || b.village_ar) ?? "");
 
 // ---------- the queue ----------
 async function board(c: Ctx) {
@@ -97,7 +98,7 @@ ${myOrder ? card(html`<p><strong>${pick(L, `You are picking ${myOrder.short_code
 ${waiting.length === 0 ? empty({ ok: true, title: pick(L, "Nothing is waiting.", "لا شيء بالانتظار.") }) : html`<ul class="ak-rows">${waiting.map((b) => row(b, { start: !mine }))}</ul>${mine ? html`<p class="muted">${pick(L, "Finish the order you started before you start another.", "أنهِ الطلب الذي بدأته قبل أن تبدأ آخر.")}</p>` : ""}`}
 ${busy.length ? html`<h2>${pick(L, "Being picked", "قيد التجهيز")} (${busy.length})</h2><ul class="ak-rows">${busy.map((b) => row(b, { open: true }))}</ul>` : ""}
 ${packed.length ? html`<h2>${pick(L, "Packed, waiting for the rider", "جاهز بانتظار المندوب")} (${packed.length})</h2><ul class="ak-rows">${packed.map((b) => row(b, {}))}</ul>` : ""}
-${lead ? card(html`<p class="muted">${pick(L, "When this is on, a rider is offered an order only once its picking has started, and nothing is handed to a rider before it is packed. Turn it on when the hub picks on the console.", "عند التفعيل لا يُعرض الطلب على مندوب إلا بعد بدء تجهيزه، ولا يُسلَّم لمندوب قبل أن يُجهَّز. فعّله عندما يُجهَّز في المركز عبر اللوحة.")}</p>
+${lead ? card(html`<p class="muted">${pick(L, "When this is on, a rider is offered an order only once its picking has started, and nothing is handed to a rider before it is packed. Turn it on when the hub picks on the console.", "عند التفعيل لا يُعرض الطلب على مندوب إلا بعد بدء تجهيزه، ولا يُسلَّم لمندوب قبل أن يُجهَّز. فعّله عندما يُجهَّز في المستودع عبر اللوحة.")}</p>
 <p>${cfg?.console_queue ? badge(pick(L, "on", "مفعّل"), "ok", "check") : badge(pick(L, "off", "متوقف"))}</p>
 ${form(c.f, "/pick/queue-mode", html`<input type="hidden" name="on" value="${cfg?.console_queue ? "0" : "1"}">${button({ label: cfg?.console_queue ? pick(L, "Turn off", "إيقاف") : pick(L, "Turn on", "تفعيل"), variant: "default" })}`)}`,
   { title: pick(L, "Offer the rider when picking starts", "عرض الطلب على المندوب عند بدء التجهيز") }) : ""}`, { translated: true });
@@ -131,12 +132,13 @@ async function list(c: Ctx) {
   const { db } = c.deps;
   const L = c.lang;
   const order = id(c, "order");
-  const [l, rows, marks, offers, cfg] = await Promise.all([
+  const [l, rows, marks, offers, cfg, pref] = await Promise.all([
     db.rpc<PickList | null>("pick_list", { p_order: order }),
     db.rpc<Board[] | null>("console_pick_board", {}),
     db.rows<{ item_id: string }>("pick_line_marks", { select: "item_id", where: { order_id: order } }),
     db.rows<{ id: string; missing_item_id: string; expires_at: string }>("substitution_offers", { select: "id,missing_item_id,expires_at", where: { order_id: order, status: "open" } }).catch(() => []),
     db.rpc<{ offer_substitutes?: boolean } | null>("setting", { p_key: "picking" }).catch(() => null),
+    db.rows<{ missing_pref: string | null }>("orders", { select: "missing_pref", where: { id: order }, limit: 1 }).catch(() => [] as { missing_pref: string | null }[]),
   ]);
   if (!l || !l.order_id) return flashRedirect(c.deps, "/pick", { err: pick(L, "That order was not found.", "لم يُعثر على هذا الطلب.") });
   const b = (rows ?? []).find((x) => x.order_id === order);
@@ -164,16 +166,18 @@ async function list(c: Ctx) {
     }));
   }
 
+  // One-handed at 390 px: each line is a card whose first control is a full-width button, 56 px tall (picked / put back); the second is
+  // "missing or short", below it. Nothing needs a swipe; the way back from a tap is the toast's Undo.
   const lineRow = (x: Line) => {
     const done = marked.has(x.item_id);
     const st = STORAGE[x.storage];
-    return html`<li id="l${x.n}" data-state="${done ? "done" : ""}"><div class="head"><strong><bdi class="qty">${fmtQty(x.qty)} ×</bdi> <bdi>${x.name}</bdi></strong>
-<span class="tags">${x.unit && x.unit.toLowerCase() !== "each" ? badge(x.unit) : ""}${st ? badge(pick(L, st[0], st[1]), st[2]) : ""}${x.on_hold ? badge(pick(L, "on hold", "موقوف"), "danger", "alert") : ""}${done ? badge(pick(L, "picked", "مُلتقط"), "ok", "check") : ""}</span></div>
+    return html`<li id="l${x.n}" data-state="${done ? "done" : ""}"><div class="head"><strong><bdi class="n">${x.n}</bdi><bdi class="qty">${fmtQty(x.qty)} ×</bdi> <bdi>${x.name}</bdi></strong>
+<span class="tags">${x.unit && x.unit.toLowerCase() !== "each" ? badge(x.unit) : ""}${st ? badge(pick(L, st[0], st[1]), st[2]) : ""}${x.on_hold ? badge(pick(L, "on hold", "موقوف"), "danger", "alert") : ""}${done ? badge(pick(L, "picked", "أُخذ"), "ok", "check") : ""}</span></div>
 ${x.note ? html`<p class="muted">${pick(L, "Note", "ملاحظة")}: ${x.note}</p>` : ""}
-${mineOrLead ? html`<div class="actions-row">
+${mineOrLead ? html`<div class="ak-pickrow">
 ${form(c.f, `/pick/${order}/mark/${x.item_id}`, html`<input type="hidden" name="n" value="${x.n}"><input type="hidden" name="picked" value="${done ? "0" : "1"}">${done
-  ? button({ label: pick(L, "Undo", "تراجع"), variant: "ghost" })
-  : button({ label: pick(L, "Picked", "تم الالتقاط"), variant: "primary", icon: "check" })}`, { cls: "inline" })}
+  ? button({ label: pick(L, "Put back", "أعِده"), variant: "ghost", icon: "undo" })
+  : button({ label: pick(L, "Picked", "أُخذ من الرف"), variant: "primary", icon: "check" })}`, { cls: "inline ak-pickbtn" })}
 ${done ? "" : button({ label: pick(L, "Missing or short", "ناقص أو أقل"), href: `/pick/${order}?missing=${x.item_id}#l${x.n}`, variant: "default", icon: "alert" })}</div>` : ""}
 ${askMissing === x.item_id && mineOrLead ? html`<div class="note">${form(c.f, `/pick/${order}/missing/${x.item_id}`, html`<input type="hidden" name="n" value="${x.n}">
 <label>${pick(L, `How many did you find? (0 if none; less than ${fmtQty(x.qty)})`, `كم وجدت؟ (0 إن لم تجد؛ أقل من ${fmtQty(x.qty)})`)}
@@ -191,16 +195,20 @@ ${!offer && options.length ? html`<p class="muted">${pick(L, "Offer the customer
 <div class="actions-row">${form(c.f, `/pick/${order}/remove/${m.item_id}`, button({ label: offer ? pick(L, "Withdraw and take it off", "اسحب العرض وأزل البند") : pick(L, "Take it off the order", "أزل البند من الطلب"), variant: "default" }), { cls: "inline" })}</div></li>`;
   };
 
+  const ready = picked === l.lines.length && pending.length === 0;
+  const prefWords = { best_match: pick(L, "the closest match: the system keeps one for them", "أقرب بديل: يحتفظ النظام به لهم"), remove: pick(L, "take it off the order", "أزل البند من الطلب"), ask: pick(L, "ask them first", "اسألهم أولاً") }[pref[0]?.missing_pref ?? "ask"] ?? pick(L, "ask them first", "اسألهم أولاً");
   return render(c, `${l.short_code} · ${b ? village(b, L) : ""}`, html`${back}
-<p>${badge(`${picked} / ${l.lines.length} ${pick(L, "picked", "ملتقط")}`, picked === l.lines.length && pending.length === 0 ? "ok" : "neutral", "stock")}
+<p class="ak-runhead">${badge(`${picked} / ${l.lines.length} ${pick(L, "picked", "أُخذ")}`, ready ? "ok" : "neutral", "pick")}
 ${l.picker_id && l.picker_id !== c.staff.partyId ? badge(pick(L, "picked by someone else", "يجهّزه شخص آخر"), "warn", "user") : ""}
 ${b && b.promise_at ? timerChip({ minutes: mins(b.confirmed_at, now), promise: b.promise_min, text: `${pick(L, "promised", "الوعد")} ${hm(b.promise_at)}` }) : ""}</p>
+<progress class="ak-progress" max="${Math.max(1, l.lines.length)}" value="${picked}" aria-label="${picked} / ${l.lines.length} ${pick(L, "picked", "أُخذ")}"></progress>
+<p class="muted">${pick(L, "If a line is missing, the customer chose:", "إن نقص بند، اختار الزبون:")} <strong>${prefWords}</strong>.</p>
 ${l.notes ? html`<div class="note"><strong>${pick(L, "Customer's note", "ملاحظة الزبون")}:</strong> <bdi>${l.notes}</bdi></div>` : ""}
 ${pending.length ? html`<h2>${pick(L, "Decide on the missing lines", "قرّر بشأن البنود الناقصة")} (${pending.length})</h2><ul class="ak-rows">${pending.map(missingRow)}</ul>` : ""}
-<h2>${pick(L, "Lines to pick, in shelf order", "بنود التجهيز بترتيب الرفوف")}</h2>
+<h2>${pick(L, "In walking order", "بترتيب المشي في المستودع")}</h2>
 ${l.lines.length === 0 ? empty({ title: pick(L, "No line is left to pick.", "لا بند متبقٍّ للتجهيز.") }) : html`<ul class="ak-rows">${l.lines.map(lineRow)}</ul>`}
 ${taken.length ? html`<h2>${pick(L, "Taken off this order", "أُزيل من هذا الطلب")}</h2><ul class="ak-rows">${taken.map((m) => html`<li><div class="head"><span><bdi>${fmtQty(m.qty)} × ${m.name}</bdi></span><span class="muted">${usd(m.line_total_usd)}</span></div></li>`)}</ul>` : ""}
-<div class="actions-row">${button({ label: pick(L, "All picked: packing and done", "تم الالتقاط: التعبئة والإنهاء"), href: `/pick/${order}/done`, variant: "primary", icon: "check" })}</div>`, { translated: true });
+<div class="ak-runbar">${button({ label: ready ? pick(L, "All picked: packing", "أُخذ من الرف: التعبئة") : pick(L, `Packing (${l.lines.length - picked + pending.length} left)`, `التعبئة (بقي ${l.lines.length - picked + pending.length})`), href: `/pick/${order}/done`, variant: ready ? "primary" : "default", icon: "check" })}</div>`, { translated: true });
 }
 
 async function mark(c: Ctx) {
@@ -208,7 +216,9 @@ async function mark(c: Ctx) {
   const picked = c.form.picked !== "0";
   return doit(c, picked ? "pick_line_picked" : "pick_line_unpicked", { order, item }, `/pick/${order}#l${local(c.form.n ?? "")}`, async () => {
     await c.deps.db.rpc("pick_mark_line", { p_item: item, p_by: c.staff.partyId, p_picked: picked });
-    return { msg: picked ? pick(c.lang, "Picked.", "تم الالتقاط.") : pick(c.lang, "Unmarked.", "أُلغي التأشير.") };
+    // The one action here the database takes back as it is: marking a line is undone by unmarking it, and the other way round. Undo is a logged action too.
+    return { msg: picked ? pick(c.lang, "Picked.", "أُخذ من الرف.") : pick(c.lang, "Put back: not picked.", "أُعيد: غير أُخذ."),
+      undo: { label: pick(c.lang, "Undo", "تراجع"), action: `/pick/${order}/mark/${item}`, fields: { n: local(c.form.n ?? ""), picked: picked ? "0" : "1" } } };
   });
 }
 

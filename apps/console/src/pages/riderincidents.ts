@@ -39,9 +39,9 @@ ${onShift.length ? form(c.f, "/rider-jobs/assign", html`<input type="hidden" nam
 <div class="actions-row">${button({ label: pick(L, "Transfer to this rider", "حوّل إلى هذا المندوب"), variant: "primary", icon: "bike" })}</div>`) : html`<p class="muted">${pick(L, "No rider is on shift to take it.", "لا مندوب في الوردية ليأخذه.")}</p>`}
 ${form(c.f, `/rider-incidents/${w.order_id}/call-off`, html`<label class="ak-check"><input type="checkbox" name="sure" value="1" required><span>${pick(L, "Call it off: no charge to the customer, the goods come back for counting, and a paid order is owed its money as credit.", "إلغاء التوصيل: بلا رسوم على الزبون، وتعود البضاعة للعدّ، ويُمنح الطلب المدفوع رصيداً.")}</span></label>
 ${button({ label: pick(L, "Call it off, no charge", "ألغِ التوصيل بلا رسوم"), variant: "default" })}`)}</li>`)}</ul>`}
-<h2>${pick(L, "Cash to receive at the hub", "نقد بانتظار الاستلام في المركز")} (${holding.length})</h2>
+<h2>${pick(L, "Cash to receive at the hub", "نقد بانتظار الاستلام في المستودع")} (${holding.length})</h2>
 ${holding.length === 0 ? empty({ ok: true, title: pick(L, "No rider off shift holds cash.", "لا مندوب خارج الوردية يحمل نقداً.") }) : html`<ul class="ak-rows">${holding.map((r) => html`<li><div class="head"><strong>${r.name ?? pick(L, "Rider", "مندوب")}</strong><span class="tags">${badge(ltr(`${usd(r.cash_usd)} + ${lbp(r.cash_lbp)}`), "gold", "wallet")}</span></div>
-${form(c.f, `/rider-incidents/${r.driver_id}/cash`, html`<label class="ak-check"><input type="checkbox" name="sure" value="1" required><span>${pick(L, `I counted ${usd(r.cash_usd)} and ${lbp(r.cash_lbp)} with the rider. Record it as handed in at the hub.`, `عددتُ ${usd(r.cash_usd)} و ${lbp(r.cash_lbp)} مع المندوب. سجّله كمُسلَّم في المركز.`)}</span></label>
+${form(c.f, `/rider-incidents/${r.driver_id}/cash`, html`<label class="ak-check"><input type="checkbox" name="sure" value="1" required><span>${pick(L, `I counted ${usd(r.cash_usd)} and ${lbp(r.cash_lbp)} with the rider. Record it as handed in at the hub.`, `عددتُ ${usd(r.cash_usd)} و ${lbp(r.cash_lbp)} مع المندوب. سجّله كمُسلَّم في المستودع.`)}</span></label>
 ${button({ label: pick(L, "Cash received", "تم استلام النقد"), variant: "primary", icon: "wallet" })}`)}</li>`)}</ul>`}
 <h2>${pick(L, "Recent incidents", "آخر الحوادث")}</h2>
 ${dataTable({ caption: pick(L, "Recent rider incidents", "آخر حوادث المناديب"), empty: html`<p class="muted">${pick(L, "None yet.", "لا شيء بعد.")}</p>`,
@@ -86,7 +86,7 @@ async function cash(c: Ctx) {
   return doit(c, "rider_cash_received", { driver }, "/rider-incidents", async () => {
     if (c.form.sure !== "1") throw new UserError(pick(L, "Tick the box to say you counted it.", "أشّر على المربع لتأكيد أنك عددته."));
     const r = await c.deps.db.rpc<{ nothing?: boolean; usd: number | string; lbp: number | string }>("receive_rider_cash", { p_driver: driver, p_by: c.staff.partyId });
-    return r.nothing ? pick(L, "This rider holds no cash.", "لا نقد مع هذا المندوب.") : pick(L, `Received at the hub: ${usd(r.usd)} and ${lbp(r.lbp)}.`, `استُلم في المركز: ${usd(r.usd)} و ${lbp(r.lbp)}.`);
+    return r.nothing ? pick(L, "This rider holds no cash.", "لا نقد مع هذا المندوب.") : pick(L, `Received at the hub: ${usd(r.usd)} and ${lbp(r.lbp)}.`, `استُلم في المستودع: ${usd(r.usd)} و ${lbp(r.lbp)}.`);
   });
 }
 

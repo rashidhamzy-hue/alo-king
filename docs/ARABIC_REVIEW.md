@@ -266,13 +266,13 @@ Source: `apps/console/src/pages/capture.ts` and `apps/console/src/pages/labelque
 
 Source: `messages(...).basket.comingSoon` in `packages/agents/src/messages/ar.ts` (English and French in `en.ts` and `fr.ts`), and the website word `coming_soon` in `apps/web/src/lib/i18n.ts`.
 Said by code, never by the model, only while the setting `sell_requires_label` is on and only for a packaged item whose label has not been read and approved by a person; `docs/HANDOFF.md`, SELL1.
-It promises no date and gives no reason about the product (invariants 14 and 15). Written by a model; **not read by a person yet** (the same rule as every other new line).
+It promises no date and gives no reason about the product (invariants 14 and 15). Written by a model; read by the coordinator on 17 November ("RA 17 Nov"; the changes are applied) (the same rule as every other new line).
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `basket.comingSoon(["لبنة"])` | جاي قريباً، لسّا ما فينا نبيعو:<br>• لبنة<br>قلّي شو بدك بدالو، أو منشيلو. | Coming soon, we can't take it yet:<br>• لبنة<br>Tell me what you'd like instead, or remove it. | Bientôt disponible, nous ne pouvons pas encore le vendre :<br>• لبنة<br>Dites-moi ce que vous voulez à la place, ou retirez-le. | |
-| `basket.comingSoon(["لبنة", "خبز"])` | جاي قريباً، لسّا ما فينا نبيعو:<br>• لبنة<br>• خبز<br>قلّي شو بدك بدالو، أو منشيلو. | Coming soon, we can't take it yet:<br>• لبنة<br>• خبز<br>Tell me what you'd like instead, or remove it. | Bientôt disponible, nous ne pouvons pas encore le vendre :<br>• لبنة<br>• خبز<br>Dites-moi ce que vous voulez à la place, ou retirez-le. | |
-| website `coming_soon` (the label that replaces "In stock" on a card and on the page) | قريباً | Coming soon | Bientôt disponible | |
+| `basket.comingSoon(["لبنة"])` | جايي قريباً، لسّا ما فينا نبيعو:<br>• لبنة<br>قلّي شو بدك بدالو، أو منشيلو. | Coming soon, we can't take it yet:<br>• لبنة<br>Tell me what you'd like instead, or remove it. | Bientôt disponible, nous ne pouvons pas encore le vendre :<br>• لبنة<br>Dites-moi ce que vous voulez à la place, ou retirez-le. | RA 17 Nov |
+| `basket.comingSoon(["لبنة", "خبز"])` | جايي قريباً، لسّا ما فينا نبيعو:<br>• لبنة<br>• خبز<br>قلّي شو بدك بدالو، أو منشيلو. | Coming soon, we can't take it yet:<br>• لبنة<br>• خبز<br>Tell me what you'd like instead, or remove it. | Bientôt disponible, nous ne pouvons pas encore le vendre :<br>• لبنة<br>• خبز<br>Dites-moi ce que vous voulez à la place, ou retirez-le. | RA 17 Nov |
+| website `coming_soon` (the label that replaces "In stock" on a card and on the page) | قريباً | Coming soon | Bientôt disponible | RA 17 Nov |
 ## DS2, the order status words (17 November 2026; RA 17 Nov)
 
 Source: `STATUS_LABELS` in `packages/ui/src/status.ts`, the one label table for order statuses (`docs/DECISIONS.md`, "Design reference,
@@ -296,9 +296,181 @@ two navigation words (`nav_dispatch`: «التوزيع», `nav_intake`: «الت
 | `status.returned.customer` | أُعيد | Returned || RA 17 Nov |
 | `status.cancelled.customer` | مُلغى | Cancelled || RA 17 Nov |
 
+
+## UX2a, the six staff pages (console, staff-facing, written by a model; 17 November 2026)
+
+Source: the `pick(L, "English", "Arabic")` pairs added to `apps/console/src/pages/{today,inbox,orders,pick,riderjobs,stock}.ts` and the two command-bar hints in `apps/console/src/i18n.ts`. Staff read these, never a customer. Words with `${…}` stand for a number or a name filled in by the page. Nothing here is a customer message. Read by the coordinator on 17 November ("RA 17 Nov"); the changes he made are applied here and in the code.
+
+| English | Arabic | Read by |
+|---|---|---|
+| Orders waiting | طلبات بانتظارنا | RA 17 Nov |
+| ${packedNoRider} packed, no rider yet | ${packedNoRider} جاهز بلا مندوب | RA 17 Nov |
+| to pick | للتجهيز | RA 17 Nov |
+| ${packedNoRider} waiting for a rider | ${packedNoRider} بانتظار مندوب | RA 17 Nov |
+| Late | متأخرة | RA 17 Nov |
+| past the zone time | تجاوزت وقت المنطقة | RA 17 Nov |
+| none past the zone time | لا طلب تجاوز وقت المنطقة | RA 17 Nov |
+| ${late} late | ${late} متأخرة | RA 17 Nov |
+| Cash held | النقد مع المناديب | RA 17 Nov |
+| ${d.riders.length} on shift | ${d.riders.length} في الوردية | RA 17 Nov |
+| ${overCap.length} over the soft cap | ${overCap.length} فوق السقف المرن | RA 17 Nov |
+| Cases open | حالات مفتوحة | RA 17 Nov |
+| customers waiting for a person | زبائن بانتظار شخص | RA 17 Nov |
+| ${inbox.lateCases} late | ${inbox.lateCases} متأخرة | RA 17 Nov |
+| the ops lead is alerted | يُنبَّه مسؤول العمليات | RA 17 Nov |
+| the founder is alerted and the customer is told we are on it | يُنبَّه المؤسس ويُبلَّغ الزبون أننا نتابع | RA 17 Nov |
+| the case is marked late | تُعلَّم الحالة متأخرة | RA 17 Nov |
+| Claimed: the steps are stopped while someone is answering. | مستلمة: توقفت الخطوات ما دام أحدهم يرد. | RA 17 Nov |
+| done | تم | RA 17 Nov |
+| next | التالي | RA 17 Nov |
+| later | لاحقاً | RA 17 Nov |
+| min | د | RA 17 Nov |
+| Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; press I'm on it to take a case and step the bot back. | الزبائن الذين ينتظرون شخصاً، الأطول انتظاراً أولاً. البوت يواصل الرد عليهم؛ اضغط «سأتولّاها» لتستلم الحالة ويتراجع البوت. | RA 17 Nov |
+| I'm on it | سأتولّاها | RA 17 Nov |
+| I'm on it (the bot steps back) | سأتولّاها (يتوقف البوت) | RA 17 Nov |
+| the closest match | أقرب بديل | RA 17 Nov |
+| take it off the order | أزل البند من الطلب | RA 17 Nov |
+| ask me first | اسألني أولاً | RA 17 Nov |
+| no code needed | لا رمز مطلوب | RA 17 Nov |
+| code checked ${when_(h.verifiedAt)} | فُحص الرمز ${when_(h.verifiedAt)} | RA 17 Nov |
+| locked after ${h.attempts} wrong tries: a person decides | مقفل بعد ${h.attempts} محاولات خاطئة: يقرّر شخص | RA 17 Nov |
+| Cancel this order | إلغاء هذا الطلب | RA 17 Nov |
+| Free until picking starts. The customer is told by message. This cannot be taken back. | مجاني حتى يبدأ التجهيز. يُبلَّغ الزبون برسالة. لا يمكن التراجع. | RA 17 Nov |
+| ${usd(x.terms.paid_usd)} was paid: give it back on the Refunds page afterwards. | دُفع ${usd(x.terms.paid_usd)}: أعده من صفحة الاسترداد بعد ذلك. | RA 17 Nov |
+| Why (for the record) | السبب (للسجل) | RA 17 Nov |
+| Cancel the order | إلغاء الطلب | RA 17 Nov |
+| It cannot be cancelled here: ${why[x.terms?.reason ?? ""]?.[0] ?? "the database says no"}. | لا يمكن إلغاؤه من هنا: ${why[x.terms?.reason ?? ""]?.[1] ?? "قاعدة البيانات ترفض"}. | RA 17 Nov |
+| Confirm the payment | تأكيد الدفع | RA 17 Nov |
+| Hand over at the hub | التسليم في المستودع | RA 17 Nov |
+| Decide it as a rider incident | قرّر بوصفها حادثة مندوب | RA 17 Nov |
+| It closes when its payment is recorded: delivered is not paid. | يُغلق عند تسجيل دفعه: التسليم لا يعني الدفع. | RA 17 Nov |
+| Payments | المدفوعات | RA 17 Nov |
+| Status | الحالة | RA 17 Nov |
+| Picker | المجهّز | RA 17 Nov |
+| nobody yet | لا أحد بعد | RA 17 Nov |
+| Rider | المندوب | RA 17 Nov |
+| none yet | لا مندوب بعد | RA 17 Nov |
+| paid | مدفوع | RA 17 Nov |
+| not paid yet | لم يُدفع بعد | RA 17 Nov |
+| Handover code | رمز التسليم | RA 17 Nov |
+| If an item is missing | إن نقص صنف | RA 17 Nov |
+| customer chose | اختار الزبون | RA 17 Nov |
+| What you can do | ما يمكنك فعله | RA 17 Nov |
+| No step is open to staff from this status. | لا خطوة متاحة للموظفين من هذه الحالة. | RA 17 Nov |
+| picked | أُخذ | RA 17 Nov |
+| substituted | استُبدل | RA 17 Nov |
+| removed | أُزيل | RA 17 Nov |
+| replaces | بديل عن | RA 17 Nov |
+| Status history | سجل الحالات | RA 17 Nov |
+| No change yet. | لا تغيير بعد. | RA 17 Nov |
+| Put back | أعِده | RA 17 Nov |
+| Picked | أُخذ من الرف | RA 17 Nov |
+| the closest match: the system keeps one for them | أقرب بديل: يحتفظ النظام به لهم | RA 17 Nov |
+| ask them first | اسألهم أولاً | RA 17 Nov |
+| If a line is missing, the customer chose: | إن نقص بند، اختار الزبون: | RA 17 Nov |
+| In walking order | بترتيب المشي في المستودع | RA 17 Nov |
+| All picked: packing | أُخذ من الرف: التعبئة | RA 17 Nov |
+| Packing (${l.lines.length - picked + pending.length} left) | التعبئة (بقي ${l.lines.length - picked + pending.length}) | RA 17 Nov |
+| Soft cap ${usd(soft)} warns. Hard cap ${usd(hard)} blocks new cash orders until a drop. | السقف المرن ${usd(soft)} للتنبيه. السقف الصارم ${usd(hard)} يمنع الطلبات النقدية الجديدة حتى التسليم. | RA 17 Nov |
+| has a job | لديه مهمة | RA 17 Nov |
+| at the door | عند الباب | RA 17 Nov |
+| delivered | سُلّم | RA 17 Nov |
+| The customer's 4-digit code | رمز الزبون المكوّن من 4 أرقام | RA 17 Nov |
+| Delivered | سُلّم | RA 17 Nov |
+| at the hard cap: no new cash order | عند السقف الصارم: لا طلب نقدي جديد | RA 17 Nov |
+| over the soft cap: plan a drop | فوق السقف المرن: خطّط لتسليم النقد | RA 17 Nov |
+| at the hub | في المستودع | RA 17 Nov |
+| counting cash still to collect | مع النقد المنتظر تحصيله | RA 17 Nov |
+| soft ${usd(soft)}, hard ${usd(hard)} | مرن ${usd(soft)}، صارم ${usd(hard)} | RA 17 Nov |
+| Cash drop | تسليم النقد | RA 17 Nov |
+| Pick up at | الاستلام من | RA 17 Nov |
+| the hub | المستودع | RA 17 Nov |
+| ,  | ،  | RA 17 Nov |
+| Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed. | ما زال قيد التجهيز في المستودع: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز. | RA 17 Nov |
+| Cash to record | نقد بانتظار التسجيل | RA 17 Nov |
+| left on the road | تُرك في الطريق | RA 17 Nov |
+| Give to this rider | أعطه لهذا المندوب | RA 17 Nov |
+| No rider is on shift. Start a shift for one below. | لا مندوب في الوردية. ابدأ وردية أحدهم أدناه. | RA 17 Nov |
+| pickup: no rider, no fee | استلام: بلا مندوب ولا رسم | RA 17 Nov |
+| Dollars received | دولارات مستلمة | RA 17 Nov |
+| Lira received | ليرات مستلمة | RA 17 Nov |
+| Change given, dollars | الباقي بالدولار | RA 17 Nov |
+| Change given, lira | الباقي بالليرة | RA 17 Nov |
+| Collected | استُلم | RA 17 Nov |
+| Dispatch | التوزيع | RA 17 Nov |
+| Give packed orders to a rider. The rider keeps the whole delivery fee. You are acting for the rider: every tap is recorded under your name and shows on the order's timeline; the rider is not messaged, the customer is told when the goods leave. | أعطِ الطلبات الجاهزة لمندوب. يحتفظ المندوب بكامل رسم التوصيل. أنت تتصرف نيابةً عن المندوب: كل ضغطة تُسجَّل باسمك وتظهر في السجل الزمني للطلب؛ لا يُراسَل المندوب، ويُبلَغ الزبون عند خروج البضاعة. | RA 17 Nov |
+| Packed, waiting for a rider | جاهز بانتظار مندوب | RA 17 Nov |
+| No packed order is waiting for a rider. | لا طلب جاهز ينتظر مندوباً. | RA 17 Nov |
+| Not packed yet | لم يُجهَّز بعد | RA 17 Nov |
+| These can be given now; the rider leaves only when each is packed. | يمكن إعطاؤها الآن؛ لا يغادر المندوب إلا بعد تجهيز كل طلب. | RA 17 Nov |
+| The system also offers these to riders on its own every minute. Giving one here offers it and accepts it for that rider. | يعرض النظام هذه الطلبات على المناديب تلقائياً كل دقيقة. الإعطاء هنا يعرضها ويقبلها نيابةً عن ذلك المندوب. | RA 17 Nov |
+| Pickup shelf | رف الاستلام | RA 17 Nov |
+| No order waits to be collected at the hub. | لا طلب ينتظر الاستلام من المستودع. | RA 17 Nov |
+| Riders on shift | المناديب في الوردية | RA 17 Nov |
+| No rider is on shift. | لا مندوب في الوردية. | RA 17 Nov |
+| Off shift | خارج الوردية | RA 17 Nov |
+| No rider is registered. | لا مندوب مسجّل. | RA 17 Nov |
+| Too many wrong tries: the code is locked and a person decides. | محاولات خاطئة كثيرة: الرمز مقفل ويقرّر شخص. | RA 17 Nov |
+| That is not the code. ${h.tries_left ?? 0} tries left. | هذا ليس الرمز. بقي ${h.tries_left ?? 0} محاولات. | RA 17 Nov |
+| Delivered. Now record the cash the rider collected (below). | سُلّم. سجّل الآن النقد الذي حصّله المندوب (أدناه). | RA 17 Nov |
+| Delivered. | سُلّم. | RA 17 Nov |
+| Already handed over. | سُلّم بالفعل. | RA 17 Nov |
+| That is not the code. ${r.tries_left ?? 0} tries left. | هذا ليس الرمز. بقي ${r.tries_left ?? 0} محاولات. | RA 17 Nov |
+| This order is not ready to be collected. | هذا الطلب ليس جاهزاً للاستلام. | RA 17 Nov |
+| Handed over and closed. | سُلّم وأُغلق. | RA 17 Nov |
+| ${num_(free)} available | المتاح ${num_(free)} | RA 17 Nov |
+| running low | ينفد قريباً | RA 17 Nov |
+| use by ${s.expiry_date} | يُستهلك قبل ${s.expiry_date} | RA 17 Nov |
+| on hand ${num_(onHand)}, reserved for open orders ${num_(reserved)} | في المخزن ${num_(onHand)}، محجوز لطلبات مفتوحة ${num_(reserved)} | RA 17 Nov |
+| , reorder at ${num_(n(l.reorder_point))} | ، يُعاد الطلب عند ${num_(n(l.reorder_point))} | RA 17 Nov |
+| Count or adjust | جرد أو تعديل | RA 17 Nov |
+| Count the shelf | جرد الرف | RA 17 Nov |
+| Counted | المعدود | RA 17 Nov |
+| Why it differs (needed if it does) | سبب الفرق (مطلوب إن وُجد) | RA 17 Nov |
+| Save the count | احفظ الجرد | RA 17 Nov |
+| Adjust the stock | تعديل المخزون | RA 17 Nov |
+| Change (+ or −) | التغيير (+ أو −) | RA 17 Nov |
+| Reason (required) | السبب (مطلوب) | RA 17 Nov |
+| Choose a reason | اختر سبباً | RA 17 Nov |
+| Note | ملاحظة | RA 17 Nov |
+| A movement is a record and is never edited: a mistake is put right by a new one with its own reason. | الحركة سجل لا يُعدَّل: يُصحَّح الخطأ بحركة جديدة بسببها. | RA 17 Nov |
+| Save the change | احفظ التغيير | RA 17 Nov |
+| The first ${LIMIT} are shown: search to find the rest. | المعروض أول ${LIMIT}: ابحث لتجد البقية. | RA 17 Nov |
+| No item matches. | لا صنف مطابق. | RA 17 Nov |
+| Out | نفد | RA 17 Nov |
+| Nothing is out. | لا شيء نافد. | RA 17 Nov |
+| Running low | ينفد قريباً | RA 17 Nov |
+| Nothing is below its reorder point. | لا شيء تحت حدّ إعادة الطلب. | RA 17 Nov |
+| Use within ${USE_SOON_DAYS} days | يُستهلك خلال ${USE_SOON_DAYS} أيام | RA 17 Nov |
+| Nothing expires soon. | لا شيء تنتهي صلاحيته قريباً. | RA 17 Nov |
+| Needs a look | يحتاج نظرة | RA 17 Nov |
+| Every item | كل الأصناف | RA 17 Nov |
+| Find an item | ابحث عن صنف | RA 17 Nov |
+| name, brand or SKU | الاسم أو العلامة أو الرمز | RA 17 Nov |
+| Search | بحث | RA 17 Nov |
+| More stock pages | صفحات مخزون أخرى | RA 17 Nov |
+| The books say ${num_(n(lvl?.on_hand ?? 0))}: write why the count differs. | الدفاتر تقول ${num_(n(lvl?.on_hand ?? 0))}: اكتب سبب اختلاف الجرد. | RA 17 Nov |
+| That count was already saved. | حُفظ هذا الجرد بالفعل. | RA 17 Nov |
+| Count saved: it matches the books. | حُفظ الجرد: يطابق الدفاتر. | RA 17 Nov |
+| Count saved: the books had ${num_(n(r.expected))}, a difference of ${diff > 0 ? "+" : ""}${num_(diff)}. | حُفظ الجرد: كان في الدفاتر ${num_(n(r.expected))}، والفرق ${diff > 0 ? "+" : ""}${num_(diff)}. | RA 17 Nov |
+| Choose the reason first: no change is saved without one. | اختر السبب أولاً: لا يُحفظ أي تغيير بدونه. | RA 17 Nov |
+| Write a note for the reason Other. | اكتب ملاحظة للسبب «أخرى». | RA 17 Nov |
+| That change was already saved. | حُفظ هذا التغيير بالفعل. | RA 17 Nov |
+| Saved. On hand now ${num_(n(r?.on_hand ?? 0))}. | حُفظ. في المخزن الآن ${num_(n(r?.on_hand ?? 0))}. | RA 17 Nov |
+| Found more | وُجدت زيادة | RA 17 Nov |
+| Damaged | تالف | RA 17 Nov |
+| Expired | منتهي الصلاحية | RA 17 Nov |
+| Spoiled | فاسد | RA 17 Nov |
+| Stolen | مسروق | RA 17 Nov |
+| Recalled | مسحوب من السوق | RA 17 Nov |
+| Sample | عيّنة | RA 17 Nov |
+| Other (write a note) | أخرى (اكتب ملاحظة) | RA 17 Nov |
+| Type an order code (AK-1042) and press Enter to open that order. Type a page name to filter the pages; anything else searches orders. | اكتب رمز طلب (AK-1042) واضغط Enter لفتحه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الطلبات. | RA 17 Nov |
+| Type an order code (AK-1042) and press Enter to open its pick list. Type a page name to filter the pages; anything else searches the catalog. | اكتب رمز طلب (AK-1042) واضغط Enter لفتح قائمة تجهيزه. اكتب اسم صفحة لتصفية الصفحات؛ وأي شيء آخر يبحث في الكتالوج. | RA 17 Nov |
+
 ## LV1, the Chouf food places listed before they sign (17 November 2026)
 
-Written by a model; **not yet read by a person**: the "Read by" column is empty and the Arabic, English and French all wait for a reader.
+Written by a model. The Arabic was read by the coordinator on 17 November ("RA 17 Nov"; the changes are applied below and in the code); the English and French still wait for a reader.
 Three places hold words: the website (the `ar`, `en` and `fr` dictionaries in `apps/web/src/lib/i18n.ts`, the keys `food*` and `kind_*`: the test
 `test/ci/listings-lv1.test.ts` checks this table lists every one, word for word), the one WhatsApp line (`messages(...).fixed.listingClaimed`), and the
 console's Listings page (staff only, `apps/console/src/pages/listings.ts`, beside its English with `pick(L, en, ar)`). Neutral wording only: no
@@ -310,73 +482,73 @@ fixed message is. `{km}`, `{n}`, `{total}` and `{name}` are filled by code.
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `web.food` | أماكن الطعام | Food places | Lieux pour manger | |
-| `web.food_title` | أماكن الطعام في الشوف | Food places in the Chouf | Lieux pour manger dans le Chouf | |
-| `web.food_tile_note` | ليس على ألو كينغ بعد | Not on Alo King yet | Pas encore sur Alo King | |
-| `web.food_intro` | أماكن قريبة منك ليست على ألو كينغ بعد. لا يمكنك الطلب منها من هنا. أخبرنا أيّها تريد. ويستطيع أصحاب الأماكن المطالبة بصفحتهم أو إزالتها. | Places near you that are not on Alo King yet. You can't order from them here. Tell us which ones you want. Owners can claim a page or have it removed. | Des lieux près de chez vous qui ne sont pas encore sur Alo King. Vous ne pouvez pas y commander d'ici. Dites-nous lesquels vous voulez. Les propriétaires peuvent revendiquer leur page ou la faire retirer. | |
-| `web.food_not_yet` | ليس على ألو كينغ بعد. لا يمكنك الطلب من هنا بعد. | Not on Alo King yet. You can't order from here yet. | Pas encore sur Alo King. Vous ne pouvez pas encore commander ici. | |
-| `web.food_places` | عدد الأماكن: {n} | Places: {n} | Lieux : {n} | |
-| `web.food_none` | لا توجد أماكن تطابق هذا. | No places match this. | Aucun lieu ne correspond. | |
-| `web.food_km` | {km} كم من مركزنا | {km} km from our hub | {km} km de notre centre | |
-| `web.food_village_none` | القرية غير مذكورة | Village not listed | Village non indiqué | |
-| `web.food_kind` | النوع | Kind | Type | |
-| `web.food_village` | القرية | Village | Village | |
-| `web.food_sort_distance` | المسافة من مركزنا | Distance from our hub | Distance de notre centre | |
-| `web.food_sort_name` | الاسم | Name | Nom | |
-| `web.food_next` | التالي | Next | Suivant | |
-| `web.food_prev` | السابق | Previous | Précédent | |
-| `web.food_page` | الصفحة {n} من {total} | Page {n} of {total} | Page {n} sur {total} | |
-| `web.food_map` | افتح في خرائط Google | Open in Google Maps | Ouvrir dans Google Maps | |
-| `web.food_want` | أريد الطلب من هنا | I want to order from here | Je veux commander ici | |
-| `web.food_asked` | شكرًا. سجّلنا أنك تريد الطلب من {name}. لا يلزمك أي شيء آخر. | Thanks. We've noted that you want to order from {name}. Nothing else is needed from you. | Merci. Nous avons noté que vous voulez commander chez {name}. Rien d'autre n'est nécessaire de votre part. | |
-| `web.food_claim` | هل هذا مكانك؟ اطلب إدارته | Is this your place? Claim it | C'est votre établissement ? Revendiquez-le | |
-| `web.food_claim_note` | يفتح هذا واتساب مع رسالة إلينا مكتوبة مسبقًا. أرسلها وسنتواصل معك. | This opens WhatsApp with a message to us already typed. Send it and we will get in touch. | Cela ouvre WhatsApp avec un message pour nous déjà écrit. Envoyez-le et nous vous contacterons. | |
-| `web.food_remove` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | |
-| `web.food_remove_title` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | |
-| `web.food_remove_intro` | هذا يُخفي صفحة {name} فورًا. يُبلَّغ فريقنا وسينظر في الأمر. | This hides the page for {name} right away. Our team is told and will look at it. | Cela masque tout de suite la page de {name}. Notre équipe est prévenue et l'examinera. | |
-| `web.food_who` | من أنت؟ | Who are you? | Qui êtes-vous ? | |
-| `web.food_who_choose` | اختر | Choose | Choisir | |
-| `web.food_who_owner` | صاحب المكان | The owner | Le propriétaire | |
-| `web.food_who_manager` | مدير | A manager | Un gérant | |
-| `web.food_who_staff` | موظف | Staff | Un employé | |
-| `web.food_who_other` | شخص آخر | Someone else | Quelqu'un d'autre | |
-| `web.food_who_error` | اختر من أنت. | Choose who you are. | Choisissez qui vous êtes. | |
-| `web.food_reason` | لماذا؟ (اختياري) | Why? (optional) | Pourquoi ? (facultatif) | |
-| `web.food_reason_hint` | من فضلك لا تكتب تفاصيل خاصة مثل الأرقام أو العناوين. | Please don't include private details such as numbers or addresses. | N'indiquez pas de détails privés, comme des numéros ou des adresses. | |
-| `web.food_remove_go` | أخفِ هذه الصفحة | Hide this page | Masquer cette page | |
-| `web.food_cancel` | إلغاء | Cancel | Annuler | |
-| `web.food_removed` | تم. الصفحة مخفية وقد أُبلغ فريقنا. | Done. The page is hidden and our team has been told. | C'est fait. La page est masquée et notre équipe est prévenue. | |
-| `web.food_remove_queued` | وصلنا طلبك. سينظر فريقنا فيه. | We have your request. Our team will look at it. | Nous avons votre demande. Notre équipe va l'examiner. | |
-| `web.kind_restaurant` | مطعم | Restaurant | Restaurant | |
-| `web.kind_cafe` | مقهى | Café | Café | |
-| `web.kind_bakery` | مخبز | Bakery | Boulangerie | |
-| `web.kind_sweets` | حلويات | Sweets | Pâtisserie | |
-| `web.kind_catering` | تموين وضيافة | Catering | Traiteur | |
-| `web.kind_butcher` | ملحمة | Butcher | Boucherie | |
+| `web.food` | أماكن الطعام | Food places | Lieux pour manger | RA 17 Nov |
+| `web.food_title` | أماكن الطعام في الشوف | Food places in the Chouf | Lieux pour manger dans le Chouf | RA 17 Nov |
+| `web.food_tile_note` | ليس على ألو كينغ بعد | Not on Alo King yet | Pas encore sur Alo King | RA 17 Nov |
+| `web.food_intro` | أماكن قريبة منك ليست على ألو كينغ بعد. لا يمكنك الطلب منها من هنا. أخبرنا أيّها تريد. ويستطيع أصحاب الأماكن المطالبة بصفحتهم أو إزالتها. | Places near you that are not on Alo King yet. You can't order from them here. Tell us which ones you want. Owners can claim a page or have it removed. | Des lieux près de chez vous qui ne sont pas encore sur Alo King. Vous ne pouvez pas y commander d'ici. Dites-nous lesquels vous voulez. Les propriétaires peuvent revendiquer leur page ou la faire retirer. | RA 17 Nov |
+| `web.food_not_yet` | ليس على ألو كينغ بعد. لا يمكنك الطلب من هنا بعد. | Not on Alo King yet. You can't order from here yet. | Pas encore sur Alo King. Vous ne pouvez pas encore commander ici. | RA 17 Nov |
+| `web.food_places` | عدد الأماكن: {n} | Places: {n} | Lieux : {n} | RA 17 Nov |
+| `web.food_none` | لا توجد أماكن تطابق هذا. | No places match this. | Aucun lieu ne correspond. | RA 17 Nov |
+| `web.food_km` | {km} كم من مستودعنا | {km} km from our hub | {km} km de notre centre | RA 17 Nov |
+| `web.food_village_none` | القرية غير مذكورة | Village not listed | Village non indiqué | RA 17 Nov |
+| `web.food_kind` | النوع | Kind | Type | RA 17 Nov |
+| `web.food_village` | القرية | Village | Village | RA 17 Nov |
+| `web.food_sort_distance` | المسافة من مستودعنا | Distance from our hub | Distance de notre centre | RA 17 Nov |
+| `web.food_sort_name` | الاسم | Name | Nom | RA 17 Nov |
+| `web.food_next` | التالي | Next | Suivant | RA 17 Nov |
+| `web.food_prev` | السابق | Previous | Précédent | RA 17 Nov |
+| `web.food_page` | الصفحة {n} من {total} | Page {n} of {total} | Page {n} sur {total} | RA 17 Nov |
+| `web.food_map` | افتح في خرائط Google | Open in Google Maps | Ouvrir dans Google Maps | RA 17 Nov |
+| `web.food_want` | أريد الطلب من هنا | I want to order from here | Je veux commander ici | RA 17 Nov |
+| `web.food_asked` | شكرًا. سجّلنا أنك تريد الطلب من {name}. لا يلزمك أي شيء آخر. | Thanks. We've noted that you want to order from {name}. Nothing else is needed from you. | Merci. Nous avons noté que vous voulez commander chez {name}. Rien d'autre n'est nécessaire de votre part. | RA 17 Nov |
+| `web.food_claim` | هل هذا مكانك؟ اطلب إدارته | Is this your place? Claim it | C'est votre établissement ? Revendiquez-le | RA 17 Nov |
+| `web.food_claim_note` | يفتح هذا واتساب مع رسالة إلينا مكتوبة مسبقًا. أرسلها وسنتواصل معك. | This opens WhatsApp with a message to us already typed. Send it and we will get in touch. | Cela ouvre WhatsApp avec un message pour nous déjà écrit. Envoyez-le et nous vous contacterons. | RA 17 Nov |
+| `web.food_remove` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | RA 17 Nov |
+| `web.food_remove_title` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | RA 17 Nov |
+| `web.food_remove_intro` | هذا يُخفي صفحة {name} فورًا. يُبلَّغ فريقنا وسينظر في الأمر. | This hides the page for {name} right away. Our team is told and will look at it. | Cela masque tout de suite la page de {name}. Notre équipe est prévenue et l'examinera. | RA 17 Nov |
+| `web.food_who` | من أنت؟ | Who are you? | Qui êtes-vous ? | RA 17 Nov |
+| `web.food_who_choose` | اختر | Choose | Choisir | RA 17 Nov |
+| `web.food_who_owner` | صاحب المكان | The owner | Le propriétaire | RA 17 Nov |
+| `web.food_who_manager` | مدير | A manager | Un gérant | RA 17 Nov |
+| `web.food_who_staff` | موظف | Staff | Un employé | RA 17 Nov |
+| `web.food_who_other` | شخص آخر | Someone else | Quelqu'un d'autre | RA 17 Nov |
+| `web.food_who_error` | اختر من أنت. | Choose who you are. | Choisissez qui vous êtes. | RA 17 Nov |
+| `web.food_reason` | لماذا؟ (اختياري) | Why? (optional) | Pourquoi ? (facultatif) | RA 17 Nov |
+| `web.food_reason_hint` | من فضلك لا تكتب تفاصيل خاصة مثل الأرقام أو العناوين. | Please don't include private details such as numbers or addresses. | N'indiquez pas de détails privés, comme des numéros ou des adresses. | RA 17 Nov |
+| `web.food_remove_go` | أخفِ هذه الصفحة | Hide this page | Masquer cette page | RA 17 Nov |
+| `web.food_cancel` | إلغاء | Cancel | Annuler | RA 17 Nov |
+| `web.food_removed` | تم. الصفحة مخفية وقد أُبلغ فريقنا. | Done. The page is hidden and our team has been told. | C'est fait. La page est masquée et notre équipe est prévenue. | RA 17 Nov |
+| `web.food_remove_queued` | وصلنا طلبك. سينظر فريقنا فيه. | We have your request. Our team will look at it. | Nous avons votre demande. Notre équipe va l'examiner. | RA 17 Nov |
+| `web.kind_restaurant` | مطعم | Restaurant | Restaurant | RA 17 Nov |
+| `web.kind_cafe` | مقهى | Café | Café | RA 17 Nov |
+| `web.kind_bakery` | مخبز | Bakery | Boulangerie | RA 17 Nov |
+| `web.kind_sweets` | حلويات | Sweets | Pâtisserie | RA 17 Nov |
+| `web.kind_catering` | تموين وضيافة | Catering | Traiteur | RA 17 Nov |
+| `web.kind_butcher` | ملحمة | Butcher | Boucherie | RA 17 Nov |
 
 ### On WhatsApp (the reply to "Claim <listing_id>", read by code before any model)
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `fixed.listingClaimed("مخبز الشوف")` | وصلتنا رسالتك بخصوص مخبز الشوف.<br>رح يتواصل معك حدا من فريقنا هون على واتساب.<br>لحد ذاك ما رح يتغيّر شي على الصفحة. | We got your message about مخبز الشوف.<br>Someone from our team will get in touch with you here on WhatsApp.<br>Until then nothing changes on the page. | Nous avons bien reçu votre message au sujet de مخبز الشوف.<br>Quelqu'un de notre équipe vous contactera ici sur WhatsApp.<br>D'ici là, rien ne change sur la page. | |
+| `fixed.listingClaimed("مخبز الشوف")` | وصلتنا رسالتك بخصوص مخبز الشوف.<br>رح يتواصل معك حدا من فريقنا هون على واتساب.<br>لحد ذاك ما رح يتغيّر شي على الصفحة. | We got your message about مخبز الشوف.<br>Someone from our team will get in touch with you here on WhatsApp.<br>Until then nothing changes on the page. | Nous avons bien reçu votre message au sujet de مخبز الشوف.<br>Quelqu'un de notre équipe vous contactera ici sur WhatsApp.<br>D'ici là, rien ne change sur la page. | RA 17 Nov |
 
 ### The console's Listings page (staff-facing)
 
 | Place | Arabic | English | Read by |
 |---|---|---|---|
-| Menu and title | أماكن الطعام | Food places | |
-| Tabs | بحث · المخفي والطلبات · المطالبات | Search · Hidden and requests · Claims | |
-| Intro | أماكن طعام في الشوف مدرجة على الموقع قبل أن توقّع. الإدراج ليس تاجرًا: لا يمكن الطلب منه. يستطيع الزائر أن يقول إنه يريده، ويستطيع صاحب المكان المطالبة به أو إزالته. | Chouf food places listed on the website before they sign. A listing is not a merchant: nothing can be ordered from it. A visitor can say they want it, an owner can claim it or have it removed. | |
-| Columns | المكان · النوع · القرية · كم · الطالبون · المطالبات · الحالة · إخفاء · الطلب · القرار · متى · أُرسلت من · الحالة | Place · Kind · Village · km · Wants · Claims · Status · Hide · Request · Decide · When · Sent from · Case | |
-| States | ظاهر · مخفي · أغلق · بلا سبب · بلا رقم · غير مذكورة · مفتوحة: الوارد · مُغلقة | Listed · Hidden · closed · no reason given · no number · not listed · open: Inbox · resolved | |
-| Who asked | صاحب المكان · مدير · موظف · شخص آخر | the owner · a manager · staff · someone else | |
-| Limit note | تجاوز الحد: تُركت الصفحة ظاهرة لتقرّر أنت. | Over a limit: the page was left up for you to decide. | |
-| Buttons | أعد الصفحة · أخفِ الصفحة · أخفِ · أغلق: أبقها مخفية · أغلق: أبقها ظاهرة · بحث | Restore the page · Hide the page · Hide · Close: keep it hidden · Close: leave it up · Search | |
-| Fields | سبب الإعادة · سبب الإخفاء · السبب · ملاحظة · الاسم أو القرية | Reason to restore · Reason to hide · Reason · Note · Name or village | |
-| Done | أُعيدت الصفحة وأُغلق الطلب. · أُخفيت الصفحة من الموقع. · أُبقيت مخفية وأُغلق الطلب. · أُغلق الطلب وتبقى الصفحة ظاهرة. | Restored: the page is back, and the request is closed. · Hidden: the page is gone from the website. · Kept hidden. The request is closed. · The request is closed and the page stays up. | |
-| Refusals | اكتب السبب (٣ أحرف على الأقل). · هذا المكان غير صالح. · هذا الطلب غير صالح. | Write the reason (at least 3 characters). · That place is not valid. · That request is not valid. | |
-| Empty | لا مطالبات بعد. · لا شيء مخفي ولا طلب بانتظار. · لا أماكن تطابق هذا. · تُعرض أول ٥٠: ابحث بالاسم أو القرية لتضييق النتائج. | No claims yet. · Nothing hidden and no request waiting. · No places match this. · The first 50 are shown: search by name or village to narrow it. | |
-| Staff alert | مكان طعام طلب إزالة صفحته | A food place asked to be removed | |
+| Menu and title | أماكن الطعام | Food places | RA 17 Nov |
+| Tabs | بحث · المخفي والطلبات · المطالبات | Search · Hidden and requests · Claims | RA 17 Nov |
+| Intro | أماكن طعام في الشوف مدرجة على الموقع قبل أن توقّع. الإدراج ليس تاجرًا: لا يمكن الطلب منه. يستطيع الزائر أن يقول إنه يريده، ويستطيع صاحب المكان المطالبة به أو إزالته. | Chouf food places listed on the website before they sign. A listing is not a merchant: nothing can be ordered from it. A visitor can say they want it, an owner can claim it or have it removed. | RA 17 Nov |
+| Columns | المكان · النوع · القرية · كم · يريدونه · المطالبات · الحالة · إخفاء · الطلب · القرار · متى · أُرسلت من · الحالة | Place · Kind · Village · km · Wants · Claims · Status · Hide · Request · Decide · When · Sent from · Case | RA 17 Nov |
+| States | ظاهر · مخفي · أغلق · بلا سبب · بلا رقم · غير مذكورة · مفتوحة: الوارد · مُغلقة | Listed · Hidden · closed · no reason given · no number · not listed · open: Inbox · resolved | RA 17 Nov |
+| Who asked | صاحب المكان · مدير · موظف · شخص آخر | the owner · a manager · staff · someone else | RA 17 Nov |
+| Limit note | تجاوز الحد: تُركت الصفحة ظاهرة لتقرّر أنت. | Over a limit: the page was left up for you to decide. | RA 17 Nov |
+| Buttons | أعد الصفحة · أخفِ الصفحة · أخفِ · أغلق: أبقها مخفية · أغلق: أبقها ظاهرة · بحث | Restore the page · Hide the page · Hide · Close: keep it hidden · Close: leave it up · Search | RA 17 Nov |
+| Fields | سبب الإعادة · سبب الإخفاء · السبب · ملاحظة · الاسم أو القرية | Reason to restore · Reason to hide · Reason · Note · Name or village | RA 17 Nov |
+| Done | أُعيدت الصفحة وأُغلق الطلب. · أُخفيت الصفحة من الموقع. · أُبقيت مخفية وأُغلق الطلب. · أُغلق الطلب وتبقى الصفحة ظاهرة. | Restored: the page is back, and the request is closed. · Hidden: the page is gone from the website. · Kept hidden. The request is closed. · The request is closed and the page stays up. | RA 17 Nov |
+| Refusals | اكتب السبب (٣ أحرف على الأقل). · هذا المكان غير صالح. · هذا الطلب غير صالح. | Write the reason (at least 3 characters). · That place is not valid. · That request is not valid. | RA 17 Nov |
+| Empty | لا مطالبات بعد. · لا شيء مخفي ولا طلب بانتظار. · لا أماكن تطابق هذا. · تُعرض أول ٥٠: ابحث بالاسم أو القرية لتضييق النتائج. | No claims yet. · Nothing hidden and no request waiting. · No places match this. · The first 50 are shown: search by name or village to narrow it. | RA 17 Nov |
+| Staff alert | مكان طعام طلب إزالة صفحته | A food place asked to be removed | RA 17 Nov |
 
 ## WEB2, the website's basket, sign-in, checkout, order page, history, account and "How it works" (17 November 2026)
 

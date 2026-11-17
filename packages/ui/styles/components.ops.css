@@ -15,6 +15,17 @@
   .ak-kpi--alert { border-color: var(--ak-danger); }
   .ak-kpi--alert .value { color: var(--ak-danger); }
   .ak-kpi--alert .ak-spark { color: var(--ak-danger); }
+  /* a tile that is one link: the whole tile is the target; a state is an icon and words, the border only repeats it */
+  .ak-kpi--link { padding: 0; }
+  .ak-kpi--link > a { display: flex; flex-direction: column; gap: 2px; padding: 14px; min-block-size: var(--ak-tap); color: inherit; text-decoration: none; border-radius: inherit; }
+  .ak-kpi--link > a:hover { background: var(--ak-surface-2); }
+  .ak-kpi--link > a:focus-visible { outline: 3px solid var(--ak-accent); outline-offset: 2px; }
+  .ak-kpi--link .label { display: flex; align-items: center; gap: var(--ak-space-1); }
+  .ak-kpi--link .cmp.state { color: var(--ak-warn); order: 0; }
+  .ak-kpi--warn { border-color: var(--ak-warn); }
+  .ak-kpi--late { border-color: var(--ak-danger); }
+  .ak-kpi--late .cmp.state { color: var(--ak-danger); }
+  .ak-kpi--late .value { color: var(--ak-danger); }
   .ak-spark { display: block; inline-size: 100%; block-size: 24px; color: var(--ak-text); }
   .ak-spark polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   .ak-spark circle { fill: currentColor; }
@@ -35,6 +46,29 @@
   .ak-rows .qty { font-variant-numeric: tabular-nums; font-weight: var(--ak-weight-strong); }
   .ak-rows .tags { display: flex; flex-wrap: wrap; gap: var(--ak-space-1); }
   .ak-rows form { margin: 0; }
+  /* the picker's runner: a full-width 56 px button per line, a bar for the way on that stays in thumb reach above the phone bar */
+  .ak-pickrow { display: grid; gap: var(--ak-space-2); }
+  .ak-pickrow form, .ak-pickrow .ak-btn { inline-size: 100%; margin: 0; }
+  .ak-pickbtn .ak-btn { min-block-size: 56px; font-size: var(--ak-text-md); }
+  .ak-rows .n { display: inline-grid; place-items: center; min-inline-size: 1.75rem; block-size: 1.75rem; margin-inline-end: var(--ak-space-2); border-radius: var(--ak-radius-full); background: var(--ak-surface-2); font-size: var(--ak-text-sm); font-variant-numeric: tabular-nums; }
+  .ak-runhead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); }
+  .ak-progress { display: block; inline-size: 100%; block-size: 10px; appearance: none; border: 0; border-radius: 5px; overflow: hidden; background: var(--ak-surface-2); accent-color: var(--ak-ok); }
+  .ak-progress::-webkit-progress-bar { background: var(--ak-surface-2); }
+  .ak-progress::-webkit-progress-value { background: var(--ak-ok); border-radius: 5px; }
+  .ak-progress::-moz-progress-bar { background: var(--ak-ok); border-radius: 5px; }
+  .ak-runbar { position: sticky; inset-block-end: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--ak-space-2)); z-index: 5; margin-block-start: var(--ak-space-4); padding: var(--ak-space-2); background: color-mix(in srgb, var(--ak-surface) 94%, transparent); backdrop-filter: blur(8px); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); box-shadow: var(--ak-shadow-2); }
+  .ak-runbar .ak-btn { inline-size: 100%; min-block-size: 56px; }
+  @media (min-width: 900px) { .ak-runbar { inset-block-end: var(--ak-space-3); max-inline-size: 28rem; } }
+  /* Dispatch: the orders to give on the left, the riders against their caps on the right (one column on a phone) */
+  .ak-dispatch { display: grid; gap: var(--ak-space-5); grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .ak-dispatch > div { min-inline-size: 0; }
+  .ak-dispatch h2 .ak-icon { inline-size: 1.1em; block-size: 1.1em; vertical-align: -0.15em; margin-inline-end: var(--ak-space-1); }
+  @media (min-width: 1100px) { .ak-dispatch { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
+  /* an item's count and adjust forms, folded under its row; the summary is a 44 px target */
+  details.ak-more > summary { display: flex; align-items: center; gap: var(--ak-space-2); min-block-size: var(--tap); cursor: pointer; font-weight: var(--ak-weight-strong); list-style: none; }
+  details.ak-more > summary::-webkit-details-marker { display: none; }
+  details.ak-more[open] > summary { border-block-end: 1px solid var(--ak-line); margin-block-end: var(--ak-space-2); }
+  details.ak-more form { margin-block: var(--ak-space-3); }
   .ak-check { display: flex; align-items: flex-start; gap: var(--ak-space-2); min-block-size: var(--tap); }
   .ak-check span { padding-block: var(--ak-space-3); }
   .ak-check input[type=checkbox] { appearance: none; flex: none; display: grid; place-content: center; inline-size: 1.75rem; block-size: 1.75rem; margin: 0.5rem; border: 2px solid var(--ak-line-strong); border-radius: 8px; background: var(--ak-surface); }
@@ -105,6 +139,20 @@
   .ak-case:hover { border-color: var(--ak-line-strong); border-inline-start-color: var(--ak-warn); }
   .ak-case--late, .ak-case--late:hover { border-inline-start-color: var(--ak-danger); }
   .ak-case--claimed, .ak-case--claimed:hover { border-inline-start-color: var(--ak-ok); }
+  /* an order's status history: each change as a status pill with when and by whom */
+  .ak-history { list-style: none; margin: var(--ak-space-2) 0; padding: 0; display: grid; gap: var(--ak-space-2); }
+  .ak-history li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); }
+  .ak-case-steps, .ak-case-actions { padding: var(--ak-space-1) var(--ak-space-4) 0; }
+  .ak-case-actions { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); padding-block: var(--ak-space-2); }
+  .ak-case-actions form { margin: 0; }
+  .ak-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: var(--ak-text-sm); }
+  .ak-ladder li { display: flex; align-items: center; gap: var(--ak-space-2); color: var(--ak-muted); }
+  .ak-ladder li > span { flex: 1; min-inline-size: 0; }
+  .ak-ladder li small { font-weight: var(--ak-weight-strong); }
+  .ak-ladder .ak-icon { inline-size: 1em; block-size: 1em; flex: none; }
+  .ak-ladder li[data-state="done"] { color: var(--ak-ok); }
+  .ak-ladder li[data-state="next"] { color: var(--ak-warn); }
+  .ak-ladder-stopped { display: flex; align-items: center; gap: var(--ak-space-2); margin: 0; font-size: var(--ak-text-sm); color: var(--ak-ok); }
   .ak-case .what { min-inline-size: 0; }
   .ak-case .what strong { display: block; }
   .ak-case .last { display: block; color: var(--ak-muted); font-size: var(--ak-text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

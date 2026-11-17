@@ -1388,7 +1388,7 @@ Najjar Classic coffee 180 g: 1 → 3
 ## basket.comingSoon
 
 ```text
-جاي قريباً، لسّا ما فينا نبيعو:
+جايي قريباً، لسّا ما فينا نبيعو:
 • Najjar Classic coffee 180 g
 قلّي شو بدك بدالو، أو منشيلو.
 ```
