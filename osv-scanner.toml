@@ -1,0 +1,10 @@
+# osv-scanner reads this file next to package-lock.json (CI: `osv-scanner scan --lockfile package-lock.json`).
+# Every entry is one advisory, with a reason and an expiry. Never a package or a whole severity.
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-17
+# picomatch (2.3.2 and 4.0.7), a development dependency only (osv marks both "dev"): it is not in any deployed bundle.
+# No fixed version exists (4.0.7 is the latest release). Decided by the coordinator on 17 November 2026 (docs/DECISIONS.md, "UX3").
+# Remove when a fixed picomatch ships. The entry stops working on 2026-12-17 by itself, so the check goes red again if nobody has looked.
+reason = "dev dependency (picomatch), not in any deployed bundle; no fixed version exists; remove when a fixed picomatch ships"

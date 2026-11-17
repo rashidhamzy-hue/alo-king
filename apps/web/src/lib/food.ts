@@ -6,7 +6,7 @@ import type { Listing } from "@ak/commerce/index";
 import { t, type Key, type Lang } from "./i18n";
 
 export const PAGE_SIZE = 20;
-const KINDS = ["restaurant", "cafe", "bakery", "sweets", "catering", "butcher"];
+const KINDS = ["restaurant", "cafe", "bakery", "sweets", "catering", "butcher", "shop"];
 
 /** The kind in the page's language; a kind the words do not know yet is shown as it is, capitalised. */
 export function kindLabel(lang: Lang, kind: string): string {

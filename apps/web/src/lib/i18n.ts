@@ -1,6 +1,8 @@
 // One set of templates, three languages (docs/WEBSITE.md "Shape"): Arabic (right to left) and English from day one, French strings
 // in the same file. The language follows the visitor's choice, kept in the `lang` cookie; with no choice it follows the browser's
 // Accept-Language, and with neither it is Arabic. Names come from the database in Arabic and English; French shows the English name.
+import { joinAr, joinEn, joinFr } from "./join-words";
+
 
 import { W2 } from "./i18n-web2";
 
@@ -85,6 +87,7 @@ const en: Dict = {
   food_remove_go: "Hide this page", food_cancel: "Cancel", food_removed: "Done. The page is hidden and our team has been told.",
   food_remove_queued: "We have your request. Our team will look at it.",
   kind_restaurant: "Restaurant", kind_cafe: "Café", kind_bakery: "Bakery", kind_sweets: "Sweets", kind_catering: "Catering", kind_butcher: "Butcher",
+  ...joinEn,
 };
 const ar: Dict = {
   site: "ألو كينغ", tagline: "توصيل البقالة في الشوف.",
@@ -141,6 +144,7 @@ const ar: Dict = {
   food_remove_go: "أخفِ هذه الصفحة", food_cancel: "إلغاء", food_removed: "تم. الصفحة مخفية وقد أُبلغ فريقنا.",
   food_remove_queued: "وصلنا طلبك. سينظر فريقنا فيه.",
   kind_restaurant: "مطعم", kind_cafe: "مقهى", kind_bakery: "مخبز", kind_sweets: "حلويات", kind_catering: "تموين وضيافة", kind_butcher: "ملحمة",
+  ...joinAr,
 };
 const fr: Dict = {
   site: "Alo King", tagline: "Courses livrées dans le Chouf.",
@@ -197,6 +201,7 @@ const fr: Dict = {
   food_remove_go: "Masquer cette page", food_cancel: "Annuler", food_removed: "C'est fait. La page est masquée et notre équipe est prévenue.",
   food_remove_queued: "Nous avons votre demande. Notre équipe va l'examiner.",
   kind_restaurant: "Restaurant", kind_cafe: "Café", kind_bakery: "Boulangerie", kind_sweets: "Pâtisserie", kind_catering: "Traiteur", kind_butcher: "Boucherie",
+  ...joinFr,
 };
 export const DICTS: Record<Lang, Dict> = { en: { ...en, ...W2.en }, ar: { ...ar, ...W2.ar }, fr: { ...fr, ...W2.fr } };
 

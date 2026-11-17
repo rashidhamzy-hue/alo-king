@@ -47,7 +47,7 @@ describe("docs/ARABIC_REVIEW.md lists every word LV1 added, for a person to read
 
   it("the website: every food and kind key, in Arabic, English and French, word for word", () => {
     const listed = [...section.matchAll(/^\| `web\.(\w+)` \| (.*?) \| (.*?) \| (.*?) \| /gm)].map((m) => ({ key: m[1]!, ar: m[2]!, en: m[3]!, fr: m[4]! }));
-    const keys = Object.keys(DICTS.en).filter((k) => k.startsWith("food") || k.startsWith("kind_"));
+    const keys = Object.keys(DICTS.en).filter((k) => (k.startsWith("food") || k.startsWith("kind_")) && k !== "kind_shop");   // kind_shop is UX3's (docs/ARABIC_REVIEW.md, UX3)
     expect(listed.map((x) => x.key)).toEqual(keys);
     for (const row of listed) {
       expect(row.ar, row.key).toBe(cell(DICTS.ar[row.key]!)); expect(row.en, row.key).toBe(cell(DICTS.en[row.key]!)); expect(row.fr, row.key).toBe(cell(DICTS.fr[row.key]!));

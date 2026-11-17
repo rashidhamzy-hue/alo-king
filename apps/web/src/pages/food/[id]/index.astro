@@ -35,6 +35,7 @@ const base = placeHref(id);
     </div>
     {chatClaim && <div class="actions"><Button label={t(lang, "food_claim")} href={chatClaim} variant="whatsapp" icon="chat" external /></div>}
     {chatClaim && <p class="muted small">{t(lang, "food_claim_note")}</p>}
+    <p><Button label={t(lang, "vend_from_place")} href={`/for-vendors?place=${encodeURIComponent(p.listing_id)}`} variant="soft" /></p>
     <p><Button label={t(lang, "food_remove")} href={`${base}/remove`} variant="ghost" /></p>
   </>}
 </Base>

@@ -129,7 +129,8 @@ describe("components", () => {
 describe("Arabic for a person to read", () => {
   it("docs/ARABIC_REVIEW.md lists every customer-facing Arabic line DS1 added to the website, word for word", () => {
     const review = read("docs/ARABIC_REVIEW.md");
-    const section = review.slice(review.indexOf("## DS1, the website's redesigned pages"));
+    const start = review.indexOf("## DS1, the website's redesigned pages");
+    const section = review.slice(start, review.indexOf("\n## ", start + 10));          // this section only: later sessions' tables come after it
     const listed = [...section.matchAll(/^\| `(\w+)` \| (.*?) \| (.*?) \| /gm)].map((m) => ({ key: m[1]!, ar: m[2]!, en: m[3]! }));
     expect(listed.length).toBeGreaterThan(30);
     for (const row of listed) { expect(DICTS.ar[row.key], row.key).toBe(row.ar); expect(DICTS.en[row.key], row.key).toBe(row.en); }

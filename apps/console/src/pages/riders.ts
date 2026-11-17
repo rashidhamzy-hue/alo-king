@@ -8,10 +8,10 @@
 import { act, can, html, id, num, render, text, upload, UserError, type Ctx, type Section } from "../app";
 import { DbError } from "../db";
 import { form, lbp, usd, when } from "../html";
-import { pick } from "../i18n";
+import { pick, type Lang } from "../i18n";
 import { LEADS } from "../roles";
 import { moneyTabs } from "./moneyframe";
-import { badge, button, card, empty, icon, input, limitBar } from "@ak/ui/components";
+import { badge, button, card, empty, icon, input, limitBar, tabs } from "@ak/ui/components";
 
 type Drop = { id: string; driver_id: string; method: string; declared_usd: number | string; declared_lbp: number | string; receipt_ref: string | null;
   receipt_media_path: string | null; created_at: string };
@@ -90,6 +90,101 @@ ${form(c.f, `/riders/drop/${d.id}/damaged`, html`<div class="ak-money-fields">${
 })}</ul>`}`, { translated: true });
 }
 
+
+// ---------- UX3: Applicants (people who applied on /join/rider) ----------
+// An application is not a rider. It reaches this tab after the applicant confirmed their number on WhatsApp (they messaged us first) and opened a case in the Inbox.
+// Accept creates the rider through accept_rider_application (a driver party on the ops line, from the number they confirmed); it starts no shift, records no terms
+// and sends nothing. Decline needs a reason. Both are logged here (staff_actions) and in join_log. Never a rating, score or rank of an applicant.
+type Applicant = { id: string; status: string; name: string; village: string | null; vehicle: string | null; licence: boolean | null; days: string[] | null; shifts: string[] | null;
+  phone: string | null; case_id: string | null; case_state: string; created_at: string; decided_at: string | null; decided_by_name: string | null; decision_reason: string | null };
+
+const VEHICLE: Record<string, [string, string]> = { motorbike: ["Motorbike", "دراجة نارية"], car: ["Car", "سيارة"], bicycle: ["Bicycle", "دراجة هوائية"] };
+const SHIFT: Record<string, [string, string]> = { morning: ["Morning", "صباحية"], evening: ["Evening", "مسائية"] };
+const DAY: Record<string, [string, string]> = { mon: ["Monday", "الاثنين"], tue: ["Tuesday", "الثلاثاء"], wed: ["Wednesday", "الأربعاء"], thu: ["Thursday", "الخميس"], fri: ["Friday", "الجمعة"], sat: ["Saturday", "السبت"], sun: ["Sunday", "الأحد"] };
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1).replace(/_/g, " ");
+const word = (t: Record<string, [string, string]>, k: string, L: Lang) => (t[k] ? pick(L, t[k]![0], t[k]![1]) : cap(k));
+
+async function openApplicants(c: Ctx): Promise<number> {
+  try { return ((await c.deps.db.rpc<unknown[] | null>("join_applicants_console", { p_kind: "rider", p_state: "open", p_limit: 200 })) ?? []).length; } catch { return 0; }
+}
+async function ridersTabs(c: Ctx, current: "roster" | "applicants") {
+  const L = c.lang;
+  return tabs([
+    { label: pick(L, "Roster", "القائمة"), href: "/riders", current: current === "roster" },
+    { label: pick(L, "Applicants", "المتقدّمون"), href: "/riders?tab=applicants", current: current === "applicants", count: await openApplicants(c) },
+  ], pick(L, "Riders", "المناديب"));
+}
+
+async function applicants(c: Ctx) {
+  const L = c.lang; const { db } = c.deps;
+  const [open, decided, join] = await Promise.all([
+    db.rpc<Applicant[]>("join_applicants_console", { p_kind: "rider", p_state: "open", p_limit: 100 }),
+    db.rpc<Applicant[]>("join_applicants_console", { p_kind: "rider", p_state: "decided", p_limit: 30 }),
+    db.rpc<{ rider?: { shifts?: { id: string; from: string; to: string }[] } } | null>("setting", { p_key: "join" }),
+  ]);
+  const times = new Map((join?.rider?.shifts ?? []).map((x) => [x.id, `${x.from}–${x.to}`]));
+  const shifts = (a: Applicant) => (a.shifts ?? []).map((id) => html`${word(SHIFT, id, L)} <bdi dir="ltr">${times.get(id) ?? ""}</bdi>`);
+  const joinList = (xs: unknown[]) => xs.map((x, i) => html`${i ? ", " : ""}${x}`);
+  const facts = (a: Applicant) => html`<dl class="ak-facts">
+<dt>${pick(L, "Village", "القرية")}</dt><dd>${a.village ?? ""}</dd>
+<dt>${pick(L, "Vehicle", "وسيلة النقل")}</dt><dd>${a.vehicle ? word(VEHICLE, a.vehicle, L) : ""}</dd>
+<dt>${pick(L, "Licence", "رخصة")}</dt><dd>${a.licence ? pick(L, "Licence: yes", "رخصة: نعم") : pick(L, "Licence: no", "رخصة: لا")}</dd>
+<dt>${pick(L, "Days", "الأيام")}</dt><dd>${joinList((a.days ?? []).map((d) => word(DAY, d, L)))}</dd>
+<dt>${pick(L, "Shifts", "الورديات")}</dt><dd>${joinList(shifts(a))}</dd>
+<dt>${pick(L, "WhatsApp number", "رقم واتساب")}</dt><dd><bdi dir="ltr">${a.phone ?? pick(L, "none", "لا يوجد")}</bdi></dd>
+<dt>${pick(L, "Applied", "قُدّم")}</dt><dd>${when(a.created_at)}</dd></dl>`;
+  const caseLink = (a: Applicant) => (a.case_id ? html`<p><a href="/inbox/${a.case_id}">${a.case_state === "resolved" ? pick(L, "Its case in the Inbox (resolved)", "حالته في الوارد (مُغلقة)") : pick(L, "Open its case in the Inbox", "افتح حالته في الوارد")}</a></p>` : "");
+  const waiting = open.map((a) => card(html`
+<p class="head">${badge(pick(L, "waiting for a person", "بانتظار شخص"), "warn", "hourglass")}</p>
+${facts(a)}${caseLink(a)}
+<div class="actions-row">${form(c.f, `/riders/applicants/${a.id}/accept`, button({ label: pick(L, "Accept", "قبول"), variant: "gold", icon: "check" }), { cls: "inline" })}</div>
+<details class="ak-more"><summary>${icon("close")} ${pick(L, "Decline", "رفض")}</summary>
+${form(c.f, `/riders/applicants/${a.id}/decline`, html`${input({ name: "reason", label: pick(L, "Why (kept with the decision)", "السبب (يُحفظ مع القرار)"), required: true, maxlength: 500 })}
+<div class="actions-row">${button({ label: pick(L, "Decline", "رفض"), variant: "danger", icon: "close" })}</div>`)}</details>`, { title: a.name }));
+  const done = decided.map((a) => card(html`
+<p class="head">${a.status === "accepted" ? badge(pick(L, "Accepted", "مقبول"), "ok", "check") : badge(pick(L, "Declined", "مرفوض"), "neutral", "close")}
+<span class="muted">${a.decided_by_name ?? ""} · ${when(a.decided_at)}</span></p>
+${a.decision_reason ? html`<p>${a.decision_reason}</p>` : ""}${facts(a)}${caseLink(a)}`, { title: a.name }));
+  return render(c, pick(L, "Riders", "المناديب"), html`${await ridersTabs(c, "applicants")}
+<p class="muted">${pick(L, "People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash.",
+  "أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً.")}</p>
+<h2>${pick(L, `Waiting (${open.length})`, `بالانتظار (${open.length})`)}</h2>
+${open.length === 0 ? empty({ title: pick(L, "Nobody is waiting.", "لا أحد بالانتظار."), icon: "users" }) : html`<div class="ak-cards">${waiting}</div>`}
+<h2>${pick(L, "Decided", "تم البتّ فيها")}</h2>
+${decided.length === 0 ? empty({ title: pick(L, "No application has been decided yet.", "لم يُبتّ في أي طلب بعد."), icon: "list" }) : html`<div class="ak-cards">${done}</div>`}`, { translated: true });
+}
+
+/** The refusals only these two actions meet, in words. */
+async function decide<T>(c: Ctx, run: Promise<T>): Promise<T> {
+  const L = c.lang;
+  try { return await run; }
+  catch (e) {
+    if (e instanceof DbError && /^ALREADY_DECIDED/.test(e.message)) throw new UserError(pick(L, "Someone already decided this application.", "بتّ شخص آخر في هذا الطلب."));
+    if (e instanceof DbError && /^ALREADY_ON_OPS_LINE/.test(e.message)) throw new UserError(pick(L, "This number is already on the ops line, so they are a rider or staff already. Nothing was changed.", "هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء."));
+    if (e instanceof DbError && /^NO_CONFIRMED_NUMBER/.test(e.message)) throw new UserError(pick(L, "This application has no confirmed number, so no rider can be made from it.", "لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه."));
+    throw e;
+  }
+}
+
+async function acceptApplicant(c: Ctx) {
+  const application = id(c, "application"); const L = c.lang;
+  return act(c, "rider_applicant_accept", { application }, async () => {
+    const name = (await c.deps.db.rows<{ name: string }>("join_applications", { select: "name", where: { id: application }, limit: 1 }))[0]?.name ?? "";
+    await decide(c, c.deps.db.rpc("accept_rider_application", { p_application: application, p_by: c.staff.partyId }));
+    return pick(L, `${name} is now a rider. Next: record their written terms on the roster.`, `${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة.`);
+  }, "/riders?tab=applicants");
+}
+
+async function declineApplicant(c: Ctx) {
+  const application = id(c, "application"); const L = c.lang;
+  const reason = text(c, "reason", 500);
+  if (reason.length < 3) throw new UserError(pick(L, "Write the reason (at least 3 characters).", "اكتب السبب (٣ أحرف على الأقل)."));
+  return act(c, "rider_applicant_decline", { application, reason }, async () => {
+    await decide(c, c.deps.db.rpc("decline_rider_application", { p_application: application, p_by: c.staff.partyId, p_reason: reason }));
+    return pick(L, "Declined. The reason is kept.", "تم الرفض. السبب محفوظ.");
+  }, "/riders?tab=applicants");
+}
+
 /** Riders: the roster. Who is on shift (start and end), the cash each holds against the caps, and whether their written terms are on file. No rating, no score. */
 async function roster(c: Ctx) {
   const { db } = c.deps;
@@ -131,7 +226,7 @@ ${form(c.f, `/riders/${r.driver_id}/terms`, html`<div class="ak-money-fields">${
 ${button({ label: pick(L, "Cash drops and payouts", "تسليم النقد والدفعات"), href: "/money/drops", icon: "wallet", variant: "ghost" })}</div>` : ""}`, { title: r.name ?? pick(L, "Rider", "مندوب") });
   };
   const on = riders.filter((r) => r.on_shift), off = riders.filter((r) => !r.on_shift);
-  return render(c, pick(L, "Riders", "المناديب"), html`
+  return render(c, pick(L, "Riders", "المناديب"), html`${await ridersTabs(c, "roster")}
 <p class="muted">${pick(L, "Who rides, who is on shift, the cash each holds against the caps, and whether their written terms are on file. Riders are never rated or scored here: this page measures the service, not people.", "من يوصّل، ومن في الوردية، والنقد الذي يحمله كل واحد مقابل السقفين، وهل شروطه المكتوبة محفوظة. لا تقييم ولا درجات للمناديب هنا: تقيس هذه الصفحة الخدمة لا الأشخاص.")}</p>
 <h2>${pick(L, `On shift (${on.length})`, `في الوردية (${on.length})`)}</h2>
 ${on.length === 0 ? empty({ title: pick(L, "No rider is on shift.", "لا مندوب في الوردية."), icon: "bike" }) : html`<div class="ak-cards">${on.map(cardOf)}</div>`}
@@ -234,7 +329,9 @@ async function statement(c: Ctx) {
 export const ridersSection: Section = {
   nav: { href: "/riders", label: "Riders", roles: LEADS },
   routes: [
-    { method: "GET", path: "/riders", roles: LEADS, handler: roster },
+    { method: "GET", path: "/riders", roles: LEADS, handler: (c) => (c.url.searchParams.get("tab") === "applicants" ? applicants(c) : roster(c)) },
+    { method: "POST", path: "/riders/applicants/:application/accept", roles: LEADS, handler: acceptApplicant },
+    { method: "POST", path: "/riders/applicants/:application/decline", roles: LEADS, handler: declineApplicant },
     { method: "GET", path: "/money/drops", roles: LEADS, handler: drops },
     { method: "POST", path: "/riders/:driver/start-shift", roles: LEADS, handler: startShift },
     { method: "POST", path: "/riders/:driver/terms", roles: LEADS, handler: recordTerms },

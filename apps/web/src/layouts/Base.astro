@@ -70,6 +70,8 @@ const chat = withGreeting(whatsapp, lang);
       <a href="/orders">{t(lang, "w2_orders")}</a>
       <a href="/privacy">{t(lang, "privacy")}</a>
       <a href="/terms">{t(lang, "terms")}</a>
+      <a href="/join/rider">{t(lang, "join_footer_rider")}</a>
+      <a href="/for-vendors">{t(lang, "join_footer_vendor")}</a>
     </div>
   </footer>
   {chat && <div class="bottom"><Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" external /></div>}
