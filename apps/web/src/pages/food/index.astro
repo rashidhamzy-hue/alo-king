@@ -1,0 +1,55 @@
+---
+// The Food page (LV1; docs/DECISIONS.md, "Listings before they sign, 17 November 2026"): the Chouf food places that are listed before they sign, by
+// kind and village, sorted by distance or by name and nothing else (invariant 14). Each row is a name, a kind, a village and a distance: no phone, no
+// rating, no review count, no menu, no hours, no photo, no price. The choices are in the address and read here, so it works with no script; the page is
+// not cached, because a place hidden at its owner's request must be gone at once.
+import Base from "../../layouts/Base.astro";
+import Unavailable from "../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import Empty from "@ak/ui-astro/Empty.astro";
+import { chatBase, t } from "../../lib/i18n";
+import { PAGE_SIZE, foodHref, foodQuery, kindLabel, kmText, placeHref, villageIn } from "../../lib/food";
+const { lang, listings } = Astro.locals;
+const q = foodQuery(Astro.url.searchParams);
+let r; let failed = false;
+try { r = await listings().list({ kind: q.kind || null, village: q.village || null, sort: q.sort, limit: PAGE_SIZE, offset: (q.page - 1) * PAGE_SIZE }); } catch { failed = true; Astro.response.status = 503; }
+const pages = r ? Math.max(1, Math.ceil(r.total / PAGE_SIZE)) : 1;
+const filtered = !!(q.kind || q.village || q.sort === "name");
+const removed = Astro.url.searchParams.get("removed");
+const villages = r ? [...r.villages].sort((a, b) => (a.village === null ? 1 : b.village === null ? -1 : (lang === "ar" && a.village_ar && b.village_ar ? a.village_ar.localeCompare(b.village_ar, "ar") : a.village.localeCompare(b.village)))) : [];
+const here = Astro.url.pathname + Astro.url.search;
+---
+<Base title={t(lang, "food_title")} lang={lang} description={t(lang, "food_intro")} path={here} whatsapp={chatBase(r?.whatsapp)}>
+  {failed || !r ? <Unavailable lang={lang} /> : <>
+    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li>{t(lang, "food")}</li></ol>
+    <h1>{t(lang, "food_title")}</h1>
+    <p class="muted">{t(lang, "food_intro")}</p>
+    {(removed === "1" || removed === "2") && <section class="ak-card" role="status"><p><Icon name="check" /> {removed === "2" ? t(lang, "food_remove_queued") : t(lang, "food_removed")}</p></section>}
+    <form class="filters" method="get" action="/food">
+      <label class="ak-field"><span>{t(lang, "food_kind")}</span>
+        <select class="ak-select" name="kind"><option value="">{t(lang, "filter_all")}</option>{r.kinds.map((k) => <option value={k.kind} selected={k.kind === q.kind}>{kindLabel(lang, k.kind)} ({k.count})</option>)}</select></label>
+      <label class="ak-field"><span>{t(lang, "food_village")}</span>
+        <select class="ak-select" name="village"><option value="">{t(lang, "filter_all")}</option>{villages.map((v) => <option value={v.village ?? "-"} selected={(v.village ?? "-") === q.village}>{villageIn(lang, v)} ({v.count})</option>)}</select></label>
+      <label class="ak-field"><span>{t(lang, "sort")}</span>
+        <select class="ak-select" name="sort"><option value="distance" selected={q.sort === "distance"}>{t(lang, "food_sort_distance")}</option><option value="name" selected={q.sort === "name"}>{t(lang, "food_sort_name")}</option></select></label>
+      <Button label={t(lang, "filter_show")} />
+      {filtered && <Button label={t(lang, "filter_clear")} href="/food" variant="ghost" />}
+    </form>
+    <p class="muted">{t(lang, "food_places", { n: r.total })}</p>
+    {r.rows.length === 0 ? <Empty title={t(lang, "food_none")} icon="search" /> : <ul class="places">
+      {r.rows.map((p) => (
+        <li><a href={placeHref(p.listing_id)} data-km={p.km_from_hub} data-name={p.name}>
+          <strong>{p.name}</strong>
+          <span class="meta">{kindLabel(lang, p.kind)} · {villageIn(lang, p)}</span>
+          <span class="km"><bdi>{kmText(lang, p.km_from_hub)}</bdi></span>
+        </a></li>
+      ))}
+    </ul>}
+    {r.total > PAGE_SIZE && <nav class="pager" aria-label={t(lang, "food_page", { n: q.page, total: pages })}>
+      {q.page > 1 ? <Button label={t(lang, "food_prev")} href={foodHref({ ...q, page: q.page - 1 })} variant="soft" icon="chevron" /> : <span></span>}
+      <span class="muted small">{t(lang, "food_page", { n: q.page, total: pages })}</span>
+      {q.page < pages ? <Button label={t(lang, "food_next")} href={foodHref({ ...q, page: q.page + 1 })} variant="soft" icon="chevron" /> : <span></span>}
+    </nav>}
+  </>}
+</Base>

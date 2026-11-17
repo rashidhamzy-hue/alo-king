@@ -6,14 +6,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { build, preview } from "astro";
 import { createServer } from "node:net";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openTestDb, type TestDb } from "../db/harness";
 import { makeFactComplete } from "../db/fact-kit";
 import { productJsonLd } from "../../apps/web/src/lib/jsonld";
 import { DICTS } from "../../apps/web/src/lib/i18n";
 import { pictureUrl } from "../../apps/web/src/lib/db";
-import { WEB_CATALOG_FUNCTIONS } from "@ak/commerce/index";
+import { WEB_CATALOG_FUNCTIONS, WEB_CHANNEL_FUNCTIONS } from "@ak/commerce/index";
 import { FAKE_ANON, FAKE_JWT, startFakePostgrest, type Fake } from "./postgrest-fake";
 
 const root = fileURLToPath(new URL("../../apps/web/", import.meta.url));
@@ -493,6 +493,314 @@ describe("DS1: the redesigned pages", () => {
     expect((await page("/gallery", { "accept-language": "ar" })).html).toContain("التاج");
     expect(fake.calls.length).toBe(before);
     expect((await page("/")).html).toContain('href="/gallery"');
+  });
+});
+
+describe("LV1: Chouf places listed before they sign", () => {
+  const NOT_YET = "Not on Alo King yet. You can't order from here yet.";
+  const flat = (h: string) => text(h).replace(/&#39;/g, "'");
+  const post = (path: string, form: Record<string, string>, h: Record<string, string> = {}) =>
+    fetch(base + path, { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "accept-language": "en", ...h }, body: new URLSearchParams(form) });
+  const cookieOf = (r: Response) => /(?:^|,\s*)(ak_session=[0-9a-f]{64})/.exec(r.headers.get("set-cookie") ?? "")?.[1] ?? null;
+  const href = (id: string) => `/food/${encodeURIComponent(id)}`;
+  const mainOf = (h: string) => /<main[\s\S]*<\/main>/.exec(body(h))![0];
+  const rowsOf = (h: string) => [...new Set([...h.matchAll(/href="(\/food\/[^"/?]+)"/g)].map((m) => decodeURIComponent(m[1]!.slice(6))))];
+  /** A page's weight as a first visit pays it: the page, its stylesheet, its script and the font files it asks for (uncompressed). */
+  async function weigh(path: string, h: Record<string, string> = {}) {
+    const { html } = await page(path, h);
+    let bytes = Buffer.byteLength(html);
+    for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) {
+      const css = await (await get(href)).text();
+      bytes += Buffer.byteLength(css);
+    }
+    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
+    return { bytes, html };
+  }
+  let near: any; let baak: any; let noVillage: any;
+  beforeAll(async () => {
+    await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
+    near = await db.one(`select * from listings order by km_from_hub, name limit 1`);
+    baak = await db.one(`select * from listings where kind = 'bakery' and village = 'Baakleen' order by km_from_hub limit 1`);
+    noVillage = await db.one(`select * from listings where village is null order by km_from_hub limit 1`);
+  });
+
+  it("the Food page lists by distance, with the kind, the village and how far, and the choices of kind, village and sort", async () => {
+    const r = await page("/food");
+    expect(r.status).toBe(200);
+    expect(r.html).toContain('<html lang="en" dir="ltr">');
+    expect(text(r.html)).toContain("Food places");
+    const ids = rowsOf(r.html);
+    expect(ids.length).toBe(20);
+    expect(ids[0]).toBe(near.listing_id);
+    const km = [...mainOf(r.html).matchAll(/data-km="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(km.length).toBe(20); expect([...km].sort((a, b) => a - b)).toEqual(km);
+    expect(text(mainOf(r.html))).toContain(`${near.name}`);
+    expect(text(mainOf(r.html))).toContain("Restaurant");
+    expect(text(mainOf(r.html))).toContain("Baakleen");
+    expect(text(mainOf(r.html))).toMatch(/0\.4 km from our hub/);
+    expect(text(mainOf(r.html))).toContain("Places: 460");
+    // the choices: kind and village from the database, sort by distance or name and nothing else
+    expect(mainOf(r.html)).toMatch(/<option value="bakery"[^>]*>Bakery/);
+    expect(mainOf(r.html)).toMatch(/<option value="Boqaata"/);
+    const sort = /<select[^>]*name="sort">([\s\S]*?)<\/select>/.exec(r.html)![1]!;
+    expect([...sort.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1])).toEqual(["distance", "name"]);
+    expect(r.headers.get("cache-control")).toBe("no-cache");
+    expect(r.headers.get("x-page-cache")).toBeNull();
+  });
+
+  it("says nothing about a rating, a review, a menu, hours, a phone number or a photo, and shows no picture", async () => {
+    for (const path of ["/food", `/food?kind=bakery&village=Baakleen`, href(near.listing_id), `${href(near.listing_id)}/remove`]) {
+      for (const l of ["en", "ar", "fr"]) {
+        const m = mainOf((await page(path, { "accept-language": l })).html);
+        expect(m, `${path} ${l}`).not.toMatch(/<img|<picture|<video|tel:|itemprop|aria-label="[^"]*(rating|review)/i);
+        expect(text(m), `${path} ${l}`).not.toMatch(/\b(rating|ratings|review|reviews|stars?|menu|opening hours|open now|phone|call us|photo|photos|popular|best|top rated|healthy|recommended)\b/i);
+        expect(text(m), `${path} ${l}`).not.toMatch(/(\$\s?\d|\d\s?\$|\d+\s?USD|\d{7,})/);                  // no price, no phone-shaped number
+      }
+    }
+  });
+
+  it("filters by kind and by village; a village of '-' is the places with none; anything else is ignored or empty, never an error", async () => {
+    const b = await page(`/food?kind=bakery&village=Baakleen`);
+    const n = Number((await db.one(`select count(*)::int as n from listings where kind = 'bakery' and village = 'Baakleen'`)).n);
+    expect(text(mainOf(b.html))).toContain(`Places: ${n}`);
+    expect(rowsOf(b.html)).toContain(baak.listing_id);
+    const rows = await db.all<any>(`select listing_id from listings where kind = 'bakery' and village = 'Baakleen'`);
+    for (const id of rowsOf(b.html)) expect(rows.map((x) => x.listing_id)).toContain(id);
+    const none = await page(`/food?village=-`);
+    expect(text(mainOf(none.html))).toContain("Places: 34");
+    expect(rowsOf(none.html)).toContain(noVillage.listing_id);
+    expect(text(mainOf(none.html))).toContain("Village not listed");
+    for (const q of ["kind=hotel", "kind=%3Cscript%3E", "village=%00", "sort=rating", "sort=popular", "page=-4", "page=abc", "page=99999", "kind=" + "x".repeat(400)]) {
+      const r = await page(`/food?${q}`);
+      expect(r.status, q).toBe(200);
+      expect(r.html, q).not.toContain("<script>");
+    }
+    expect(text(mainOf((await page("/food?kind=hotel")).html))).toContain("No places match this.");
+    // a sort that is not distance or name is distance
+    expect(rowsOf((await page("/food?sort=rating")).html)).toEqual(rowsOf((await page("/food")).html));
+  });
+
+  it("sorts by name only when asked, and pages with Next and Previous that keep the choices", async () => {
+    const byName = await page("/food?sort=name");
+    const names = [...mainOf(byName.html).matchAll(/data-name="([^"]*)"/g)].map((m) => m[1]!.toLowerCase());
+    expect(names.length).toBe(20);
+    expect([...names].sort()).toEqual(names);
+    const p1 = await page("/food"); const p2 = await page("/food?page=2");
+    expect(rowsOf(p2.html).length).toBe(20);
+    expect(rowsOf(p2.html).filter((x) => rowsOf(p1.html).includes(x))).toEqual([]);
+    expect(p1.html).toMatch(/href="\/food\?page=2"/);
+    expect(p2.html).toMatch(/href="\/food"/);                                  // Previous goes to the plain address
+    expect(text(p2.html)).toContain("Page 2 of 23");
+    const k = await page("/food?kind=bakery&sort=name&page=2");
+    expect(k.html).toMatch(/href="\/food\?kind=bakery&amp;sort=name&amp;page=3"/);
+    expect(k.html).toMatch(/href="\/food\?kind=bakery&amp;sort=name"/);
+  });
+
+  it("Arabic: right to left, the village in Arabic where the village list knows it, the kind in Arabic", async () => {
+    const r = await page("/food?kind=bakery&village=Baakleen", { "accept-language": "ar" });
+    expect(r.html).toContain('<html lang="ar" dir="rtl">');
+    expect(text(mainOf(r.html))).toContain("بعقلين");
+    expect(text(mainOf(r.html))).toContain("مخبز");
+    expect(text(mainOf(r.html))).toContain(DICTS.ar.food_title);
+    expect(r.html).toContain(`<option value="Baakleen" selected`);
+  });
+
+  it("a place: name, kind, village, distance, a map link, and the line that says it is not on Alo King yet; no way to order", async () => {
+    const r = await page(href(baak.listing_id));
+    expect(r.status).toBe(200);
+    const m = mainOf(r.html);
+    expect(m).toContain(`<h1>${baak.name}</h1>`);
+    expect(flat(m)).toContain(NOT_YET);
+    expect(flat(m)).toContain("Bakery"); expect(flat(m)).toContain("Baakleen");
+    expect(flat(m)).toContain(`${Number(baak.km_from_hub).toFixed(1)} km from our hub`);
+    const maps = /href="(https:\/\/www\.google\.com\/maps\/[^"]+)"[^>]*>/.exec(m)!;
+    expect(maps[1]!.replace(/&amp;/g, "&")).toBe(baak.maps_url);
+    expect(m).toMatch(/href="https:\/\/www\.google\.com\/maps\/[^"]+" rel="noopener"/);
+    // no cart, no WhatsApp order for this place, no price
+    expect(m).not.toMatch(/\/cart|add to|basket|checkout/i);
+    expect(r.headers.get("cache-control")).toBe("no-cache");
+    // the three things a person can do
+    expect(m).toContain(`action="${href(baak.listing_id)}/want"`);
+    expect(m).toContain("I want to order from here");
+    expect(m).toContain(`href="${href(baak.listing_id)}/remove"`);
+    expect(m).toContain("Remove this listing");
+    expect(m).toContain("Is this your place? Claim it");
+  });
+
+  it("a place's JSON-LD is a LocalBusiness with a name and an address locality, and nothing else: never an Offer", async () => {
+    const r = await page(href(baak.listing_id));
+    const all = lds(r.html);
+    expect(all.length).toBe(1);
+    expect(all[0]).toEqual({ "@context": "https://schema.org", "@type": "LocalBusiness", name: baak.name, address: { "@type": "PostalAddress", addressLocality: "Baakleen" } });
+    const raw = JSON.stringify(all[0]);
+    expect(raw).not.toMatch(/Offer|price|telephone|aggregateRating|review|openingHours|menu|image|url|geo/i);
+    // a place with no village has no address at all
+    expect(lds((await page(href(noVillage.listing_id))).html)[0]).toEqual({ "@context": "https://schema.org", "@type": "LocalBusiness", name: noVillage.name });
+    // the list page carries no structured data about the places
+    expect(lds((await page("/food")).html)).toEqual([]);
+    // the name is the name in the file in every language (it is a business's name, not ours to translate)
+    expect(lds((await page(href(baak.listing_id), { "accept-language": "ar" })).html)[0].name).toBe(baak.name);
+  });
+
+  it("the claim button opens our WhatsApp with 'Claim <listing_id>' already typed, and only when a person has set the chat's address", async () => {
+    const r = await page(href(baak.listing_id));
+    const link = /href="(https:\/\/wa\.me\/96100000000\?text=Claim[^"]+)"/.exec(r.html)![1]!;
+    expect(decodeURIComponent(new URL(link.replace(/&amp;/g, "&")).searchParams.get("text")!)).toBe(`Claim ${baak.listing_id}`);
+    expect(new URL(link).pathname).toBe("/96100000000");
+    // the same in Arabic: the words the turn reads are the same, whatever the page's language
+    const ar = await page(href(baak.listing_id), { "accept-language": "ar" });
+    expect(new URL(/href="(https:\/\/wa\.me\/96100000000\?text=Claim[^"]+)"/.exec(ar.html)![1]!.replace(/&amp;/g, "&")).searchParams.get("text")).toBe(`Claim ${baak.listing_id}`);
+    await db.pg.query(`update settings set value = value - 'product_link' where key = 'catalog'`);
+    try {
+      const none = await page(href(baak.listing_id));
+      expect(none.status).toBe(200);
+      expect(none.html).not.toContain("Is this your place?");
+      expect(none.html).not.toContain("wa.me");
+    } finally { await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`); }
+  });
+
+  it("an unknown place is a 404 with a way home", async () => {
+    for (const path of ["/food/no-such-place-1", "/food/%3Cscript%3E", "/food/%00", `/food/${"x".repeat(300)}`]) {
+      const r = await page(path);
+      expect(r.status, path).toBe(404);
+      expect(r.html, path).toContain('href="/"');
+      expect(r.html, path).not.toContain("<script>");
+    }
+  });
+
+  it("'I want to order from here': one tap, no contact detail, logged as demand once per session; a page from another site cannot do it", async () => {
+    const id = near.listing_id;
+    const before = Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n);
+    const first = await post(`${href(id)}/want`, {});
+    expect(first.status).toBe(303);
+    expect(first.headers.get("location")).toBe(`${href(id)}?asked=1`);
+    const cookie = cookieOf(first)!;
+    expect(cookie).toBeTruthy();
+    expect(first.headers.get("set-cookie")).toMatch(/HttpOnly/i); expect(first.headers.get("set-cookie")).toMatch(/SameSite=Lax/i); expect(first.headers.get("set-cookie")).toMatch(/Secure/i);
+    expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 1);
+    // the same visitor tapping again counts nothing more, and is told the same thing
+    const again = await post(`${href(id)}/want`, {}, { cookie });
+    expect(again.status).toBe(303);
+    expect(cookieOf(again)).toBeNull();
+    expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 1);
+    const thanks = await page(`${href(id)}?asked=1`);
+    expect(flat(mainOf(thanks.html))).toContain(`We've noted that you want to order from ${near.name}.`);
+    expect(thanks.html).not.toMatch(/<script>/);
+    // another visitor counts
+    expect((await post(`${href(id)}/want`, {})).status).toBe(303);
+    expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 2);
+    // what was sent: the form has no field at all
+    expect(mainOf((await page(href(id))).html)).toMatch(new RegExp(`<form[^>]*action="${href(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/want"[^>]*>(?:(?!</form>)[\\s\\S])*</form>`));
+    const form = new RegExp(`<form[^>]*action="[^"]*/want"[^>]*>((?:(?!</form>)[\\s\\S])*)</form>`).exec(mainOf((await page(href(id))).html))![1]!;
+    expect(form).not.toMatch(/<input|<textarea|<select/);
+    // a request that says it comes from another site is refused and counts nothing
+    const foreign = await post(`${href(id)}/want`, {}, { origin: "https://evil.example.test" });
+    expect(foreign.status).toBe(403);
+    expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 2);
+  });
+
+  it("a cookie the database does not know gets a new session instead of an error", async () => {
+    const r = await post(`${href(baak.listing_id)}/want`, {}, { cookie: `ak_session=${"a".repeat(64)}` });
+    expect(r.status).toBe(303);
+    expect(cookieOf(r)).toBeTruthy();
+    const d = await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [baak.listing_id]);
+    expect(Number(d.n)).toBe(1);
+  });
+
+  it("'Remove this listing' is a short form: who you are, an optional reason; the page is hidden at once and our team is told", async () => {
+    const id = baak.listing_id;
+    const form = await page(`${href(id)}/remove`);
+    expect(form.status).toBe(200);
+    const m = mainOf(form.html);
+    expect(m).toContain(`method="post"`); expect(m).toContain(`action="${href(id)}/remove"`);
+    const who = /<select[^>]*name="who"[^>]*>([\s\S]*?)<\/select>/.exec(m)![1]!;
+    expect([...who.matchAll(/<option value="([^"]*)"/g)].map((x) => x[1])).toEqual(["", "owner", "manager", "staff", "other"]);
+    expect(m).toMatch(/<textarea[^>]*name="reason"/);
+    expect(m).not.toMatch(/name="(phone|email|name|tel)"/i);                               // no contact detail is asked for
+    // nothing chosen: not hidden, the form again with the reason in words
+    const bad = await post(`${href(id)}/remove`, { who: "", reason: "x" });
+    expect(bad.status).toBe(400);
+    expect(flat(await bad.text())).toContain("Choose who you are.");
+    expect((await page(href(id))).status).toBe(200);
+    // chosen
+    const ok = await post(`${href(id)}/remove`, { who: "owner", reason: "We closed last year" });
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("location")).toBe("/food?removed=1");
+    expect(cookieOf(ok)).toBeTruthy();
+    const gone = await page(href(id));
+    expect(gone.status).toBe(404);
+    expect(rowsOf((await page("/food?kind=bakery&village=Baakleen")).html)).not.toContain(id);
+    expect(flat(mainOf((await page("/food?removed=1")).html))).toContain("The page is hidden and our team has been told.");
+    const req = await db.one(`select who, reason, hidden, status from listing_removal_requests where listing_id = $1`, [id]);
+    expect(req).toMatchObject({ who: "owner", reason: "We closed last year", hidden: true, status: "open" });
+    expect((await db.one(`select status from ops_exceptions where kind = 'listing_removal' and ref = $1`, [id])).status).toBe("open");
+    // its address, its want button and its form are gone too
+    expect((await post(`${href(id)}/want`, {})).status).toBe(303);
+    expect((await page(`${href(id)}/remove`)).status).toBe(404);
+    // a request from another site hides nothing
+    const other = await db.one(`select listing_id from listings where kind = 'cafe' and hidden_at is null order by km_from_hub limit 1`);
+    const foreign = await post(`${href(other.listing_id)}/remove`, { who: "owner" }, { origin: "https://evil.example.test" });
+    expect(foreign.status).toBe(403);
+    expect((await page(href(other.listing_id))).status).toBe(200);
+    await db.rpc("restore_listing", { p_listing: id, p_by: ops, p_reason: "put back by the test" });
+    expect((await page(href(id))).status).toBe(200);
+  });
+
+  it("the Food pages are never cached: a hidden page must be gone at once", async () => {
+    const mw = readFileSync(root + "src/middleware.ts", "utf8");
+    const re = new RegExp(/const CACHEABLE = (\/.*\/);/.exec(mw)![1]!.slice(1, -1));
+    for (const p of ["/food", "/food/some-place-1", "/food/some-place-1/remove"]) expect(re.test(p), p).toBe(false);
+    const sw = readFileSync(root + "public/sw.js", "utf8");
+    expect(/PAGE_PATH = (\/.*\/);/.exec(sw)![1]).not.toMatch(/food/);
+  });
+
+  it("the form posts are limited per address", async () => {
+    const ip = { "cf-connecting-ip": "203.0.113.91" };
+    let last = 303;
+    for (let i = 0; i < 24; i++) last = (await post(`${href(near.listing_id)}/want`, {}, ip)).status;
+    expect(last).toBe(429);
+    expect((await post(`${href(near.listing_id)}/want`, {}, { "cf-connecting-ip": "203.0.113.92" })).status).toBe(303);
+  });
+
+  it("every Food page is under 100 KB on a first visit, in Arabic too: the page, its stylesheet, its script and the fonts it asks for", async () => {
+    for (const lang of ["en", "ar"]) {
+      for (const path of ["/food", "/food?kind=restaurant&sort=name&page=3", href(baak.listing_id), `${href(baak.listing_id)}/remove`, "/"]) {
+        const { bytes, html } = await weigh(path, { "accept-language": lang });
+        // the fonts the page asks for: the preload, and the faces its stylesheet names for the scripts on the page
+        const css = await (await get(/href="(\/_astro\/[^"]+\.css)"/.exec(html)![1]!)).text();
+        const faces = [...css.matchAll(/url\(([^)]+\.woff2)\)/g)].map((x) => x[1]!.replace(/["']/g, ""));
+        let fonts = 0;
+        const needsLatin = /[A-Za-z]/.test(text(html)); const needsArabic = /[\u0600-\u06FF]/.test(text(html));
+        for (const f of new Set(faces)) {
+          const arabic = f.includes("plex-arabic"); if ((arabic && !needsArabic) || (!arabic && !needsLatin)) continue;
+          fonts += (await (await get(f)).arrayBuffer()).byteLength;
+        }
+        expect(bytes + fonts, `${lang} ${path}: ${bytes + fonts} bytes`).toBeLessThan(100 * 1024);
+      }
+    }
+  });
+
+  it("the home page has a door to the Food page", async () => {
+    expect((await page("/")).html).toContain('href="/food"');
+  });
+
+  it("a database that is down gives a plain 'try again' on every Food page", async () => {
+    fake.failing.on = true;
+    try {
+      for (const path of ["/food", href(near.listing_id), `${href(near.listing_id)}/remove`]) {
+        const r = await page(path);
+        expect(r.status, path).toBe(503);
+        expect(text(r.html)).toContain("Temporarily unavailable");
+        expect(r.html).not.toMatch(/database down|PostgREST|supabase|stack|at \w+ \(/i);
+      }
+      expect((await post(`${href(near.listing_id)}/want`, {})).status).toBe(503);
+    } finally { fake.failing.on = false; }
+  });
+
+  it("the Worker calls only the functions the role may execute", async () => {
+    const used = new Set(fake.calls.map((c) => c.fn));
+    for (const fn of ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"]) expect(used.has(fn), fn).toBe(true);
+    for (const fn of used) expect([...WEB_CHANNEL_FUNCTIONS] as string[]).toContain(fn);
   });
 });
 

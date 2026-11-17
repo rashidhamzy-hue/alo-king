@@ -78,6 +78,7 @@ const village = s && Number.isInteger(picked) && picked >= 1 ? s.served[picked -
       {home.categories.map((c) => (
         <li><a href={`/c/${c.code}`}><span>{nameIn(lang, c.name_en, c.name_ar)}</span><span class="n"><bdi>{t(lang, "items", { n: c.count })}</bdi><Icon name="chevron" flip /></span></a></li>
       ))}
+      <li><a href="/food"><span>{t(lang, "food")}</span><span class="n"><bdi>{t(lang, "food_tile_note")}</bdi><Icon name="chevron" flip /></span></a></li>
     </ul>
 
     <ul class="trust">

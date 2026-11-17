@@ -50,6 +50,14 @@ export function categoryJsonLd(lang: Lang, c: { name: string; path: string; card
   };
 }
 
+/** A place listed before it signs: a LocalBusiness with its name and the village as the address locality, and NOTHING else. Never an Offer, a phone, a rating,
+ *  hours, a picture or an address of its own: the data has none, and a search engine is not told what we do not know (LV1). */
+export function listingJsonLd(l: { name: string; village: string | null }): Json {
+  const ld: Json = { "@context": "https://schema.org", "@type": "LocalBusiness", name: l.name };
+  if (l.village) ld.address = { "@type": "PostalAddress", addressLocality: l.village };
+  return ld;
+}
+
 /** The text of a `<script type="application/ld+json">`: JSON in which nothing can close the tag or end the line early. */
 export const jsonLdScript = (v: unknown): string =>
   JSON.stringify(v).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
