@@ -41,7 +41,7 @@ import { ar as arMessages, en as enMessages, fr as frMessages } from "@ak/agents
 describe("docs/ARABIC_REVIEW.md lists every word LV1 added, for a person to read", () => {
   const doc = readFileSync(join(repo, "docs/ARABIC_REVIEW.md"), "utf8");
   const section = doc.slice(doc.indexOf("## LV1, the Chouf food places listed before they sign"));
-  const cell = (t: string) => t.replace(/\|/g, "\\|").replace(/\n/g, "<br>");
+  const cell = (t: string) => t.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, "<br>");
 
   it("the website: every food and kind key, in Arabic, English and French, word for word", () => {
     const listed = [...section.matchAll(/^\| `web\.(\w+)` \| (.*?) \| (.*?) \| (.*?) \| /gm)].map((m) => ({ key: m[1]!, ar: m[2]!, en: m[3]!, fr: m[4]! }));

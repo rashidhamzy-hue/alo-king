@@ -685,7 +685,7 @@ describe("LV1: Chouf places listed before they sign", () => {
     expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 1);
     const thanks = await page(`${href(id)}?asked=1`);
     expect(flat(mainOf(thanks.html))).toContain(`We've noted that you want to order from ${near.name}.`);
-    expect(thanks.html).not.toMatch(/<script>/);
+    expect(thanks.html).not.toMatch(/<script>/i);
     // another visitor counts
     expect((await post(`${href(id)}/want`, {})).status).toBe(303);
     expect(Number((await db.one(`select count(*)::int as n from demand_signals where kind = 'listing' and subject = $1`, [id])).n)).toBe(before + 2);
