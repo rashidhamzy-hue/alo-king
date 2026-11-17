@@ -73,7 +73,14 @@ async function page(c: Ctx) {
   const show = (SHOW as readonly string[]).includes(c.url.searchParams.get("show") ?? "") ? (c.url.searchParams.get("show") as (typeof SHOW)[number]) : "all";
   const q = (c.url.searchParams.get("q") ?? "").trim().toLowerCase().slice(0, 60);
   const all = (await c.deps.db.rpc<Ready[]>("product_readiness", {})) ?? [];
-  const summary = await c.deps.db.rpc<Summary>("readiness_summary", {});
+  // SELL1: the per-template table is built from the rows above (one pass over the items), not from a second query
+  const on = await c.deps.db.rpc<boolean>("sell_requires_label", {});
+  const by: Summary["by_template"] = {};
+  for (const r of all) {
+    const t = by[r.template ?? "none"] ??= { active: 0, packaged: 0, label_ready: 0 };
+    t.active++; if (r.packaged) t.packaged++; if (r.label_ready) t.label_ready++;
+  }
+  const summary: Summary = { sell_requires_label: !!on, packaged: all.filter((r) => r.packaged).length, label_ready: all.filter((r) => r.label_ready).length, by_template: by };
   const keep = (r: Ready) => show === "all" || (show === r.level) || (show === "label" && !!r.packaged && !r.label_ready) || (show === "catalog" && r.blocks_catalog.length > 0) || (show === "ordering" && r.blocks_ordering.length > 0)
     || (show === "missing" && r.missing.length > 0) || (show === "ready" && r.ready);
   const rows = all.filter(keep).filter((r) => !q || [r.sku, r.name_en, r.name_ar, r.brand].some((v) => (v ?? "").toLowerCase().includes(q)));
