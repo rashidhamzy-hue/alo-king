@@ -302,8 +302,8 @@ disagrees.
 ## Design reference, 17 November 2026
 Recorded by session DS2 (first commit, documents only) from the coordinator's review of the founder's design reference (a React app on
 demo data, made in Lovable; the review is the project note DESIGN-REFERENCE-REVIEW-2026-11-17). The reference is a pattern, never code:
-nothing from it is committed (it also holds test phone numbers the repository's guard refuses). Decision 11 of "Architecture and
-stack" stands: no React in the console, Astro on the website, `packages/ui` the one component set (HTML functions for the console,
+nothing from it is committed (it also holds test phone numbers the repository's guard refuses). Decision 11 of "Founder decisions,
+15 November 2026" stands: no React in the console, Astro on the website, `packages/ui` the one component set (HTML functions for the console,
 Astro components for the website). Each line supersedes any earlier line that disagrees.
 
 | # | Decision | Applied in |

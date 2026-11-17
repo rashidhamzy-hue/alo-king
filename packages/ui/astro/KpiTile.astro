@@ -1,0 +1,6 @@
+---
+// One KPI tile (inside a <ul class="ak-kpis">): the value, what it is compared with, a trend line.
+import { kpiTile, type KpiOpts } from "../src/components";
+type Props = KpiOpts;
+---
+<Fragment set:html={kpiTile(Astro.props).s} />

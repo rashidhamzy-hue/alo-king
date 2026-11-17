@@ -30,8 +30,8 @@ const village = s && Number.isInteger(picked) && picked >= 1 ? s.served[picked -
         <h1>{t(lang, "hero_title")}</h1>
         <p itemprop="description">{t(lang, "hero_text")}</p>
         <div class="cta">
-          {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="gold" external />}
-          <Button label={t(lang, "shop_here")} href="#categories" variant="on-ink" />
+          {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" size="lg" external />}
+          <Button label={t(lang, "shop_here")} href="#categories" variant="primary" size="lg" />
         </div>
         <p class="state">
           {s?.open_now === true && <span class="status open">{t(lang, "open_now")}</span>}
@@ -39,7 +39,7 @@ const village = s && Number.isInteger(picked) && picked >= 1 ? s.served[picked -
           {hours && <span>{t(lang, "hours")}: <bdi dir="ltr">{hours}</bdi></span>}
         </p>
       </div>
-      <Crown tone="on-ink" label={t(lang, "site")} />
+      <Crown tone="on-gold" label={t(lang, "site")} />
       <meta itemprop="name" content={t(lang, "site")}>
       {s?.open && s?.close && <meta itemprop="openingHours" content={`Mo-Su ${s.open.slice(0, 5)}-${s.close.slice(0, 5)}`}>}
       <meta itemprop="paymentAccepted" content="Cash">
@@ -56,7 +56,7 @@ const village = s && Number.isInteger(picked) && picked >= 1 ? s.served[picked -
                   {s.served.map((v, i) => <option value={i + 1} selected={village === v} data-name={nameIn(lang, v.name_en, v.name_ar)} data-fee={ltr(usd(v.fee_usd))} data-min={v.eta_minutes} itemprop="areaServed">{nameIn(lang, v.name_en, v.name_ar)}</option>)}
                 </select>
               </label>
-              <Button label={t(lang, "check_go")} variant="primary" />
+              <Button label={t(lang, "check_go")} variant="gold" icon="search" />
             </form>
             <div class="answer" role="status" hidden={!village} data-answer data-yes={t(lang, "check_yes", { village: "{village}" })} data-fee={t(lang, "check_fee", { fee: "{fee}" })} data-time={t(lang, "check_time", { n: "{n}" })}>
               <strong data-line>{village && t(lang, "check_yes", { village: nameIn(lang, village.name_en, village.name_ar) })}</strong>

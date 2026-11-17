@@ -1,0 +1,7 @@
+---
+// The status pill, from the one label table (packages/ui/src/status.ts): the database's id in, staff or customer words out.
+import { statusPill, type StatusOpts } from "../src/status";
+interface Props extends StatusOpts { id: string }
+const { id, ...opts } = Astro.props;
+---
+<Fragment set:html={statusPill(id, opts).s} />

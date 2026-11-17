@@ -1,5 +1,5 @@
 ---
-// One product (redesigned in DS1; docs/strategy/05, section B; product data in LD1): a large picture, the name, how it is sold, the price,
+// One product (redesigned in DS1; docs/strategy/05, section B; product data in LD1; the look and the fact rows are DS2's): a large picture, the name, how it is sold, the price,
 // the stock, and the fields of the item's OWN template: food facts only for a template that has them, with their status and source, and
 // "not confirmed yet" for a field not approved (invariant 15: unknown is never safe). The page and its JSON-LD are built from the same
 // read through the same view (lib/product.ts), so they cannot disagree. The one action is "order on WhatsApp" until the cart exists (WEB2).
@@ -9,6 +9,9 @@ import Unavailable from "../../components/Unavailable.astro";
 import Button from "@ak/ui-astro/Button.astro";
 import Badge from "@ak/ui-astro/Badge.astro";
 import Icon from "@ak/ui-astro/Icon.astro";
+import FactRow from "@ak/ui-astro/FactRow.astro";
+import NotConfirmed from "@ak/ui-astro/NotConfirmed.astro";
+import Price from "@ak/ui-astro/Price.astro";
 import { chatBase, nameIn, t, unitLabel, usd } from "../../lib/i18n";
 import { pictureUrl } from "../../lib/db";
 import { productView } from "../../lib/product";
@@ -51,10 +54,10 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
           {view.gtin && <span>{t(lang, "barcode")}: <bdi>{view.gtin}</bdi></span>}
         </p>
         <div class="buy">
-          {view.priced ? <span class="ak-price ak-price--big"><bdi>{usd(view.price)}</bdi></span> : <span class="muted">{t(lang, "no_price")}</span>}
+          {view.priced ? <Price amount={usd(view.price)} big /> : <span class="muted">{t(lang, "no_price")}</span>}
           {view.inStock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, "out_of_stock")} tone="warn" />}
         </div>
-        {ask && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "primary" : "default"} external /></p>}
+        {ask && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "whatsapp" : "default"} size="lg" external /></p>}
 
         {view.food.show && <>
           <h2>{t(lang, "facts_title")}</h2>
@@ -68,7 +71,7 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
                 {g.notVerified.length > 0 && (
                   g.kind === "allergen" || g.kind === "diet"
                     ? <p class="muted small">{t(lang, "not_verified_list", { list: g.notVerified.join(lang === "ar" ? "، " : ", ") })}</p>
-                    : <p class="muted small">{t(lang, "not_confirmed_yet")}</p>
+                    : <p><NotConfirmed words={t(lang, "not_confirmed_yet")} /></p>
                 )}
               </section>
             ))}
@@ -79,7 +82,7 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
                   <p class="muted small">{t(lang, "per_amount", { amount: view.nutrition.per })}</p>
                   <table class="panel">{view.nutrition.rows.map((p) => <tr><th scope="row">{p.label}</th><td><bdi>{p.value}</bdi></td></tr>)}</table>
                   {view.nutrition.how && <p class="muted small">({view.nutrition.how})</p>}
-                </> : <p class="muted small">{t(lang, "not_confirmed_yet")}</p>}
+                </> : <p><NotConfirmed words={t(lang, "not_confirmed_yet")} /></p>}
               </section>
             )}
           </div>
@@ -90,11 +93,7 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
           <p class="notice small">{t(lang, "details_intro")}</p>
           <div class="facts">
             {view.details.length > 0 && (
-              <ul>{view.details.map((d) => (
-                <li>{d.label}: {d.value !== null
-                  ? <><bdi>{d.value}</bdi>{d.how && <> <span class="muted small">({d.how})</span></>}</>
-                  : <span class="muted">{t(lang, "not_confirmed_yet")}</span>}</li>
-              ))}</ul>
+              <dl class="ak-facts">{view.details.map((d) => <FactRow label={d.label} value={d.value} source={d.how ? `(${d.how})` : null} notConfirmed={t(lang, "not_confirmed_yet")} />)}</dl>
             )}
             {view.claims.length > 0 && (
               <section>

@@ -15,7 +15,8 @@ const band = `<rect x="${CROWN_BAND.x}" y="${CROWN_BAND.y}" width="${CROWN_BAND.
 /** The mark alone, as SVG children (no colours). */
 export const CROWN_MARK = `<path d="${CROWN_BODY}"/>${band}${jewels}`;
 
-export type CrownTone = "auto" | "on-ink" | "on-paper" | "bare";
+/** `on-gold`: the ink crown on a gold tile (the logo of the design reference, DS2). */
+export type CrownTone = "auto" | "on-ink" | "on-paper" | "on-gold" | "bare";
 /** Inline crown. `label` is read out; without it the crown is decoration beside a visible name. */
 export function crown(opts: { tone?: CrownTone; size?: 32 | 64 | 120; label?: string } = {}): Raw {
   const cls = ["ak-crown", opts.tone && opts.tone !== "auto" ? `ak-crown--${opts.tone}` : "", opts.size ? `ak-crown--${opts.size}` : ""].filter(Boolean).join(" ");

@@ -1,0 +1,6 @@
+---
+// The "not confirmed yet" tag on its own, for a section whose facts are not approved. The words are the page's, in its language.
+import { notConfirmed } from "../src/components";
+interface Props { words: string }
+---
+<Fragment set:html={notConfirmed(Astro.props.words).s} />

@@ -1,0 +1,6 @@
+---
+// The strip that says what on this screen is not final yet.
+import { previewNotice } from "../src/components";
+interface Props { text: string; tone?: "gold" | "ink" }
+---
+<Fragment set:html={previewNotice(Astro.props.text, { tone: Astro.props.tone }).s} />

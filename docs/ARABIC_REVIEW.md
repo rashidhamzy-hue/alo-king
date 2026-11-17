@@ -248,3 +248,26 @@ Source: `apps/console/src/pages/capture.ts` and `apps/console/src/pages/labelque
 | Approvals | موافقات الملصقات · مسبّبات الحساسية · الحلال وبطاقات الحمية والشهادات · تحذيرات الخطر والتحذيرات المطبوعة · اختلاف المصادر · بقية قراءات الملصقات · أكّد · ارفض | Label approvals · Allergens · Halal, diet labels and certificates · Hazard and printed warnings · Disagreements between sources · The rest of the label readings · Confirm · Reject | RA 16 Nov |
 | Menu | تصوير الملصقات · موافقات الملصقات | Label day photos · Label approvals | RA 16 Nov |
 
+## DS2, the order status words (17 November 2026; not read yet)
+
+Source: `STATUS_LABELS` in `packages/ui/src/status.ts`, the one label table for order statuses (`docs/DECISIONS.md`, "Design reference,
+17 November 2026"). The customer words are **not shown to any customer yet**: the website's order page is WEB2's, and WhatsApp messages
+keep their own wording in `packages/agents/src/messages/ar.ts`. They need a person's read before WEB2 shows them. The staff words and the
+two navigation words (`nav_dispatch`: «التوزيع», `nav_intake`: «التصوير», `apps/console/src/i18n.ts`) are staff-facing.
+
+| Status (customer words) | Arabic | English | Read by |
+|---|---|---|---|
+| `status.awaiting_confirmation.customer` | بانتظار تأكيدك | Waiting for your Confirm | |
+| `status.awaiting_payment.customer` | بانتظار الدفع | Waiting for payment | |
+| `status.confirmed.customer` | مؤكد | Confirmed | |
+| `status.preparing.customer` | نجهّز طلبك في المركز | Packing at the hub | |
+| `status.ready.customer` | جُهّز | Packed | |
+| `status.ready.pickup` | جاهز للاستلام | Ready for pickup | |
+| `status.out_for_delivery.customer` | في الطريق | On the way | |
+| `status.arrived.customer` | عند الباب | At your door | |
+| `status.delivered.customer` | سُلّم | Delivered | |
+| `status.delivered.pickup` | استُلم | Collected | |
+| `status.failed_delivery.customer` | لم يُسلَّم | Not delivered | |
+| `status.returned.customer` | أُعيد | Returned | |
+| `status.cancelled.customer` | مُلغى | Cancelled | |
+

@@ -1,0 +1,6 @@
+---
+// A filter that is a link; ink when it is the chosen one.
+import { chip, type ChipOpts } from "../src/components";
+type Props = ChipOpts;
+---
+<Fragment set:html={chip(Astro.props).s} />

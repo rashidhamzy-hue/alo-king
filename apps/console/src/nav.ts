@@ -1,5 +1,6 @@
 // Navigation (redesigned in DS1; docs/strategy/05, section A): six groups and Settings in a sidebar on a laptop, each with an icon
-// and a badge; five places in the bottom bar on a phone (Today, Orders, Inbox, Approve, More); and the list the command bar searches.
+// and a badge; the bottom bar on a phone, by role (DS2: admin Today, Orders, Inbox, Approve; lead Today, Orders, Inbox, Dispatch;
+// picker Pick, Stock, Intake; More for all); and the list the command bar searches.
 // The pages register themselves as sections (pages/index.ts); this file only decides where each section's link is shown, by its
 // address, so no page module had to change. A section not listed here lands in "Other". Reports has no page yet (session AN1), so
 // the group is not shown. Removed from navigation only, never from the routes: Vendors (/merchants), until the first vendor.
@@ -55,20 +56,27 @@ export function buildNav(sections: Section[], role: Role, lang: Lang, path: stri
   const g = (id: string) => groups.find((x) => x.id === id);
   const has = (id: string) => (g(id)?.links.length ?? 0) > 0;
   const onMore = path === "/more" || path === "/install" || path === "/gallery";
-  const bottom: Nav["bottom"] = [
-    { href: "/", label: t(lang, "nav_today"), icon: "home", badge: badges["/"] ?? 0, current: g("today")?.current ?? path === "/" },
-    ...(has("orders") ? [{ href: "/orders", label: t(lang, "nav_orders"), icon: "orders" as const, badge: g("orders")!.badge, current: g("orders")!.current }] : []),
-    ...(has("inbox") ? [{ href: "/inbox", label: t(lang, "nav_inbox"), icon: "inbox" as const, badge: g("inbox")!.badge, current: g("inbox")!.current }] : []),
-    ...(has("approve") ? [{ href: "/approve", label: t(lang, "nav_approve"), icon: "approve" as const, badge: g("approve")!.badge, current: g("approve")!.current }] : []),
-  ];
-  // D4b: a picker has no Orders and no Inbox, and the pick queue is most of their work: it takes the second place in the bar.
-  if (!has("orders") && mine.some((s) => s.nav.href === "/pick")) bottom.splice(1, 0, { href: "/pick", label: t(lang, "nav_pick"), icon: "stock", badge: 0, current: path === "/pick" || path.startsWith("/pick/") });
-  // A role with room left (a picker has no Orders and no Inbox) gets Stock, which is most of its work.
-  if (bottom.length < 4 && has("stock")) bottom.push({ href: "/stock", label: t(lang, "nav_stock"), icon: "stock", badge: g("stock")!.badge, current: g("stock")!.current && !bottom.some((b) => b.href === "/pick" && b.current) });
+  // DS2 (the design reference, docs/DECISIONS.md "Design reference, 17 November 2026"): the phone bar follows the role.
+  //   admin:  Today, Orders, Inbox, Approve          lead:  Today, Orders, Inbox, Dispatch          picker:  Pick, Stock, Intake
+  // and More for every role. A place is shown only when the role can open its page; Today stays reachable from the crown and More.
+  const mineHas = (h: string) => mine.some((x) => x.nav.href === h);
+  const on = (h: string) => path === h || path.startsWith(h + "/");
+  const place: Record<string, () => (NavLink & { icon: IconName }) | null> = {
+    today: () => ({ href: "/", label: t(lang, "nav_today"), icon: "home", badge: badges["/"] ?? 0, current: g("today")?.current ?? path === "/" }),
+    orders: () => (has("orders") ? { href: "/orders", label: t(lang, "nav_orders"), icon: "orders", badge: g("orders")!.badge, current: g("orders")!.current } : null),
+    inbox: () => (has("inbox") ? { href: "/inbox", label: t(lang, "nav_inbox"), icon: "inbox", badge: g("inbox")!.badge, current: g("inbox")!.current } : null),
+    approve: () => (has("approve") ? { href: "/approve", label: t(lang, "nav_approve"), icon: "approve", badge: g("approve")!.badge, current: g("approve")!.current && !on("/capture") } : null),
+    dispatch: () => (mineHas("/rider-jobs") ? { href: "/rider-jobs", label: t(lang, "nav_dispatch"), icon: "dispatch", badge: badges["/rider-jobs"] ?? 0, current: on("/rider-jobs") || on("/rider-incidents") } : null),
+    pick: () => (mineHas("/pick") ? { href: "/pick", label: t(lang, "nav_pick"), icon: "pick", badge: badges["/pick"] ?? 0, current: on("/pick") } : null),
+    stock: () => (has("stock") ? { href: "/stock", label: t(lang, "nav_stock"), icon: "stock", badge: g("stock")!.badge, current: g("stock")!.current && !on("/pick") && !on("/capture") } : null),
+    intake: () => (mineHas("/capture") ? { href: "/capture", label: t(lang, "nav_intake"), icon: "camera", badge: badges["/capture"] ?? 0, current: on("/capture") } : null),
+  };
+  const BAR: Record<Role, string[]> = { admin: ["today", "orders", "inbox", "approve"], ops_lead: ["today", "orders", "inbox", "dispatch"], picker: ["pick", "stock", "intake"] };
+  const bottom: Nav["bottom"] = BAR[role].map((k) => place[k]!()).filter((x): x is NavLink & { icon: IconName } => x !== null);
   // More holds every group that has no place of its own in the bar.
   const shown = new Set(bottom.map((b) => b.href));
-  const rest = groups.filter((x) => !["today", "inbox", "orders"].includes(x.id) && !(x.hubHref && shown.has(x.hubHref)));
-  bottom.push({ href: "/more", label: t(lang, "nav_more"), icon: "menu", badge: rest.reduce((a, x) => a + x.badge, 0), current: onMore || rest.some((x) => x.current) });
+  const rest = groups.filter((x) => !(shown.has("/") && x.id === "today") && !["inbox", "orders"].includes(x.id) && !(x.hubHref && shown.has(x.hubHref)));
+  bottom.push({ href: "/more", label: t(lang, "nav_more"), icon: "menu", badge: rest.reduce((a, x) => a + x.badge, 0), current: onMore || (!bottom.some((x) => x.current) && rest.some((x) => x.current)) });
   return { bottom, groups };
 }
 

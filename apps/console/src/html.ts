@@ -27,7 +27,7 @@ export function form(f: FormCtx, action: string, body: Raw | Raw[], opts: { cls?
 import { dirOf, t, type Lang } from "./i18n";
 import type { BellData, Nav } from "./nav";
 import { badgeText } from "./nav";
-import { bell as bellPanel, commandBar, crown, icon, type Command } from "@ak/ui/components";
+import { bell as bellPanel, commandBar, crown, icon, previewNotice, type Command } from "@ak/ui/components";
 export { CSS } from "./style";
 import { UI_TOKENS } from "./ui.generated";
 
@@ -61,7 +61,9 @@ export function page(opts: PageOpts): Response {
   const lang: Lang = opts.lang ?? "en";
   const nav = opts.nav;
   // The sidebar: a group with one page is a link; a group with several opens to show them, and is open when you are in it.
-  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${nav.groups.map((g) => g.links.length === 1 && g.id !== "approve" && g.id !== "stock"
+  // DS2 (the design reference): the sidebar is the full height of the window on ink, with the crown and the signed-in role at its head.
+  const brand = html`<a class="side-brand" href="/">${crown({ tone: "on-gold" })}<span><b>${t(lang, "app_name")}</b>${opts.staff ? html`<small>${opts.staff.role.replace("_", " ")}</small>` : ""}</span></a>`;
+  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${brand}${nav.groups.map((g) => g.links.length === 1 && g.id !== "approve" && g.id !== "stock"
     ? html`<a href="${g.links[0]!.href}"${cur(g.current)}>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}</a>`
     : html`<details${g.current ? new Raw(" open") : ""}><summary>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}${icon("chevron", { flip: true, cls: "chev" })}</summary>
 ${g.links.map((l) => html`<a href="${l.href}"${cur(l.current)}><span>${l.label}</span>${badge(l.badge)}</a>`)}</details>`)}</aside>` : "";
@@ -74,7 +76,7 @@ ${g.links.map((l) => html`<a href="${l.href}"${cur(l.current)}><span>${l.label}<
 ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), items: opts.bell.items, empty: t(lang, "bell_empty"), allHref: "/exceptions", allLabel: t(lang, "bell_all") }) : ""}` : "";
   const who = opts.staff ? html`<div class="who"><span class="name">${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
 <form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button aria-label="${t(lang, "sign_out")}" title="${t(lang, "sign_out")}">${icon("signout", { flip: true })}</button></form></div>` : "";
-  const banner = opts.environment === "production" ? "" : html`<div class="env">${t(lang, "test_data", { env: opts.environment.toUpperCase() })}</div>`;
+  const banner = opts.environment === "production" ? "" : html`<div class="env">${previewNotice(t(lang, "test_data", { env: opts.environment.toUpperCase() }))}</div>`;
   const flash = opts.flash?.err ? html`<p class="flash err">${opts.flash.err}</p>` : opts.flash?.ok ? html`<p class="flash ok">${opts.flash.ok}</p>` : "";
   // A page not yet translated keeps its own language inside an Arabic shell, so assistive technology is not told English is Arabic.
   const mainAttrs = lang === "ar" && !opts.translated ? new Raw(' lang="en" dir="ltr"') : "";
@@ -88,8 +90,9 @@ ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), 
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="preload" href="/fonts/${lang === "ar" ? "plex-arabic-400" : "plex-latin-400"}.woff2" as="font" type="font/woff2" crossorigin>
 <title>${opts.title} · ${t(lang, "app_name")}</title><link rel="stylesheet" href="/console.css"></head>
-<body><a class="skip" href="#main">${t(lang, "skip")}</a>${banner}<header class="top"><a class="ak-logo" href="/">${crown({ tone: "on-ink" })}<strong>${t(lang, "app_name")}</strong></a>${tools}${who}</header>
-<div class="shell">${aside}<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
+<body><a class="skip" href="#main">${t(lang, "skip")}</a>
+<div class="${nav ? "shell" : "shell shell--bare"}">${aside}<div class="col">${banner}<header class="top"><a class="ak-logo" href="/">${crown({ tone: "on-ink" })}<strong>${t(lang, "app_name")}</strong></a>${tools}${who}</header>
+<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div></div>${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
   return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 

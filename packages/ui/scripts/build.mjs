@@ -51,6 +51,7 @@ const ICONS = {
   sun: "sun", moon: "moon", auto: "sun-moon", lang: "languages", user: "user", users: "users", image: "image", store: "store", food: "utensils",
   wallet: "wallet", filter: "list-filter", download: "download", refresh: "refresh-cw", external: "external-link", coins: "hand-coins",
   shield: "shield-check", message: "message-square-text", list: "clipboard-list", offline: "wifi-off",
+  dispatch: "navigation", camera: "camera", pick: "list-checks", undo: "undo-2", hourglass: "hourglass", basket: "shopping-basket",
 };
 function icons() {
   const dir = join(ROOT, "node_modules", "lucide-static");
