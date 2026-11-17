@@ -15,7 +15,7 @@ export interface NutrientRow { key: string; label: string; value: string; num: n
 export interface ProductView {
   sku: string; name: string; altName: { text: string; lang: "ar" | "en" } | null;
   brand: string | null; size: string | null; gtin: string | null;
-  price: number; /** false: the database holds no price yet (0), so no price is stated, on the page or in the data */ priced: boolean; inStock: boolean; hasPicture: boolean;
+  price: number; /** false: the database holds no price yet (0), so no price is stated, on the page or in the data */ priced: boolean; inStock: boolean; /** SELL1 (0226): coming soon, not out of stock: no label reading yet for a packaged item. */ comingSoon: boolean; hasPicture: boolean;
   /** The food groups the item's template has (ingredients, allergens, diet): empty for a template without food facts. */
   food: { show: boolean; groups: FactGroup[] };
   /** The typed panel, per 100 g or 100 ml, only for a fact-complete item; a number not printed is not a row. */
@@ -58,7 +58,7 @@ export function productView(lang: Lang, ok: Ok): ProductView {
     name: productName(lang, p),
     altName: p.name_ar && p.name_en ? (lang === "ar" ? { text: p.name_en, lang: "en" } : { text: p.name_ar, lang: "ar" }) : null,
     brand: p.brand, size: p.size, gtin: p.gtin,
-    price: Number(p.price_usd), priced: Number(p.price_usd) > 0, inStock: p.in_stock, hasPicture: ok.picture !== null,
+    price: Number(p.price_usd), priced: Number(p.price_usd) > 0, inStock: p.in_stock, comingSoon: p.coming_soon === true, hasPicture: ok.picture !== null,
     food: { show: groups.length > 0 || tpl.groups.includes("nutrition"), groups },
     nutrition,
     nutritionNotConfirmed: tpl.groups.includes("nutrition") && nutrition === null,

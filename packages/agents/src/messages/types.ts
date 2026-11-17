@@ -184,6 +184,8 @@ export interface Messages {
     changed: (rows: S[]) => S;
     /** Items of the basket no longer available when it was about to go. */
     unavailable: (names: S[]) => S;
+    /** SELL1 (0226): a packaged item that has no label reading yet cannot be sold: said by code, never a date, never a reason about the product. */
+    comingSoon: (names: S[]) => S;
     /** A cancel the database refused (the order is being prepared or is on its way): a person is told and will call. */
     cancelRefused: (code: S) => S;
   };

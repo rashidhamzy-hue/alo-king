@@ -55,9 +55,9 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
         </p>
         <div class="buy">
           {view.priced ? <Price amount={usd(view.price)} big /> : <span class="muted">{t(lang, "no_price")}</span>}
-          {view.inStock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, "out_of_stock")} tone="warn" />}
+          {view.inStock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, view.comingSoon ? "coming_soon" : "out_of_stock")} tone="warn" />}
         </div>
-        {ask && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "whatsapp" : "default"} size="lg" external /></p>}
+        {ask && !view.comingSoon && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "whatsapp" : "default"} size="lg" external /></p>}
 
         {view.food.show && <>
           <h2>{t(lang, "facts_title")}</h2>

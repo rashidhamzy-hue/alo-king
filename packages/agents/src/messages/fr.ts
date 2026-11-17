@@ -152,6 +152,7 @@ D'ici là, rien ne change sur la page.`,
     houseDefault: (said, name) => `« ${said} » : nous avons mis ${name}.\nSi vous en voulez un autre, dites-le-moi.`,
     changed: (rows) => `✅ Votre commande est modifiée :\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Plus disponible maintenant :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
+    comingSoon: (names) => `Bientôt disponible, nous ne pouvons pas encore le vendre :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
     cancelRefused: (code) => `La commande ${code} est déjà en préparation, on ne peut pas l'annuler d'ici.\nUne personne de notre équipe vous appellera.`,
   },
 

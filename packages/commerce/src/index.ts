@@ -45,7 +45,7 @@ export interface Quote {
   dues_usd?: number;
 }
 export interface CartItem { sku: string; qty: number; price?: number | null; currency?: string }
-export interface Removed { sku: string; name?: string; name_ar?: string; reason: "unknown" | "out_of_stock" }
+export interface Removed { sku: string; name?: string; name_ar?: string; reason: "unknown" | "out_of_stock" | "coming_soon" }
 export interface PriceChanged { sku: string; name: string; name_ar: string | null; cart_price: number; price_usd: number }
 /** plan_cart (0085): a cart read as quote lines and priced by quote_order. */
 export interface CartPlan {
@@ -95,6 +95,8 @@ export interface CatalogPicture {
 }
 export interface CatalogCard {
   sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string; price_usd: number; in_stock: boolean;
+  /** SELL1 (0226): a packaged item with no label reading yet, while sell_requires_label is on. in_stock is false then; the site says "Coming soon". Absent on an older database. */
+  coming_soon?: boolean; orderable?: boolean;
   picture: CatalogPicture | null;
 }
 export interface ServedVillage { name_en: string; name_ar: string | null; fee_usd: number; eta_minutes: number }

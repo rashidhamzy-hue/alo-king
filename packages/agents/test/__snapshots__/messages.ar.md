@@ -1378,6 +1378,14 @@ Najjar Classic coffee 180 g: 1 → 3
 قلّي شو بدك بدالو، أو منشيلو.
 ```
 
+## basket.comingSoon
+
+```text
+جاي قريباً، لسّا ما فينا نبيعو:
+• Najjar Classic coffee 180 g
+قلّي شو بدك بدالو، أو منشيلو.
+```
+
 ## basket.cancelRefused
 
 ```text

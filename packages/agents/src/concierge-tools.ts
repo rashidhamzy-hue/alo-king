@@ -165,6 +165,9 @@ export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, 
   return { ok: true };
 }
 
+/** SELL1 (0226): what the model is told when a match cannot be sold yet. The customer's line is written by code (messages basket.comingSoon). */
+const SOON_NOTE = "Matches marked coming_soon cannot be ordered yet: never add one to the basket or quote it, never give a date or a reason; say it is coming soon and offer another match or ask what they would like instead.";
+
 export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
   return {
     async search_catalog({ query, source_hint }) {
@@ -181,7 +184,9 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
           matches: r.matches.map((m) => ({
             product_id: m.product_id, source_id: m.source_id, name: m.name_en, name_ar: m.name_ar, brand: m.brand,
             unit: m.sell_unit, price_usd: m.price_usd, in_stock: Number(m.available) > 0, source: m.source_name, score: m.score,
+            ...(m.coming_soon === true ? { orderable: false, coming_soon: true } : {}),
           })),
+          ...(r.matches.some((m) => m.coming_soon === true) ? { note: SOON_NOTE } : {}),
         };
       };
       ctx.searched = true;
@@ -205,8 +210,10 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
         matches: r.matches.map((m) => ({
           product_id: m.product_id, source_id: m.source_id, name: m.name_en, name_ar: m.name_ar, brand: m.brand, unit: m.sell_unit,
           price_usd: m.price_usd, in_stock: Number(m.available) > 0, source: m.source_name,
+          ...(m.coming_soon === true ? { orderable: false, coming_soon: true } : {}),
           facts: m.evidence.map((e) => factLine(e, ctx.state.lang ?? "en")).filter(Boolean),
         })),
+        ...(r.matches.some((m) => m.coming_soon === true) ? { note: SOON_NOTE } : {}),
         ...(r.reason === "none_pass" ? { note: "Items of this kind exist, but none is confirmed to fit what the customer stated. Say so plainly; never offer one as fitting." } : {}),
         ...(r.matches.some((m) => m.evidence.length) ? { rule: "A fact may be stated only as listed in facts, with its source (\"the pack says ...\")." } : {}),
       };
@@ -258,7 +265,8 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       ctx.state.basketAt = Date.now();
       ctx.basketChanged = true;
       for (const l of quote.lines ?? []) noteReturned(ctx, (l as { product_id?: string }).product_id, l.name, l.name_ar);
-      return { ...quote, basket_note: "These lines are the customer's whole basket now. send_confirmation sends exactly this basket." };
+      const soon = (quote.issues ?? []).some((i) => i.code === "coming_soon");
+      return { ...quote, basket_note: "These lines are the customer's whole basket now. send_confirmation sends exactly this basket." + (soon ? " A line with coming_soon cannot be sold yet: no card goes out while the basket holds it; the customer takes it off or chooses another. Say only that it is coming soon." : "") };
     },
 
     async food_facts({ product_ids, restrictions }) {
