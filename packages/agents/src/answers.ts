@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buttons } from "@ak/wa/kapso";
 import { deliver, issueCard, type ToolContext } from "./concierge-tools";
-import { type DeliveryWindow, type Quote } from "./order-card";
+import { buttonReplyText, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName, windowLabel, type Lang } from "./messages";
 
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
@@ -146,6 +146,42 @@ export async function offerRepeat(ctx: ToolContext): Promise<Done> {
   if (!r.ok) return { done: false };
   ctx.state.repeatOfferedAt = Date.now();
   return { done: true, path: "repeat_offer" };
+}
+
+/**
+ * CFG1: a customer answers a card that lapsed (the timer cancelled it: nobody tapped in time), by tapping Confirm or Edit on it or the
+ * "reopen" button under the notice. A NEW order from the same basket at today's prices and stock, through the same door as any card
+ * (issueCard), linked to the old one (orders.reopened_from); its card says "reopened from AK-xxxx". The old order stays cancelled.
+ * Only a card the timer cancelled can be reopened (reopen_check): anything else is `{ done: false }` and the caller says what it
+ * always said. A lapsed card whose reopened order is still open shows that order again; one already confirmed is said, never copied.
+ */
+export async function reopenLapsed(ctx: ToolContext, orderId: string): Promise<Done & { short_code?: string }> {
+  const chk = await rpc<{ ok: boolean; reason?: string; short_code?: string; order_id?: string; new_short_code?: string; open_status?: string; slot_id?: string | null }>(
+    ctx.db, "reopen_check", { p_party: ctx.partyId, p_order: orderId });
+  if (!chk.ok && chk.reason !== "already_reopened") return { done: false, short_code: chk.short_code };
+  if (!chk.ok && chk.open_status && !["draft", "awaiting_confirmation"].includes(chk.open_status))
+    return say(ctx, buttonReplyText({ status: chk.open_status, short_code: chk.new_short_code ?? chk.short_code ?? "", changed: false }, {}, ctx.state.lang), "reopen_already");
+  // The basket of the lapsed card, or of the card or draft already made from it.
+  const b = await rpc<RepeatPlan & { change_for_usd?: number | null; notes?: string | null }>(ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: chk.ok ? orderId : chk.order_id });
+  if (!b.found) return { done: false };
+  const missing = (b.missing ?? []).map((m) => productName(m, ctx.state.lang ?? "ar"));
+  if (!b.lines?.length) return say(ctx, T(ctx).answer.allMissing(missing), "reopen_all_missing");
+  if (b.village_id) ctx.state.villageId = b.village_id;
+  if (b.place_id) ctx.state.placeId = b.place_id;
+  const basket = { lines: b.lines, villageId: b.pickup ? null : b.village_id ?? null, placeId: b.place_id ?? null, pickup: !!b.pickup };
+  const terms = { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null };
+  const before = missing.length ? T(ctx).answer.someMissing(missing) : undefined;
+  if (!b.quote?.ok) {
+    // Under today's minimum, an item gone, the window closed: said as for any basket (the minimum line, what ran out), never silence.
+    if (!b.quote) return { done: false };
+    const { routeBasket } = await import("./pipeline");
+    return routeBasket(ctx, basket, terms, b.quote, before);
+  }
+  ctx.state.reopening = { orderId, shortCode: chk.short_code ?? "" };
+  try {
+    const card = await issueCard(ctx, basket, terms, { before, slotId: chk.slot_id ?? null });
+    return card.ok ? { done: true, path: "reopen_card" } : { done: false };
+  } finally { ctx.state.reopening = null; }
 }
 
 /** A card whose quote went stale before the tap: the same lines, re-priced now, with anything gone named first. */

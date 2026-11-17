@@ -5,6 +5,9 @@ import { act, html, render, text, UserError, UUID, type Ctx, type Section } from
 import { form, when } from "../html";
 import { LEADS } from "../roles";
 
+/** What each pending_approvals kind is called on the page. */
+const KIND: Record<string, string> = { price: "Price", refund: "Refund", payment: "Payment", fx: "Exchange rate" };
+
 type Approval = { id: string; kind: string; summary: string; requested_by: string; requested_at: string; status: string; decided_by: string | null; decided_at: string | null; note: string | null };
 
 async function page(c: Ctx) {
@@ -12,16 +15,16 @@ async function page(c: Ctx) {
   const [pending, decided, limits] = await Promise.all([
     db.rows<Approval>("pending_approvals", { where: { status: "pending" }, order: [{ col: "requested_at" }], limit: 100 }),
     db.rows<Approval>("pending_approvals", { where: { status: { not: "pending" } }, order: [{ col: "decided_at", desc: true }], limit: 15 }),
-    db.rpc<{ price_change_pct?: number; refund_usd?: number } | null>("setting", { p_key: "approvals" }),
+    db.rpc<{ price_change_pct?: number; refund_usd?: number; fx_rate_second_person?: boolean } | null>("setting", { p_key: "approvals" }),
   ]);
   const ids = [...new Set([...pending, ...decided].flatMap((a) => [a.requested_by, a.decided_by]).filter(Boolean) as string[])];
   const people = ids.length ? await db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: ids } } }) : [];
   const who = (id: string | null) => (id ? people.find((p) => p.id === id)?.display_name ?? "Staff" : "");
   return render(c, "Approvals", html`
-<p class="muted">A price change of more than ${limits?.price_change_pct ?? 10}% and a refund above $${limits?.refund_usd ?? 20} need a second person.</p>
+<p class="muted">A price change of more than ${limits?.price_change_pct ?? 10}%, a refund above $${limits?.refund_usd ?? 10}${limits?.fx_rate_second_person ? " and any change to the LBP rate" : ""} need a second person.</p>
 <h2>Waiting (${pending.length})</h2>
 ${pending.length === 0 ? html`<p class="muted">Nothing waiting.</p>` : html`<table><tr><th>What</th><th>Asked by</th><th>When</th><th></th></tr>
-${pending.map((a) => html`<tr><td>${a.kind === "price" ? "Price" : "Refund"}: ${a.summary}</td><td>${who(a.requested_by)}</td><td>${when(a.requested_at)}</td>
+${pending.map((a) => html`<tr><td>${KIND[a.kind] ?? a.kind}: ${a.summary}</td><td>${who(a.requested_by)}</td><td>${when(a.requested_at)}</td>
 <td>${a.requested_by === c.staff.partyId ? html`<span class="muted">waiting for someone else</span>` : form(c.f, `/approvals/${a.id}/approve`, html`<button>Approve</button>`, { cls: "inline" })}
 ${form(c.f, `/approvals/${a.id}/reject`, html`<input name="note" placeholder="why" maxlength="200"> <button>${a.requested_by === c.staff.partyId ? "Withdraw" : "Reject"}</button>`, { cls: "inline" })}</td></tr>`)}</table>`}
 <h2>Decided</h2>

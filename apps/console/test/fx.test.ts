@@ -16,8 +16,36 @@ describe("Exchange rate", () => {
     expect(page).toContain("needs set_fx_rate()");
   });
 
+  it("CFG1: a change to the rate waits for a second person; the asker cannot approve it; another lead does", async () => {
+    const r = await rig();
+    await r.db.pg.exec(`insert into fx_rates(lbp_per_usd, effective_from) values (89000, now() - interval '2 days')`);
+    const lead = await r.staff("ops_lead", "Maya");
+    const admin = await r.staff("admin", "Rasheed");
+    const b = r.browser();
+    await b.signIn(lead);
+    await b.get("/fx");
+    expect(flashOf((await b.post("/fx", { lbp_per_usd: 90000 })).text)).toBe(
+      "Waiting for a second person: 90,000 LBP per dollar takes effect when another ops lead or an admin approves it under Approvals.");
+    expect(Number(await r.db.rpc("current_fx"))).toBe(89000);
+    const pend = (await r.db.all(`select id from pending_approvals where kind = 'fx' and status = 'pending'`));
+    expect(pend).toHaveLength(1);
+    const page = (await b.get("/approvals")).text;
+    expect(page).toContain("Exchange rate: 89,000 to 90,000 LBP per USD");
+    expect(page).toContain("any change to the LBP rate");
+    expect(page).toContain("waiting for someone else");
+    expect(flashOf((await b.post(`/approvals/${pend[0].id}/approve`)).text)).toBe("You asked for this change: a second person must approve it.");
+    const a = r.browser();
+    await a.signIn(admin);
+    await a.get("/approvals");
+    expect(flashOf((await a.post(`/approvals/${pend[0].id}/approve`)).text)).toBe("Approved: the change is made.");
+    expect(Number(await r.db.rpc("current_fx"))).toBe(90000);
+    expect((await r.db.one(`select set_by from fx_rates order by effective_from desc limit 1`)).set_by).toBe(lead.partyId);
+  });
+
   it("morning rate, a small move, a big move that pauses quoting, then the confirmation", async () => {
     const r = await rig();
+    // The 3% hold of 0045 sits behind CFG1's second-person rule; off here to test the hold itself.
+    await r.db.pg.exec(`update settings set value = value || '{"fx_rate_second_person": false}' where key = 'approvals'`);
     await r.db.pg.exec(`insert into fx_rates(lbp_per_usd, effective_from) values (89000, now() - interval '2 days')`);
     const lead = await r.staff("ops_lead", "Maya");
     const admin = await r.staff("admin", "Rasheed");

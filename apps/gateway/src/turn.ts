@@ -14,7 +14,7 @@ import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { parsePickButton, takePick } from "@ak/agents/choice";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
-import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
+import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { catalogueReady, makeConciergeTools, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
@@ -255,6 +255,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (btn) {
         buttonsHandled++;
         try {
+          // CFG1: the "reopen" button under the lapsed-order notice. No database tap exists for it: reopenLapsed asks reopen_check.
+          if (btn.action === "reopen") {
+            const re = await reopenLapsed(ctx, btn.orderId);
+            if (!re.done) await say(buttonReplyText({ status: "cancelled", short_code: re.short_code ?? "", changed: false }, {}, state.lang), btn.orderId);
+            continue;
+          }
           const r = await call<{ status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number;
                                  window?: DeliveryWindow | null; windows?: DeliveryWindow[] }>(
             db, btn.action === "confirm" ? "confirm_order_checked" : "handle_order_button",
@@ -267,6 +273,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
             continue;
           }
           if (r.status === "needs_location") { await sendRaw(askLocation(T().tap.needsLocation), btn.orderId); continue; }
+          // CFG1: Confirm or Edit on a card the timer cancelled (nobody tapped in time) opens it again as a new order from the same
+          // basket, at today's prices; the old one stays cancelled. Anything else cancelled is final and gets the cancelled line below.
+          if (r.status === "cancelled" && btn.action !== "cancel" && (await reopenLapsed(ctx, btn.orderId)).done) continue;
           // CX1: Cancel once picking started (or the order left): nothing is cancelled; the exact refundable amount and a person.
           if (r.status === "too_late" && await cancelTooLate({ ...(r as unknown as CancelTerms), order_id: btn.orderId })) continue;
           const reply = buttonReplyText(r, {}, state.lang);

@@ -139,6 +139,12 @@ This card replaces your order AK-1040.
 Nothing changes until you confirm it.
 ```
 
+## card.reopenedFrom
+
+```text
+Reopened from AK-1040, at today's prices.
+```
+
 ## card.consent
 
 ```text
@@ -1788,6 +1794,19 @@ A person from our team will talk to you now.
 Give it to the rider only when you have your order.
 ```
 
+## cx.handoverCodePickup
+
+```text
+🔢 Your handover code: 4821
+Give it to our hub staff only when you take your order.
+```
+
+## cx.reopenButton
+
+```text
+Reopen order
+```
+
 ## cx.pickupAt
 
 ```text
@@ -1798,7 +1817,7 @@ Give it to the rider only when you have your order.
 
 ```text
 📦 Order AK-1042 is ready for pickup at the Alo King hub, Baakline.
-If it's prepaid, bring your handover code.
+Bring your handover code.
 ```
 
 ## support.opened
@@ -2003,6 +2022,13 @@ Write to us if you still want it.
 
 ```text
 🛵 The rider is at your door with order AK-1042 and is waiting for you.
+```
+
+## notice.confirmReminder
+
+```text
+Your order AK-1042 is still waiting for your confirmation.
+You can confirm or edit it from the card above.
 ```
 
 ## notice.paymentReceived

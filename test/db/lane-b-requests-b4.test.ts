@@ -63,6 +63,8 @@ describe("lane B requests (B4)", () => {
   it("D1: while today's rate waits for a person, nothing is priced; the customer is told once and the basket is kept", async () => {
     expect(await db.rpc("fx_quoting_paused")).toBe(false);
     const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
+    // This is the 3% hold of 0045, which CFG1's second-person rule (settings.approvals.fx_rate_second_person) sits in front of; off here.
+    await db.pg.exec(`update settings set value = value || '{"fx_rate_second_person": false}' where key = 'approvals'`);
     await db.rpc("set_fx_rate", { p_lbp_per_usd: 89500, p_by: ops });
     expect(await db.rpc("set_fx_rate", { p_lbp_per_usd: 95000, p_by: ops })).toMatchObject({ status: "paused" });
     expect(await db.rpc("fx_quoting_paused")).toBe(true);
