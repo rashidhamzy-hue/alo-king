@@ -25,7 +25,8 @@ describe("the brand, from the reference", () => {
   it("IBM Plex Sans is served from our own files, for Arabic and Latin, by both apps", () => {
     for (const f of ["packages/ui/styles/console.css", "apps/web/src/styles/site.css"]) {
       const css = read(f);
-      expect(css.match(/@font-face/g)?.length, f).toBe(4);
+      // WEB2: the website adds the small figures font its Arabic pages use for digits and codes (two weights)
+      expect(css.match(/@font-face/g)?.length, f).toBe(f.startsWith("apps/web") ? 6 : 4);
       expect(css, f).toContain('font-family: "IBM Plex Sans Arabic"'); expect(css, f).not.toMatch(/fonts\.googleapis|fonts\.gstatic|https?:\/\//);
     }
     expect(read("packages/ui/tokens.css")).toContain('--ak-font: "IBM Plex Sans", "IBM Plex Sans Arabic"');

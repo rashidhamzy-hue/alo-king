@@ -55,6 +55,8 @@
   /* ---- type: one family for both scripts; prices keep Western digits and $ in every language ---- */
   --ak-font: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
   --ak-font-ar: "IBM Plex Sans Arabic", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  /* WEB2: the website's Arabic pages: digits, prices and codes in the small figures font, not the whole Latin font (apps/web site.css) */
+  --ak-font-ar-figures: "IBM Plex Sans Arabic", "IBM Plex Figures", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
   --ak-text-xs: 0.75rem;
   --ak-text-sm: 0.875rem;
   --ak-text-md: 1rem;
