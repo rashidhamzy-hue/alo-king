@@ -77,7 +77,7 @@ describe("1. packaged, per item", () => {
       expect(await db.rpc("product_is_packaged", { p_product: p.id }), category + " real").toBe(true);
       await db.pg.query(`update products set barcode = $2 where id = $1`, [p.id, ean("210000012345")]);   // 21...: a weighed-goods code
       expect(await db.rpc("product_is_packaged", { p_product: p.id }), category + " store code").toBe(false);
-      await db.pg.query(`update products set barcode = $2 where id = $1`, [p.id, "6291000123450"]);       // a wrong check digit
+      await db.pg.query(`update products set barcode = $2 where id = $1`, [p.id, ean("629100012345").slice(0, 12) + "0"]);       // a wrong check digit (the right one is not 0)
       expect(await db.rpc("product_is_packaged", { p_product: p.id }), category + " bad check digit").toBe(false);
     }
     const veg = await first("Fruits & Vegetables", 1);
