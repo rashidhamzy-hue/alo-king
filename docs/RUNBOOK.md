@@ -71,7 +71,7 @@ test, a fixture, a comment, a commit message or a pull request. Git keeps every 
 | A secret: an API key, token, signing secret, password, private key, the contents of `.dev.vars` | Nothing. Secrets live in Supabase, `wrangler secret` and repository secrets only. The webhook signing secrets are never even in a repository secret: the deploy makes them and only the Worker and Kapso hold them |
 | A customer's or rider's real name, message, address or order | An invented person. A real conversation is read on the Kapso or console screens, never copied here |
 | A voice note, a receipt, a photograph | The private `media` bucket. Never log what is in them |
-| The prospect list (about 800 business listings), or any rating from it | It is in the private `media` bucket under `research/prospects/`. It is research: never imported as merchants, never messaged |
+| The prospect list (about 800 business listings), or any rating from it | It is in the private `media` bucket under `research/prospects/`. It is research: shown only as a listing under LV1's rules (`docs/DECISIONS.md`), never imported as merchants, never messaged |
 
 **What checks this.** `scripts/ci/no-personal-data.mjs` fails on: a phone number of 11 to 13 digits that is not in an invented range; a latitude
 and longitude pair inside Lebanon with more than three decimals that is not a village centre or a listed invented pin; a plus code; an e-mail

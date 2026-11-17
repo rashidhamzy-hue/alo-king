@@ -97,6 +97,8 @@ export interface Messages {
 
   fixed: {
     audioUnusable: S; handoff: S; optOut: S; optIn: S; outOfStock: S; error: S;
+    /** LV1: the reply to "Claim <listing_id>" (read by code). We will be in touch; nothing about the listing changes and nothing can be ordered. */
+    listingClaimed: (name: S) => S;
     notAvailable: (shops: S[]) => S;
     oneMoment: S; offTopic: S;
     askPhone: S; badPhone: S; phoneSaved: S;

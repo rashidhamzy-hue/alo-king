@@ -35,6 +35,8 @@ export const KIND: Record<string, Info> = {
   support_case_founder: { en: "A customer has waited 5 minutes for a person", ar: "زبون ينتظر شخصاً من 5 دقائق", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
   customer_unanswered: { en: "A customer message got no reply for 2 minutes", ar: "رسالة زبون بلا رد من دقيقتين", href: () => "/inbox", cta: { en: "Open the Inbox", ar: "افتح الوارد" } },
   technical: { en: "A technical failure on the customer line", ar: "عطل تقني على خط الزبائن", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
+  // LV1: a Chouf food place listed before it signs was asked to be removed (its page is already hidden, or a limit left it up for a person to decide).
+  listing_removal: { en: "A food place asked to be removed", ar: "مكان طعام طلب إزالة صفحته", href: () => "/listings?tab=hidden", cta: { en: "Open food places", ar: "افتح أماكن الطعام" } },
   probe_handoff_released: { en: "A test chat was handed back", ar: "أُعيدت محادثة اختبار", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
 };
 

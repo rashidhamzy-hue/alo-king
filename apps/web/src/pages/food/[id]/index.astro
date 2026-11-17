@@ -1,0 +1,40 @@
+---
+// One place (LV1): its name, kind, village, distance from the hub, a map link, and the line that says it is not on Alo King yet. Three things a person can do:
+// say they want to order from here (one tap, logged as demand, no contact detail), claim it (our WhatsApp with "Claim <listing_id>" typed), or have it removed.
+// No phone, rating, review count, menu, hours, photo or price. The page's structured data is a LocalBusiness with a name and an address locality: never an Offer.
+// A hidden or unknown place is "not found". Not cached: a hidden page must be gone at once.
+import Base from "../../../layouts/Base.astro";
+import Unavailable from "../../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Badge from "@ak/ui-astro/Badge.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import { chatBase, t } from "../../../lib/i18n";
+import { claimLink, kindLabel, kmText, placeHref, validListingId, villageIn } from "../../../lib/food";
+import { listingJsonLd } from "../../../lib/jsonld";
+const { lang, listings } = Astro.locals;
+const id = String(Astro.params.id ?? "");
+let r; let failed = false;
+try { r = validListingId(id) ? await listings().place(id) : { ok: false as const, error: "unknown_listing" as const }; } catch { failed = true; Astro.response.status = 503; }
+if (r && !r.ok) Astro.response.status = 404;
+const p = r && r.ok ? r.listing : null;
+const asked = Astro.url.searchParams.get("asked") === "1";
+const chatClaim = p ? claimLink(r && r.ok ? r.whatsapp : null, p.listing_id) : null;
+const base = placeHref(id);
+---
+<Base title={p ? p.name : t(lang, "not_found")} lang={lang} description={p ? `${kindLabel(lang, p.kind)} · ${villageIn(lang, p)}. ${t(lang, "food_not_yet")}` : undefined} path={Astro.url.pathname}
+  whatsapp={chatBase(r && r.ok ? r.whatsapp : null)} jsonld={p ? [listingJsonLd(p)] : []}>
+  {failed ? <Unavailable lang={lang} /> : !p ? <Unavailable lang={lang} notFound /> : <>
+    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li><a href="/food">{t(lang, "food")}</a></li><li><Icon name="chevron" flip /></li><li>{p.name}</li></ol>
+    <h1>{p.name}</h1>
+    <p class="tags"><Badge label={kindLabel(lang, p.kind)} /> <Badge label={villageIn(lang, p)} icon="pin" /> <span class="muted"><bdi>{kmText(lang, p.km_from_hub)}</bdi></span></p>
+    <section class="ak-card"><p><strong>{t(lang, "food_not_yet")}</strong></p></section>
+    {asked && <section class="ak-card" role="status"><p><Icon name="check" /> {t(lang, "food_asked", { name: p.name })}</p></section>}
+    <div class="actions">
+      <form method="post" action={`${base}/want`}><Button label={t(lang, "food_want")} variant="primary" icon="check" /></form>
+      <Button label={t(lang, "food_map")} href={p.maps_url} variant="soft" icon="pin" external />
+    </div>
+    {chatClaim && <div class="actions"><Button label={t(lang, "food_claim")} href={chatClaim} variant="whatsapp" icon="chat" external /></div>}
+    {chatClaim && <p class="muted small">{t(lang, "food_claim_note")}</p>}
+    <p><Button label={t(lang, "food_remove")} href={`${base}/remove`} variant="ghost" /></p>
+  </>}
+</Base>

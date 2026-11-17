@@ -162,6 +162,11 @@ export function explain(e: unknown): string {
       [/^UNKNOWN_SLOT/, "That window was not found."],
       [/^ORDER_NOT_FOUND/, "That order was not found."],
       [/^NOT_YOUR_ORDER/, "That order is not the customer's own."],
+      [/^REASON_REQUIRED/, "Write the reason (at least 3 characters)."],
+      [/^NOT_HIDDEN/, "That page is not hidden."],
+      [/^ALREADY_HIDDEN/, "That page is already hidden."],
+      [/^UNKNOWN_LISTING/, "That place was not found."],
+      [/^REQUEST_NOT_OPEN/, "That request is already closed."],
     ];
     for (const [re, say] of known) { const hit = re.exec(m); if (hit) return say.replace(/\$(\d)/g, (_, i) => hit[Number(i)] ?? ""); }
     return `The database refused: ${m}`;

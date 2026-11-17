@@ -82,8 +82,10 @@ export const WEB_SESSION_FUNCTIONS = [
 ] as const;
 /** The catalog read functions (migrations 0154 and 0155, session WEB1): public, no token, no party. */
 export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category", "web_catalog_product", "web_catalog_search"] as const;
+/** The Food pages' functions (migration 0224, session LV1): the places listed before they sign. Never orderable; no price, stock or menu. */
+export const WEB_LISTING_FUNCTIONS = ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"] as const;
 /** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
-export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS] as const;
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS] as const;
 
 // ---------- the catalog pages' shapes ----------
 export interface CatalogPicture {
@@ -140,6 +142,21 @@ export type CatalogProduct =
       certificates: { kind: string; valid_until: string | null }[]; credit_open_food_facts: boolean; whatsapp: string | null };
 export interface CatalogSearch { ok: boolean; q: string; matches: CatalogCard[]; reason: "too_short" | "no_match" | "none_pass" | null; filters?: Record<string, unknown> }
 
+// ---------- the listings (LV1): a place listed before it signs ----------
+/** What a listing holds, and all of it: a name, a kind, a village, the distance from the hub and a map link (maps_url is on the place's own read). */
+export interface Listing { listing_id: string; name: string; kind: string; village: string | null; village_ar: string | null; km_from_hub: number }
+export interface FoodList {
+  ok: true; total: number; rows: Listing[]; kinds: { kind: string; count: number }[];
+  villages: { village: string | null; village_ar: string | null; count: number }[]; whatsapp: string | null;
+}
+export type FoodPlace = { ok: false; error: "unknown_listing" } | { ok: true; listing: Listing & { maps_url: string }; whatsapp: string | null };
+export type ListingWant = { ok: true; counted: boolean; capped?: boolean } | { ok: false; error: "no_session" | "unknown_listing" };
+export type ListingRemove = { ok: true; hidden: boolean; already?: boolean; request_id?: string } | { ok: false; error: "no_session" | "bad_who" | "unknown_listing" };
+export type RemoveWho = "owner" | "manager" | "staff" | "other";
+export type ClaimListingResult =
+  | { ok: false; status: "not_a_claim" | "unknown" }
+  | { ok: true; status: "claimed"; again: boolean; listing_id: string; name: string; hidden: boolean; case: { case_id: string; opened?: boolean; after_hours?: boolean; opens?: string | null } };
+
 // ---------- the website (role web_channel) ----------
 export function webCommerce(db: RpcSource) {
   return {
@@ -176,9 +193,27 @@ export function webCatalog(db: RpcSource) {
 }
 export type WebCatalog = ReturnType<typeof webCatalog>;
 
+// ---------- the Food pages (role web_channel; reads need no token, the two writes take the visitor's session) ----------
+export function webListings(db: RpcSource) {
+  return {
+    list: (o: { kind?: string | null; village?: string | null; sort?: "distance" | "name"; limit?: number; offset?: number } = {}) =>
+      call<FoodList>(db, "web_food_list", { p_kind: o.kind ?? null, p_village: o.village ?? null, p_sort: o.sort ?? "distance", p_limit: o.limit ?? 24, p_offset: o.offset ?? 0 }),
+    place: (id: string) => call<FoodPlace>(db, "web_food_place", { p_id: id }),
+    /** "I want to order from here": demand, once per anonymous session or signed-in customer. No contact detail. */
+    want: (token: string, listing: string) => call<ListingWant>(db, "web_listing_want", { p_token: token, p_listing: listing }),
+    /** "Remove this listing": the page is hidden at once and a staff case is raised. */
+    remove: (token: string, listing: string, who: RemoveWho, reason?: string | null) =>
+      call<ListingRemove>(db, "web_listing_remove", { p_token: token, p_listing: listing, p_who: who, p_reason: reason ?? null }),
+  };
+}
+export type WebListings = ReturnType<typeof webListings>;
+
 // ---------- the gateway and the console (service role) ----------
 export function channelCommerce(db: RpcSource) {
   return {
+    /** The customer-line turn, by code and before any model, when a message is "Claim <listing_id>" (LV1). A staff case; nothing is sent from here. */
+    claimListing: (party: string, conversation: string, text: string, wamid?: string | null) =>
+      call<ClaimListingResult>(db, "claim_listing", { p_party: party, p_conversation: conversation, p_text: text, p_wamid: wamid ?? null }),
     /** The customer-line turn, by code and before any model, when a message carries a link code. */
     claimLinkCode: (party: string, text: string, wamid?: string | null) =>
       call<ClaimResult>(db, "claim_link_code", { p_party: party, p_code: text, p_wamid: wamid ?? null }),

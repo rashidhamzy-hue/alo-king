@@ -1,0 +1,55 @@
+---
+// "Remove this listing" (LV1): a short form. Who you are (owner, manager, staff, someone else) and an optional reason; no contact detail is asked for. The page is
+// hidden at once, the request is logged with its time, and a staff case is raised (web_listing_remove, 0224). Only staff can restore it. A post that names another
+// origin is refused; over a limit the request is still recorded and told to staff, and the visitor is told it was received.
+import Base from "../../../layouts/Base.astro";
+import Unavailable from "../../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Field from "@ak/ui-astro/Field.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import { chatBase, t } from "../../../lib/i18n";
+import { placeHref, validListingId } from "../../../lib/food";
+import { sameOrigin, withSession } from "../../../lib/session";
+import type { RemoveWho } from "@ak/commerce/index";
+const { lang, listings } = Astro.locals;
+const id = String(Astro.params.id ?? "");
+const WHO: RemoveWho[] = ["owner", "manager", "staff", "other"];
+let r; let failed = false; let error = ""; let reason = ""; let who = "";
+try { r = validListingId(id) ? await listings().place(id) : { ok: false as const, error: "unknown_listing" as const }; } catch { failed = true; Astro.response.status = 503; }
+if (r && !r.ok) Astro.response.status = 404;
+if (r && r.ok && Astro.request.method === "POST") {
+  if (!sameOrigin(Astro.request, Astro.url)) return new Response("Forbidden", { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  const form = await Astro.request.formData();
+  who = String(form.get("who") ?? ""); reason = String(form.get("reason") ?? "").slice(0, 500);
+  if (!(WHO as string[]).includes(who)) { error = t(lang, "food_who_error"); Astro.response.status = 400; }
+  else {
+    try {
+      const { result, setCookie } = await withSession(Astro.locals.env, Astro.request.headers.get("cookie"), (token) => listings().remove(token, id, who as RemoveWho, reason || null));
+      const headers = new Headers({ Location: result.ok && result.hidden === false ? "/food?removed=2" : "/food?removed=1", "Cache-Control": "no-store" });
+      if (setCookie) headers.append("Set-Cookie", setCookie);
+      return new Response(null, { status: 303, headers });
+    } catch { failed = true; Astro.response.status = 503; }
+  }
+}
+const p = r && r.ok ? r.listing : null;
+const whoLabel: Record<RemoveWho, string> = { owner: t(lang, "food_who_owner"), manager: t(lang, "food_who_manager"), staff: t(lang, "food_who_staff"), other: t(lang, "food_who_other") };
+---
+<Base title={p ? t(lang, "food_remove_title") : t(lang, "not_found")} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(r && r.ok ? r.whatsapp : null)}>
+  {failed ? <Unavailable lang={lang} /> : !p ? <Unavailable lang={lang} notFound /> : <>
+    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li><a href="/food">{t(lang, "food")}</a></li><li><Icon name="chevron" flip /></li><li><a href={placeHref(id)}>{p.name}</a></li></ol>
+    <h1>{t(lang, "food_remove_title")}</h1>
+    <p class="muted">{t(lang, "food_remove_intro", { name: p.name })}</p>
+    <form method="post" action={`${placeHref(id)}/remove`} class="stack">
+      <Field label={t(lang, "food_who")} error={error || undefined}>
+        <select class="ak-select" name="who" required>
+          <option value="">{t(lang, "food_who_choose")}</option>
+          {WHO.map((w) => <option value={w} selected={w === who}>{whoLabel[w]}</option>)}
+        </select>
+      </Field>
+      <Field label={t(lang, "food_reason")} hint={t(lang, "food_reason_hint")}>
+        <textarea class="ak-input" name="reason" rows="3" maxlength="500">{reason}</textarea>
+      </Field>
+      <div class="actions"><Button label={t(lang, "food_remove_go")} variant="primary" /><Button label={t(lang, "food_cancel")} href={placeHref(id)} variant="ghost" /></div>
+    </form>
+  </>}
+</Base>

@@ -296,3 +296,84 @@ two navigation words (`nav_dispatch`: «التوزيع», `nav_intake`: «الت
 | `status.returned.customer` | أُعيد | Returned || RA 17 Nov |
 | `status.cancelled.customer` | مُلغى | Cancelled || RA 17 Nov |
 
+## LV1, the Chouf food places listed before they sign (17 November 2026)
+
+Written by a model; **not yet read by a person**: the "Read by" column is empty and the Arabic, English and French all wait for a reader.
+Three places hold words: the website (the `ar`, `en` and `fr` dictionaries in `apps/web/src/lib/i18n.ts`, the keys `food*` and `kind_*`: the test
+`test/ci/listings-lv1.test.ts` checks this table lists every one, word for word), the one WhatsApp line (`messages(...).fixed.listingClaimed`), and the
+console's Listings page (staff only, `apps/console/src/pages/listings.ts`, beside its English with `pick(L, en, ar)`). Neutral wording only: no
+rating, praise, health or diet word, no promise that anything can be ordered from a listing (invariants 11 and 14). The names of the places are the
+founder's file as it is: a business's name is not translated. The website's Arabic is the site's register (formal Arabic); the WhatsApp line is Lebanese, as every
+fixed message is. `{km}`, `{n}`, `{total}` and `{name}` are filled by code.
+
+### The website
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `web.food` | أماكن الطعام | Food places | Lieux pour manger | |
+| `web.food_title` | أماكن الطعام في الشوف | Food places in the Chouf | Lieux pour manger dans le Chouf | |
+| `web.food_tile_note` | ليس على ألو كينغ بعد | Not on Alo King yet | Pas encore sur Alo King | |
+| `web.food_intro` | أماكن قريبة منك ليست على ألو كينغ بعد. لا يمكنك الطلب منها من هنا. أخبرنا أيّها تريد. ويستطيع أصحاب الأماكن المطالبة بصفحتهم أو إزالتها. | Places near you that are not on Alo King yet. You can't order from them here. Tell us which ones you want. Owners can claim a page or have it removed. | Des lieux près de chez vous qui ne sont pas encore sur Alo King. Vous ne pouvez pas y commander d'ici. Dites-nous lesquels vous voulez. Les propriétaires peuvent revendiquer leur page ou la faire retirer. | |
+| `web.food_not_yet` | ليس على ألو كينغ بعد. لا يمكنك الطلب من هنا بعد. | Not on Alo King yet. You can't order from here yet. | Pas encore sur Alo King. Vous ne pouvez pas encore commander ici. | |
+| `web.food_places` | عدد الأماكن: {n} | Places: {n} | Lieux : {n} | |
+| `web.food_none` | لا توجد أماكن تطابق هذا. | No places match this. | Aucun lieu ne correspond. | |
+| `web.food_km` | {km} كم من مركزنا | {km} km from our hub | {km} km de notre centre | |
+| `web.food_village_none` | القرية غير مذكورة | Village not listed | Village non indiqué | |
+| `web.food_kind` | النوع | Kind | Type | |
+| `web.food_village` | القرية | Village | Village | |
+| `web.food_sort_distance` | المسافة من مركزنا | Distance from our hub | Distance de notre centre | |
+| `web.food_sort_name` | الاسم | Name | Nom | |
+| `web.food_next` | التالي | Next | Suivant | |
+| `web.food_prev` | السابق | Previous | Précédent | |
+| `web.food_page` | الصفحة {n} من {total} | Page {n} of {total} | Page {n} sur {total} | |
+| `web.food_map` | افتح في خرائط Google | Open in Google Maps | Ouvrir dans Google Maps | |
+| `web.food_want` | أريد الطلب من هنا | I want to order from here | Je veux commander ici | |
+| `web.food_asked` | شكرًا. سجّلنا أنك تريد الطلب من {name}. لا يلزمك أي شيء آخر. | Thanks. We've noted that you want to order from {name}. Nothing else is needed from you. | Merci. Nous avons noté que vous voulez commander chez {name}. Rien d'autre n'est nécessaire de votre part. | |
+| `web.food_claim` | هل هذا مكانك؟ اطلب إدارته | Is this your place? Claim it | C'est votre établissement ? Revendiquez-le | |
+| `web.food_claim_note` | يفتح هذا واتساب مع رسالة إلينا مكتوبة مسبقًا. أرسلها وسنتواصل معك. | This opens WhatsApp with a message to us already typed. Send it and we will get in touch. | Cela ouvre WhatsApp avec un message pour nous déjà écrit. Envoyez-le et nous vous contacterons. | |
+| `web.food_remove` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | |
+| `web.food_remove_title` | إزالة هذه الصفحة | Remove this listing | Retirer cette page | |
+| `web.food_remove_intro` | هذا يُخفي صفحة {name} فورًا. يُبلَّغ فريقنا وسينظر في الأمر. | This hides the page for {name} right away. Our team is told and will look at it. | Cela masque tout de suite la page de {name}. Notre équipe est prévenue et l'examinera. | |
+| `web.food_who` | من أنت؟ | Who are you? | Qui êtes-vous ? | |
+| `web.food_who_choose` | اختر | Choose | Choisir | |
+| `web.food_who_owner` | صاحب المكان | The owner | Le propriétaire | |
+| `web.food_who_manager` | مدير | A manager | Un gérant | |
+| `web.food_who_staff` | موظف | Staff | Un employé | |
+| `web.food_who_other` | شخص آخر | Someone else | Quelqu'un d'autre | |
+| `web.food_who_error` | اختر من أنت. | Choose who you are. | Choisissez qui vous êtes. | |
+| `web.food_reason` | لماذا؟ (اختياري) | Why? (optional) | Pourquoi ? (facultatif) | |
+| `web.food_reason_hint` | من فضلك لا تكتب تفاصيل خاصة مثل الأرقام أو العناوين. | Please don't include private details such as numbers or addresses. | N'indiquez pas de détails privés, comme des numéros ou des adresses. | |
+| `web.food_remove_go` | أخفِ هذه الصفحة | Hide this page | Masquer cette page | |
+| `web.food_cancel` | إلغاء | Cancel | Annuler | |
+| `web.food_removed` | تم. الصفحة مخفية وقد أُبلغ فريقنا. | Done. The page is hidden and our team has been told. | C'est fait. La page est masquée et notre équipe est prévenue. | |
+| `web.food_remove_queued` | وصلنا طلبك. سينظر فريقنا فيه. | We have your request. Our team will look at it. | Nous avons votre demande. Notre équipe va l'examiner. | |
+| `web.kind_restaurant` | مطعم | Restaurant | Restaurant | |
+| `web.kind_cafe` | مقهى | Café | Café | |
+| `web.kind_bakery` | مخبز | Bakery | Boulangerie | |
+| `web.kind_sweets` | حلويات | Sweets | Pâtisserie | |
+| `web.kind_catering` | تموين وضيافة | Catering | Traiteur | |
+| `web.kind_butcher` | ملحمة | Butcher | Boucherie | |
+
+### On WhatsApp (the reply to "Claim <listing_id>", read by code before any model)
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `fixed.listingClaimed("مخبز الشوف")` | وصلتنا رسالتك بخصوص مخبز الشوف.<br>رح يتواصل معك حدا من فريقنا هون على واتساب.<br>لحد ذاك ما رح يتغيّر شي على الصفحة. | We got your message about مخبز الشوف.<br>Someone from our team will get in touch with you here on WhatsApp.<br>Until then nothing changes on the page. | Nous avons bien reçu votre message au sujet de مخبز الشوف.<br>Quelqu'un de notre équipe vous contactera ici sur WhatsApp.<br>D'ici là, rien ne change sur la page. | |
+
+### The console's Listings page (staff-facing)
+
+| Place | Arabic | English | Read by |
+|---|---|---|---|
+| Menu and title | أماكن الطعام | Food places | |
+| Tabs | بحث · المخفي والطلبات · المطالبات | Search · Hidden and requests · Claims | |
+| Intro | أماكن طعام في الشوف مدرجة على الموقع قبل أن توقّع. الإدراج ليس تاجرًا: لا يمكن الطلب منه. يستطيع الزائر أن يقول إنه يريده، ويستطيع صاحب المكان المطالبة به أو إزالته. | Chouf food places listed on the website before they sign. A listing is not a merchant: nothing can be ordered from it. A visitor can say they want it, an owner can claim it or have it removed. | |
+| Columns | المكان · النوع · القرية · كم · الطالبون · المطالبات · الحالة · إخفاء · الطلب · القرار · متى · أُرسلت من · الحالة | Place · Kind · Village · km · Wants · Claims · Status · Hide · Request · Decide · When · Sent from · Case | |
+| States | ظاهر · مخفي · أغلق · بلا سبب · بلا رقم · غير مذكورة · مفتوحة: الوارد · مُغلقة | Listed · Hidden · closed · no reason given · no number · not listed · open: Inbox · resolved | |
+| Who asked | صاحب المكان · مدير · موظف · شخص آخر | the owner · a manager · staff · someone else | |
+| Limit note | تجاوز الحد: تُركت الصفحة ظاهرة لتقرّر أنت. | Over a limit: the page was left up for you to decide. | |
+| Buttons | أعد الصفحة · أخفِ الصفحة · أخفِ · أغلق: أبقها مخفية · أغلق: أبقها ظاهرة · بحث | Restore the page · Hide the page · Hide · Close: keep it hidden · Close: leave it up · Search | |
+| Fields | سبب الإعادة · سبب الإخفاء · السبب · ملاحظة · الاسم أو القرية | Reason to restore · Reason to hide · Reason · Note · Name or village | |
+| Done | أُعيدت الصفحة وأُغلق الطلب. · أُخفيت الصفحة من الموقع. · أُبقيت مخفية وأُغلق الطلب. · أُغلق الطلب وتبقى الصفحة ظاهرة. | Restored: the page is back, and the request is closed. · Hidden: the page is gone from the website. · Kept hidden. The request is closed. · The request is closed and the page stays up. | |
+| Refusals | اكتب السبب (٣ أحرف على الأقل). · هذا المكان غير صالح. · هذا الطلب غير صالح. | Write the reason (at least 3 characters). · That place is not valid. · That request is not valid. | |
+| Empty | لا مطالبات بعد. · لا شيء مخفي ولا طلب بانتظار. · لا أماكن تطابق هذا. · تُعرض أول ٥٠: ابحث بالاسم أو القرية لتضييق النتائج. | No claims yet. · Nothing hidden and no request waiting. · No places match this. · The first 50 are shown: search by name or village to narrow it. | |
+| Staff alert | مكان طعام طلب إزالة صفحته | A food place asked to be removed | |

@@ -327,6 +327,23 @@ new way to send. Migrations 0222 and 0223. Where a row says "already", the revie
 | 5 | **`settings.cash_cap`: soft 100, hard 150** (was 150 and 200). `driver_can_take` and `offer_delivery` read it; no code changed (invariant 5). | settings | 0222 |
 | 6 | **Inbox escalation timers are a setting: lead 3 minutes, founder 5, late 15.** **Already** so since HO1 (`settings.support`: `claim_alert_min`, `founder_alert_min`, `late_min`, 0135), read by `case_timers_due` (0136) and the console's Inbox; today's 5 minutes already is the founder step. CFG1 changed no value and pinned the behaviour with a test that moves each step by changing the setting. | `settings.support` | test only |
 
+## Listings before they sign, 17 November 2026
+Recorded by session LV1 (first commit, documents only) from the founder's decision of 17 November. It changes one line of `CLAUDE.md` (the
+prospect list is now shown, only as a listing, under the rules below) and supersedes the sentence of `docs/BUILD_PLAN.md` 8.13 that said there
+is no public claim page and that we do not list unsigned businesses. Each line supersedes any earlier line that disagrees.
+
+**Decision.** Chouf food places are listed on the website before they sign, so customers can ask for them and owners can claim or remove them.
+
+| # | Rule | Applied in |
+| --- | --- | --- |
+| 1 | **A listing is not a merchant.** It lives in its own table (`listings`), is never orderable, never has a menu, price, stock or order, and never becomes a merchant by import. Invariant 11 is unchanged: a restaurant opens only through `approve_merchant()`, and nobody phones an order in to a listing. | 0224 |
+| 2 | **What a listing shows:** name, kind, village, distance from the hub, a map link, and the line "Not on Alo King yet. You can't order from here yet." (Arabic, English, French). **Never** a phone number, rating, review count, menu, hours or photo, and never an Offer in the page's structured data (JSON-LD is a LocalBusiness with a name and an address locality only). The file the table is loaded from has none of them by design, and the repository's personal-data guard must pass on it. Sort is by distance or name only (invariant 14). | 0224, 0225, website |
+| 3 | **"I want to order from here"** is one tap, logged per place as demand (`log_demand`, kind `listing`), counted once per anonymous session or signed-in customer, and asks for no contact detail. | 0224 |
+| 4 | **"Remove this listing"** hides the page at once. The form asks who the person is (owner, manager, staff, someone else) and an optional reason; the request and its time are logged and a staff case is raised. We do not verify before hiding: hiding is the safe side. Only an ops lead or an admin can restore a listing, with a reason; every restore is logged. | 0224, console |
+| 5 | **"Is this your place? Claim it"** opens our WhatsApp with "Claim <listing_id>" typed. The customer-line turn recognises it by code (no model), opens a staff case with the listing and the sender's number, and replies that we will be in touch. **We never message a listed number** (the file has none): the owner's own message starts the thread (invariant 17), and verification is that message or a visit. What happens after a verified claim is Phase 8's decision (E1). A claim changes nothing about the listing and never makes it orderable. | 0224, gateway turn |
+| 6 | **Staff:** the console's Listings page: search, hidden listings with their removal request, restore with a reason, the demand count per place, and the claims. | console |
+| 7 | **Nothing else about the prospect list changes.** Its phones, ratings and review counts stay in the private bucket and out of the repository; the numbers on it are never messaged; it is never imported as merchants. | `CLAUDE.md` |
+
 
 ## Founder decision, 17 November 2026, nothing packaged sells before its label
 Recorded by session SELL1 (Sonnet 5.5), first commit, documents only. It follows the label day (16 November, decision 2 of "Coordinator decisions").
