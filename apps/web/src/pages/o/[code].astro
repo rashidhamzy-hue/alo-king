@@ -1,0 +1,89 @@
+---
+// WEB2: the order page, /o/<code>?k=<signed link>. The link is the key (web_order_page, 0229): a wrong, missing or expired link, or one 48 hours
+// after the order ended, shows nothing at all (a plain "not found"). No address, no phone, no name: the page can be opened on another phone.
+//   * Waiting for the customer's Confirm: the card's words (the same as the WhatsApp card), "tap Confirm there", and a way to get the card again
+//     ("Card AK-xxxx" typed in our chat). The page reloads itself, so it turns into the order the moment the WhatsApp tap confirms it.
+//   * Then: the status steps from the one label table (packages/ui/src/status.ts) with their times, the window or the time from the database,
+//     what changed at the shelf, the handover code while it is needed, and "talk to a person" on WhatsApp.
+import Base from "../../layouts/Base.astro";
+import Unavailable from "../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import StatusPill from "@ak/ui-astro/StatusPill.astro";
+import "../../../../../packages/ui/styles/components.more.css";
+import "../../styles/order.css";
+import { orderTimeline } from "@ak/ui/components";
+import { Raw } from "@ak/ui/h";
+import { nameIn, t, usd } from "../../lib/i18n";
+import { cardWords, chatWith, dateWords, journey, lbp, ordering, splitAmount, statusWords, windowWords } from "../../lib/order";
+const { lang, env } = Astro.locals;
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+const code = String(Astro.params.code ?? "").toUpperCase();
+const link = Astro.url.searchParams.get("k") ?? "";
+let failed = false; let p: any = null; let facts: any = null;
+try {
+  if (/^AK-\d{1,8}$/.test(code) && /^\d{10}\.[0-9a-f]{32}$/.test(link)) p = await ordering(env).orderPage(code, link);
+  if (p?.ok) facts = await ordering(env).serviceFacts();
+} catch { failed = true; Astro.response.status = 503; }
+if (!failed && !p?.ok) Astro.response.status = 404;
+const ok = !failed && p?.ok;
+const waiting = ok && p.status === "awaiting_confirmation";
+const ended = ok && ["delivered", "closed", "cancelled", "failed_delivery", "returned"].includes(p.status);
+const tz = facts?.hours?.tz ?? null;
+const wa = facts?.whatsapp ?? null;
+const chatAgain = ok ? chatWith(wa, `Card ${p.short_code}`) : null;
+const chatPerson = ok ? chatWith(wa, `${p.short_code}`) : null;
+const sl = (lang === "ar" ? "ar" : "en") as "ar" | "en";
+// The steps: done, now or still to come, each with its time from the order's own events.
+const at = (id: string) => ok ? [...p.events].reverse().find((e: any) => e.status === id)?.at ?? null : null;
+const steps = ok ? journey(p.payment_method, p.pickup) : [];
+const reached = ok ? Math.max(steps.indexOf(p.status === "closed" || p.status === "arrived" ? (p.status === "arrived" ? "out_for_delivery" : "delivered") : p.status), 0) : 0;
+const timeline = ok && !["cancelled", "failed_delivery", "returned"].includes(p.status) ? orderTimeline(steps.map((s, i) => ({
+  at: at(s) ? dateWords(at(s), lang, tz) : undefined, text: statusWords(s, lang, p.pickup),
+  state: i < reached || (i === reached && ended) ? "done" as const : i === reached ? "now" as const : "todo" as const }))) : null;
+const words = waiting && p.card ? cardWords(p.card, lang) : null;
+const lapse = Number(facts?.confirm_lapse_min ?? 60);
+---
+<Base title={ok ? t(lang, "w2_order_title", { code: p.short_code }) : t(lang, "not_found")} lang={lang} path={ok ? Astro.url.pathname + Astro.url.search : "/"} whatsapp={wa} noindex refresh={ok && !ended ? (waiting ? 10 : 60) : null}>
+  {failed ? <Unavailable lang={lang} /> : !ok ? <Unavailable lang={lang} notFound /> : <div class="w2">
+    <h1>{t(lang, "w2_order_title", { code: p.short_code })}</h1>
+    <p><StatusPill id={p.status} audience="customer" lang={sl} pickup={p.pickup} />{lang === "fr" && <span class="muted"> {statusWords(p.status, lang, p.pickup)}</span>}</p>
+    {waiting && <>
+      <section>
+        <p class="w2-big"><Icon name="chat" /> {t(lang, "w2_order_waiting")}</p>
+        <p class="muted">{t(lang, "w2_order_waiting_note", { n: lapse })}</p>
+        {chatAgain && <p>{t(lang, "w2_order_resend")}</p>}
+        {chatAgain && <Button label={t(lang, "w2_order_open_wa")} href={chatAgain} variant="whatsapp" icon="chat" size="lg" external attrs={{ target: "_blank" }} />}
+        <p class="muted small">{t(lang, "w2_order_updates")}</p>
+      </section>
+      {words && <div class="w2-card">
+        <h3>{words.head.replace(/[*🛒]/gu, "").trim()}</h3>
+        <ul>{words.items.map((x, i) => i % 2 === 0 ? <li><span>{x}</span><bdi>{words.items[i + 1]}</bdi></li> : null)}</ul>
+        <ul>{words.sums.map((s) => { const [a, b] = splitAmount(s); return b ? <li class={/\*/.test(s) ? "total" : ""}><span>{a}</span><bdi>{b}</bdi></li> : <li><span>{a}</span></li>; })}</ul>
+        <ul class="terms">{words.terms.filter((x) => x.trim()).map((x) => <li>{x.replace(/\*/g, "")}</li>)}</ul>
+      </div>}
+    </>}
+    {p.status === "cancelled" && <p class="w2-note warn">{t(lang, "w2_order_cancelled")}</p>}
+    {!waiting && <>
+      {p.handover_code && <div class="w2-handover"><Icon name="shield" /><div><p class="small">{t(lang, "w2_order_code")}</p><p class="w2-code">{p.handover_code}</p><p class="small">{t(lang, "w2_order_code_note")}</p></div></div>}
+      {timeline && <section><h2>{t(lang, "w2_order_steps")}</h2><Fragment set:html={(timeline as Raw).s} />
+        {!ended && (p.window ? <p>{t(lang, "w2_order_window", { when: windowWords(p.window, lang) ?? "" })}</p> : p.eta_minutes ? <p>{t(lang, "w2_order_eta", { n: p.eta_minutes })}</p> : null)}
+      </section>}
+      {(p.removed.length > 0 || p.substituted.length > 0) && <section><h2>{t(lang, "w2_order_changed")}</h2>
+        <ul>{p.removed.map((r: any) => <li>{t(lang, "w2_order_removed")} {nameIn(lang, r.name_en, r.name_ar)}</li>)}
+          {p.substituted.map((s: any) => <li>{t(lang, "w2_order_substituted", { name: nameIn(lang, s.name_en, s.name_ar), for: nameIn(lang, s.for_name_en, s.for_name_ar) })}</li>)}</ul></section>}
+      <section><h2>{t(lang, "w2_order_items")}</h2>
+        <dl class="w2-sums">
+          {p.lines.map((l: any) => <div><dt>{Number(l.qty)} × {nameIn(lang, l.name_en, l.name_ar)}</dt><dd><bdi>{usd(l.line_total_usd)}</bdi></dd></div>)}
+          <div><dt>{t(lang, "w2_delivery")}</dt><dd><bdi>{usd(p.totals.delivery_fee_usd)}</bdi></dd></div>
+          {Number(p.totals.small_order_fee_usd) > 0 && <div><dt>{t(lang, "w2_small_fee")}</dt><dd><bdi>{usd(p.totals.small_order_fee_usd)}</bdi></dd></div>}
+          {Number(p.totals.credit_usd) > 0 && <div><dt>{t(lang, "w2_credit")}</dt><dd><bdi>{usd(-Number(p.totals.credit_usd))}</bdi></dd></div>}
+          <div class="total"><dt>{t(lang, "w2_total")}</dt><dd><bdi>{usd(p.totals.total_usd)}</bdi></dd></div>
+          {p.totals.total_lbp && <div><dt>{t(lang, "w2_in_lira")}</dt><dd><bdi>{lbp(lang, p.totals.total_lbp)}</bdi></dd></div>}
+        </dl>
+      </section>
+    </>}
+    {chatPerson && <p><Button label={t(lang, "w2_order_person")} href={chatPerson} variant="whatsapp" icon="chat" external attrs={{ target: "_blank" }} /></p>}
+  </div>}
+</Base>

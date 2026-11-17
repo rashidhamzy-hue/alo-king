@@ -49,8 +49,11 @@ This keeps invariant 17 (the customer messaged us first), costs no SMS, and make
 | `/account` | Saved places, language, what we remember (show, forget, stop: the memory commands), sign out everywhere | `customer_memory_view`, `forget_customer_memory`, `set_memory_pref` | Forget on the web forgets in chat |
 | `/privacy`, `/terms` | The lawyer's text | none | Present in ar and en before launch |
 
-**Until the founder answers conflict register C1** (the wording of invariant 4), step 5 does not confirm on the page: it sends the
-order card to the customer's WhatsApp, and the tap there confirms, exactly as for a chat order. The page then shows the tracking view.
+**Confirmation (C1 as decided for WEB2, 17 November):** step 5 does not confirm on the page: it sends the order card to the customer's
+WhatsApp (through the gateway), and the tap there confirms, exactly as for a chat order. The page then shows the tracking view.
+**Built by WEB2 (17 November; `docs/HANDOFF.md`, WEB2):** `/cart`, `/signin`, `/checkout`, `/o/<code>?k=<signed link>`, `/orders`, `/account`, `/how`.
+Function names differ from the table above where the build reused C4's: `cart_set_line`, `cart_view`, `checkout_quote` and `web_place_order`
+(over `checkout_order`), `web_order_page`, `web_orders`, `web_order_again`, `web_account`, `web_save_pin`, `web_windows`, `web_service_facts`.
 
 Every confirmed web order gets the same WhatsApp status messages as a chat order, because the customer's code message opened
 the window; outside the window the approved utility templates apply. The website never sends a message itself: the gateway does (invariant 1).

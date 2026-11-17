@@ -8,6 +8,9 @@
 Latin:  Basic Latin, the French and Latin-1 letters, the punctuation and arrows the pages use.
 Arabic: the letters, marks and digits of Arabic as written in Lebanon (not the Persian, Urdu or Sindhi extensions), with the
         joining forms the shaper needs (kept by the subsetter through the font's own substitution tables).
+Figures (WEB2): what an Arabic page writes in Latin script and must not cost the whole Latin font: digits, prices, punctuation, codes
+        in capitals (AK-1042, ALO-7K3Q9P), the multiplication sign and dashes. An Arabic page's lower-case Latin (a brand name) uses
+        the phone's own font. About 2 KB a weight instead of 12.
 Two weights, 400 and 600. The output is committed (packages/ui/fonts); re-run only when the character list or the weights change.
 """
 import os, sys
@@ -24,7 +27,10 @@ LATIN = ("U+0020-007E,U+00A0,U+00A3,U+00A7,U+00A9,U+00AB,U+00AE,U+00B0,U+00B1,U+
 ARABIC = ("U+0020,U+00A0,U+00AB,U+00BB,U+060C,U+061B,U+061F,U+0621-063A,U+0640-0652,U+0660-0669,U+066A-066C,U+0670,U+200C-200F,"
           "U+2013,U+2014,U+2026,U+25CC")
 
+FIGURES = "U+0020-0040,U+0041-005A,U+005B-005F,U+00A0,U+00B7,U+00D7,U+2013,U+2014,U+2022,U+2026,U+2212"
+
 JOBS = [
+    ("ibm-plex-sans/files/ibm-plex-sans-latin-{w}-normal.woff2", "plex-figures-{w}.woff2", FIGURES, ["tnum"]),
     ("ibm-plex-sans/files/ibm-plex-sans-latin-{w}-normal.woff2", "plex-latin-{w}.woff2", LATIN, ["kern", "liga", "tnum", "pnum", "locl", "ccmp", "mark", "mkmk"]),
     ("ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-{w}-normal.woff2", "plex-arabic-{w}.woff2", ARABIC, ["*"]),
 ]

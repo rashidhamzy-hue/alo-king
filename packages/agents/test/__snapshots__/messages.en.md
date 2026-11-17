@@ -116,6 +116,13 @@ OMT transfer
 We'll bring change for a note of:
 ```
 
+## card.changeForLbp
+
+```text
+You pay in lira, with:
+2,000,000 LBP
+```
+
 ## card.prepayFirst
 
 ```text
@@ -1407,6 +1414,68 @@ We couldn't open the picture.
 Could you send the receipt photo again?
 ```
 
+## web.linked
+
+```text
+✅ Your number is confirmed.
+Go back to the website to finish your order.
+```
+
+## web.codeExpired
+
+```text
+This code has expired.
+Go back to the website and tap "Confirm your number on WhatsApp" again.
+```
+
+## web.codeUsed
+
+```text
+Another number already used this code.
+Go back to the website for a new one.
+```
+
+## web.codeUnknown
+
+```text
+We don't know this code.
+Go back to the website and tap "Confirm your number on WhatsApp" again.
+```
+
+## web.notSignedIn
+
+```text
+No device is signed in to the website with your number.
+```
+
+## web.cardUnknown
+
+```text
+We found no order of yours with that number.
+Tell me what you need and we'll help.
+```
+
+## web.signedOut.one
+
+```text
+✅ You are signed out of the website.
+Your orders and this chat stay as they are.
+```
+
+## web.signedOut.many
+
+```text
+✅ You are signed out of the website on every device.
+Your orders and this chat stay as they are.
+```
+
+## web.cardNotWaiting
+
+```text
+Order AK-1042 is no longer waiting for your Confirm.
+Ask me here if you want to know where it is.
+```
+
 ## honest.notCarried
 
 ```text
@@ -1678,6 +1747,12 @@ Pickup isn't available yet, so we'll deliver to your home.
 If an item is missing: we put the closest match
 ```
 
+## cx.missingItemLine.best_match
+
+```text
+Labneh 500 g: we put the closest match
+```
+
 ## cx.missingRow.best_match
 
 ```text
@@ -1696,6 +1771,12 @@ Closest match
 If an item is missing: we ask you
 ```
 
+## cx.missingItemLine.ask
+
+```text
+Labneh 500 g: we ask you
+```
+
 ## cx.missingRow.ask
 
 ```text
@@ -1712,6 +1793,12 @@ Ask me
 
 ```text
 If an item is missing: we take it off
+```
+
+## cx.missingItemLine.remove
+
+```text
+Labneh 500 g: we take it off
 ```
 
 ## cx.missingRow.remove

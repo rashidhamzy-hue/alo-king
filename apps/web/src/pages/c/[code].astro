@@ -5,6 +5,7 @@
 // give it yet (docs/HANDOFF.md, DS1): pack size as a number, and popularity.
 import Base from "../../layouts/Base.astro";
 import Card from "../../components/Card.astro";
+import CardKit from "../../components/CardKit.astro";
 import Unavailable from "../../components/Unavailable.astro";
 import Button from "@ak/ui-astro/Button.astro";
 import Icon from "@ak/ui-astro/Icon.astro";
@@ -34,12 +35,21 @@ const sections = sort
   ? [{ title_en: null, title_ar: null, items: everything.filter(keep).sort((a, b) => (sort === "price_asc" ? 1 : -1) * (Number(a.price_usd) - Number(b.price_usd))) }]
   : all.map((s) => ({ ...s, items: s.items.filter(keep) })).filter((s) => s.items.length > 0);
 const count = sections.reduce((a, s) => a + s.items.length, 0);
+// WEB2: at most PAGE cards a page (docs/WEBSITE.md: a page under 100 KB with its fonts on a first visit; the longest aisle had 30-odd cards).
+// The filters and the sort apply to the whole aisle first; the shelf's sub-groups keep their titles across pages.
+const PAGE = 24;
+const pages = Math.max(1, Math.ceil(count / PAGE));
+const pageNo = Math.min(pages, Math.max(1, Number.parseInt(p.get("page") ?? "1", 10) || 1));
+let skip = (pageNo - 1) * PAGE, room = PAGE;
+const shown = sections.map((s) => { const take = s.items.slice(Math.min(skip, s.items.length)).slice(0, room); skip = Math.max(0, skip - s.items.length); room -= take.length; return { ...s, items: take }; })
+  .filter((s) => s.items.length > 0);
+const pageHref = (n: number) => { const u = new URLSearchParams(p); u.delete("added"); if (n > 1) u.set("page", String(n)); else u.delete("page"); const q = u.toString(); return `${Astro.url.pathname}${q ? `?${q}` : ""}`; };
 const anyCredit = sections.some((s) => s.items.some((i) => i.picture?.licence === "cc_by_sa"));
 const title = r && r.ok ? nameIn(lang, r.category.name_en, r.category.name_ar) : t(lang, "not_found");
 const whatsapp = r && r.ok ? r.whatsapp : null;
-if (filtered) Astro.response.headers.set("Cache-Control", "no-store");
+if (filtered || p.has("page")) Astro.response.headers.set("Cache-Control", "no-store");
 // The list data for search engines: what this page lists, in its order (LD1).
-const jsonld = r && r.ok ? [categoryJsonLd(lang, { name: title, path: Astro.url.pathname, cards: sections.flatMap((s) => s.items) }, Astro.url.origin)] : [];
+const jsonld = r && r.ok ? [categoryJsonLd(lang, { name: title, path: Astro.url.pathname, cards: shown.flatMap((s) => s.items) }, Astro.url.origin)] : [];
 ---
 <Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(whatsapp)} jsonld={jsonld}>
   {failed ? <Unavailable lang={lang} /> : !r || !r.ok ? <Unavailable lang={lang} notFound /> : <>
@@ -58,12 +68,18 @@ const jsonld = r && r.ok ? [categoryJsonLd(lang, { name: title, path: Astro.url.
     </form>
     <p class="muted">{filtered ? t(lang, "items_of", { n: count, total }) : t(lang, "items", { n: total })}</p>
     {count === 0 && <Empty title={t(lang, "filter_none")} icon="search" />}
-    {sections.map((s) => (
+    {count > 0 && <CardKit />}
+    {shown.map((s) => (
       <section>
         {(s.title_en || s.title_ar) && <h2 class="sec-title">{nameIn(lang, s.title_en, s.title_ar)}</h2>}
         <ul class="ak-grid">{s.items.map((item) => <Card item={item} lang={lang} env={env} whatsapp={whatsapp} />)}</ul>
       </section>
     ))}
+    {pages > 1 && <nav class="pager" aria-label={t(lang, "w2_page_n", { n: pageNo, total: pages })}>
+      {pageNo > 1 && <a class="ak-btn ak-btn--ghost" href={pageHref(pageNo - 1)} rel="prev">{t(lang, "w2_page_prev")}</a>}
+      <span class="muted">{t(lang, "w2_page_n", { n: pageNo, total: pages })}</span>
+      {pageNo < pages && <a class="ak-btn ak-btn--soft" href={pageHref(pageNo + 1)} rel="next">{t(lang, "w2_page_next")}</a>}
+    </nav>}
     {anyCredit && <p class="muted small credit">{t(lang, "credit_pictures")}</p>}
   </>}
 </Base>

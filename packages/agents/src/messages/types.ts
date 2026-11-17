@@ -68,6 +68,8 @@ export interface Messages {
     payment: (method: PayMethod) => S;
     payName: Record<PayMethod, S>;
     changeFor: S;
+    /** WEB2: cash in lira; the amount the customer will hand over, on the next line (in LBP). */
+    changeForLbp: S;
     prepayFirst: (how: S, cap: number) => S;
     prepay: (how: S) => S;
     replaces: (code: S) => S;
@@ -191,6 +193,23 @@ export interface Messages {
   };
 
   payment: { proofReceived: (code: S) => S; proofResend: S };
+  /** WEB2: the website's sign-in and its card, answered by code before any model (turn.ts). */
+  web: {
+    /** The link code arrived from this number: the website is signed in. */
+    linked: S;
+    /** The code is older than its minutes, or its website session ended. */
+    codeExpired: S;
+    /** Another number already used this code. */
+    codeUsed: S;
+    /** We do not know this code. */
+    codeUnknown: S;
+    /** "Sign out": every website session of this number ended (n of them), or none was signed in. */
+    signedOut: (n: number) => S;
+    notSignedIn: S;
+    /** "Card AK-xxxx" for an order that no longer waits for its Confirm, or that is not theirs. */
+    cardNotWaiting: (code: S) => S;
+    cardUnknown: S;
+  };
 
   /**
    * CX1 (the customer pack, docs/strategy/02 section 1 and 03 section B): the first-ever welcome with its privacy line, the card's two
@@ -205,6 +224,8 @@ export interface Messages {
     orderAsk: S; areaAsk: S;
     /** On the card: what happens if an item is missing, and the note for cash. */
     missingLine: (pref: "best_match" | "ask" | "remove") => S;
+    /** WEB2: an item whose own missing-item choice differs from the order's (chosen on the website's checkout). */
+    missingItemLine: (name: S, pref: "best_match" | "ask" | "remove") => S;
     keepLine: S;
     /** The list under the confirmation: its button, sections and rows (WhatsApp: titles of at most 24 characters). */
     choicesButton: S; choicesMissing: S; choicesNote: S; choicesOrder: S;

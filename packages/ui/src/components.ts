@@ -16,9 +16,12 @@ const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boo
 
 // ---------- icon ----------
 /** A Lucide icon. With `label` it is read out; without, it is decoration beside words. `flip` mirrors a forward arrow in right-to-left; `back` makes it a back arrow in both. */
-export function icon(name: IconName, opts: { label?: string; flip?: boolean; back?: boolean; cls?: string } = {}): Raw {
-  return html`<svg class="${cx("ak-icon", opts.flip && "ak-icon--flip", opts.back && "ak-icon--back", opts.cls)}" viewBox="0 0 24 24"${opts.label ? attr("role", "img") : attr("aria-hidden", "true")}${attr("aria-label", opts.label)}>${new Raw(ICONS[name])}</svg>`;
+export function icon(name: IconName, opts: { label?: string; flip?: boolean; back?: boolean; cls?: string; ref?: boolean } = {}): Raw {
+  return html`<svg class="${cx("ak-icon", opts.flip && "ak-icon--flip", opts.back && "ak-icon--back", opts.cls)}" viewBox="0 0 24 24"${opts.label ? attr("role", "img") : attr("aria-hidden", "true")}${attr("aria-label", opts.label)}>${opts.ref ? html`<use href="#ak-i-${name}"></use>` : new Raw(ICONS[name])}</svg>`;
 }
+/** WEB2: the icons a long list repeats, drawn once at the top of the page; `icon(name, { ref: true })` points at them (a lighter page). */
+export const iconSprite = (names: IconName[]): Raw =>
+  html`<svg class="ak-sprite" hidden aria-hidden="true">${names.map((n) => html`<symbol id="ak-i-${n}" viewBox="0 0 24 24">${new Raw(ICONS[n])}</symbol>`)}</svg>`;
 
 // ---------- button ----------
 /** `whatsapp` is for a WhatsApp action and nothing else (the brand rule); `gold` is the one most important action of a screen. */
@@ -221,8 +224,11 @@ export interface ProductCardOpts {
   unitPrice?: { amount: string; per: string } | null;
   picture: { src: string; width: number; height: number } | null;
   labels: { inStock: string; outOfStock: string; noPicture: string };
-  /** The one-tap action. Until the cart exists (WEB2) it is "order this on WhatsApp"; then it becomes "add". */
-  action?: { href: string; label: string; icon: IconName; external?: boolean } | null;
+  /** The one-tap action: a link ("order this on WhatsApp"), or, since WEB2, a button of the page's one form (`form` is its id) that posts
+   *  `name=value` with no script (add to the basket). The page draws the form once, so each card carries only its button. */
+  action?: { href: string; label: string; icon: IconName; external?: boolean } | { submit: { form: string; name: string; value: string }; label: string; icon: IconName } | null;
+  /** WEB2: the card's icons point at the page's sprite (iconSprite) instead of each drawing its own. */
+  iconRefs?: boolean;
   /** schema.org Product microdata (no script): the shop's pages set it, the gallery does not. */
   microdata?: { sku: string; brand?: string | null; priceUsd: number };
 }
@@ -230,9 +236,11 @@ export function productCard(o: ProductCardOpts): Raw {
   const md = o.microdata;
   return html`<li class="${cx("ak-product", !o.inStock && "ak-product--out")}"${md ? new Raw(' itemscope itemtype="https://schema.org/Product"') : ""}><a class="cover" href="${o.href}"${md ? new Raw(' itemprop="url"') : ""}>${o.picture
     ? html`<img class="pic" src="${o.picture.src}" alt="" loading="lazy" decoding="async" width="${o.picture.width}" height="${o.picture.height}"${md ? new Raw(' itemprop="image"') : ""}>`
-    : html`<span class="ph" role="img" aria-label="${o.labels.noPicture}">${icon("image")}</span>`}
+    : html`<span class="ph" role="img" aria-label="${o.labels.noPicture}">${icon("image", { ref: o.iconRefs })}</span>`}
 <span class="body"><span class="price"><bdi>${o.price}</bdi></span><span class="name"${md ? new Raw(' itemprop="name"') : ""}>${o.name}</span>${o.meta || o.unitPrice ? html`<span class="meta">${o.meta ?? ""}${o.unitPrice ? html`${o.meta ? " · " : ""}<bdi>${o.unitPrice.amount}</bdi>/${o.unitPrice.per}` : ""}</span>` : ""}${o.inStock ? badge(o.labels.inStock, "ok") : badge(o.labels.outOfStock, "warn")}</span></a>
-<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}${o.action ? button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external }) : ""}</div></li>`;
+<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}${o.action ? ("submit" in o.action
+    ? html`<button class="ak-btn ak-btn--primary ak-btn--icon add" form="${o.action.submit.form}" name="${o.action.submit.name}" value="${o.action.submit.value}">${icon(o.action.icon, { ref: o.iconRefs })}<span class="ak-sr">${o.action.label}</span></button>`
+    : button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external })) : ""}</div></li>`;
 }
 
 // ---------- cart bar ----------
