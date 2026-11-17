@@ -27,6 +27,7 @@ const D = {
   nav_dispatch: { en: "Dispatch", ar: "التوزيع" },
   nav_intake: { en: "Intake", ar: "التصوير" },
   g_money: { en: "Money", ar: "المال" },
+  g_riders: { en: "Riders", ar: "المناديب" },
   g_settings: { en: "Settings", ar: "الإعدادات" },
   // command bar, bell, theme
   cmd_open: { en: "Search or jump to", ar: "ابحث أو انتقل إلى" },
@@ -140,9 +141,9 @@ export function t(lang: Lang, key: Key, vars: Record<string, string | number> = 
 export const NAV_AR: Record<string, string> = {
   "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور",
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
-  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المستودع", "/payments": "المدفوعات",
-  "/fx": "سعر الصرف", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
-  "/riders": "المناديب والنقد", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام",
+  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "المال", "/payments": "المدفوعات",
+  "/fx": "سعر الصرف", "/approve": "الموافقات", "/settings": "الإعدادات", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
+  "/riders": "المناديب", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام",
 };
 
 /** Inline pair for a short string that belongs to one page (a table heading, a status word). The long, shared ones are in the dictionary above. */

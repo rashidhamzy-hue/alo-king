@@ -22,12 +22,12 @@ describe("Cash and riders", () => {
     const b = r.browser();
     await b.signIn(lead);
 
-    let page = (await b.get("/riders")).text;
+    let page = (await b.get("/money/drops")).text;
     expect(page).toContain("Rami");
     expect(page).toContain(`$${o.fee.toFixed(2)}`);                     // the rider's earnings: the delivery fee
 
     const tooMuch = await r.db.rpc("declare_cash_drop", { p_driver: rider, p_method: "hub", p_usd: o.total + 50, p_lbp: 0 });
-    await b.get("/riders");
+    await b.get("/money/drops");
     expect(flashOf((await b.post(`/riders/drop/${tooMuch}`)).text)).toContain("more than the rider holds");
 
     const end1 = await b.post(`/riders/${rider}/end-shift`);
@@ -45,7 +45,7 @@ describe("Cash and riders", () => {
       await expect(r.db.rpc("confirm_cash_drop", { p_drop: drop, p_by: who })).rejects.toThrow(/NOT_AUTHORISED/);
     }
     expect((await r.db.one(`select status from cash_drops where id = $1`, [drop])).status).toBe("declared");
-    page = (await b.get("/riders")).text;
+    page = (await b.get("/money/drops")).text;
     expect(page).toContain(`$${hand.toFixed(2)} + 0 LBP`);
     const ok = await b.post(`/riders/drop/${drop}`);
     expect(flashOf(ok.text)).toBe("Drop confirmed. The rider still holds $0.00 in value.");
@@ -73,7 +73,7 @@ describe("Cash and riders", () => {
     const lead = await r.staff("admin");
     const b = r.browser();
     await b.signIn(lead);
-    await b.get("/riders");
+    await b.get("/money/drops");
     const before = r.kapso.length;
     const res = await b.post(`/riders/${other}/statement`);
     expect(flashOf(res.text)).toMatch(/^Not sent: /);
@@ -84,6 +84,6 @@ describe("Cash and riders", () => {
     const picker = await r.staff("picker");
     const b = r.browser();
     await b.signIn(picker);
-    expect((await b.get("/riders")).status).toBe(403);
+    expect((await b.get("/money/drops")).status).toBe(403); expect((await b.get("/riders")).status).toBe(403);
   });
 });

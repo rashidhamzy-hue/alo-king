@@ -8,13 +8,18 @@
 // to take it back and says to charge goodwill instead. Every form's one-time key is the function's request key (a double tap is one refund).
 import { act, html, num, render, text, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, usd, when } from "../html";
+import { pick } from "../i18n";
 import { LEADS } from "../roles";
+import { moneyTabs } from "./moneyframe";
+import { button, empty, input, select } from "@ak/ui/components";
 
 export const CHARGES = ["goods", "delivery_fee", "small_order_fee", "goodwill"] as const;
 export const REASONS = ["missing_item", "damaged", "wrong_item", "late", "order_cancelled", "other"] as const;
 const SETTLE = ["credit", "cash", "whish", "omt"] as const;
 const CHARGE_WORDS: Record<string, string> = { goods: "goods (reverses the sale)", delivery_fee: "delivery fee (only before the order closes)",
   small_order_fee: "small-order fee", goodwill: "goodwill (a company cost)" };
+
+const CHARGE_AR: Record<string, string> = { goods: "البضاعة (يعكس البيع)", delivery_fee: "رسم التوصيل (قبل إغلاق الطلب فقط)", small_order_fee: "رسم الطلب الصغير", goodwill: "حسن نية (تكلفة على الشركة)" };
 
 type Order = { id: string; short_code: string; status: string; customer_id: string; total_usd: string | number; subtotal_usd: string | number;
   delivery_fee_usd: string | number; small_order_fee_usd: string | number; payment_method: string; created_at: string };
@@ -39,13 +44,14 @@ async function customersOwed(c: Ctx) {
 
 async function page(c: Ctx) {
   const { db } = c.deps;
+  const L = c.lang;
   const code = (c.url.searchParams.get("order") ?? "").trim().toUpperCase().slice(0, 20);
   let order: Order | null = null;
   let body: unknown = "";
   if (code) {
     order = (await db.rows<Order>("orders", { select: "id,short_code,status,customer_id,total_usd,subtotal_usd,delivery_fee_usd,small_order_fee_usd,payment_method,created_at",
       where: { short_code: code }, limit: 1 }))[0] ?? null;
-    if (!order) body = html`<p class="flash err">No order ${code}.</p>`;
+    if (!order) body = html`<p class="flash err">${pick(L, `No order ${code}.`, `لا يوجد طلب ${code}.`)}</p>`;
   }
   if (order) {
     const [items, paid, view] = await Promise.all([
@@ -56,38 +62,38 @@ async function page(c: Ctx) {
     const paidUsd = paid.reduce((s, p) => s + Number(p.amount_usd), 0);
     const mine = view.refunds.filter((r) => r.order === order!.short_code);
     const open = !["closed", "cancelled", "returned", "failed_delivery"].includes(order.status) && paidUsd === 0;
-    body = html`
+    body = html`<section class="ak-card">
 <h2>${order.short_code} · ${order.status}</h2>
-<p>Total ${usd(order.total_usd)} (goods ${usd(order.subtotal_usd)}, delivery fee ${usd(order.delivery_fee_usd)}${Number(order.small_order_fee_usd) ? html`, small-order fee ${usd(order.small_order_fee_usd)}` : ""}) ·
-paid ${paidUsd > 0 ? usd(paidUsd) : html`<strong class="warn">nothing yet</strong>`} (${order.payment_method}) · placed ${when(order.created_at)}</p>
-<table><tr><th>Item</th><th>Qty</th><th>Price</th><th>Line</th></tr>
-${items.map((i) => html`<tr><td>${i.name_snapshot}${i.status === "ok" ? "" : html` <span class="muted">(${i.status})</span>`}</td><td>${Number(i.qty)}</td><td>${usd(i.unit_price_usd)}</td><td>${i.status === "ok" ? usd(Number(i.qty) * Number(i.unit_price_usd)) : ""}</td></tr>`)}</table>
-<p>Refunded on this order: ${mine.length ? mine.map((r) => html`${usd(r.amount_usd)} ${r.charged_to} (${r.reason}, ${r.settle}) `) : "nothing"} ·
-the customer's credit: ${usd(view.balance_usd)} owed, ${usd(view.available_usd)} free to use.</p>
-${paidUsd > 0 ? html`<h3>Refund</h3>
-<p class="muted">Only money that was paid can be refunded. An unpaid order is corrected, not refunded.</p>
+<p>${pick(L, "Total", "المجموع")} ${usd(order.total_usd)} (${pick(L, "goods", "البضاعة")} ${usd(order.subtotal_usd)}, ${pick(L, "delivery fee", "رسم التوصيل")} ${usd(order.delivery_fee_usd)}${Number(order.small_order_fee_usd) ? html`, ${pick(L, "small-order fee", "رسم الطلب الصغير")} ${usd(order.small_order_fee_usd)}` : ""}) ·
+${pick(L, "paid", "المدفوع")} ${paidUsd > 0 ? usd(paidUsd) : html`<strong class="warn">${pick(L, "nothing yet", "لا شيء بعد")}</strong>`} (${order.payment_method}) · ${pick(L, "placed", "وقت الطلب")} ${when(order.created_at)}</p>
+<div class="ak-table-wrap"><table class="ak-table"><caption class="ak-sr">${pick(L, "Items", "البنود")}</caption><thead><tr><th scope="col">${pick(L, "Item", "الصنف")}</th><th scope="col" class="num">${pick(L, "Qty", "الكمية")}</th><th scope="col" class="num">${pick(L, "Price", "السعر")}</th><th scope="col" class="num">${pick(L, "Line", "السطر")}</th></tr></thead><tbody>
+${items.map((i) => html`<tr><td>${i.name_snapshot}${i.status === "ok" ? "" : html` <span class="muted">(${i.status})</span>`}</td><td class="num">${Number(i.qty)}</td><td class="num">${usd(i.unit_price_usd)}</td><td class="num">${i.status === "ok" ? usd(Number(i.qty) * Number(i.unit_price_usd)) : ""}</td></tr>`)}</tbody></table></div>
+<p>${pick(L, "Refunded on this order:", "المُسترد على هذا الطلب:")} ${mine.length ? mine.map((r) => html`${usd(r.amount_usd)} ${r.charged_to} (${r.reason}, ${r.settle}) `) : pick(L, "nothing", "لا شيء")} ·
+${pick(L, "the customer's credit:", "رصيد الزبون:")} ${usd(view.balance_usd)} ${pick(L, "owed", "مستحق")}, ${usd(view.available_usd)} ${pick(L, "free to use", "حرّ للاستعمال")}.</p></section>
+${paidUsd > 0 ? html`<section class="ak-card"><h3>${pick(L, "Refund", "استرداد")}</h3>
+<p class="muted">${pick(L, "Only money that was paid can be refunded. An unpaid order is corrected, not refunded.", "يُستردّ المال المدفوع فقط. الطلب غير المدفوع يُصحَّح ولا يُسترد.")} ${pick(L, "A refund above the limit waits for a second person.", "الاسترداد فوق الحد ينتظر شخصاً ثانياً.")}</p>
 ${form(c.f, `/refunds/${order.id}`, html`
-<p><label>Amount USD <input type="number" name="amount_usd" step="0.01" min="0.01" required></label>
-<label>Charged to <select name="charged_to">${CHARGES.map((x) => html`<option value="${x}">${CHARGE_WORDS[x]}</option>`)}</select></label>
-<label>Reason <select name="reason">${REASONS.map((x) => html`<option>${x}</option>`)}</select></label>
-<label>Item <select name="item"><option value="">(whole order)</option>${items.filter((i) => i.status === "ok").map((i) => html`<option value="${i.id}">${i.name_snapshot}</option>`)}</select></label></p>
-<p><label>Give it back as <select name="settle">${SETTLE.map((x) => html`<option>${x}</option>`)}</select></label>
-<label>Transfer reference (Whish, OMT) <input name="ref" maxlength="60"></label>
-<label>Note <input name="note" maxlength="300"></label> <button>Refund</button></p>`)}` : ""}
-${open && Number(view.available_usd) > 0.004 ? html`<h3>Use credit on this order</h3>
-${form(c.f, `/refunds/${order.id}/apply`, html`<button>Take ${usd(Math.min(Number(view.available_usd), Number(order.total_usd)))} off this order</button>`)}` : ""}`;
+<div class="ak-money-fields">${input({ name: "amount_usd", label: pick(L, "Amount USD", "المبلغ بالدولار"), type: "number", required: true, attrs: { step: "0.01", min: "0.01", inputmode: "decimal" } })}
+${select({ name: "charged_to", label: pick(L, "Charged to", "يُحمَّل على"), options: CHARGES.map((x) => ({ value: x, label: (L === "ar" ? CHARGE_AR[x] : CHARGE_WORDS[x])! })) })}
+${select({ name: "reason", label: pick(L, "Reason", "السبب"), options: REASONS.map((x) => ({ value: x, label: x })) })}
+${select({ name: "item", label: pick(L, "Item", "الصنف"), options: [{ value: "", label: pick(L, "(whole order)", "(الطلب كله)") }, ...items.filter((i) => i.status === "ok").map((i) => ({ value: i.id, label: i.name_snapshot }))] })}
+${select({ name: "settle", label: pick(L, "Give it back as", "يُعاد عبر"), options: SETTLE.map((x) => ({ value: x, label: x })) })}
+${input({ name: "ref", label: pick(L, "Transfer reference (Whish, OMT)", "مرجع التحويل (Whish، OMT)"), maxlength: 60 })}${input({ name: "note", label: pick(L, "Note", "ملاحظة"), maxlength: 300 })}</div>
+<div class="actions-row">${button({ label: pick(L, "Refund", "استرد"), variant: "gold", icon: "check" })}</div>`)}</section>` : ""}
+${open && Number(view.available_usd) > 0.004 ? html`<section class="ak-card"><h3>${pick(L, "Use credit on this order", "استعمل الرصيد على هذا الطلب")}</h3>
+${form(c.f, `/refunds/${order.id}/apply`, html`<div class="actions-row">${button({ label: pick(L, `Take ${usd(Math.min(Number(view.available_usd), Number(order.total_usd)))} off this order`, `اخصم ${usd(Math.min(Number(view.available_usd), Number(order.total_usd)))} من هذا الطلب`), icon: "check" })}</div>`)}</section>` : ""}`;
   }
   const owed = await customersOwed(c);
-  return render(c, "Refunds and credit", html`
-<form method="get" action="/refunds"><label>Order <input name="order" value="${code}" placeholder="AK-1234" maxlength="20"></label> <button>Open</button></form>
+  return render(c, pick(L, "Refunds and credit", "المبالغ المستردة والرصيد"), html`${await moneyTabs(c, "refunds")}
+<form method="get" action="/refunds" class="ak-filters"><label class="ak-field ak-field--grow"><span>${pick(L, "Order", "الطلب")}</span><input class="ak-input" name="order" value="${code}" placeholder="AK-1234" maxlength="20"></label> ${button({ label: pick(L, "Open", "افتح"), icon: "search" })}</form>
 ${body}
-<h2>Customers we owe (${owed.length})</h2>
-${owed.length === 0 ? html`<p class="muted">Nobody.</p>` : html`<table><tr><th>Customer</th><th>Owed</th><th>Free to use</th><th>Last refunds</th><th>Pay out</th></tr>
+<h2>${pick(L, `Customers we owe (${owed.length})`, `زبائن لهم عندنا (${owed.length})`)}</h2>
+${owed.length === 0 ? empty({ title: pick(L, "Nobody.", "لا أحد."), ok: true, icon: "check" }) : html`<div class="ak-table-wrap"><table class="ak-table"><tr><th>${pick(L, "Customer", "الزبون")}</th><th>${pick(L, "Owed", "المستحق")}</th><th>${pick(L, "Free to use", "الحرّ للاستعمال")}</th><th>${pick(L, "Last refunds", "آخر المبالغ المستردة")}</th><th>${pick(L, "Pay out", "ادفع")}</th></tr>
 ${owed.map((x) => html`<tr><td>${x.name}</td><td>${usd(x.view.balance_usd)}</td><td>${usd(x.view.available_usd)}</td>
 <td>${x.view.refunds.slice(0, 3).map((r) => html`${r.order} ${usd(r.amount_usd)} (${r.reason})<br>`)}</td>
-<td>${Number(x.view.available_usd) > 0.004 ? form(c.f, `/credit/${x.id}/pay`, html`<input type="number" name="amount_usd" step="0.01" min="0.01" max="${Number(x.view.available_usd).toFixed(2)}" value="${Number(x.view.available_usd).toFixed(2)}" required>
-<select name="method"><option>cash</option><option>whish</option><option>omt</option></select> <input name="ref" placeholder="reference" maxlength="60"> <button>Pay out</button>`)
-  : html`<span class="muted">taken off an open order</span>`}</td></tr>`)}</table>`}`);
+<td class="wrap">${Number(x.view.available_usd) > 0.004 ? form(c.f, `/credit/${x.id}/pay`, html`<input class="ak-input" type="number" name="amount_usd" step="0.01" min="0.01" max="${Number(x.view.available_usd).toFixed(2)}" value="${Number(x.view.available_usd).toFixed(2)}" required aria-label="${pick(L, "Amount USD", "المبلغ بالدولار")}">
+<select class="ak-select" name="method" aria-label="${pick(L, "How", "كيف")}"><option>cash</option><option>whish</option><option>omt</option></select> <input class="ak-input" name="ref" placeholder="${pick(L, "reference", "المرجع")}" aria-label="${pick(L, "reference", "المرجع")}" maxlength="60"> ${button({ label: pick(L, "Pay out", "ادفع"), icon: "check" })}`)
+  : html`<span class="muted">${pick(L, "taken off an open order", "خُصم من طلب مفتوح")}</span>`}</td></tr>`)}</table></div>`}`, { translated: true });
 }
 
 async function refund(c: Ctx) {

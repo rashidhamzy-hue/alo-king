@@ -14,16 +14,17 @@ export interface NavLink { href: string; label: string; badge: number; current: 
 export interface NavGroup { id: string; heading: string | null; icon: IconName; hubHref: string | null; links: NavLink[]; badge: number; current: boolean }
 export interface Nav { bottom: (NavLink & { icon: IconName })[]; groups: NavGroup[] }
 
-type GroupId = "today" | "inbox" | "orders" | "approve" | "stock" | "money" | "settings";
+type GroupId = "today" | "inbox" | "orders" | "approve" | "stock" | "money" | "riders" | "settings";
 /** Which group shows which pages, in order. `hub` is the page a phone opens for the group (the sidebar needs none). */
 export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null; hrefs: string[]; /** Pages merged into the group's one page as a tab (section A): no link of their own, but the group is current on them. */ also?: string[] }[] = [
   { id: "today", key: "nav_today", icon: "home", hub: null, hrefs: ["/"], also: ["/exceptions"] },
   { id: "inbox", key: "nav_inbox", icon: "inbox", hub: null, hrefs: ["/inbox"], also: ["/cases"] },
   { id: "orders", key: "nav_orders", icon: "orders", hub: null, hrefs: ["/orders"] },
-  { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approvals", "/names", "/pictures", "/food-facts", "/intake", "/label-queue", "/search-words", "/auto-approvals", "/listings"] },
+  { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approve", "/approvals", "/names", "/pictures", "/food-facts", "/intake", "/label-queue", "/search-words", "/auto-approvals", "/listings"] },
   { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/capture", "/catalog", "/readiness", "/receiving", "/returns"] },
-  { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/day-open", "/day-close", "/payments", "/refunds", "/riders", "/rider-jobs", "/money", "/fx"], also: ["/rider-incidents"] },
-  { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/zones", "/windows", "/staff", "/templates"] },
+  { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/money", "/payments", "/refunds", "/day-open", "/day-close", "/fx"], also: ["/money/drops"] },
+  { id: "riders", key: "g_riders", icon: "bike", hub: "/more", hrefs: ["/riders", "/rider-jobs"], also: ["/rider-incidents"] },
+  { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/settings", "/zones", "/windows", "/staff", "/templates"] },
 ];
 /** Pages that keep their route and are in no menu (section A: "Hide until the first vendor"). */
 export const HIDDEN = ["/merchants"];

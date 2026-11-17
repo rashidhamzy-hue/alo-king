@@ -15,6 +15,7 @@ import { DbError } from "../db";
 import { Raw, form } from "../html";
 import { pick } from "../i18n";
 import { ALL } from "../roles";
+import { intakeTabs } from "./intakeframe";
 
 type Shots = { front: boolean; back: boolean; side: boolean; done: boolean };
 type Item = { product_id: string; sku: string; name_en: string; name_ar: string | null; barcode: string | null; has_barcode: boolean; aisle: string; done: boolean; shots: Shots };
@@ -86,7 +87,7 @@ ${thumbs[s] ? html`<p><a href="${thumbs[s]!}"><img class="proof cap-thumb" src="
 <video data-scan-video class="cap-video" playsinline muted hidden></video><p class="note" data-scan-note hidden></p>
 <p><a class="ak-btn" href="/capture/list">${pick(L, "Pick from the list", "اختر من القائمة")}</a></p>`;
 
-  const body = html`<div data-capture${item ? new Raw(` data-product="${item.product_id}" data-next="/capture/next?after=${item.product_id}"`) : ""}${attrs}>
+  const body = html`${intakeTabs(c, "photograph")}<div data-capture${item ? new Raw(` data-product="${item.product_id}" data-next="/capture/next?after=${item.product_id}"`) : ""}${attrs}>
 ${note ? html`<p class="note">${note}</p>` : ""}
 ${counter}
 <div class="note" data-pending hidden><span data-pending-text></span> <button type="button" data-retry hidden>${pick(L, "Send again", "أرسل من جديد")}</button></div>
@@ -121,7 +122,7 @@ async function list(c: Ctx) {
     ? pick(L, `${items.length} items, in shelf order. A tick means front and back are done.`, `${items.length} منتجاً بترتيب الرفوف. العلامة تعني أن الواجهة والخلف تم تصويرهما.`)
     : pick(L, `${items.length} items to pick from the list: they have no barcode, or only the store's own code, so the camera cannot find them.`,
            `${items.length} منتجاً للاختيار من القائمة: بلا باركود أو بباركود المتجر الداخلي فقط، فلا تجدها الكاميرا.`);
-  return render(c, pick(L, "Pick an item", "اختر منتجاً"), html`<p><a class="ak-btn" href="/capture">${pick(L, "Back to the photographing", "العودة إلى التصوير")}</a></p>
+  return render(c, pick(L, "Pick an item", "اختر منتجاً"), html`${intakeTabs(c, "photograph")}<p><a class="ak-btn" href="/capture">${pick(L, "Back to the photographing", "العودة إلى التصوير")}</a></p>
 <p>${intro}</p>
 <form method="get" action="/capture/list" class="cap-find">${all ? html`<input type="hidden" name="all" value="1">` : ""}<label>${pick(L, "Find by name, SKU or aisle", "ابحث بالاسم أو الرمز أو الممر")} <input name="q" value="${q}" maxlength="60"></label> <button>${pick(L, "Find", "ابحث")}</button></form>
 <p>${all ? html`<a href="/capture/list">${pick(L, "Only the items the camera cannot find", "فقط ما لا تجده الكاميرا")}</a>` : html`<a href="/capture/list?all=1">${pick(L, "All items", "كل المنتجات")}</a>`}</p>

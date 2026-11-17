@@ -72,7 +72,7 @@ describe("Cash and riders", () => {
     await r.db.rpc("confirm_payment", { p_order: pre.id, p_by: lead.partyId, p_external_ref: "WH-F1-PRE", p_amount_usd: pre.total });
     await deliver(r.db, pre.id, rider);
     expect(await drawerUsd(r.db)).toBe(0);
-    await b.get("/riders");
+    await b.get("/money/drops");
     let res = await b.post(`/riders/${rider}/pay`);
     expect(flashOf(res.text)).toBe("Not paid: the rider's cash does not cover their earnings and the drawer does not hold the rest by the books. Confirm a cash drop first, then pay.");
 
@@ -80,14 +80,14 @@ describe("Cash and riders", () => {
     const cod = await placeOrder(r.db, village, "cod");
     await deliver(r.db, cod.id, rider);
     await r.db.rpc("rider_collect", { p_order: cod.id, p_driver: rider, p_usd: Number((cod.total - 0.6).toFixed(2)), p_lbp: 0 });
-    let page = (await b.get("/riders")).text;
+    let page = (await b.get("/money/drops")).text;
     expect(page).toContain("short $0.60 · <strong>owes $0.60</strong>");
 
     // The cash comes in; now the earnings are paid, and a damaged note in the drop is recorded once.
     await dropAtHub(r.db, rider, lead.partyId);
     res = await b.post(`/riders/${rider}/pay`);
     expect(flashOf(res.text)).toMatch(/^Paid\./);
-    page = (await b.get("/riders")).text;
+    page = (await b.get("/money/drops")).text;
     expect(page).toContain("Record damaged note");
     const drop = (await r.db.one(`select id from cash_drops where driver_id = $1 and status = 'confirmed'`, [rider])).id;
     const key = "damaged-note-form-1";                      // the form's key: the same form sent twice is one note

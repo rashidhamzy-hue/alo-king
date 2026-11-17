@@ -2,6 +2,8 @@
 import type { Section } from "../app";
 import { casesSection } from "./cases";
 import { approvalsSection } from "./approvals";
+import { approveSection } from "./approve";
+import { settingsSection } from "./settings";
 import { catalogSection } from "./catalog";
 import { dayCloseSection } from "./dayclose";
 import { dayOpenSection } from "./dayopen";
@@ -38,4 +40,4 @@ import { captureSection } from "./capture";
 import { labelQueueSection } from "./labelqueue";
 import { listingsSection } from "./listings";
 
-export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection];
+export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, approveSection, settingsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection];

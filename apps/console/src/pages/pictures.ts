@@ -2,18 +2,18 @@
 // reject. Reads product_images_review(), writes only through review_product_image() (0050). The picture is in the private
 // media bucket and reaches the browser only as a signed link made here on the server (P1's note).
 // A licence-unknown picture can be approved as a guide, but it is never shown to a customer: the page says so beside it.
-import { act, html, id, render, text, UserError, type Ctx, type Section } from "../app";
+import { act, html, id, render, returnTo, text, UserError, type Ctx, type Section } from "../app";
 import { form, when } from "../html";
 import { LEADS } from "../roles";
 
-type Img = { image_id: string; product_id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null;
+export type Img = { image_id: string; product_id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null;
   sell_unit: string; status: string; media_path: string; source_kind: string; source_url: string | null; page_url: string | null; licence: string;
   attribution: string | null; width_px: number | null; height_px: number | null; bytes: number | null; vision: Record<string, unknown> | null;
   customer_visible: boolean; fetched_at: string; reviewed_at: string | null; review_note: string | null };
 const STATUSES = ["proposed", "approved", "rejected"] as const;
-const LICENCE: Record<string, string> = { cc_by_sa: "CC BY-SA (Open Food Facts): attribution must be shown", brand_own: "the brand's own site", own_photo: "our own photo", unknown: "unknown licence" };
+export const LICENCE: Record<string, string> = { cc_by_sa: "CC BY-SA (Open Food Facts): attribution must be shown", brand_own: "the brand's own site", own_photo: "our own photo", unknown: "unknown licence" };
 // Links are only ever drawn to http(s) addresses; anything else is shown as text.
-const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
+export const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
 
 const PAGE = 20;
 // Fastest sellers first: the fetch stores each item's rank among all catalog items (1 = fastest) in vision.rank (session PIX2).
@@ -63,7 +63,7 @@ async function review(c: Ctx) {
     if (r.already) return `Already ${r.status}.`;
     if (r.status === "rejected") return "Rejected.";
     return `Approved${r.replaced ? ", replacing the earlier picture" : ""}.${r.customer_visible ? " Customers can now see it." : " Kept as a guide only: customers never see a licence-unknown picture."}`;
-  }, "/pictures");
+  }, returnTo(c, "/pictures"));
 }
 
 export const picturesSection: Section = {

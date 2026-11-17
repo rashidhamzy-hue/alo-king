@@ -549,3 +549,420 @@ fixed message is. `{km}`, `{n}`, `{total}` and `{name}` are filled by code.
 | Refusals | اكتب السبب (٣ أحرف على الأقل). · هذا المكان غير صالح. · هذا الطلب غير صالح. | Write the reason (at least 3 characters). · That place is not valid. · That request is not valid. | RA 17 Nov |
 | Empty | لا مطالبات بعد. · لا شيء مخفي ولا طلب بانتظار. · لا أماكن تطابق هذا. · تُعرض أول ٥٠: ابحث بالاسم أو القرية لتضييق النتائج. | No claims yet. · Nothing hidden and no request waiting. · No places match this. · The first 50 are shown: search by name or village to narrow it. | RA 17 Nov |
 | Staff alert | مكان طعام طلب إزالة صفحته | A food place asked to be removed | RA 17 Nov |
+
+## UX2b, Approve, Intake, Money, Settings and Riders (console, staff-facing, written by a model; 17 November 2026)
+
+Source: the `pick(L, "English", "Arabic")` pairs and the `{ en, ar }` entries added to `apps/console/src/pages/{approve,intakeframe,intake,readiness,moneyframe,payments,money,refunds,riders,settings,settingmeta}.ts`, and one line of `labelqueue.ts`. Staff read these, never a customer. Words with `${…}` stand for a number or a name the page fills in. The hub is «المستودع» everywhere (never «المركز»). Lines already in an earlier table of this file (UX2a, LB1, SELL1) are not repeated. The database's refusals (`explain()` in `app.ts`) stay English, as for every older page. A test (`test/ci/ux2b-arabic.test.ts`) holds this table equal to the pages.
+
+| English | Arabic | Read by |
+|---|---|---|
+| Cards | البطاقات | unread |
+| Card ${n + 1} of ${total} | البطاقة ${n + 1} من ${total} | unread |
+| Previous | السابقة | unread |
+| Skip for now | تخطَّ الآن | unread |
+| Reason (needed to reject) | السبب (مطلوب للرفض) | unread |
+| Prefer a list?  | تفضّل قائمة؟  | unread |
+| See all of these as a list | اعرض كلها كقائمة | unread |
+| This item is not in the catalog database, so nothing can be applied. | هذا الصنف غير موجود في قاعدة الكتالوج، فلا يمكن تطبيق شيء. | unread |
+| The catalog name has changed since this was proposed: check that the proposal still fits. | تغيّر اسم الكتالوج منذ اقتراح هذا: تأكد أن الاقتراح ما زال مناسباً. | unread |
+| The Arabic was written by a model: it needs a person who reads Arabic. | العربية كتبها نموذج: تحتاج شخصاً يقرأ العربية. | unread |
+| Words the generator had to add: | كلمات اضطر المولّد لإضافتها: | unread |
+| no brand | بلا علامة | unread |
+| In the catalog now | في الكتالوج الآن | unread |
+| English name | الاسم بالإنجليزية | unread |
+| Arabic name | الاسم بالعربية | unread |
+| Proposed | المقترح | unread |
+| Will be saved as | سيُحفظ باسم | unread |
+| Open Food Facts calls it: | يسمّيه Open Food Facts: | unread |
+| Approving saves the name, queues its search words again, and shows an Undo for a moment: undoing puts the earlier name back. | الموافقة تحفظ الاسم وتعيد بناء كلمات بحثه، وتظهر «تراجع» للحظات: التراجع يعيد الاسم السابق. | unread |
+| Correct it first | صحّحه أولاً | unread |
+| English size | الحجم بالإنجليزية | unread |
+| Arabic size | الحجم بالعربية | unread |
+| Note (why) | ملاحظة (السبب) | unread |
+| Save my correction | احفظ تصحيحي | unread |
+| barcode | الباركود | unread |
+| Proposed picture of | الصورة المقترحة لـ | unread |
+| Picture not available. | الصورة غير متاحة. | unread |
+| Source | المصدر | unread |
+| original | الأصل | unread |
+| Licence | الترخيص | unread |
+| Fetched | جُلبت | unread |
+| Never shown to customers | لا تُعرض للزبائن أبداً | unread |
+| (licence unknown): approving keeps it only as a guide for the intake photo. | (الترخيص غير معروف): الموافقة تبقيها دليلاً لصورة الإدخال فقط. | unread |
+| Approve only if the picture shows exactly this item: same brand, product and size, one pack, plain background, no price tag, shop logo or text on top. | وافق فقط إن كانت الصورة تُظهر هذا الصنف تماماً: العلامة والمنتج والحجم نفسها، عبوة واحدة، خلفية سادة، بلا بطاقة سعر أو شعار متجر أو كتابة فوقها. | unread |
+| A picture's approval cannot be undone from here: it replaces the earlier picture. A wrong one is rejected on the Pictures page. | لا يمكن التراجع عن الموافقة على صورة من هنا: فهي تحلّ محل الصورة السابقة. الصورة الخاطئة تُرفض في صفحة الصور. | unread |
+| The pack says | العبوة تقول | unread |
+| One line each, as printed | سطر لكل تحذير كما هو مطبوع | unread |
+| As printed | كما هو مطبوع | unread |
+| Group ${x.group} of 5: ${GROUP(L, x.group)[0]} | المجموعة ${x.group} من 5: ${GROUP(L, x.group)[0]} | unread |
+| no photo | لا صورة | unread |
+| Printed words | الكلمات المطبوعة | unread |
+| Read from | مأخوذ من | unread |
+| Another source said otherwise: | مصدر آخر قال غير ذلك: | unread |
+| The label's reading wins; check the photo. | قراءة الملصق هي المعتمدة؛ تحقق من الصورة. | unread |
+| I looked at the label photo and it says this. | نظرت إلى صورة الملصق وهو يقول هذا. | unread |
+| Nothing is published until you confirm it, and a confirmation cannot be undone here: a wrong fact is corrected on the item's own page. | لا يُنشر شيء حتى تؤكده، ولا يمكن التراجع عن التأكيد من هنا: تُصحَّح المعلومة الخاطئة في صفحة الصنف. | unread |
+| on order | على الطلب | unread |
+| given back as | يُعاد عبر | unread |
+| A refund above ${usd(limits?.refund_usd ?? 10)} needs a second person. | استرداد فوق ${usd(limits?.refund_usd ?? 10)} يحتاج شخصاً ثانياً. | unread |
+| A price change of more than ${limits?.price_change_pct ?? 10}% needs a second person. | تغيير سعر بأكثر من ${limits?.price_change_pct ?? 10}% يحتاج شخصاً ثانياً. | unread |
+| Exchange rate | سعر الصرف | unread |
+| Any change to the LBP rate needs a second person. | أي تغيير في سعر الليرة يحتاج شخصاً ثانياً. | unread |
+| Setting | إعداد | unread |
+| A change to this rule needs a second person. | تغيير هذه القاعدة يحتاج شخصاً ثانياً. | unread |
+| A transfer more than 5% over the order total needs a second person. | تحويل يزيد عن مجموع الطلب بأكثر من 5% يحتاج شخصاً ثانياً. | unread |
+| Two-person rule | قاعدة الشخصين | unread |
+| Asked by | طلبها | unread |
+| Waiting for someone else: the person who asked can never approve. | بانتظار شخص آخر: من طلبها لا يستطيع الموافقة أبداً. | unread |
+| Needs you as the second person. | تحتاجك كشخص ثانٍ. | unread |
+| Approve: make the change | وافق: نفّذ التغيير | unread |
+| Approving makes the change as it was asked, in the asker's name. Money and settings are not undone from here. | الموافقة تنفّذ التغيير كما طُلب، باسم من طلبه. لا يُتراجع عن المال والإعدادات من هنا. | unread |
+| Why (optional) | السبب (اختياري) | unread |
+| Withdraw my request | اسحب طلبي | unread |
+| Names | الأسماء | unread |
+| Second approvals | الموافقات الثانية | unread |
+| This list is not available yet: the database is missing a part of it. | هذه القائمة غير متاحة بعد: قاعدة البيانات ينقصها جزء منها. | unread |
+| Nothing waits here. | لا شيء ينتظر هنا. | unread |
+| One card at a time. Nothing is decided by moving between cards, and nothing is decided by a swipe. | بطاقة واحدة في كل مرة. لا يُقرَّر شيء بالتنقل بين البطاقات، ولا بالسحب. | unread |
+|  Keys: a approves, r rejects (it asks for a reason), the arrow or space skips. |  المفاتيح: a للموافقة، r للرفض (يطلب سبباً)، السهم أو المسافة للتخطي. | unread |
+| Approval pages as lists | صفحات الموافقات كقوائم | unread |
+| Progress | التقدّم | unread |
+| Readiness | الجاهزية | unread |
+| Intake | الإدخال | unread |
+| Photographed | صُوّر | unread |
+| ${progress.left} left | بقي ${progress.left} | unread |
+| front and back of every pack | واجهة كل عبوة وخلفها | unread |
+| to decide | للبتّ | unread |
+| label readings, allergens first | قراءات الملصقات، المسبّبات أولاً | unread |
+| Sellable | قابل للبيع | unread |
+| the core is complete | الأساسيات مكتملة | unread |
+| Label-ready | جاهز بملصقه | unread |
+| of the packaged items | من المنتجات المعبّأة | unread |
+| to do | للعمل | unread |
+| Selling requires a label | لا بيع قبل الملصق | unread |
+| On | مفعّل | unread |
+| Off | معطّل | unread |
+| Shown here and never changed from here. It is the setting | يُعرض هنا ولا يتغيّر من هنا. إنه الإعداد | unread |
+| When it is on, a packaged item whose label has not been read and approved by a person cannot be quoted, added to a card or shown as orderable: the chat and the site say “coming soon”. Loose produce, meat and bakery with no real barcode are not packaged and sell on the core. | عند تفعيله لا يمكن تسعير منتج معبّأ لم يُقرأ ملصقه ويعتمده شخص، ولا إضافته إلى بطاقة ولا عرضه قابلاً للطلب: تقول المحادثة والموقع «جايي قريباً». الخضار والفواكه واللحوم والمخبوزات السائبة بلا باركود حقيقي ليست معبّأة وتُباع على الأساسيات. | unread |
+| The steps to turn it on | خطوات التفعيل | unread |
+| Photograph every pack | صوّر كل عبوة | unread |
+| Front and back of each item, on the Photograph tab (the label day). | واجهة كل منتج وخلفه، في تبويب التصوير (يوم الملصقات). | unread |
+| Run the label reading | شغّل قراءة الملصقات | unread |
+| Once the photos are in: GitHub, Actions, label-read, Run workflow (the Founder actions in the handoff say exactly where). | بعد وصول الصور: GitHub ثم Actions ثم label-read ثم Run workflow (يوضّح قسم إجراءات المؤسس في وثيقة التسليم المكان بالضبط). | unread |
+| Approve the readings | اعتمد القراءات | unread |
+| Label approvals: allergens first, then halal and certificates, warnings, disagreements, the rest. Each against the photo. | موافقات الملصقات: المسبّبات أولاً ثم الحلال والشهادات والتحذيرات والاختلافات وبقية القراءات. كل واحدة مقابل الصورة. | unread |
+| Nothing in stock is left unlabelled | لا شيء في المخزون بلا ملصق | unread |
+| ${notReadyInStock} packaged item(s) in stock are not label-ready. The Readiness tab lists them under “packaged, not label-ready”. | ${notReadyInStock} منتج معبّأ في المخزون ليس جاهزاً بملصقه. تعرضها تبويب الجاهزية تحت «معبّأ، ملصقه غير جاهز». | unread |
+| The Readiness tab lists what is left. | يعرض تبويب الجاهزية ما تبقّى. | unread |
+| Switch it on in Settings | فعّله من الإعدادات | unread |
+| The admin turns it on under Settings, Switches; it needs a second person to approve (the ops lead or another admin). It can be switched off at once. | يفعّله المدير من الإعدادات ثم المفاتيح؛ ويحتاج موافقة شخص ثانٍ (مسؤول العمليات أو مدير آخر). ويمكن إيقافه فوراً. | unread |
+| Open Settings | افتح الإعدادات | unread |
+| Scan a pack | امسح عبوة | unread |
+| Barcode or SKU | الباركود أو الرمز | unread |
+|  and read the label |  واقرأ الملصق | unread |
+| The label is read by a model to save typing. What it reads is only a proposal: a person checks every field against the pack. | يقرأ نموذج الملصق لتوفير الكتابة. ما يقرأه مجرد اقتراح: يتحقق شخص من كل حقل مقابل العبوة. | unread |
+| No label reader is set up on this console (no model key): the photos are saved, and the fields are typed from the pack on the item's page. | لا قارئ ملصقات مهيّأ في هذه اللوحة (لا مفتاح نموذج): تُحفظ الصور وتُكتب الحقول من العبوة في صفحة الصنف. | unread |
+| Waiting to be checked against the pack (${waiting.length} items) | بانتظار التحقق مقابل العبوة (${waiting.length} منتج) | unread |
+| Items with fields to check | منتجات فيها حقول للتحقق | unread |
+| Nothing waits. | لا شيء ينتظر. | unread |
+| Barcode | الباركود | unread |
+| Fields | الحقول | unread |
+| Label reading | قراءة الملصق | unread |
+| Staff | الموظفون | unread |
+| all items | كل المنتجات | unread |
+| not sellable | غير قابل للبيع | unread |
+| sellable, facts not confirmed | قابل للبيع، حقائقه غير مؤكدة | unread |
+| fact-complete | حقائقه مكتملة | unread |
+| packaged, not label-ready | معبّأ، ملصقه غير جاهز | unread |
+| blocks the catalog | يمنع الكتالوج | unread |
+| something missing | ينقصه شيء | unread |
+| sellable | قابل للبيع | unread |
+| for fact-complete: | لتكتمل حقائقه: | unread |
+| needs: | يحتاج: | unread |
+| loose | سائب | unread |
+| packaged, label-ready | معبّأ، ملصقه جاهز | unread |
+| label missing: | ينقص الملصق: | unread |
+| approved | معتمد | unread |
+| waiting | بالانتظار | unread |
+| kept as is | كما هو | unread |
+| not reviewed | لم يُراجَع | unread |
+| approved | معتمدة | unread |
+| guide only (licence unknown) | دليل فقط (ترخيص مجهول) | unread |
+| Food facts | المعلومات الغذائية | unread |
+| all ${r.facts.allergens_of} allergens | كل مسبّبات الحساسية (${r.facts.allergens_of}) | unread |
+| ingredients ok | المكوّنات سليمة | unread |
+| no ingredients | لا مكوّنات | unread |
+| allergens | المسبّبات | unread |
+| Cost | التكلفة | unread |
+| known | معروفة | unread |
+| Search words | كلمات البحث | unread |
+| queued | في الطابور | unread |
+| failed | فشلت | unread |
+| not placed | غير موضوع | unread |
+| none | لا يوجد | unread |
+| unavailable | غير متاح | unread |
+| Packaged items and their labels | المنتجات المعبّأة وملصقاتها | unread |
+| Selling requires a label:  | لا بيع قبل الملصق:  | unread |
+| on | مفعّل | unread |
+| off | معطّل | unread |
+| The setting | الإعداد | unread |
+| , read only here: the steps are on the Progress tab and the switch is in Settings. When on, a packaged item whose label has not been read and approved by a person cannot be quoted, added to a card, found as orderable or shown as orderable: the chat and the site say “coming soon”. Loose produce, meat and bakery with no real barcode are not packaged and sell on the core. | ، للقراءة فقط هنا: الخطوات في تبويب التقدّم والمفتاح في الإعدادات. عند تفعيله لا يمكن تسعير منتج معبّأ لم يُقرأ ملصقه ويعتمده شخص، ولا إضافته إلى بطاقة ولا عرضه قابلاً للطلب: تقول المحادثة والموقع «جايي قريباً». الخضار والفواكه واللحوم والمخبوزات السائبة بلا باركود حقيقي ليست معبّأة وتُباع على الأساسيات. | unread |
+| Readiness per template | الجاهزية لكل قالب | unread |
+| Template | القالب | unread |
+| Fact-complete | حقائقه مكتملة | unread |
+| Packaged | معبّأ | unread |
+| Label-ready | ملصقه جاهز | unread |
+| The packaged items not label-ready, with what each misses, are under “packaged, not label-ready” below. | المنتجات المعبّأة غير الجاهزة بملصقاتها، وما ينقص كل واحد، تحت «معبّأ، ملصقه غير جاهز» أدناه. | unread |
+| Product readiness | جاهزية المنتجات | unread |
+| ${counts.not_sellable} not sellable | ${counts.not_sellable} غير قابل للبيع | unread |
+| answers a filter such as “no added sugar” | يجيب عن مرشّح مثل «بلا سكر مضاف» | unread |
+| ${counts.label} packaged not ready | ${counts.label} معبّأ غير جاهز | unread |
+| customers cannot order these | لا يستطيع الزبائن طلبها | unread |
+| the core is complete (names in English and Arabic, category with its template, storage, sale unit, price); it can be ordered and its facts read “not confirmed yet”. | الأساسيات مكتملة (الاسم بالإنجليزية والعربية، الفئة مع قالبها، التخزين، وحدة البيع، السعر)؛ يمكن طلبه وتُقرأ حقائقه «غير مؤكدة بعد». | unread |
+| its template is complete too (for packaged food: ingredients, the 14 allergens and the nutrition panel; for a cleaning product: hazard warnings as printed); only these answer a filter such as “no added sugar” or “fragrance-free”. Facts need a re-check after 12 months. | قالبه مكتمل أيضاً (للأغذية المعبّأة: المكوّنات ومسبّبات الحساسية الأربعة عشر وجدول القيم الغذائية؛ ولمنتج التنظيف: تحذيرات الخطر كما هي مطبوعة)؛ هذه وحدها تجيب عن مرشّح مثل «بلا سكر مضاف» أو «بلا عطر». تحتاج الحقائق إعادة فحص بعد 12 شهراً. | unread |
+| Level | المستوى | unread |
+| What blocks | ما يمنع | unread |
+| Blocks the catalog | يمنع الكتالوج | unread |
+| the WhatsApp catalog leaves the item out (no approved picture a customer may see, not placed in a category, or no price). | يستبعد كتالوج واتساب المنتج (لا صورة معتمدة يجوز للزبون رؤيتها، أو غير موضوع في فئة، أو بلا سعر). | unread |
+| a customer cannot order it at all (no price at the hub, or marked unavailable). A missing picture blocks the catalog, not ordering. Names, food facts, cost and search words do not stop a sale; they are listed so nothing is forgotten. Click what is missing to open the page that fixes it. | لا يستطيع الزبون طلبه أبداً (لا سعر في المستودع، أو معلَّم غير متاح). غياب الصورة يمنع الكتالوج لا الطلب. الأسماء والحقائق الغذائية والتكلفة وكلمات البحث لا توقف البيع؛ تُسرد كي لا يُنسى شيء. اضغط على الناقص لتفتح الصفحة التي تصلحه. | unread |
+| Find an item | ابحث عن منتج | unread |
+| SKU, name or brand | الرمز أو الاسم أو العلامة | unread |
+| Nothing here. | لا شيء هنا. | unread |
+| The first 200 of ${rows.length} are shown: search to find the rest. | المعروض أول 200 من ${rows.length}: ابحث لتجد البقية. | unread |
+| To confirm | للتأكيد | unread |
+| Refunds | المبالغ المستردة | unread |
+| Money | المال | unread |
+| Also: | أيضاً: | unread |
+| Day open | فتح اليوم | unread |
+| Day close | إغلاق اليوم | unread |
+| ${n.approvals} waiting for a second person | ${n.approvals} بانتظار شخص ثانٍ | unread |
+| Already ${r.already}; nothing changed. | سبق أن ${r.already}؛ لم يتغيّر شيء. | unread |
+| The amount is ${Number(r.over_pct ?? 0).toFixed(1)}% over the order total: it waits for a second person on Approvals. Nothing is booked yet. | المبلغ يزيد ${Number(r.over_pct ?? 0).toFixed(1)}% عن مجموع الطلب: ينتظر شخصاً ثانياً في الموافقات. لم يُسجَّل شيء بعد. | unread |
+| This late payment was already booked; nothing changed. | سُجّلت هذه الدفعة المتأخرة من قبل؛ لم يتغيّر شيء. | unread |
+| Late payment booked as the customer's credit (${usd(r.amount_usd ?? 0)}). The order stays cancelled; the credit comes off their next order or is paid out on Refunds. | سُجّلت الدفعة المتأخرة رصيداً للزبون (${usd(r.amount_usd ?? 0)}). يبقى الطلب ملغى؛ ويُخصم الرصيد من طلبه التالي أو يُدفع من صفحة المبالغ المستردة. | unread |
+| This order was already paid; the screenshot is closed. | هذا الطلب مدفوع من قبل؛ أُغلقت اللقطة. | unread |
+| Payment confirmed and booked. ${usd(credit)} over the total is the customer's credit. | تم تأكيد الدفعة وتسجيلها. ${usd(credit)} فوق المجموع رصيد للزبون. | unread |
+| Payment confirmed and booked. | تم تأكيد الدفعة وتسجيلها. | unread |
+| Payments to confirm | دفعات للتأكيد | unread |
+| Check the money in the Whish or OMT account first. Type the amount and the reference you see there, not what the screenshot says. | تحقق من المبلغ في حساب Whish أو OMT أولاً. اكتب المبلغ والمرجع كما تراهما هناك، لا كما في اللقطة. | unread |
+| Screenshots | اللقطات | unread |
+| None waiting. | لا شيء ينتظر. | unread |
+| payment screenshot | لقطة الدفع | unread |
+| expected | المتوقع | unread |
+| Late payment. | دفعة متأخرة. | unread |
+| The payment timer cancelled this order. If the money is in the account, confirm it: it becomes the customer's credit and the order stays cancelled. | ألغى مؤقّت الدفع هذا الطلب. إن كان المال في الحساب فأكّده: يصبح رصيداً للزبون ويبقى الطلب ملغى. | unread |
+| Waiting for a second person | بانتظار شخص ثانٍ | unread |
+| Approvals | الموافقات | unread |
+| the amount is more than 5% over the total. | المبلغ يزيد عن المجموع بأكثر من 5%. | unread |
+| This picture was sent before for another payment. | أُرسلت هذه الصورة من قبل لدفعة أخرى. | unread |
+| Check the account carefully. | تحقق من الحساب بعناية. | unread |
+| Read by the model (a hint, may be wrong): | قرأها النموذج (تلميح قد يكون خاطئاً): | unread |
+| Amount received, USD | المبلغ المستلم بالدولار | unread |
+| Reference | المرجع | unread |
+| Book as the customer's credit | سجّلها رصيداً للزبون | unread |
+| Confirm payment | أكّد الدفعة | unread |
+| Reject screenshot | ارفض اللقطة | unread |
+| Transfers without a screenshot | تحويلات بلا لقطة | unread |
+| None. | لا شيء. | unread |
+| Method | الطريقة | unread |
+| Since | منذ | unread |
+| Confirm, once the money is in the account | أكّد بعد وصول المال إلى الحساب | unread |
+| amount USD | المبلغ بالدولار | unread |
+| reference | المرجع | unread |
+| Screenshot rejected. The customer still owes the transfer. | رُفضت اللقطة. ما زال الزبون مديناً بالتحويل. | unread |
+| Already paid; nothing changed. | مدفوع من قبل؛ لم يتغيّر شيء. | unread |
+| The drawer, by the books | الصندوق بحسب الدفاتر | unread |
+| The bank | البنك | unread |
+| transfers to check | تحويلات للتحقق | unread |
+| to count with a rider | للعدّ مع مندوب | unread |
+| Drawer by the books:  | الصندوق بحسب الدفاتر:  | unread |
+| bank: | البنك: | unread |
+| Count the drawer at day close; what is in it must match the books. Everything that leaves it is recorded here. | اعدّ الصندوق عند إغلاق اليوم؛ ما فيه يجب أن يطابق الدفاتر. كل ما يخرج منه يُسجَّل هنا. | unread |
+| Today's takings by method | مقبوضات اليوم حسب الطريقة | unread |
+| Today (${v.movements.length}) | اليوم (${v.movements.length}) | unread |
+| Nothing yet today. | لا شيء بعد اليوم. | unread |
+| The day's cash movements | حركات النقد اليوم | unread |
+| By | بواسطة | unread |
+| Proof | الإثبات | unread |
+| bank | البنك | unread |
+| drawer | الصندوق | unread |
+| Cash out of the drawer | نقد يخرج من الصندوق | unread |
+| Cash to the bank | نقد إلى البنك | unread |
+| Slip number | رقم الإيصال | unread |
+| Slip photo | صورة الإيصال | unread |
+| Record deposit | سجّل الإيداع | unread |
+| Petty cash | النثرية | unread |
+| For what | لأي غرض | unread |
+| Who spent it or was paid | من أنفقها أو دُفعت له | unread |
+| Receipt photo | صورة الإيصال | unread |
+| Expense | مصروف | unread |
+| Paid from | دُفع من | unread |
+| the drawer | الصندوق | unread |
+| the bank | البنك | unread |
+| Category | الفئة | unread |
+| Paid to | دُفع إلى | unread |
+| Invoice or receipt number | رقم الفاتورة أو الإيصال | unread |
+| Record expense | سجّل المصروف | unread |
+| No order ${code}. | لا يوجد طلب ${code}. | unread |
+| small-order fee | رسم الطلب الصغير | unread |
+| nothing yet | لا شيء بعد | unread |
+| placed | وقت الطلب | unread |
+| Items | البنود | unread |
+| Item | الصنف | unread |
+| Line | السطر | unread |
+| Refunded on this order: | المُسترد على هذا الطلب: | unread |
+| the customer's credit: | رصيد الزبون: | unread |
+| owed | مستحق | unread |
+| free to use | حرّ للاستعمال | unread |
+| Only money that was paid can be refunded. An unpaid order is corrected, not refunded. | يُستردّ المال المدفوع فقط. الطلب غير المدفوع يُصحَّح ولا يُسترد. | unread |
+| A refund above the limit waits for a second person. | الاسترداد فوق الحد ينتظر شخصاً ثانياً. | unread |
+| Amount USD | المبلغ بالدولار | unread |
+| Charged to | يُحمَّل على | unread |
+| (whole order) | (الطلب كله) | unread |
+| Give it back as | يُعاد عبر | unread |
+| Transfer reference (Whish, OMT) | مرجع التحويل (Whish، OMT) | unread |
+| Use credit on this order | استعمل الرصيد على هذا الطلب | unread |
+| Take ${usd(Math.min(Number(view.available_usd), Number(order.total_usd)))} off this order | اخصم ${usd(Math.min(Number(view.available_usd), Number(order.total_usd)))} من هذا الطلب | unread |
+| Refunds and credit | المبالغ المستردة والرصيد | unread |
+| Customers we owe (${owed.length}) | زبائن لهم عندنا (${owed.length}) | unread |
+| Nobody. | لا أحد. | unread |
+| Owed | المستحق | unread |
+| Free to use | الحرّ للاستعمال | unread |
+| Last refunds | آخر المبالغ المستردة | unread |
+| Pay out | ادفع | unread |
+| taken off an open order | خُصم من طلب مفتوح | unread |
+| Cash drops and rider payouts | تسليم النقد ودفعات المناديب | unread |
+| Count the cash with the rider, note by note, per currency. Confirm only what you counted. The counted figure is recorded; the expected one is never edited. | اعدّ النقد مع المندوب ورقة ورقة لكل عملة. أكّد ما عددته فقط. يُسجَّل المبلغ المعدود ولا يُعدَّل المتوقع أبداً. | unread |
+| Cash drops to confirm (${declared.length}) | تسليمات نقد للتأكيد (${declared.length}) | unread |
+| No rider on shift or holding money. | لا مندوب في الوردية ولا يحمل مالاً. | unread |
+| on shift since | في الوردية منذ | unread |
+| shift ended | انتهت الوردية | unread |
+| Cash held | النقد معه | unread |
+| Earnings owed (fees and tips) | الأرباح المستحقة (الرسوم والإكراميات) | unread |
+| To hand over | يسلّم للمحل | unread |
+| Cash over/short today | فائض أو عجز النقد اليوم | unread |
+| Declared | المُصرَّح به | unread |
+| receipt | الإيصال | unread |
+| Counted: confirm | عددتُه: أكّد | unread |
+| Pay earnings | ادفع الأرباح | unread |
+| Send statement on WhatsApp | أرسل الكشف عبر واتساب | unread |
+| Pay earnings: the rider keeps their fees and tips out of the cash they carry (dollars first, then lira); anything more is paid from the hub till, never more than it holds. The database works it out. | دفع الأرباح: يحتفظ المندوب برسومه وإكرامياته من النقد الذي يحمله (الدولار أولاً ثم الليرة)؛ وأي زيادة تُدفع من صندوق المستودع ولا تتجاوز ما فيه. تحسبها قاعدة البيانات. | unread |
+| Over/short: a few cents of lira rounding at the door is the company's; a shortfall beyond it (up to a dollar) is owed by the rider and flagged. More than a dollar is refused at the door. | الفائض والعجز: بضعة سنتات تقريب بالليرة عند الباب على الشركة؛ وما زاد عنها (حتى دولار) يدين به المندوب ويُعلَّم. وأكثر من دولار يُرفض عند الباب. | unread |
+| Damaged notes | الأوراق التالفة | unread |
+| A note in a confirmed drop that cannot be used. It leaves the drawer once: the first this month is the company's, later ones are the rider's. | ورقة في تسليم مؤكّد لا يمكن استعمالها. تخرج من الصندوق مرة واحدة: أول واحدة هذا الشهر على الشركة والتالية على المندوب. | unread |
+| No confirmed drop at the hub yet. | لا تسليم مؤكّد في المستودع بعد. | unread |
+| damaged so far | التالف حتى الآن | unread |
+| Record damaged note | سجّل ورقة تالفة | unread |
+| under the caps | تحت السقفين | unread |
+| a job in hand | في مهمة | unread |
+| ${usd(exposure)} of the ${usd(hard)} hard cap | ${usd(exposure)} من السقف الصارم ${usd(hard)} | unread |
+|  · soft ${usd(soft)}, hard ${usd(hard)} (set in Settings) |  · مرن ${usd(soft)}، صارم ${usd(hard)} (من الإعدادات) | unread |
+| Written terms | الشروط المكتوبة | unread |
+| on file | محفوظة | unread |
+| signed | وُقّعت | unread |
+| open the document | افتح المستند | unread |
+| Recorded by | سجّلها | unread |
+| not on file | غير محفوظة | unread |
+| A rider carries cash and fees only with their written terms on file. | لا يحمل المندوب نقداً ورسوماً إلا بعد حفظ شروطه المكتوبة. | unread |
+| Record newer terms | سجّل شروطاً أحدث | unread |
+| Record the written terms | سجّل الشروط المكتوبة | unread |
+| Document and version | المستند والإصدار | unread |
+| Signed on | تاريخ التوقيع | unread |
+| Scan or photo (optional) | مسح أو صورة (اختياري) | unread |
+| End shift | أنهِ الوردية | unread |
+| Start shift | ابدأ الوردية | unread |
+| Cash drops and payouts | تسليم النقد والدفعات | unread |
+| Who rides, who is on shift, the cash each holds against the caps, and whether their written terms are on file. Riders are never rated or scored here: this page measures the service, not people. | من يوصّل، ومن في الوردية، والنقد الذي يحمله كل واحد مقابل السقفين، وهل شروطه المكتوبة محفوظة. لا تقييم ولا درجات للمناديب هنا: تقيس هذه الصفحة الخدمة لا الأشخاص. | unread |
+| On shift (${on.length}) | في الوردية (${on.length}) | unread |
+| Off shift (${off.length}) | خارج الوردية (${off.length}) | unread |
+| Dispatching, jobs and incidents are on the  | التوزيع والمهام والحوادث في صفحة  | unread |
+| Their shift was already open. | ورديته مفتوحة بالفعل. | unread |
+| Their shift is open. They can be offered jobs. | فُتحت ورديته. يمكن عرض مهام عليه. | unread |
+| Name the document and its version. | سمِّ المستند وإصداره. | unread |
+| Choose the day it was signed. | اختر يوم التوقيع. | unread |
+| Newer terms recorded; the earlier ones stay as history. | سُجّلت شروط أحدث؛ وتبقى السابقة في السجل. | unread |
+| The written terms are on file. | حُفظت الشروط المكتوبة. | unread |
+| Drop confirmed. The rider still holds ${usd(left)} in value. | تم تأكيد التسليم. ما زال المندوب يحمل ما قيمته ${usd(left)}. | unread |
+| not set | غير مضبوط | unread |
+| Not available yet: the database has no console_settings() (migration 0231 is not applied there yet). | غير متاح بعد: لا توجد console_settings() في قاعدة البيانات (لم تُطبَّق الهجرة 0231 هناك بعد). | unread |
+| New value | القيمة الجديدة | unread |
+| Turn on | فعّل | unread |
+| Turn off | عطّل | unread |
+| : a second person approves | : يوافق شخص ثانٍ | unread |
+| Ask for a second person to approve | اطلب موافقة شخص ثانٍ | unread |
+| two-person | شخصان | unread |
+| Last changed by ${i.changed_by_name ?? "staff"}, ${when(i.changed_at)} | آخر تغيير: ${i.changed_by_name ?? "موظف"}، ${when(i.changed_at)} | unread |
+| Not changed from this page yet. | لم يُغيَّر من هذه الصفحة بعد. | unread |
+| Waiting for a second person: | بانتظار شخص ثانٍ: | unread |
+| asked by | طلبها | unread |
+| Open it on the Approve page | افتحها في صفحة الموافقات | unread |
+| Why (logged with your name) | السبب (يُسجَّل باسمك) | unread |
+| This change waits for another ops lead or admin; the person who asked can never approve it. | ينتظر هذا التغيير مسؤول عمليات أو مدير آخر؛ ومن طلبه لا يستطيع الموافقة عليه أبداً. | unread |
+| People and roles | الأشخاص والأدوار | unread |
+| add, change a role, block | إضافة وتغيير دور وحظر | unread |
+| Zones, villages and delivery fees | المناطق والقرى ورسوم التوصيل | unread |
+| which villages are served, each zone's fee and time | أي قرى تُخدم، ورسم كل منطقة ووقتها | unread |
+| Delivery windows and the calendar | نوافذ التوصيل والتقويم | unread |
+| capacity, cut-offs, Ramadan and holidays | السعة وآخر المواعيد ورمضان والعطل | unread |
+| Message templates | قوالب الرسائل | unread |
+| their status and what is sent meanwhile | حالتها وما يُرسل في الأثناء | unread |
+| Alerts on this phone, language, appearance | التنبيهات على هذا الهاتف واللغة والمظهر | unread |
+| switch push alerts on for this phone | فعّل تنبيهات الدفع على هذا الهاتف | unread |
+| Admin only. Each change is logged with who and when. A rule that needs two people waits on the Approve page until another ops lead or admin approves it. The database checks every value again. | للمدير فقط. يُسجَّل كل تغيير بالاسم والوقت. القاعدة التي تحتاج شخصين تنتظر في صفحة الموافقات حتى يوافق مسؤول عمليات أو مدير آخر. وتفحص قاعدة البيانات كل قيمة من جديد. | unread |
+| Change log | سجل التغييرات | unread |
+| Changes made on this page | التغييرات التي جرت في هذه الصفحة | unread |
+| No change made from this page yet. | لم يُجرَ أي تغيير من هذه الصفحة بعد. | unread |
+| Setting | الإعداد | unread |
+| That is not a setting this page changes. | هذا ليس إعداداً تغيّره هذه الصفحة. | unread |
+| Write why: the reason is logged with your name. | اكتب السبب: يُسجَّل باسمك. | unread |
+| Choose on or off. | اختر التفعيل أو التعطيل. | unread |
+| Type a number. | اكتب رقماً. | unread |
+| ${name} is already waiting for a second person. | ${name} بانتظار شخص ثانٍ بالفعل. | unread |
+| Waiting for a second person: ${name} changes when another ops lead or admin approves it on the Approve page. | بانتظار شخص ثانٍ: يتغيّر «${name}» حين يوافق مسؤول عمليات أو مدير آخر في صفحة الموافقات. | unread |
+| Nothing changed: ${name} already is ${show(L, it, value)}. | لم يتغيّر شيء: «${name}» هو ${show(L, it, value)} بالفعل. | unread |
+| Saved: ${name} is now ${show(L, it, value)}. | تم الحفظ: «${name}» الآن ${show(L, it, value)}. | unread |
+| Hours and minimum order | ساعات العمل والحد الأدنى للطلب | unread |
+| When the shop takes orders, and the smallest order it takes. | متى يستقبل المتجر الطلبات، وأصغر طلب يقبله. | unread |
+| Fees | الرسوم | unread |
+| The small-order fee is company income. The delivery fee and tips belong to whoever delivers; delivery fees are set per zone on the Zones page. | رسم الطلب الصغير دخل للشركة. أما رسم التوصيل والإكراميات فهي لمن يوصّل؛ ورسوم التوصيل تُضبط لكل منطقة في صفحة المناطق. | unread |
+| Timers | المؤقتات | unread |
+| How long an order card, a payment or a draft waits before the system acts. | كم تنتظر بطاقة الطلب أو الدفع أو المسودة قبل أن يتصرف النظام. | unread |
+| Cash caps | سقوف النقد | unread |
+| What a rider may carry. The database refuses a new cash order past the hard cap. A change needs a second person. | ما يحق للمندوب حمله. ترفض قاعدة البيانات طلب نقد جديداً بعد السقف الصلب. التغيير يحتاج شخصاً ثانياً. | unread |
+| Pickup place | مكان الاستلام | unread |
+| Where a customer collects an order, when pickup is on. | أين يستلم الزبون طلبه حين يكون الاستلام مفعّلاً. | unread |
+| Escalation steps | خطوات التصعيد | unread |
+| Minutes a customer waits for a person before each step (the Inbox shows them). | الدقائق التي ينتظرها الزبون شخصاً قبل كل خطوة (يعرضها الوارد). | unread |
+| Two-person limits | حدود الشخصين | unread |
+| Above these a second person must approve. Changing a limit also needs a second person. | فوق هذه الحدود يجب أن يوافق شخص ثانٍ. وتغيير الحد نفسه يحتاج شخصاً ثانياً. | unread |
+| Switches | المفاتيح | unread |
+| Rules that are on or off. | قواعد مفعّلة أو معطّلة. | unread |
+| Beirut time. | بتوقيت بيروت. | unread |
+| Closes | يغلق | unread |
+| Small-order fee applies below | رسم الطلب الصغير ينطبق تحت | unread |
+| USD of goods; 0 is off | دولار من المشتريات؛ 0 يعني معطّل | unread |
+| Small-order fee | رسم الطلب الصغير | unread |
+| A transfer waits for payment | التحويل ينتظر الدفع | unread |
+| An order card waits for the customer's tap | بطاقة الطلب تنتظر ضغطة الزبون | unread |
+| One reminder for an unconfirmed card after | تذكير واحد بالبطاقة غير المؤكدة بعد | unread |
+| A draft is dropped after | تُترك المسودة بعد | unread |
+| Soft cap: warn above | السقف المرن: تحذير فوق | unread |
+| USD a rider holds | دولار مع المندوب | unread |
+| Hard cap: no new cash order above | السقف الصلب: لا طلب نقد جديد فوق | unread |
+| Stays off until the pickup place below is set. | يبقى معطّلاً حتى يُضبط مكان الاستلام أدناه. | unread |
+| Pickup place (English) | مكان الاستلام (بالإنجليزية) | unread |
+| Pickup place (Arabic) | مكان الاستلام (بالعربية) | unread |
+| Step 1: the ops lead is alerted after | الخطوة 1: يُنبَّه مسؤول العمليات بعد | unread |
+| Step 2: the founder is alerted after | الخطوة 2: يُنبَّه المؤسس بعد | unread |
+| Step 3: the case is marked late after | الخطوة 3: تُعلَّم الحالة متأخرة بعد | unread |
+| A refund above this needs a second person | استرداد فوق هذا يحتاج شخصاً ثانياً | unread |
+| A price change above this needs a second person | تغيير سعر فوق هذا يحتاج شخصاً ثانياً | unread |
+| percent | بالمئة | unread |
+| Any change to the LBP rate needs a second person | أي تغيير في سعر الليرة يحتاج شخصاً ثانياً | unread |
+| Switching this off needs a second person. | إيقافه يحتاج شخصاً ثانياً. | unread |
+| A packaged item is sold only after its label is read and approved | لا يُباع المنتج المعبّأ إلا بعد قراءة ملصقه واعتماده | unread |
+| On: every packaged item without an approved label reading reads “coming soon”. Turning it on needs a second person; turning it off is immediate. Read the steps on the Intake page first. | مفعّل: كل منتج معبّأ بلا قراءة ملصق معتمدة يظهر «جايي قريباً». التفعيل يحتاج شخصاً ثانياً؛ والإيقاف فوري. اقرأ الخطوات في صفحة الإدخال أولاً. | unread |
+| Search by meaning (embeddings) | البحث بالمعنى (المتجهات) | unread |
+| On only once the model's vectors are in the database and the search evaluation shows it beats words alone. | يُفعَّل فقط بعد أن تصبح متجهات النموذج في قاعدة البيانات وبعد أن يُظهر تقييم البحث أنه يتفوق على الكلمات وحدها. | unread |
+| Decide one card at a time | قرّر بطاقة بطاقة | unread |
+| Price / Refund / Payment / Exchange rate / Setting (the kind of a second approval) | سعر / استرداد / دفعة / سعر الصرف / إعداد | unread |
