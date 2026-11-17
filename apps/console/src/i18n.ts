@@ -24,6 +24,8 @@ const D = {
   nav_more: { en: "More", ar: "المزيد" },
   nav_inbox: { en: "Inbox", ar: "الوارد" },
   nav_pick: { en: "Pick", ar: "التجهيز" },
+  nav_dispatch: { en: "Dispatch", ar: "التوزيع" },
+  nav_intake: { en: "Intake", ar: "التصوير" },
   g_money: { en: "Money", ar: "المال" },
   g_settings: { en: "Settings", ar: "الإعدادات" },
   // command bar, bell, theme

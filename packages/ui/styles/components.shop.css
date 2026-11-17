@@ -1,28 +1,29 @@
-/* Shop components: the product card and the cart bar. The website's sheet includes them; the console loads them for its gallery. */
+/* Shop components: the product card and the price with its unit price, in the look of the design reference (session DS2; the
+   stepper and the cart bar are in components.more.css until a page shows them). The website's sheet includes them; the console loads them for its gallery. */
 
 @layer components {
-  /* ---------- product card ---------- */
-  .ak-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.25rem, 1fr)); gap: var(--ak-space-3); list-style: none; margin: 0; padding: 0; }
-  .ak-product { position: relative; display: flex; flex-direction: column; block-size: 100%; background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); overflow: hidden; box-shadow: var(--ak-shadow-1); }
-  .ak-product .cover { display: flex; flex-direction: column; flex: 1; color: inherit; text-decoration: none; }
-  .ak-product .pic, .ak-product .ph { aspect-ratio: 1; inline-size: 100%; object-fit: contain; background: #FFFFFF; display: block; }
-  .ak-product .ph { display: grid; place-items: center; background: var(--ak-surface-2); color: var(--ak-line-strong); }
+  /* ---------- product card: the picture in a rounded tile with the one action on its corner; then price, name, pack ---------- */
+  .ak-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.75rem, 1fr)); gap: var(--ak-space-5) var(--ak-space-3); list-style: none; margin: 0; padding: 0; }
+  .ak-product { position: relative; display: flex; flex-direction: column; block-size: 100%; container-type: inline-size; }
+  .ak-product .cover { display: flex; flex-direction: column; flex: 1; color: inherit; text-decoration: none; border-radius: 20px; }
+  .ak-product .pic, .ak-product .ph { aspect-ratio: 1; inline-size: 100%; object-fit: contain; background: #FFFFFF; display: block; border-radius: 20px; border: 1px solid var(--ak-line); transition: transform 160ms ease; }
+  .ak-product .cover:hover .pic, .ak-product .cover:hover .ph { transform: translateY(-2px); }
+  .ak-product .cover:hover .name { text-decoration: underline; }
+  .ak-product .ph { display: grid; place-items: center; background: var(--ak-tint); border-color: transparent; color: var(--ak-accent); }
   .ak-product .ph .ak-icon { inline-size: 2.25rem; block-size: 2.25rem; stroke-width: 1.5; }
-  .ak-product .body { display: flex; flex-direction: column; gap: 2px; flex: 1; padding: var(--ak-space-3); padding-block-end: var(--ak-space-2); }
-  .ak-product .name { font-weight: var(--ak-weight-strong); font-size: var(--ak-text-sm); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ak-product .body { display: flex; flex-direction: column; gap: 2px; flex: 1; padding: var(--ak-space-2) 2px 0; }
+  .ak-product .name { font-weight: 500; font-size: 0.85rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ak-product .body .ak-badge { align-self: flex-start; margin-block-start: 2px; }
   .ak-product .meta { font-size: var(--ak-text-xs); color: var(--ak-muted); }
-  .ak-product .foot { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-2); padding: 0 var(--ak-space-3) var(--ak-space-3); }
-  .ak-product .price { font-size: var(--ak-text-lg); font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; }
-  .ak-product .add { min-inline-size: var(--ak-tap); min-block-size: var(--ak-tap); border-radius: var(--ak-radius-full); padding: 0; }
-  .ak-product--out .pic { opacity: 0.55; }
-  .ak-price { font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; }
-  .ak-price--big { font-size: var(--ak-text-2xl); }
-  bdi { unicode-bidi: isolate; }
+  .ak-product .price { font-size: 1.0625rem; font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .ak-product .foot { display: contents; }
+  /* the action sits on the picture's lower corner: the picture is a square as wide as the card (100cqi) */
+  .ak-product .add { position: absolute; inset-block-start: calc(100cqi - var(--ak-tap) - var(--ak-space-2)); inset-inline-end: var(--ak-space-2); min-inline-size: var(--ak-tap); min-block-size: var(--ak-tap); inline-size: var(--ak-tap); block-size: var(--ak-tap); border-radius: var(--ak-radius-full); padding: 0; box-shadow: var(--ak-shadow-2); }
+  .ak-product--out .pic { opacity: 0.55; filter: grayscale(1); }
 
-  /* ---------- cart bar (the shell WEB2 fills): the total, the fee, progress to the minimum ---------- */
-  .ak-cartbar { display: flex; align-items: center; gap: var(--ak-space-3); padding: var(--ak-space-2) var(--ak-space-3); background: var(--ak-ink); color: var(--ak-paper); border-radius: var(--ak-radius-lg); box-shadow: var(--ak-shadow-2); }
-  .ak-cartbar .sum { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; line-height: 1.3; }
-  .ak-cartbar .sum small { color: #C9C6BD; font-size: var(--ak-text-xs); }
-  .ak-cartbar progress { inline-size: 100%; block-size: 4px; accent-color: var(--ak-gold); margin-block-start: 4px; }
+  /* ---------- price, and the price per unit under it ---------- */
+  .ak-price { display: inline-flex; flex-direction: column; font-weight: var(--ak-weight-strong); font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .ak-price small { font-size: var(--ak-text-xs); font-weight: var(--ak-weight); color: var(--ak-muted); }
+  .ak-price--big { font-size: var(--ak-text-2xl); letter-spacing: var(--ak-tracking); }
+  bdi { unicode-bidi: isolate; }
 }

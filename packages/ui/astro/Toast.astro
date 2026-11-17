@@ -1,0 +1,6 @@
+---
+// What just happened; with `undo`, the way to take it back (instead of asking "are you sure" first).
+import { toast } from "../src/components";
+interface Props { text: string; tone?: "ok" | "err"; undo?: { href: string; label: string } }
+---
+<Fragment set:html={toast(Astro.props).s} />

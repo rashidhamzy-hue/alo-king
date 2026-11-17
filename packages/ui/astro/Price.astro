@@ -1,0 +1,6 @@
+---
+// A price and, when the page has one, the price per unit under it. Both arrive formatted.
+import { price } from "../src/components";
+type Props = Parameters<typeof price>[0];
+---
+<Fragment set:html={price(Astro.props).s} />

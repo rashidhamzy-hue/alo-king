@@ -1,0 +1,5 @@
+---
+import { tabs } from "../src/components";
+interface Props { items: Parameters<typeof tabs>[0]; label: string }
+---
+<Fragment set:html={tabs(Astro.props.items, Astro.props.label).s} />

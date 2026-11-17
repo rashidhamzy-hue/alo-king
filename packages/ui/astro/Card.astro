@@ -1,0 +1,8 @@
+---
+// A card around whatever the page puts inside it.
+import { card } from "../src/components";
+import { Raw } from "../src/h";
+interface Props { title?: string; cls?: string }
+const inner = await Astro.slots.render("default");
+---
+<Fragment set:html={card(new Raw(inner), Astro.props).s} />

@@ -1,0 +1,6 @@
+---
+// A timer against a promise: always an icon and words, never the colour alone.
+import { timerChip } from "../src/components";
+type Props = Parameters<typeof timerChip>[0];
+---
+<Fragment set:html={timerChip(Astro.props).s} />
