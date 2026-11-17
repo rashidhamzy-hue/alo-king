@@ -35,5 +35,5 @@ Read `docs/HANDOFF.md` (status and business rules), then `docs/BUILD_PLAN.md` (t
 - Every bug in language understanding becomes a case in `evals/` before it is fixed.
 - Keep `packages/core/src/order-machine.ts` identical to the `order_transitions` seed rows.
 - Secrets live in `wrangler secret` and Supabase. Never in the repo. CI runs gitleaks.
-- The prospect list (private `media` bucket, `research/prospects/`; never in the repository, which is public) is research. Never import it as merchants, never message those numbers, never show its ratings.
+- The prospect list (private `media` bucket, `research/prospects/`; never in the repository, which is public) is research. It is shown only as a listing under LV1's rules (`docs/DECISIONS.md`, "Listings before they sign, 17 November 2026": name, kind, village, distance, a map link; never a phone, rating, review count, menu, hours or photo), never imported as merchants, never messaged.
 - Voice notes and receipts are personal data: store in the private `media` bucket, never log their contents.
