@@ -70,7 +70,9 @@ export interface ConfirmedOrder { orderId: string; status: string; payment_metho
 export async function confirmedWithChoices(ctx: Pick<ToolContext, "db" | "state">, body: string, o: ConfirmedOrder): Promise<Outbound> {
   const lang = ctx.state.lang ?? "ar";
   const c = messages(lang).cx;
-  const text = o.handover_code ? `${body}\n\n${c.handoverCode(o.handover_code)}` : body;
+  // CFG1: every pickup order has a code, and it is given to the hub, not to a rider.
+  const pickup = o.handover_code ? await rpc<boolean>(ctx, "order_is_pickup", { p_order: o.orderId }).catch(() => false) : false;
+  const text = o.handover_code ? `${body}\n\n${pickup ? c.handoverCodePickup(o.handover_code) : c.handoverCode(o.handover_code)}` : body;
   const rows: { id: string; title: string; description?: string }[] = (["best_match", "ask", "remove"] as const)
     .map((p) => ({ id: choiceButtonId({ kind: "missing", value: p, orderId: o.orderId }), title: c.missingRow[p], description: c.choicesMissing }));
   if (o.payment_method === "cod") {

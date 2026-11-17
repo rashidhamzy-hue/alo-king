@@ -34,6 +34,8 @@ async function set(c: Ctx) {
   const rate = num(c, "lbp_per_usd", { min: 1, max: 10_000_000 })!;
   return act(c, "fx_set", { lbp_per_usd: rate }, async () => {
     const r = await c.deps.db.rpc<{ status: string; move_pct?: number | string }>("set_fx_rate", { p_lbp_per_usd: rate, p_by: c.staff.partyId });
+    // CFG1 (0223): a change to the rate needs a second person; nothing changes until another ops lead or an admin approves it.
+    if (r.status === "awaiting_approval") return `Waiting for a second person: ${lbp(rate)} per dollar takes effect when another ops lead or an admin approves it under Approvals.`;
     return r.status === "paused"
       ? `Held: ${lbp(rate)} moves ${Number(r.move_pct)}% from this morning's rate. Quoting is paused until it is confirmed.`
       : `Rate set: ${lbp(rate)} per dollar.`;

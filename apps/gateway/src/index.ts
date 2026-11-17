@@ -4,7 +4,7 @@
 //   POST /webhooks/kapso/project    <- Kapso project events: Meta enforcement on the account, numbers disconnected (4.10)
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/cloudflare";
-import { fundingState, KapsoReceived, numberHealth, senderKey, showTyping, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
+import { buttons, fundingState, KapsoReceived, numberHealth, senderKey, showTyping, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
 import { probeInbound, probeReply, type ProbeMessage } from "@ak/wa/probe";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { lineProblem, parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
@@ -17,6 +17,7 @@ import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
 import { messages } from "@ak/agents/messages";
+import { orderButtonId } from "@ak/agents/order-card";
 import { supportMessage } from "@ak/agents/support";
 import { claimOrderMessage, logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
@@ -261,8 +262,10 @@ async function customerAddress(supa: SupabaseClient, partyId: string): Promise<s
 
 /** lang (0093, A4): the customer's language, from how they last wrote. The template and the words that fill it are in it. */
 /** template_approved (M1, 0121): the template may be sent, approved AND utility; template_status and template_category say why not. */
-interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received" | "pickup_ready"; order_id: string; short_code: string;
+interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received" | "pickup_ready" | "confirm_reminder"; order_id: string; short_code: string;
   customer_id: string; params: string[]; lang?: "ar" | "en" | "fr"; template: string | null; template_approved: boolean;
+  /** CFG1: a cancelled-by-timer card the customer may open again (0223): the free text carries the "reopen" button. */
+  reopenable?: boolean;
   template_status?: string | null; template_category?: string | null }
 
 /** The same notice as free text, for inside the 24-hour window until Meta approves the template. M1: the words are in messages/. */
@@ -273,6 +276,7 @@ const NOTICE_TEXT = (lang: "ar" | "en" | "fr"): Record<Notice["kind"], (p: strin
     rider_at_door: (p) => m.riderAtDoor(p[0] ?? ""),
     payment_received: (p) => m.paymentReceived(p[0] ?? "", p[1] ?? ""),
     pickup_ready: (p) => messages(lang).cx.pickupReady(p[0] ?? "", p[1] ?? ""),
+    confirm_reminder: (p) => m.confirmReminder(p[0] ?? ""),
   };
 };
 
@@ -289,7 +293,9 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
     const lang = n.lang ?? "ar";
     const msg: Outbound = n.template && n.template_approved
       ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
-      : { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
+      : n.reopenable
+        ? buttons(NOTICE_TEXT(lang)[n.kind](n.params), [{ id: orderButtonId("reopen", n.order_id), title: messages(lang).cx.reopenButton }])
+        : { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
     const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
     outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
     // Outside the window with no template that may be sent (not approved yet, or not utility): skipped, and said so. Never silent.

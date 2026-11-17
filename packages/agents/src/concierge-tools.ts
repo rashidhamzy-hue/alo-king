@@ -44,6 +44,8 @@ export interface ConversationState {
   slotId?: string | null;
   /** W1 (2.8 d): the customer tapped "edit" on a confirmed scheduled order; the next basket is its replacement (a new card). */
   replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
+  /** CFG1: the card being made opens this lapsed order again (reopenLapsed): linked as orders.reopened_from, and the card says so. */
+  reopening?: { orderId: string; shortCode: string } | null;
   /** HO1: the turn key that was already queued again once after a technical failure (the second failure gets the fixed line). */
   technicalRetry?: string | null;
   /** CX1: the first-ever welcome was decided for this conversation (sent, or not due), so it is never asked again. */
@@ -505,8 +507,18 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     replaces = link.replaces ?? old.shortCode;
     window = link.window ?? window;
   }
+  // CFG1: a lapsed order opened again. The link is recorded by the database (it refuses what may not be reopened); a card the
+  // database did not link says nothing about a reopening.
+  let reopenedFrom: string | null = null;
+  const reopening = ctx.state.reopening;
+  if (reopening) {
+    ctx.state.reopening = null;
+    const l = await rpc<{ ok: boolean; reopened_from?: string }>(ctx.db, "link_reopened_order", { p_new: created.order_id, p_old: reopening.orderId, p_party: ctx.partyId })
+      .catch(() => ({ ok: false } as { ok: boolean; reopened_from?: string }));
+    if (l.ok) reopenedFrom = l.reopened_from ?? reopening.shortCode;
+  }
   const sent = await sendCard(ctx, { orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
-                                      paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null, window, replaces }, opts.before);
+                                      paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null, window, replaces, reopenedFrom }, opts.before);
   if (!sent.ok) return sent;
   // A card went out: any order kept overnight is taken up or replaced (audit item 4). Never stops the turn.
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);

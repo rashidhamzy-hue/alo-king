@@ -42,7 +42,9 @@ describe("customer notices", () => {
     await db.pg.query(`insert into order_events(order_id, from_status, to_status, actor) values ($1, 'awaiting_confirmation', 'cancelled', 'customer')`, [b.order]);
     await tick(); await tick();
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ type: "text", text: { body: ar.notice.orderCancelled(a.code, "ما تأكّد الطلب بالوقت المحدد") } });
+    // CFG1: a card the timer cancelled carries the "reopen" button (0222, 0223); the words are the same
+    expect(sent[0]).toMatchObject({ type: "interactive", interactive: { body: { text: ar.notice.orderCancelled(a.code, "ما تأكّد الطلب بالوقت المحدد") },
+      action: { buttons: [{ reply: { id: `order:reopen:${a.order}`, title: ar.cx.reopenButton } }] } } });
     expect(await due()).toEqual([]);
   });
 

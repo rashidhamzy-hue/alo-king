@@ -678,6 +678,7 @@ Arabic read by a person; zero silences after a hand-off; the two failed requests
 | 4b | **LD1** website product data (JSON-LD, facts by template, functional only) | Sonnet, medium | PD1 merged | SR1, T1 | 0218 used | Built (16 Nov; `docs/HANDOFF.md`, LD1): the page follows the item's template, JSON-LD on every product page, an ItemList on categories |
 | When the reference arrives | **DS2** apply the design reference to `packages/ui` and the DS1 pages | Fable, high | Rashid's screenshots, tokens, motion | Any one | None | Waits; un-parks UX2, WEB2, UX3 |
 | 4, parked | WEB2, UX2, UX3 | As before | **DS2** (was "the founder restarts design") | | As before | Parked |
+| 4c | **CFG1** settings and small rules from the design review: the order-card reminder, reopen a lapsed order, the pickup code for every pickup, refund 10 and a second person for the LBP rate, cash cap 100/150, inbox timers as a setting | Sonnet, medium | Nothing | Any one | 0222, 0223 used | Built (17 Nov; `docs/HANDOFF.md`, CFG1) |
 | Closed | FX1 | | Absorbed by PD1 (data and chat) and LD1 (product page) | | | Closed |
 | 6 | **BK1** list photo to basket (moved up from "Later") | Opus, high | SR1 merged; gate A open | RD1, AN1 | 0195 to 0197 | Not started |
 | After WEB2 and gate B | **WEB3** the assistant on the website (the same Concierge, same turn pipeline) | Opus, high | WEB2 merged; gate B passed | Any one | 0219 to 0220 (LD1 used 0218) | Not started |
