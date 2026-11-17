@@ -120,6 +120,7 @@ function render(m: Messages): Rendered[] {
                    "welcome"] as const) add(`fixed.${k}`, f[k]);
   add("fixed.noPinCall", f.noPinCall("بعقلين"));
   add("fixed.notAvailable", f.notAvailable(["سناك أبو علي"])); add("fixed.notAvailable.none", f.notAvailable([]));
+  add("fixed.listingClaimed", f.listingClaimed("مخبز الشوف"));
   add("fixed.pinReceived", f.pinReceived("بعقلين")); add("fixed.pinReceivedThenAddress", [f.pinReceived("بعقلين"), "", f.askAddress].join("\n"));
   add("fixed.pinVillage", f.pinVillage("الخريبة", "بعقلين")); add("fixed.pinSaved", f.pinSaved("بعقلين"));
   add("fixed.closedKept", f.closedKept("08:00", names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("fixed.closedKeptPin", f.closedKeptPin("08:00", names.slice(0, 1).map((n) => `2 × ${n}`)));
