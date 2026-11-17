@@ -7,6 +7,7 @@ import { buttons, KapsoReceived, senderKey } from "@ak/wa/kapso";
 import { probeInbound, probeReply } from "@ak/wa/probe";
 import { offerCard, pickupCard, cashAsk } from "@ak/agents/job-card";
 import { orderButtonId } from "@ak/agents/order-card";
+import { pickButtonId } from "@ak/agents/choice";
 import { openTestDb, type TestDb } from "./harness";
 import { supabaseOver } from "./supabase-shim";
 
@@ -67,6 +68,14 @@ describe("the probe's answers", () => {
     expect(probeReply(cashAsk({ order_id: "22222222-2222-4222-8222-222222222222", short_code: "AB12", total_usd: 9 }))).toMatchObject({ kind: "tap", id: "stop:exact:22222222-2222-4222-8222-222222222222" });
     expect(probeReply({ type: "interactive", interactive: { type: "location_request_message", body: { text: "x" }, action: { name: "send_location" } } })).toEqual({ kind: "pin" });
     expect(probeReply({ type: "text", text: { body: "تم" } })).toBeNull();
+  });
+
+  // QA1: from 16 November the hourly probe order «ربطة خبز الفورنو» was asked «أي واحد بدك؟» (B1c's picker, three pick: buttons) and the
+  // probe answered nothing, so no probe order was placed for 36 hours and probe_silent stayed open. A person taps one: the probe taps the first.
+  it("answers the which-one question by tapping the first product offered, as a person would", () => {
+    const ids = ["e2755700-6d60-410a-8591-bdf63abdbcb7", "dba47104-2905-4f14-8be3-cb0bc4e0e29a"].map(pickButtonId);
+    expect(probeReply(buttons("«ربطة خبز الفورنو»: أي واحد بدك؟", ids.map((id, i) => ({ id, title: `${i + 1}. خبز` })))))
+      .toMatchObject({ kind: "tap", id: ids[0] });
   });
 
   it("speaks the real Kapso shape: what it sends parses like a real webhook", () => {

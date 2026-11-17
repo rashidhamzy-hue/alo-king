@@ -17,6 +17,12 @@ export function pgDb(db: TestDb): Db {
   return {
     async rpc(fn, args = {}) {
       try {
+        // QA1: a json or jsonb argument arrives as PostgREST delivers it: the JSON value itself. A JavaScript string stays a JSON string
+        // (PostgREST never parses "140" into the number 140). Before this the kit cast the text '140' to a number, which hid the Settings
+        // page sending every number as a string (refused on staging: VALUE_INVALID).
+        const json = await db.all<{ n: string }>(`select a.n from pg_proc p, unnest(p.proargnames, p.proargtypes::oid[]) as a(n, t)
+                                                   where p.proname = $1 and p.pronamespace = 'public'::regnamespace and a.t in ('json'::regtype, 'jsonb'::regtype)`, [checkIdent(fn)]);
+        if (json.length) args = Object.fromEntries(Object.entries(args).map(([k, v]) => [k, v !== null && v !== undefined && json.some((j) => j.n === k) ? JSON.stringify(v) : v]));
         // A set-returning function comes back as a list of rows, as PostgREST returns it.
         const f = await db.one<{ proretset: boolean }>("select proretset from pg_proc where proname = $1 and pronamespace = 'public'::regnamespace limit 1", [checkIdent(fn)]);
         if (f?.proretset) {

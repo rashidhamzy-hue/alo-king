@@ -51,6 +51,35 @@ describe("Inbox", () => {
     expect(logged.args).toEqual({ case: older, characters: 38 });       // the action log keeps the length, not the words
   });
 
+  // QA1: the gateway records a message that is not plain text as its whole WhatsApp body (packages/wa/src/gateway.ts: JSON.stringify(msg));
+  // on staging 110 of 158 bot messages in two days were buttons, cards or templates, and the Inbox showed them as raw JSON.
+  it("shows a bot message with buttons, a template or a location as words, never as raw JSON, in the list and in the case", async () => {
+    const r = await rig();
+    const village = await openShop(r.db);
+    const a = await placeOrder(r.db, village);
+    const caseId = (await r.db.rpc("open_case", { p_conversation: a.conversation, p_kind: "person_requested", p_topic: null, p_order: null, p_source: "customer_words" })).case_id;
+    const party = (await r.db.one(`select party_id from conversations where id = $1`, [a.conversation])).party_id;
+    const put = (type: string, body: unknown, at: string) => r.db.pg.query(
+      `insert into wa_messages(line, direction, party_id, type, body, created_at) values ('customer', 'outbound', $1, $2, $3, now() - $4::interval)`, [party, type, JSON.stringify(body), at]);
+    await put("location", { type: "location", location: { latitude: 33.677, longitude: 35.564, name: "Alo King" } }, "3 minutes");
+    await put("template", { type: "template", template: { name: "ak_payment_received_v1", language: { code: "ar" }, components: [] } }, "2 minutes");
+    await put("interactive", { type: "interactive", interactive: { type: "button", body: { text: "وصلك طلبك؟ إذا في شي ناقص دقّ «في مشكلة»." },
+      action: { buttons: [{ type: "reply", reply: { id: "fb:ok:1", title: "تمام" } }, { type: "reply", reply: { id: "fb:problem:1", title: "في مشكلة" } }] } } }, "1 minute");
+    const lead = await r.staff("ops_lead", "Maya");
+    const b = r.browser();
+    await b.signIn(lead);
+    const list = (await b.get("/inbox")).text, one = (await b.get(`/inbox/${caseId}`)).text;
+    for (const t of [list, one]) {
+      expect(t).not.toContain("&quot;type&quot;"); expect(t).not.toContain('{"type"');
+      expect(t).toContain("وصلك طلبك؟ إذا في شي ناقص دقّ «في مشكلة».");
+    }
+    expect(one).toContain("[تمام | في مشكلة]");
+    expect(one).toContain("[template: ak_payment_received_v1]");
+    expect(one).toContain("[location]");
+    const drawer = (await b.get(`/orders/${a.id}`)).text;                                     // the order's story shows the same words
+    expect(drawer).not.toContain("&quot;type&quot;"); expect(drawer).toContain("وصلك طلبك؟ إذا في شي ناقص دقّ «في مشكلة».");
+  });
+
   it("is for the ops lead and the admin only, and the database refuses anyone else too", async () => {
     const r = await rig();
     const village = await openShop(r.db);

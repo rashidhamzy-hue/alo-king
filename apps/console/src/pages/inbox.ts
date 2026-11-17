@@ -12,6 +12,7 @@ import { pick, t, type Lang as UiLang } from "../i18n";
 import { LEADS } from "../roles";
 import { messages, type Lang } from "@ak/agents/messages";
 import { badge, button, caseList, caseRow, dataTable, empty, icon, ladder, tabs, timerChip, type LadderStep } from "@ak/ui/components";
+import { messageWords } from "../message-words";
 
 type InboxRow = { case_id: string; kind: string; topic: string | null; state: string; order_code: string | null; customer: string; minutes: number;
   late: boolean; after_hours: boolean; callback_requested: boolean; rounds: number; claimed_by: string | null; pause_until: string | null;
@@ -26,7 +27,8 @@ type Credit = { order_id: string; customer_id: string; picker_id: string | null;
 const KIND: Record<string, [string, string]> = { person_requested: ["Asked for a person", "طلب شخصاً"], order_problem: ["Order problem", "مشكلة في الطلب"], complaint: ["Complaint", "شكوى"],
   refund: ["Refund", "استرداد"], payment: ["Payment", "دفع"], safety: ["Safety", "سلامة"], other: ["Other", "أخرى"] };
 const kindName = (k: string, L: UiLang = "en") => (KIND[k] ? pick(L, KIND[k]![0], KIND[k]![1]) : k);
-const said = (m: { type: string; body: string | null } | null, L: UiLang = "en") => (m ? (m.type === "audio" ? pick(L, "[voice note]", "[رسالة صوتية]") : m.type === "image" ? pick(L, "[picture]", "[صورة]") : m.body ?? `[${m.type}]`) : "");
+const said = (m: { type: string; body: string | null } | null, L: UiLang = "en") => (m ? (m.type === "audio" ? pick(L, "[voice note]", "[رسالة صوتية]") : m.type === "image" ? pick(L, "[picture]", "[صورة]") : messageWords(m.type, m.body, L)) : "");
+
 type Support = { claim_alert_min?: number; founder_alert_min?: number; late_min?: number };
 const support = (c: Ctx) => c.deps.db.rpc<Support | null>("setting", { p_key: "support" }).catch(() => null);
 /** The escalation steps of a case at the minutes settings.support gives (3, 5 and 15 today). No setting read, no steps: nothing is guessed. */

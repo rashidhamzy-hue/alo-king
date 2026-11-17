@@ -5,6 +5,7 @@
 import { act, html, id, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, minutesSince, when } from "../html";
 import { LEADS } from "../roles";
+import { messageWords } from "../message-words";
 
 type Exc = { id: string; kind: string; ref: string; detail: Record<string, unknown>; status: string; created_at: string; last_alert_at: string | null };
 type Conv = { id: string; party_id: string; last_inbound_at: string | null; active_order_id: string | null; updated_at: string };
@@ -39,7 +40,7 @@ ${convs.map((x, i) => {
   return html`<div class="pair"><div>
 <p><strong>${parties.find((p) => p.id === x.party_id)?.display_name ?? "Customer"}</strong>${h ? html` · handed over: ${h.reason} (${when(h.created_at)})` : ""}
 ${open ? "" : html` · <strong class="warn">24-hour window closed: a reply cannot be sent</strong>`}</p>
-<table>${[...msgs[i]!].reverse().map((m) => html`<tr><td class="muted">${when(m.created_at)}</td><td>${m.direction === "inbound" ? "customer" : "us"}</td><td>${m.body ?? `[${m.type}]`}</td></tr>`)}</table>
+<table>${[...msgs[i]!].reverse().map((m) => html`<tr><td class="muted">${when(m.created_at)}</td><td>${m.direction === "inbound" ? "customer" : "us"}</td><td>${messageWords(m.type, m.body)}</td></tr>`)}</table>
 ${form(c.f, `/chats/${x.id}/reply`, html`<p><textarea name="text" rows="3" cols="60" maxlength="1500" required></textarea></p><p><button>Send reply</button></p>`)}
 ${canRelease ? form(c.f, `/chats/${x.id}/release`, html`<button>Let the bot answer now</button>`) : html`<p class="note">Handing back needs release_handoff(), not in the database yet (see docs/HANDOFF.md, Console).</p>`}
 </div></div>`;

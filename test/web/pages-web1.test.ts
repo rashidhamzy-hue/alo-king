@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { build, preview } from "astro";
 import { createServer } from "node:net";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { openTestDb, type TestDb } from "../db/harness";
 import { makeFactComplete } from "../db/fact-kit";
@@ -279,6 +280,19 @@ describe("LD1: the product page follows its template, and its JSON-LD is built f
       const t = text((await page("/p/AK-0045", { "accept-language": lang })).html);
       expect(t).toContain(DICTS[lang].facts_title); expect(t).toContain(DICTS[lang].allergens); expect(t).toContain(DICTS[lang].not_confirmed_yet);
     }
+  });
+
+  // QA1: the "web" workflow was red on main from #109 on: its live check (smoke.sh) still looked for the words before LD1 ("not verified",
+  // "declared") and the first product of the first aisle (fresh produce) says "Not confirmed yet". The check is fact-status.sh, run here
+  // on the same page the live check opens, and on every way an approved fact names its source.
+  it("the live smoke's fact-status check passes on the page it opens (the first product of the first aisle), and on every source's words", async () => {
+    const run = (html: string) => { const f = root + "dist/qa1-prod.html"; writeFileSync(f, html);
+      try { execFileSync("bash", [root + "scripts/fact-status.sh", f]); return true; } catch { return false; } finally { rmSync(f); } };
+    const cat = (await page("/c/fruits_vegetables")).html;
+    const first = /href="(\/p\/[A-Za-z0-9_-]+)"/.exec(body(cat))![1]!;
+    expect(run((await page(first)).html), first).toBe(true);
+    for (const [k, v] of Object.entries(DICTS.en)) if (k.startsWith("src_")) expect(run(`<p>Origin: Lebanon (${v})</p>`), k).toBe(true);
+    expect(run("<p>Product details</p><p>Origin: Lebanon</p>")).toBe(false);
   });
 
   it("an item with no price entered states none: no $0.00 on the page and no Offer in the data", async () => {

@@ -25,7 +25,7 @@ grep -q 'class="ak-product' "$tmp/cat.html" || fail "category $cat_path lists no
 echo "- $cat_path: 200, $(grep -o 'class="ak-product' "$tmp/cat.html" | wc -l | tr -d ' ') items"
 sku=$(grep -oE 'href="/p/[A-Za-z0-9_-]+"' "$tmp/cat.html" | head -1 | sed 's/href="//; s/"$//')
 [ "$(get -o "$tmp/prod.html" -w '%{http_code}' "$url$sku")" = 200 ] || fail "product $sku did not answer 200"
-grep -qi 'not verified' "$tmp/prod.html" || grep -qiE 'declared|certified|calculated' "$tmp/prod.html" || fail "product page shows no fact status"
+"$(dirname "$0")/fact-status.sh" "$tmp/prod.html" || fail "product page shows no fact status"
 echo "- $sku: 200, food facts carry a status"
 [ "$(get -o /dev/null -w '%{http_code}' "$url/c/nope")" = 404 ] || fail "an unknown category is not a 404"
 [ "$(get -o /dev/null -w '%{http_code}' "$url/p/AK-9999999")" = 404 ] || fail "an unknown product is not a 404"

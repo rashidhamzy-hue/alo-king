@@ -291,12 +291,19 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
   if (to && !(await claimOrderMessage(deps.db, n.order_id, n.kind, n.key, n.customer_id))) outcome = "refused:over_budget";
   else if (to) {
     const lang = n.lang ?? "ar";
-    const msg: Outbound = n.template && n.template_approved
+    const template: Outbound | null = n.template && n.template_approved
       ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
-      : n.reopenable
-        ? buttons(NOTICE_TEXT(lang)[n.kind](n.params), [{ id: orderButtonId("reopen", n.order_id), title: messages(lang).cx.reopenButton }])
-        : { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
-    const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
+      : null;
+    // QA1 (staging, 17 Nov): a lapsed card's notice carries the Reopen button, which only the free message can carry. With the cancel
+    // template approved it went as the template, so the button reached nobody. The free message first; outside the window, the template.
+    let msg: Outbound = n.reopenable
+      ? buttons(NOTICE_TEXT(lang)[n.kind](n.params), [{ id: orderButtonId("reopen", n.order_id), title: messages(lang).cx.reopenButton }])
+      : template ?? { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
+    let r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
+    if (!r.ok && r.refused === "window_closed_use_template" && n.reopenable && template) {
+      msg = template;
+      r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: "utility", orderId: n.order_id, dedupeKey: `${n.key}:template` });
+    }
     outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
     // Outside the window with no template that may be sent (not approved yet, or not utility): skipped, and said so. Never silent.
     if (!r.ok && r.refused === "window_closed_use_template")

@@ -127,6 +127,29 @@ describe("2. the lapsed-order notice", () => {
   });
 });
 
+describe("2b. the Reopen button with the cancel template approved (QA1)", () => {
+  // QA1, staging 17 Nov 20:18: AK-1059 lapsed and its notice went as ak_order_cancelled_v1 (approved by Meta, utility), which has no
+  // button, so the Reopen button reached nobody once the template was approved. Inside the window the free message with the button
+  // goes; outside it, only the template can go, and it does.
+  it("inside the window: the free message with Reopen, not the template; outside it: the approved template", async () => {
+    await h.db.rpc("set_template_meta", { p_name: "ak_order_cancelled_v1", p_status: "APPROVED", p_category: "UTILITY" });
+    try {
+      const inside = await card({ minsAgo: 90 }), outside = await card({ minsAgo: 90, windowOpen: false });
+      await h.db.pg.query(`update orders set created_at = now() - interval '2 hours' where id = any($1::uuid[])`, [`{${inside.orderId},${outside.orderId}}`]);
+      await h.db.rpc("run_timers");
+      await tick();
+      const about = (code: string) => sent.filter((m) => JSON.stringify(m).includes(code));
+      expect(about(inside.code)).toHaveLength(1);
+      expect(about(inside.code)[0].type).toBe("interactive");
+      expect(about(inside.code)[0].interactive.action.buttons[0].reply).toEqual({ id: `order:reopen:${inside.orderId}`, title: ar.cx.reopenButton });
+      expect(about(outside.code)).toHaveLength(1);
+      expect(about(outside.code)[0]).toMatchObject({ type: "template", template: { name: "ak_order_cancelled_v1" } });
+    } finally {
+      await h.db.rpc("set_template_meta", { p_name: "ak_order_cancelled_v1", p_status: "PENDING", p_category: "UTILITY" });
+    }
+  });
+});
+
 describe("3. every pickup order needs the handover code", () => {
   it("a cash pickup order gets a code when it is confirmed; a cash delivery order still gets none", async () => {
     const p = await card({ pickup: true });

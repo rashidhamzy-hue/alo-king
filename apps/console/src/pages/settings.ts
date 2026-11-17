@@ -87,7 +87,8 @@ ${dataTable({ caption: pick(L, "Changes made on this page", "التغييرات 
     return { cells: [when(x.at), x.by_name ?? "", settingWords(L, x.key, x.field), show(L, it, x.before), show(L, it, x.after), x.reason ?? "", x.approved_by_name ?? "—"] }; }) })}</section>`, { translated: true });
 }
 
-/** Reads the form into the JSON value change_setting() takes, by the field's own type (from the database's list, never the browser's word for it). */
+/** Reads the form into the JSON value change_setting() takes, by the field's own type (from the database's list, never the browser's word for it).
+ *  The value goes as itself: PostgREST hands a jsonb argument the JSON it is sent, so a stringified 140 arrived as the string "140" (QA1). */
 async function change(c: Ctx) {
   const L = c.lang;
   const key = text(c, "key", 60), field = c.form.field === undefined ? "" : text(c, "field", 60);
@@ -103,7 +104,7 @@ async function change(c: Ctx) {
   else value = raw;
   const name = settingWords(L, key, field);
   return act(c, "setting_change", { key, field, value, reason }, async () => {
-    const r = await c.deps.db.rpc<{ status: string; duplicate?: boolean }>("change_setting", { p_key: key, p_field: field, p_value: JSON.stringify(value), p_by: c.staff.partyId, p_reason: reason });
+    const r = await c.deps.db.rpc<{ status: string; duplicate?: boolean }>("change_setting", { p_key: key, p_field: field, p_value: value, p_by: c.staff.partyId, p_reason: reason });
     if (r.status === "awaiting_approval") return r.duplicate
       ? pick(L, `${name} is already waiting for a second person.`, `${name} بانتظار شخص ثانٍ بالفعل.`)
       : pick(L, `Waiting for a second person: ${name} changes when another ops lead or admin approves it on the Approve page.`, `بانتظار شخص ثانٍ: يتغيّر «${name}» حين يوافق مسؤول عمليات أو مدير آخر في صفحة الموافقات.`);
