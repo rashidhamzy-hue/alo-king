@@ -3,8 +3,9 @@
 // The inbound shape is the real Kapso v2 message shape (test/fixtures/kapso/), BSUID only, no phone: the way Meta is heading.
 import type { Outbound } from "./kapso";
 
-/** The buttons a person would tap, in the order an order moves: confirm the card; accept, pick up, deliver, cash exact. */
-const NEXT: RegExp[] = [/^order:confirm:/, /^job:accept:/, /^job:picked:/, /^stop:delivered:/, /^stop:exact:/];
+/** The buttons a person would tap, in the order an order moves: confirm the card; accept, pick up, deliver, cash exact. Before the card,
+ *  "which one?" (B1c's picker, pick:<product>): a person taps one, so the probe taps the first offered (QA1: it stalled there from 16 Nov). */
+const NEXT: RegExp[] = [/^order:confirm:/, /^job:accept:/, /^job:picked:/, /^stop:delivered:/, /^stop:exact:/, /^pick:/];
 
 /** What the probe says when asked where exactly: a house, a floor and a landmark, in Lebanese Arabic. */
 export const PROBE_ADDRESS = "بيت الاختبار، الطابق الأول، حد ساحة الضيعة";
