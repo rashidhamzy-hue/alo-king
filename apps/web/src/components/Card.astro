@@ -12,10 +12,10 @@ const name = nameIn(lang, item.name_en, item.name_ar);
 const unit = unitLabel(lang, item.sell_unit);
 const pic = item.picture;
 void whatsapp;
-const here = `${Astro.url.pathname}${Astro.url.search.replace(/[?&]added=[^&]*/g, "").replace(/^&/, "?")}`;
+// The button belongs to the page's one form (CardKit.astro); its value is the item and the price this page showed ("sku:price").
 const add = item.in_stock && item.coming_soon !== true && item.orderable !== false;
 ---
 <ProductCard href={`/p/${encodeURIComponent(item.sku)}`} name={name} meta={[item.brand, unit].filter(Boolean).join(" · ") || undefined} price={usd(item.price_usd)} inStock={item.in_stock}
   picture={pic ? { src: pictureUrl(env, pic.path, 400), width: pic.width_px ?? 400, height: pic.height_px ?? 400 } : null}
   labels={{ inStock: t(lang, "in_stock"), outOfStock: t(lang, item.coming_soon ? "coming_soon" : "out_of_stock"), noPicture: t(lang, "no_picture") }}
-  action={add ? { post: { action: "/cart/line", fields: { sku: item.sku, add: "1", back: here, price: String(item.price_usd) } }, label: t(lang, "w2_add"), icon: "plus" } : null} />
+  action={add ? { submit: { form: "ak-add", name: "sku", value: `${item.sku}:${Number(item.price_usd)}` }, label: t(lang, "w2_add"), icon: "plus" } : null} iconRefs />

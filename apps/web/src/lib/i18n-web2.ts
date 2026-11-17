@@ -89,7 +89,7 @@ const en: Dict = {
   w2_how_confirm: "Confirming", w2_how_confirm_text: "Nothing is held until you tap Confirm. One reminder after {r} minutes; the card lapses after {l} minutes, and you can open it again.",
   w2_how_code: "The handover code", w2_how_code_text: "A prepaid order is handed over only against a 4-digit code we send you.",
   w2_how_account: "Your account and privacy", w2_how_account_text: "No password: one WhatsApp message confirms your number. Sign out at any time, and see or forget what we remember.",
-  w2_how_cta: "Start shopping",
+  w2_how_cta: "Start shopping", w2_page_prev: "Previous", w2_page_next: "Next", w2_page_n: "Page {n} of {total}",
 };
 
 const ar: Dict = {
@@ -176,7 +176,7 @@ const ar: Dict = {
   w2_how_confirm: "التأكيد", w2_how_confirm_text: "لا نحجز شيئًا قبل أن تضغط «تأكيد». تذكير واحد بعد {r} دقيقة؛ تنتهي البطاقة بعد {l} دقيقة، ويمكنك فتحها من جديد.",
   w2_how_code: "رمز التسليم", w2_how_code_text: "الطلب المدفوع مسبقًا لا يُسلَّم إلا مقابل رمز من 4 أرقام نرسله لك.",
   w2_how_account: "حسابك وخصوصيتك", w2_how_account_text: "لا كلمة مرور: رسالة واحدة عبر واتساب تؤكد رقمك. سجّل الخروج متى شئت، واطّلع على ما نتذكّره أو امحُه.",
-  w2_how_cta: "ابدأ التسوّق",
+  w2_how_cta: "ابدأ التسوّق", w2_page_prev: "السابق", w2_page_next: "التالي", w2_page_n: "الصفحة {n} من {total}",
 };
 
 const fr: Dict = {
@@ -263,7 +263,7 @@ const fr: Dict = {
   w2_how_confirm: "Confirmer", w2_how_confirm_text: "Rien n'est réservé avant que vous touchiez Confirmer. Un rappel après {r} minutes ; le bon expire après {l} minutes, et vous pouvez le rouvrir.",
   w2_how_code: "Le code de remise", w2_how_code_text: "Une commande payée d'avance n'est remise que contre un code à 4 chiffres que nous vous envoyons.",
   w2_how_account: "Votre compte et votre vie privée", w2_how_account_text: "Pas de mot de passe : un message WhatsApp confirme votre numéro. Déconnectez-vous à tout moment, voyez ou effacez ce que nous retenons.",
-  w2_how_cta: "Commencer les courses",
+  w2_how_cta: "Commencer les courses", w2_page_prev: "Précédent", w2_page_next: "Suivant", w2_page_n: "Page {n} sur {total}",
 };
 
 export const W2: Record<"en" | "ar" | "fr", Dict> = { en, ar, fr };

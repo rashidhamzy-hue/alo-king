@@ -34,7 +34,7 @@ try { v = await visitorOf(env, cookie); facts = await ordering(env).serviceFacts
 if (v?.linked && v.token && v.expiresAt) Astro.response.headers.append("Set-Cookie", sessionCookie(v.token, v.expiresAt));
 const wa = facts?.whatsapp ?? null;
 const code = v && !v.linked ? v.code?.code ?? null : null;
-const open = code ? chatWith(wa, code) : null;
+const chatOpen = code ? chatWith(wa, code) : null;
 ---
 <Base title={t(lang, "w2_signin_title")} lang={lang} path="/signin" whatsapp={wa} noindex refresh={code ? 5 : null}>
   {failed || !v ? <Unavailable lang={lang} /> : <div class="w2 split">
@@ -49,18 +49,18 @@ const open = code ? chatWith(wa, code) : null;
       {v.linked
         ? <><p class="w2-big"><Icon name="check" /> {t(lang, "w2_signin_done")}</p><Button label={t(lang, "w2_signin_continue")} href={next} variant="gold" size="lg" /></>
         : !wa ? <p>{t(lang, "w2_signin_no_wa")}</p>
-        : code && open
+        : code && chatOpen
           ? <>
               <ol class="w2-steps"><li>{t(lang, "w2_signin_step1")}</li><li>{t(lang, "w2_signin_step2")}</li><li>{t(lang, "w2_signin_step3")}</li></ol>
               <p>{t(lang, "w2_signin_code")}: <span class="w2-code">{code}</span></p>
-              <Button label={t(lang, "w2_signin_open")} href={open} icon="chat" variant="whatsapp" size="lg" external attrs={{ target: "_blank" }} />
+              <Button label={t(lang, "w2_signin_open")} href={chatOpen} icon="chat" variant="whatsapp" size="lg" external attrs={{ target: "_blank" }} />
               <p class="muted" role="status">{t(lang, "w2_signin_waiting")} {t(lang, "w2_signin_expires", { n: facts?.link_code_minutes ?? 10 })}</p>
               <p class="muted small">{t(lang, "w2_signin_consent")}</p>
             </>
           : <form method="post" action="/signin">
               <input type="hidden" name="next" value={next}>
               <ol class="w2-steps"><li>{t(lang, "w2_signin_step1")}</li><li>{t(lang, "w2_signin_step2")}</li><li>{t(lang, "w2_signin_step3")}</li></ol>
-              <Button label={t(lang, "w2_signin_button")} icon="chat" variant="whatsapp" size="lg" block />
+              <Button label={t(lang, "w2_signin_button")} icon="chat" variant="primary" size="lg" block />
               <p class="muted small">{t(lang, "w2_signin_consent")}</p>
             </form>}
     </div>

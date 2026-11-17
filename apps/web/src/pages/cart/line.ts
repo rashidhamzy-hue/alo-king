@@ -8,7 +8,8 @@ import { t } from "../../lib/i18n";
 export async function POST({ request, locals, url }: { request: Request; locals: App.Locals; url: URL }): Promise<Response> {
   if (!sameOrigin(request, url)) return new Response("Forbidden", { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   const form = await request.formData();
-  const sku = String(form.get("sku") ?? "");
+  // A card's button sends "sku:price" (the price that page showed); the basket's own forms send the sku and the price apart.
+  const [sku = "", shown] = String(form.get("sku") ?? "").split(":");
   const back = safeBack(String(form.get("back") ?? ""), "/cart");
   if (!/^AK-\d{1,8}$/.test(sku)) return seeOther(back);
   try {
@@ -21,7 +22,7 @@ export async function POST({ request, locals, url }: { request: Request; locals:
       qty = Number(now.lines?.find((l) => l.sku === sku)?.qty ?? 0) + 1;
     }
     if (!Number.isInteger(qty) || qty < 0) return seeOther(back, setCookie);
-    const seen = Number(form.get("price"));
+    const seen = Number(shown ?? form.get("price"));
     const cart = await c.setLine(token, sku, Math.min(qty, 99), Number.isFinite(seen) && seen > 0 ? seen : null);
     const to = form.get("add") && back !== "/cart" ? `${back}${back.includes("?") ? "&" : "?"}added=${encodeURIComponent(sku)}` : back;
     const r = seeOther(to, setCookie);

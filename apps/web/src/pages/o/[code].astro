@@ -32,8 +32,8 @@ const waiting = ok && p.status === "awaiting_confirmation";
 const ended = ok && ["delivered", "closed", "cancelled", "failed_delivery", "returned"].includes(p.status);
 const tz = facts?.hours?.tz ?? null;
 const wa = facts?.whatsapp ?? null;
-const again = ok ? chatWith(wa, `Card ${p.short_code}`) : null;
-const person = ok ? chatWith(wa, `${p.short_code}`) : null;
+const chatAgain = ok ? chatWith(wa, `Card ${p.short_code}`) : null;
+const chatPerson = ok ? chatWith(wa, `${p.short_code}`) : null;
 const sl = (lang === "ar" ? "ar" : "en") as "ar" | "en";
 // The steps: done, now or still to come, each with its time from the order's own events.
 const at = (id: string) => ok ? [...p.events].reverse().find((e: any) => e.status === id)?.at ?? null : null;
@@ -53,8 +53,8 @@ const lapse = Number(facts?.confirm_lapse_min ?? 60);
       <section>
         <p class="w2-big"><Icon name="chat" /> {t(lang, "w2_order_waiting")}</p>
         <p class="muted">{t(lang, "w2_order_waiting_note", { n: lapse })}</p>
-        {again && <p>{t(lang, "w2_order_resend")}</p>}
-        {again && <Button label={t(lang, "w2_order_open_wa")} href={again} variant="whatsapp" icon="chat" size="lg" external attrs={{ target: "_blank" }} />}
+        {chatAgain && <p>{t(lang, "w2_order_resend")}</p>}
+        {chatAgain && <Button label={t(lang, "w2_order_open_wa")} href={chatAgain} variant="whatsapp" icon="chat" size="lg" external attrs={{ target: "_blank" }} />}
         <p class="muted small">{t(lang, "w2_order_updates")}</p>
       </section>
       {words && <div class="w2-card">
@@ -84,6 +84,6 @@ const lapse = Number(facts?.confirm_lapse_min ?? 60);
         </dl>
       </section>
     </>}
-    {person && <p><Button label={t(lang, "w2_order_person")} href={person} variant="whatsapp" icon="chat" external attrs={{ target: "_blank" }} /></p>}
+    {chatPerson && <p><Button label={t(lang, "w2_order_person")} href={chatPerson} variant="whatsapp" icon="chat" external attrs={{ target: "_blank" }} /></p>}
   </div>}
 </Base>

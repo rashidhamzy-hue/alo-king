@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
 import { build, preview } from "astro";
 import { createServer } from "node:net";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { openHub, deliverToDoor, collect, expectBooksBalanced, type Hub } from "../db/hub-kit";
 import { supabaseOver } from "../db/supabase-shim";
@@ -25,7 +25,11 @@ import { sendWebCards } from "@ak/agents/web-orders";
 import { formatOrderCard } from "@ak/agents/order-card";
 import { FAKE_ANON, FAKE_JWT, startFakePostgrest, type Fake } from "./postgrest-fake";
 
-const root = fileURLToPath(new URL("../../apps/web/", import.meta.url));
+// The site is built from its own copy, at the same depth (so its relative imports of packages/ hold): test/web/pages-web1.test.ts builds
+// apps/web at the same time (vitest runs files in parallel), and two builds of one folder share dist/, .astro/ and .wrangler/.
+const web = fileURLToPath(new URL("../../apps/web/", import.meta.url));
+const root = fileURLToPath(new URL("../../apps/.web2-test/", import.meta.url));
+const OUT = root + "dist/";
 const freePort = () => new Promise<number>((ok) => { const s = createServer(); s.listen(0, "127.0.0.1", () => { const p = (s.address() as any).port; s.close(() => ok(p)); }); });
 let h: Hub; let db: TestDb; let fake: Fake; let base = ""; let stop: () => Promise<void> = async () => {};
 let svc: ReturnType<typeof channelCommerce>;
@@ -93,22 +97,26 @@ beforeAll(async () => {
   svc = channelCommerce(asSupabase(db));
   await db.pg.query(`update settings set value = value || jsonb_build_object('product_link', $1::text) where key = 'catalog'`, [`${WA}?text={sku}`]);
   fake = await startFakePostgrest(db);
-  await build({ root, logLevel: "error" });
+  rmSync(root, { recursive: true, force: true });
+  cpSync(web, root, { recursive: true, filter: (src) => !/[\\/](dist|node_modules|\.astro|\.wrangler|\.dev\.vars)([\\/]|$)/.test(src.slice(web.length - 1)) });
+  await build({ root, logLevel: "error" } as any);
   const body = Object.entries({ SUPABASE_URL: fake.url, SUPABASE_ANON_KEY: FAKE_ANON, WEB_CHANNEL_JWT: FAKE_JWT, PAGE_CACHE: "off", WEB_POST_LIMIT: "100000" }).map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
-  writeFileSync(root + ".dev.vars", body); writeFileSync(root + "dist/server/.dev.vars", body);
+  writeFileSync(OUT + "server/.dev.vars", body);
   const port = await freePort();
   const server = await preview({ root, logLevel: "error", server: { port, host: "127.0.0.1" } } as any);
   stop = () => server.stop(); base = `http://127.0.0.1:${port}`;
   stubKapso();
 }, 300_000);
-afterAll(async () => { vi.unstubAllGlobals(); await stop(); await fake?.close(); if (existsSync(root + ".dev.vars")) rmSync(root + ".dev.vars"); });
+afterAll(async () => { vi.unstubAllGlobals(); await stop(); await fake?.close(); rmSync(root, { recursive: true, force: true }); });
 
 describe("1. the basket", () => {
   it("adds from the aisle, the product and the search pages with no script; every one carries the add form", async () => {
     const b = new Browser();
     for (const [page, sku] of [["/c/dairy_eggs", "AK-0042"], ["/p/AK-0103", "AK-0103"], ["/search?q=labne", "AK-0042"]] as const) {
       const html = (await b.get(page)).html;
-      expect(html, page).toMatch(new RegExp(`<form method="post" action="/cart/line"><input type="hidden" name="sku" value="${sku}">`));
+      expect(html, page).toMatch(page.startsWith("/p/") ? new RegExp(`<form method="post" action="/cart/line"><input type="hidden" name="sku" value="${sku}">`)
+        : new RegExp(`form="ak-add" name="sku" value="${sku}:[\\d.]+"`));
+      if (!page.startsWith("/p/")) expect(html).toContain('<form id="ak-add" method="post" action="/cart/line" hidden>');
     }
     const added = await b.post("/cart/line", { sku: "AK-0103", add: "1", back: "/p/AK-0103" });
     expect(added.status).toBe(303);
@@ -389,6 +397,61 @@ describe("the done-when: one order on the site and the same basket in the chat a
     expect(l1.length).toBeGreaterThan(2);
     expect(l1).toEqual(await ledger(chat.id));
     await expectBooksBalanced(h);
+  });
+});
+
+/** What a first visit downloads, uncompressed, with nothing cached: the HTML, every stylesheet and script it links, and the font files its
+ *  text needs. The fonts follow the CSS: each language's font stack (packages/ui/tokens.css, and site.css's Arabic override); a character
+ *  takes the first family of its element's stack whose @font-face covers it, and that family's files are counted (both weights: every page
+ *  has headings). Words marked with another language (an Arabic name on an English page) use that language's stack; the language switch's
+ *  names use the phone's own font. This is the cold weight docs/WEBSITE.md's budget means. */
+async function coldWeight(path: string, lang: "ar" | "en") {
+  const b = new Browser(lang);
+  const html = (await b.get(path)).html;
+  const assets = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g), ...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]!);
+  let bytes = Buffer.byteLength(html);
+  let css = ""; const parts: string[] = [`html ${bytes}`];
+  for (const a of assets) { const t = await (await realFetch(base + a)).text(); bytes += Buffer.byteLength(t); parts.push(`${a.replace(/^.*\//, "")} ${Buffer.byteLength(t)}`); if (a.endsWith(".css")) css += t; }
+  const STACKS: Record<"ar" | "en", string[]> = { ar: ["IBM Plex Sans Arabic", "IBM Plex Figures"], en: ["IBM Plex Sans", "IBM Plex Sans Arabic"] };
+  const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => ({
+    family: /font-family:\s*["']?([^"';]+)["']?/.exec(m[1]!)?.[1] ?? "", url: /url\(["']?([^"')]+)["']?\)/.exec(m[1]!)?.[1] ?? "",
+    spans: (/unicode-range:([^;}]+)/.exec(m[1]!)?.[1] ?? "").split(",").map((r) => r.trim().replace(/^U\+/i, "").split("-").map((x) => parseInt(x, 16))) }));
+  const covers = (f: (typeof faces)[number], c: number) => f.spans.some(([lo, hi]) => c >= lo! && c <= (hi ?? lo!));
+  const fonts = new Set<string>();
+  const use = (chars: string, stack: string[]) => {
+    for (const ch of new Set(chars)) {
+      const c = ch.codePointAt(0)!;
+      if (c <= 0x20) continue;
+      const fam = stack.find((fm) => faces.some((f) => f.family === fm && covers(f, c)));
+      if (fam) for (const f of faces) if (f.family === fam) fonts.add(f.url);
+    }
+  };
+  const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "").replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "");
+  const foreign = [...noSwitch.matchAll(/<(\w+)\b[^>]*\blang="(ar|en|fr)"[^>]*>([\s\S]*?)<\/\1>/g)].filter((m) => m[1] !== "html" && (m[2] === "ar") !== (lang === "ar"));
+  use(text(foreign.reduce((h, m) => h.replace(m[0], ""), noSwitch)), STACKS[lang]);
+  for (const m of foreign) use(text(m[3]!), STACKS[m[2] === "ar" ? "ar" : "en"]);
+  for (const f of fonts) { const n = (await (await realFetch(base + f)).arrayBuffer()).byteLength; bytes += n; parts.push(`${f.replace(/^.*\//, "")} ${n}`); }
+  return { bytes, fonts: fonts.size, parts };
+}
+
+describe("8. every page under 100 KB on a first visit, with its fonts, Arabic included", () => {
+  it("weighs every page cold, in Arabic and English", async () => {
+    const { b } = await signedIn();
+    const v = await db.one(`select lat, lng from villages where name_en = 'Baakline'`);
+    const p = await b.submit("/checkout", { do: "pin", pin: `${v.lat},${v.lng}` });
+    const pl = /name="place" value="([0-9a-f-]{36})" checked/.exec(p.html)![1]!;
+    const k = /name="key" value="([^"]+)"/.exec(p.html)![1]!;
+    const sent = await b.post("/checkout", { do: "place", key: k, place: pl, slot: "now", missing: "ask", pay: "cod_usd", note: "" });
+    const cats = (await db.rpc("web_catalog_home")).categories.map((c: any) => `/c/${c.code}`);
+    const pages = ["/", ...cats, "/p/AK-0042", "/search?q=labne", "/food", "/cart", "/signin", "/how", "/privacy", sent.location!];
+    const rows: string[] = []; const sizes: [string, number][] = [];
+    for (const lang of ["ar", "en"] as const) for (const path of pages) {
+      const w = await coldWeight(path, lang);
+      rows.push(`${lang} ${path.replace(/\?k=.*/, "?k=…")}: ${w.bytes} bytes, ${w.fonts} font files (${w.parts.join(", ")})`);
+      sizes.push([`${path} (${lang})`, w.bytes]);
+    }
+    console.log(rows.join("\n"));
+    for (const [what, n] of sizes) expect(n, `${what} weighs ${n} bytes with its fonts`).toBeLessThan(100 * 1024);
   });
 });
 

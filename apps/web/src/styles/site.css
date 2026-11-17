@@ -166,3 +166,9 @@
   .added { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); margin: 0 0 var(--ak-space-3); padding: var(--ak-space-2) var(--ak-space-3); border-radius: var(--ak-radius-md); background: var(--ak-surface); box-shadow: var(--ak-shadow-1); font-weight: var(--ak-weight-strong); }
   .added a { color: var(--ak-text); }
 }
+/* WEB2: an Arabic page writes digits, prices and codes in Latin script: they take the small "figures" font (digits, capitals, signs: about
+   3.5 KB a weight), not the whole Latin font (about 12 KB a weight). Lower-case Latin on an Arabic page (a brand name) uses the phone's font;
+   a part of the page marked lang="en" or lang="fr" still takes IBM Plex Sans. */
+@font-face { font-family: "IBM Plex Figures"; font-weight: 400; font-style: normal; font-display: swap; src: url("../../../../packages/ui/fonts/plex-figures-400.woff2") format("woff2"); unicode-range: U+0020-005F, U+00A0, U+00B7, U+00D7, U+2013-2014, U+2022, U+2026, U+2212; }
+@font-face { font-family: "IBM Plex Figures"; font-weight: 600; font-style: normal; font-display: swap; src: url("../../../../packages/ui/fonts/plex-figures-600.woff2") format("woff2"); unicode-range: U+0020-005F, U+00A0, U+00B7, U+00D7, U+2013-2014, U+2022, U+2026, U+2212; }
+html:lang(ar) { --ak-font-ar: "IBM Plex Sans Arabic", "IBM Plex Figures", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }

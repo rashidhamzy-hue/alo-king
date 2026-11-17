@@ -135,7 +135,7 @@ const lineItems: { sku: string; name: string }[] = (q?.lines ?? []).map((l: any)
         <h2>{t(lang, "w2_signin_title")}</h2>
         <p class="muted">{t(lang, "w2_signin_lead", { days: facts?.session_days ?? 90 })}</p>
         {facts?.whatsapp ? <form method="post" action="/signin"><input type="hidden" name="next" value="/checkout">
-          <Button label={t(lang, "w2_signin_button")} icon="chat" variant="whatsapp" size="lg" block /></form> : <p>{t(lang, "w2_signin_no_wa")}</p>}
+          <Button label={t(lang, "w2_signin_button")} icon="chat" variant="primary" size="lg" block /></form> : <p>{t(lang, "w2_signin_no_wa")}</p>}
         <p class="muted small">{t(lang, "w2_signin_consent")}</p>
       </section>
     : <form method="post" action="/checkout" class="w2">

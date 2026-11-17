@@ -17,7 +17,9 @@ export default defineConfig({
   telemetry: false,
   // The commerce client is the monorepo's package (no logic, no dependency); the same alias is in tsconfig.json and vitest.config.ts.
   // DS1: the design system is the monorepo's packages/ui (tokens, components). Tailwind v4 compiles the one stylesheet at build time.
-  vite: { plugins: [tailwindcss()], resolve: { alias: {
+  // WEB2: a font is always its own file, never inlined into the stylesheet (Vite inlines files under 4 KB, which would put the small Arabic
+  // pages' figures font into every page's CSS): a page downloads a font only when its text needs it.
+  vite: { build: { assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined) }, plugins: [tailwindcss()], resolve: { alias: {
     "@ak/commerce": fileURLToPath(new URL("../../packages/commerce/src", import.meta.url)),
     // SR1: the search box is read by the chat's own reading step (pure code, no dependency): one search, one set of filters (invariant 19)
     "@ak/search": fileURLToPath(new URL("../../packages/search/src", import.meta.url)),

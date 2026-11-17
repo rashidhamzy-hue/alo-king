@@ -4,6 +4,7 @@
 // (public/site.js asks this same page after a pause and swaps the results in); with scripts off the form works as before.
 import Base from "../layouts/Base.astro";
 import Card from "../components/Card.astro";
+import CardKit from "../components/CardKit.astro";
 import Unavailable from "../components/Unavailable.astro";
 import Button from "@ak/ui-astro/Button.astro";
 import { t, withGreeting } from "../lib/i18n";
@@ -32,6 +33,7 @@ const anyCredit = found.some((i) => i.picture?.licence === "cc_by_sa");
     {q.length > 0 && q.length < 2 && <p class="muted">{t(lang, "search_short")}</p>}
     {r && found.length > 0 && <>
       <p class="muted">{t(lang, "search_found", { n: found.length })}</p>
+      <CardKit />
       <ul class="ak-grid">{found.map((item) => <Card item={item} lang={lang} env={env} whatsapp={product} />)}</ul>
       {anyCredit && <p class="muted small credit">{t(lang, "credit_pictures")}</p>}
     </>}

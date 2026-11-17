@@ -45,7 +45,7 @@ const sl = (lang === "ar" ? "ar" : "en") as "ar" | "en";
 <Base title={t(lang, "w2_orders_title")} lang={lang} path="/orders" whatsapp={facts?.whatsapp ?? null} noindex>
   {failed || !v ? <Unavailable lang={lang} /> : <div class="w2">
     <h1>{t(lang, "w2_orders_title")}</h1>
-    {!v.linked ? <section><p>{t(lang, "w2_need_signin")}</p><form method="post" action="/signin"><input type="hidden" name="next" value="/orders"><Button label={t(lang, "w2_signin_button")} icon="chat" variant="whatsapp" /></form></section>
+    {!v.linked ? <section><p>{t(lang, "w2_need_signin")}</p><form method="post" action="/signin"><input type="hidden" name="next" value="/orders"><Button label={t(lang, "w2_signin_button")} icon="chat" variant="primary" /></form></section>
     : !r?.ok || r.orders.length === 0 ? <Empty title={t(lang, "w2_orders_none")} icon="orders" />
     : <ul class="w2-orders">{r.orders.map((o: any) => (
         <li>
