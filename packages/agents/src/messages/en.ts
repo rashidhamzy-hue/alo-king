@@ -149,6 +149,7 @@ export const en: Messages = {
     houseDefault: (said, name) => `"${said}": we put ${name}.\nIf you want another one, tell me.`,
     changed: (rows) => `✅ Your order is updated:\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Not available now:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
+    comingSoon: (names) => `Coming soon, we can't take it yet:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
     cancelRefused: (code) => `Order ${code} is already being prepared, so it can't be cancelled from here.\nA person from our team will call you about it.`,
   },
 
