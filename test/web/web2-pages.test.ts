@@ -93,7 +93,7 @@ const outbound: { url: string; body: any }[] = [];
 const realFetch = globalThis.fetch;
 function stubKapso() {
   vi.stubGlobal("fetch", vi.fn(async (url: any, init?: any) => {
-    if (String(url).startsWith("https://kapso.test")) { outbound.push({ url: String(url), body: JSON.parse(String(init.body)) }); return new Response(JSON.stringify({ messages: [{ id: `wamid.out${Math.random()}` }] }), { status: 200 }); }
+    if (new URL(String(url)).host === "kapso.test") { outbound.push({ url: String(url), body: JSON.parse(String(init.body)) }); return new Response(JSON.stringify({ messages: [{ id: `wamid.out${Math.random()}` }] }), { status: 200 }); }
     return realFetch(url, init);
   }));
 }
