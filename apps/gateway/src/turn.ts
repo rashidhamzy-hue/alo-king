@@ -19,7 +19,7 @@ import type { OrderIntent } from "@ak/agents/schemas";
 import { catalogueReady, makeConciergeTools, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
 import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/windows";
-import { CARD_AGAIN, LINK_CODE, SIGN_OUT } from "@ak/agents/web-orders";
+import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
@@ -460,7 +460,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       const claimShaped = /^\s*claim\s+\S+\s*$/i.test(body);
       // WEB2: the website's sign-in code and "Card AK-xxxx" are typed by the website too: only the words around a code are the customer's.
       const linkCode = body.length <= 80 ? LINK_CODE.exec(body) : null;
-      const cardAgain = CARD_AGAIN.exec(body);
+      const cardAgain = CARD_AGAIN.exec(webWords(body));
       const own = linkCode ? body.replace(linkCode[0], " ").trim() : body;
       if (!claimShaped && !cardAgain && own) learnLang([own]);
       const signal = detectConsentSignal(body);
@@ -491,7 +491,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         if (line) { await say(line); claimed = true; continue; }
       }
       // WEB2: "Sign out" on WhatsApp ends every website session of this number (docs/WEBSITE.md, "Identity and consent", step 3).
-      if (SIGN_OUT.test(body)) {
+      if (SIGN_OUT.test(webWords(body))) {
         const ended = await call<number>(db, "web_sessions_revoke", { p_party: conv.party_id, p_reason: "sign_out_whatsapp" });
         await say(ended > 0 ? T().web.signedOut(ended) : T().web.notSignedIn);
         claimed = true; continue;

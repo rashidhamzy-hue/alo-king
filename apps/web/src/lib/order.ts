@@ -51,9 +51,9 @@ export const lbp = (l: Lang, n: number | string | null | undefined): string => {
 
 /** A position from what a visitor pasted: "33.68, 35.56", a Google Maps link (@lat,lng or q=lat,lng or ll=), or an OpenStreetMap one. */
 export function parsePin(text: string | null | undefined): { lat: number; lng: number } | null {
-  const s = (text ?? "").trim().slice(0, 500);
-  const pats = [/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/, /[?&](?:q|ll|query|destination)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i,
-                /mlat=(-?\d{1,2}\.\d+)&mlon=(-?\d{1,3}\.\d+)/, /^(-?\d{1,2}\.\d+)\s*[, ]\s*(-?\d{1,3}\.\d+)$/];
+  const s = (text ?? "").slice(0, 500).trim().replace(/\s+/g, " ");
+  const pats = [/@(-?\d{1,2}\.\d+), ?(-?\d{1,3}\.\d+)/, /[?&](?:q|ll|query|destination)=(-?\d{1,2}\.\d+)(?:,|%2C) ?(-?\d{1,3}\.\d+)/i,
+                /mlat=(-?\d{1,2}\.\d+)&mlon=(-?\d{1,3}\.\d+)/, /^(-?\d{1,2}\.\d+)(?:, ?| )(-?\d{1,3}\.\d+)$/];
   for (const p of pats) {
     const m = p.exec(s);
     if (m) {
@@ -73,9 +73,13 @@ export function cardWords(card: StoredCard, l: Lang, address: StoredCard["addres
 }
 /** Splits "Label: $1.00" (one amount on its own at the end, the chat's rule) into the label, as written, and the amount, for a table row. */
 export const splitAmount = (line: string): [string, string | null] => {
-  const clean = line.replace(/\*/g, "");
-  const m = /^(.*?)\s*(-?\$\d[\d,]*\.\d{2}|[\d,]+ (?:LBP|ل\.ل))$/u.exec(clean);
-  return m && m[1] ? [m[1], m[2]!] : [clean, null];
+  const clean = line.replace(/\*/g, "").trim();
+  const words = clean.split(" ");
+  const last = words[words.length - 1] ?? "";
+  // "…: 1,472,000 LBP" (or ل.ل.): the last two words; "…: $1.00": the last word. Read word by word, with no pattern that can backtrack.
+  const n = (last === "LBP" || last.startsWith("ل.ل")) && /^[\d,]+$/.test(words[words.length - 2] ?? "") ? 2 : /^-?\$\d[\d,]*\.\d\d$/.test(last) ? 1 : 0;
+  if (n === 0 || words.length <= n) return [clean, null];
+  return [words.slice(0, -n).join(" "), words.slice(-n).join(" ")];
 };
 
 /** The customer's words for a status, from the one label table (packages/ui/src/status.ts); French reads its own words for the same ids. */

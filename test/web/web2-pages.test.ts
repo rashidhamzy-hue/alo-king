@@ -34,7 +34,9 @@ const freePort = () => new Promise<number>((ok) => { const s = createServer(); s
 let h: Hub; let db: TestDb; let fake: Fake; let base = ""; let stop: () => Promise<void> = async () => {};
 let svc: ReturnType<typeof channelCommerce>;
 const WA = "https://wa.me/96100000000";
-const text = (html: string) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/\s+/g, " ");
+/** The words a person reads on a page: scripts and styles out (any case), then every tag, repeated until none is left, then the entities. */
+const untag = (html: string): string => { let out = html, prev = ""; while (out !== prev) { prev = out; out = out.replace(/<[^<>]*>/g, " "); } return out.replace(/[<>]/g, " "); };
+const text = (html: string) => untag(html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, "")).replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const price = async (sku: string) => Number((await db.one(`select o.price_usd from offers o join products p on p.id = o.product_id where p.sku = $1 and o.source_id = $2`, [sku, h.hub])).price_usd);
 const money = (n: number) => `$${n.toFixed(2)}`;
 
@@ -426,10 +428,16 @@ async function coldWeight(path: string, lang: "ar" | "en") {
       if (fam) for (const f of faces) if (f.family === fam) fonts.add(f.url);
     }
   };
-  const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "").replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "");
-  const foreign = [...noSwitch.matchAll(/<(\w+)\b[^>]*\blang="(ar|en|fr)"[^>]*>([\s\S]*?)<\/\1>/g)].filter((m) => m[1] !== "html" && (m[2] === "ar") !== (lang === "ar"));
-  use(text(foreign.reduce((h, m) => h.replace(m[0], ""), noSwitch)), STACKS[lang]);
-  for (const m of foreign) use(text(m[3]!), STACKS[m[2] === "ar" ? "ar" : "en"]);
+  const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "").replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  // Each element marked lang="…": its opening tag found by a plain search, its words up to its own closing tag.
+  const foreign: { whole: string; tag: string; lang: string; inner: string }[] = [];
+  for (const m of noSwitch.matchAll(/<(\w+) [^<>]{0,300}lang="(ar|en|fr)"[^<>]{0,300}>/g)) {
+    const end = noSwitch.indexOf(`</${m[1]}>`, m.index! + m[0].length);
+    if (end < 0 || m[1] === "html" || (m[2] === "ar") === (lang === "ar")) continue;
+    foreign.push({ whole: noSwitch.slice(m.index!, end + m[1]!.length + 3), tag: m[1]!, lang: m[2]!, inner: noSwitch.slice(m.index! + m[0].length, end) });
+  }
+  use(text(foreign.reduce((h, m) => h.replace(m.whole, ""), noSwitch)), STACKS[lang]);
+  for (const m of foreign) use(text(m.inner), STACKS[m.lang === "ar" ? "ar" : "en"]);
   for (const f of fonts) { const n = (await (await realFetch(base + f)).arrayBuffer()).byteLength; bytes += n; parts.push(`${f.replace(/^.*\//, "")} ${n}`); }
   return { bytes, fonts: fonts.size, parts };
 }

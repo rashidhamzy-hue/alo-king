@@ -47,9 +47,12 @@ export async function sendWebCards(deps: { db: SupabaseClient; send: (r: SendReq
   return sent;
 }
 
-/** "Card AK-1042", typed by the website's button: read by code before any model. Never a confirmation. */
-export const CARD_AGAIN = /^\s*(?:card|carte|كرت|الكرت)\s+(AK-[0-9A-Z]{2,10})\s*[.!]?\s*$/iu;
+/** A message as the three readers below see it: trimmed, its spaces collapsed to one, and a final full stop or exclamation mark dropped.
+ *  The patterns then need no repeated or optional space next to each other (no backtracking on a long run of spaces). */
+export const webWords = (text: string): string => text.slice(0, 200).trim().replace(/\s+/g, " ").replace(/[.!؟?]+$/u, "").trimEnd();
+/** "Card AK-1042", typed by the website's button: read by code before any model. Never a confirmation. Match it on webWords(text). */
+export const CARD_AGAIN = /^(?:card|carte|كرت|الكرت) (AK-[0-9A-Z]{2,10})$/iu;
 /** "ALO-7K3Q9P" (with or without words around it): the website's sign-in code, read by code before any model. */
 export const LINK_CODE = /\bALO[- ]?([23456789A-HJ-NP-Z]{6})(?![0-9A-Z])/i;
-/** "Sign out", in the ways people write it. Only the words alone: anything longer is a message. */
-export const SIGN_OUT = /^\s*(?:sign\s*(?:me\s*)?out|log\s*(?:me\s*)?out|logout|signout|d[ée]connexion|d[ée]connecte[sz]?[- ]moi|me d[ée]connecter|سجل\s*خروج|سجّل\s*خروج|تسجيل\s*(?:ال)?خروج|سجلني\s*خروج|سجّلني\s*خروج|طلعني\s*من\s*الموقع)(?:\s+(?:everywhere|partout|من\s*كل\s*مكان|من\s*كل\s*الأجهزة))?\s*[.!؟?]*\s*$/iu;
+/** "Sign out", in the ways people write it. Only the words alone: anything longer is a message. Match it on webWords(text). */
+export const SIGN_OUT = /^(?:sign ?(?:me )?out|log ?(?:me )?out|d[ée]connexion|d[ée]connecte[sz]?-moi|me d[ée]connecter|سجل ?خروج|سجّل ?خروج|تسجيل (?:ال)?خروج|سجلني خروج|سجّلني خروج|طلعني من الموقع)(?: (?:everywhere|partout|من كل مكان|من كل الأجهزة))?$/iu;
