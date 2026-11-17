@@ -14,5 +14,5 @@ const ask = whatsapp && whatsapp.includes("{sku}") && item.in_stock ? whatsapp.r
 ---
 <ProductCard href={`/p/${encodeURIComponent(item.sku)}`} name={name} meta={[item.brand, unit].filter(Boolean).join(" · ") || undefined} price={usd(item.price_usd)} inStock={item.in_stock}
   picture={pic ? { src: pictureUrl(env, pic.path, 400), width: pic.width_px ?? 400, height: pic.height_px ?? 400 } : null}
-  labels={{ inStock: t(lang, "in_stock"), outOfStock: t(lang, "out_of_stock"), noPicture: t(lang, "no_picture") }}
+  labels={{ inStock: t(lang, "in_stock"), outOfStock: t(lang, item.coming_soon ? "coming_soon" : "out_of_stock"), noPicture: t(lang, "no_picture") }}
   action={ask ? { href: ask, label: t(lang, "order_item_whatsapp"), icon: "chat", external: true } : null} />

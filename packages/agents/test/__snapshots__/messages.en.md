@@ -1370,6 +1370,14 @@ Najjar Classic coffee 180 g: 1 → 3
 Tell me what you'd like instead, or remove it.
 ```
 
+## basket.comingSoon
+
+```text
+Coming soon, we can't take it yet:
+• Najjar Classic coffee 180 g
+Tell me what you'd like instead, or remove it.
+```
+
 ## basket.cancelRefused
 
 ```text

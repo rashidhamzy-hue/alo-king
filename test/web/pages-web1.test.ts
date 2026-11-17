@@ -496,6 +496,66 @@ describe("DS1: the redesigned pages", () => {
   });
 });
 
+describe("SELL1: a packaged item with no label reading yet is \"Coming soon\" on the site (sell_requires_label on)", () => {
+  const gate = (on: boolean) => db.pg.query(`update settings set value = $1::jsonb where key = 'sell_requires_label'`, [JSON.stringify({ enabled: on })]);
+  // the item's own order link (the {sku} prefill): the header and the bottom bar carry the shop's general WhatsApp link on every page
+  const WA = "wa.me/96100000000?text=AK-0042";
+
+  it("off: the page and the list are as before, with its stock badge and its WhatsApp order button", async () => {
+    await gate(false);
+    await db.pg.exec(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = 'AK-0042')`);
+    const r = await page("/p/AK-0042");
+    expect(text(r.html)).toContain("In stock"); expect(text(r.html)).not.toContain("Coming soon");
+    expect(r.html).toContain(WA);
+    expect(ld(r.html).offers.availability).toBe("https://schema.org/InStock");
+  });
+
+  it.each([["en", "Coming soon"], ["ar", "قريباً"], ["fr", "Bientôt disponible"]] as const)("on, %s: the page says %s, shows no stock badge, no order or ask button, and the data says out of stock", async (lang, word) => {
+    await gate(true);
+    expect(DICTS[lang].coming_soon).toBe(word);
+    const r = await page("/p/AK-0042", { "accept-language": lang });
+    const t = text(r.html);
+    expect(t).toContain(word);
+    expect(t).not.toContain(DICTS[lang].in_stock + " ");
+    expect(r.html).not.toContain(WA);
+    expect(t).not.toContain(DICTS[lang].ask_whatsapp);
+    expect(ld(r.html).offers.availability).toBe("https://schema.org/OutOfStock");
+  });
+
+  it("on: the category list shows Coming soon on the card, with no order button; a loose item beside it is unchanged", async () => {
+    await gate(true);
+    const { html } = await page("/c/dairy_eggs");
+    const card = html.split(/<li\b|<article\b/).find((c) => c.includes('href="/p/AK-0042"'))!;
+    expect(text(card)).toContain("Coming soon");
+    expect(card).not.toContain(WA);
+    const veg = (await db.one(`select p.sku, pl.category_code from products p join catalog_placements pl on pl.sku = p.sku where p.category = 'Fruits & Vegetables' and p.is_active order by p.sku limit 1`));
+    await db.pg.query(`update stock_levels set on_hand = 10 where product_id = (select id from products where sku = $1)`, [veg.sku]);
+    const v = await page(`/p/${veg.sku}`);
+    expect(text(v.html)).not.toContain("Coming soon"); expect(text(v.html)).toContain("In stock");
+  });
+
+  it("on: the search page lists it as Coming soon too (one read for every list)", async () => {
+    await gate(true);
+    const name = (await db.one(`select name_en from products where sku = 'AK-0042'`)).name_en as string;
+    const { html } = await page(`/search?q=${encodeURIComponent(name)}`);
+    if (html.includes('href="/p/AK-0042"')) {
+      const card = html.split(/<li\b|<article\b/).find((c) => c.includes('href="/p/AK-0042"'))!;
+      expect(text(card)).toContain("Coming soon");
+    }
+  });
+
+  it("every language has the word, and the three dictionaries keep the same keys", () => {
+    for (const lang of ["en", "ar", "fr"] as const) expect(DICTS[lang].coming_soon.length).toBeGreaterThan(2);
+    expect(Object.keys(DICTS.ar).sort()).toEqual(Object.keys(DICTS.en).sort());
+    expect(Object.keys(DICTS.fr).sort()).toEqual(Object.keys(DICTS.en).sort());
+  });
+
+  it("back off: everything returns at once", async () => {
+    await gate(false);
+    expect(text((await page("/p/AK-0042")).html)).toContain("In stock");
+  });
+});
+
 describe("the page cache keys by language", () => {
   it("a cached Arabic page is not served to an English visitor, and a cached page is at most a minute stale", async () => {
     await stop();

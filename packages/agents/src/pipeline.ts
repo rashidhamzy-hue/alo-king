@@ -292,6 +292,13 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const terms: CardTerms = heldTerms ? { ...heldTerms, notes: directions, ...(plan.change_for_usd != null ? { changeForUsd: plan.change_for_usd } : {}) }
     : { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
   const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
+  // SELL1 (0226): a packaged item with no label reading yet is coming soon: said here by code, in the customer's language, before any card or
+  // question. The basket is kept (the customer takes it off or chooses another); no card is made while it holds one (quote_order).
+  if (matched && plan.quote && soonNames(ctx, plan.quote).length) {
+    const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
+    const r = await explainGone(ctx, basket, terms, plan.quote, goneNames(ctx, plan.quote), soonNames(ctx, plan.quote), unavailable ?? undefined);
+    return r.done ? r : { done: false, plan };
+  }
   // B1c: the house default given for a generic word is said, with the product's name, so the customer can change it.
   const house = plan.lines.filter((l) => l.status === "matched" && l.pick === "house" && l.chosen && plan.quote_lines.some((q) => q.product_id === l.chosen!.product_id))
     // B1d (run 43824481535, message rule 7): the customer's words quoted as the question quotes them: Latin digits, no amount, short.
@@ -479,7 +486,7 @@ async function ownProducts(ctx: ToolContext, plan: Plan, intent: Pick<OrderInten
 
 export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
 /** Issues quote_order itself raises: after an edit they are the new quote's, never the planner's for the lines it was given. */
-const QUOTE_ISSUES = new Set(["unknown_product", "out_of_stock", "insufficient_stock", "empty_order", "no_delivery_village", "village_not_served",
+const QUOTE_ISSUES = new Set(["unknown_product", "out_of_stock", "insufficient_stock", "coming_soon", "empty_order", "no_delivery_village", "village_not_served",
   "below_minimum", "closed", "no_exchange_rate", "fx_paused"]);
 /** Readings whose items edit the basket in hand. */
 const EDIT_INTENTS = new Set(["order", "add_to_order", "change_order", "cancel"]);
@@ -678,6 +685,8 @@ export async function choosePinVillage(ctx: ToolContext, villageId: string): Pro
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
 export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
                           terms: CardTerms, quote: Quote, before?: string, pinNote?: string): Promise<{ done: true; path: string } | { done: false }> {
+  // SELL1 (0226): whatever sends a basket, an item that is coming soon is said by code and no card is made for it.
+  if (soonNames(ctx, quote).length) return explainGone(ctx, basket, terms, quote, goneNames(ctx, quote), soonNames(ctx, quote), before);
   // B1a: under the minimum, the minimum first (by code); the pin and the card wait until the basket reaches it.
   if (underMinimumOnly(quote) && !ctx.state.replacing) return (await askMinimum(ctx, basket, terms, quote, before)) ? { done: true, path: "minimum" } : { done: false };
   const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
@@ -1025,7 +1034,8 @@ export async function resumeBasket(ctx: ToolContext, before?: string): Promise<D
 export async function routeBasket(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, before?: string): Promise<Done> {
   if (underMinimumOnly(quote)) return (await askMinimum(ctx, basket, terms, quote, before)) ? { done: true, path: "minimum" } : { done: false };
   const gone = goneNames(ctx, quote);
-  if (gone.length) return explainGone(ctx, basket, terms, quote, gone, before);
+  const soon = soonNames(ctx, quote);
+  if (gone.length || soon.length) return explainGone(ctx, basket, terms, quote, gone, soon, before);
   const r = await sendBasket(ctx, basket, terms, quote, before);
   if (r.done || ctx.sent.count > 0) return r.done ? r : { done: true, path: "basket_partial" };
   return explainNotSent(ctx);
@@ -1036,12 +1046,18 @@ function goneNames(ctx: ToolContext, quote: Quote): string[] {
   const ids = new Set(quote.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock").map((i) => String(i.product_id)));
   return quote.lines.filter((l) => l.product_id && ids.has(l.product_id)).map((l) => productName(l, lang));
 }
-async function explainGone(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, names: string[], before?: string): Promise<Done> {
+/** SELL1 (0226): the lines quote_order said are coming soon (a packaged item with no label reading, sell_requires_label on). */
+function soonNames(ctx: ToolContext, quote: Quote): string[] {
+  const lang = ctx.state.lang ?? "ar";
+  const ids = new Set(quote.issues.filter((i) => i.code === "coming_soon").map((i) => String(i.product_id)));
+  return quote.lines.filter((l) => l.product_id && ids.has(l.product_id)).map((l) => productName(l, lang));
+}
+async function explainGone(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, names: string[], soon: string[], before?: string): Promise<Done> {
   ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote };
   ctx.state.pending = terms; ctx.state.basketAt = Date.now();
   if (ctx.state.awaiting === "minimum" || ctx.state.awaiting === "window") ctx.state.awaiting = null;
-  const text = [before, T(ctx).basket.unavailable(names)].filter(Boolean).join("\n");
-  return (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok ? { done: true, path: "basket_gone" } : { done: false };
+  const text = [before, names.length ? T(ctx).basket.unavailable(names) : null, soon.length ? T(ctx).basket.comingSoon(soon) : null].filter(Boolean).join("\n");
+  return (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok ? { done: true, path: soon.length && !names.length ? "basket_coming_soon" : "basket_gone" } : { done: false };
 }
 
 /**
@@ -1057,7 +1073,8 @@ export async function explainNotSent(ctx: ToolContext): Promise<Done> {
     const basket = { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup };
     if (minimumGap(quote)) return (await askMinimum(ctx, basket, terms, quote)) ? { done: true, path: "minimum" } : { done: false };
     const gone = goneNames(ctx, quote);
-    if (gone.length) return explainGone(ctx, basket, terms, quote, gone);
+    const soon = soonNames(ctx, quote);
+    if (gone.length || soon.length) return explainGone(ctx, basket, terms, quote, gone, soon);
   }
   const m = supportMessage(ctx.state.lang, "stalled");
   return (await deliver(ctx, m, T(ctx).support.stalled)).ok ? { done: true, path: "basket_stalled" } : { done: false };

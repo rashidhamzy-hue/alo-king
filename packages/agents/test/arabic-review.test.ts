@@ -56,3 +56,8 @@ describe("docs/ARABIC_REVIEW.md lists every CFG1 Arabic line", () => {
     ar.cx.pickupReady("AK-1234", "مستودع ألو كينغ")];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
 });
+
+describe("docs/ARABIC_REVIEW.md lists every SELL1 Arabic line", () => {
+  const lines = [ar.basket.comingSoon(["لبنة"]), ar.basket.comingSoon(["لبنة", "خبز"])];
+  it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
+});

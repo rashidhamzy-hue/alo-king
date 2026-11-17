@@ -113,6 +113,7 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
   }
   const notCarried: Ask[] = [], unconfirmed: Ask[] = [], failing: Ask[] = [];
   const fits: { ask: Ask; found: Found[] }[] = [];
+  const soon: { name_en: string; name_ar: string | null; product_id: string }[] = [];
   for (const a of asks) {
     const phrases = a.facts.flatMap((f) => NAME_PHRASES[f]);
     // An item whose own name holds the words the customer said ("Lipton Ice Tea Zero Sugar"): an order for that item, not a fact.
@@ -123,7 +124,12 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
     }
     const r = await searchProducts(ctx.db, ctx.embedder, a.kind, a.filters, 3).catch(() => null);
     if (!r) return false;                                            // the search failed: the usual path answers, never a guess
-    if (r.matches.length) { fits.push({ ask: a, found: r.matches }); continue; }
+    // SELL1 (0226): an item that is coming soon (no label reading yet) never "fits": it cannot be ordered. It is said as coming soon, by code.
+    const soonHere = r.matches.filter((m) => m.coming_soon === true);
+    for (const m of soonHere) soon.push({ name_en: m.name_en, name_ar: m.name_ar, product_id: m.product_id });
+    const buyable = r.matches.filter((m) => m.coming_soon !== true);
+    if (buyable.length) { fits.push({ ask: a, found: buyable }); continue; }
+    if (soonHere.length) continue;
     // only an allergy or a diet, nothing confirmed to pass, and a product named by its brand («لبنة ليبان ليه»): the usual ordering path,
     // which puts the restriction on the card (1.14). A kind ("hummus", "halal chicken") gets the honest answer below: never "which one
     // would you like?" over items nobody can confirm are safe.
@@ -158,6 +164,7 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
       noteReturned(ctx, m.product_id, l.name, l.name_ar);
     }
   }
+  if (soon.length) out.push(M.basket.comingSoon([...new Map(soon.map((s) => [s.product_id, productName({ name: s.name_en, name_ar: s.name_ar }, lang)])).values()].slice(0, 3)));
   const facts = [...new Set([...notCarried, ...unconfirmed, ...failing].flatMap((a) => a.facts))];
   if (notCarried.length) out.push(T.notCarried(notCarried.map((a) => a.kind)));
   if (failing.length) out.push(T.noneFits(failing.map((a) => a.kind)));
@@ -175,10 +182,10 @@ export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: 
     if (named.length) {
       const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(ctx.db, "quote_order",
         { p_lines: named.map((n) => ({ product_id: n.product_id, qty: 1 })), p_village: null, p_pickup: true }).catch(() => ({ lines: [] }));
-      if (q.lines.length) {
+      if (q.lines.some((l) => !(l as { coming_soon?: boolean }).coming_soon)) {
         const phr = [...new Set(named.map((n) => n.phrase).filter((x): x is string => !!x))];
         out.push(T.named(phr.length ? phr : facts.flatMap((f) => NAME_PHRASES[f]).slice(0, 1)));
-        for (const l of q.lines.slice(0, 3)) {
+        for (const l of q.lines.filter((x) => !(x as { coming_soon?: boolean }).coming_soon).slice(0, 3)) {
           out.push(M.fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok));
           noteReturned(ctx, l.product_id, l.name, l.name_ar);
         }
