@@ -108,6 +108,22 @@
   .credit { margin-block-start: var(--ak-space-4); }
   [data-live][aria-busy="true"] { opacity: 0.55; }
 
+  /* ---------- Food places (LV1): a list of rows like the category tiles, and the buttons on one place ---------- */
+  .places { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--ak-space-2); }
+  .places a { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px var(--ak-space-3); min-block-size: var(--ak-tap); padding: var(--ak-space-3) var(--ak-space-4); background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); text-decoration: none; color: var(--ak-text); box-shadow: var(--ak-shadow-1); }
+  .places a:hover { border-color: var(--ak-line-strong); }
+  .places strong { font-weight: var(--ak-weight-strong); overflow-wrap: anywhere; }
+  .places .meta, .places .km { color: var(--ak-muted); font-size: var(--ak-text-sm); }
+  .places .meta { grid-column: 1; }
+  .places .km { grid-column: 2; grid-row: 1 / span 2; text-align: end; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: var(--ak-space-3); margin-block-start: var(--ak-space-5); }
+  .tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); margin-block: var(--ak-space-2) var(--ak-space-4); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); margin-block: var(--ak-space-4) var(--ak-space-2); }
+  .actions form { display: contents; }
+  main .ak-card + .ak-card { margin-block-start: var(--ak-space-3); }
+  .stack { display: grid; gap: var(--ak-space-4); max-inline-size: 32rem; }
+  .stack textarea.ak-input { min-block-size: 6rem; resize: vertical; }
+
   /* ---------- product ---------- */
   .product { display: grid; gap: var(--ak-space-5); grid-template-columns: 1fr; }
   @media (min-width: 46rem) { .product { grid-template-columns: minmax(0, 28rem) 1fr; gap: var(--ak-space-6); align-items: start; } }

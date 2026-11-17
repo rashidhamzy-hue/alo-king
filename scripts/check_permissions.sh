@@ -106,7 +106,8 @@ end $$;
 -- packages/commerce, which a test keeps equal to this list).
 do $$ declare web_allowed text[] := array['web_session_start', 'web_session_state', 'web_session_end', 'web_link_code',
                                            'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order',
-                                           'web_catalog_home', 'web_catalog_category', 'web_catalog_product', 'web_catalog_search'];
+                                           'web_catalog_home', 'web_catalog_category', 'web_catalog_product', 'web_catalog_search',
+                                           'web_food_list', 'web_food_place', 'web_listing_want', 'web_listing_remove'];
               t text; n int; begin
   if not exists (select 1 from pg_roles where rolname = 'web_channel') then raise exception 'role web_channel is missing (migration 0132)'; end if;
   select string_agg(p.oid::regprocedure::text, ', ') into t from pg_proc p

@@ -120,6 +120,7 @@ function render(m: Messages): Rendered[] {
                    "welcome"] as const) add(`fixed.${k}`, f[k]);
   add("fixed.noPinCall", f.noPinCall("بعقلين"));
   add("fixed.notAvailable", f.notAvailable(["سناك أبو علي"])); add("fixed.notAvailable.none", f.notAvailable([]));
+  add("fixed.listingClaimed", f.listingClaimed("مخبز الشوف"));
   add("fixed.pinReceived", f.pinReceived("بعقلين")); add("fixed.pinReceivedThenAddress", [f.pinReceived("بعقلين"), "", f.askAddress].join("\n"));
   add("fixed.pinVillage", f.pinVillage("الخريبة", "بعقلين")); add("fixed.pinSaved", f.pinSaved("بعقلين"));
   add("fixed.closedKept", f.closedKept("08:00", names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("fixed.closedKeptPin", f.closedKeptPin("08:00", names.slice(0, 1).map((n) => `2 × ${n}`)));
@@ -151,7 +152,7 @@ function render(m: Messages): Rendered[] {
   add("basket.minimum", bk.minimum(5, 0.69, 4.31, names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("basket.minimumIs", bk.minimumIs(5));
   add("basket.which", bk.which(names[0]!, names.slice(0, 3).map((n) => `${n}: $1.01`))); add("basket.houseDefault", bk.houseDefault("ربطة خبز", names[0]!));
   add("basket.cancelButton", bk.cancelButton); add("basket.cleared", bk.cleared); add("basket.soFar", bk.soFar(names.map((n, i) => `${i + 1} × ${n}`)));
-  add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!]));
+  add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!])); add("basket.comingSoon", bk.comingSoon([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));
   add("payment.proofReceived", m.payment.proofReceived(CODE)); add("payment.proofResend", m.payment.proofResend);
   // PD1 (g): the honest answer when nothing fits, as code sends it (one message).

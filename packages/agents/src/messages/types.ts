@@ -97,6 +97,8 @@ export interface Messages {
 
   fixed: {
     audioUnusable: S; handoff: S; optOut: S; optIn: S; outOfStock: S; error: S;
+    /** LV1: the reply to "Claim <listing_id>" (read by code). We will be in touch; nothing about the listing changes and nothing can be ordered. */
+    listingClaimed: (name: S) => S;
     notAvailable: (shops: S[]) => S;
     oneMoment: S; offTopic: S;
     askPhone: S; badPhone: S; phoneSaved: S;
@@ -182,6 +184,8 @@ export interface Messages {
     changed: (rows: S[]) => S;
     /** Items of the basket no longer available when it was about to go. */
     unavailable: (names: S[]) => S;
+    /** SELL1 (0226): a packaged item that has no label reading yet cannot be sold: said by code, never a date, never a reason about the product. */
+    comingSoon: (names: S[]) => S;
     /** A cancel the database refused (the order is being prepared or is on its way): a person is told and will call. */
     cancelRefused: (code: S) => S;
   };

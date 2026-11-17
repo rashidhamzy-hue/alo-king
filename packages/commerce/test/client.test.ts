@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { channelCommerce, CommerceError, webCatalog, webCommerce, WEB_CATALOG_FUNCTIONS, WEB_CHANNEL_FUNCTIONS, WEB_SESSION_FUNCTIONS, type RpcSource } from "../src/index";
+import { channelCommerce, CommerceError, webCatalog, webCommerce, webListings, WEB_CATALOG_FUNCTIONS, WEB_CHANNEL_FUNCTIONS, WEB_LISTING_FUNCTIONS, WEB_SESSION_FUNCTIONS, type RpcSource } from "../src/index";
 
 const migrations = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
 const files = readdirSync(migrations).filter((f) => f.endsWith(".sql")).sort();
@@ -65,6 +65,24 @@ describe("packages/commerce: every method calls a real function with its real ar
     }
   });
 
+  it("the website's listing methods (LV1)", async () => {
+    const { db, calls } = recorder();
+    const w = webListings(db);
+    await w.list({ kind: "bakery", village: "Baakleen", sort: "name", limit: 24, offset: 24 }); await w.place("some-place-1");
+    await w.want("t", "some-place-1"); await w.remove("t", "some-place-1", "owner", "closed");
+    expect(calls.map((c) => c.fn)).toEqual([...WEB_LISTING_FUNCTIONS]);
+    for (const c of calls) {
+      const sig = signature(c.fn);
+      expect(sig, c.fn).not.toBeNull();
+      expect(Object.keys(c.args).sort(), c.fn).toEqual([...sig!].sort());
+    }
+    // the customer-line turn's claim is a service-role call
+    const r = recorder();
+    await channelCommerce(r.db).claimListing("party", "conv", "Claim some-place-1", "wamid");
+    expect(r.calls[0]!.fn).toBe("claim_listing");
+    expect(Object.keys(r.calls[0]!.args).sort()).toEqual([...signature("claim_listing")!].sort());
+  });
+
   it("the gateway's and the console's methods", async () => {
     const { db, calls } = recorder();
     const c = channelCommerce(db);
@@ -82,7 +100,7 @@ describe("packages/commerce: every method calls a real function with its real ar
 
   it("the web_channel list is the same in the client, the migration's grants and the permission script", () => {
     // 0132 granted the session functions, 0155 the catalog's; a later website migration adds its file here with its names.
-    const grants = ["0132_web_channel_role.sql", "0155_web_catalog_grants.sql"].flatMap((f) => readFileSync(migrations + f, "utf8")
+    const grants = ["0132_web_channel_role.sql", "0155_web_catalog_grants.sql", "0224_listings.sql"].flatMap((f) => readFileSync(migrations + f, "utf8")
       .match(/grant execute on function (\w+)\(/g)!.map((g) => g.replace(/grant execute on function |\(/g, "")));
     expect([...grants].sort()).toEqual([...WEB_CHANNEL_FUNCTIONS].sort());
     const script = readFileSync(fileURLToPath(new URL("../../../scripts/check_permissions.sh", import.meta.url)), "utf8");

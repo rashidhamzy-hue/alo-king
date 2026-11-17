@@ -849,6 +849,14 @@ Le livreur vous appellera avant de partir, pour vérifier l'adresse.
 Ce commerce n'est pas encore sur Alo King, nous ne pouvons donc pas y commander maintenant.
 ```
 
+## fixed.listingClaimed
+
+```text
+Nous avons bien reçu votre message au sujet de مخبز الشوف.
+Quelqu'un de notre équipe vous contactera ici sur WhatsApp.
+D'ici là, rien ne change sur la page.
+```
+
 ## fixed.pinReceived
 
 ```text
@@ -1366,6 +1374,14 @@ Najjar Classic coffee 180 g: 1 → 3
 
 ```text
 ⚠️ Plus disponible maintenant :
+• Najjar Classic coffee 180 g
+Dites-moi ce que vous voulez à la place, ou retirez-le.
+```
+
+## basket.comingSoon
+
+```text
+Bientôt disponible, nous ne pouvons pas encore le vendre :
 • Najjar Classic coffee 180 g
 Dites-moi ce que vous voulez à la place, ou retirez-le.
 ```

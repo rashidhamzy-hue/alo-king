@@ -327,3 +327,31 @@ new way to send. Migrations 0222 and 0223. Where a row says "already", the revie
 | 5 | **`settings.cash_cap`: soft 100, hard 150** (was 150 and 200). `driver_can_take` and `offer_delivery` read it; no code changed (invariant 5). | settings | 0222 |
 | 6 | **Inbox escalation timers are a setting: lead 3 minutes, founder 5, late 15.** **Already** so since HO1 (`settings.support`: `claim_alert_min`, `founder_alert_min`, `late_min`, 0135), read by `case_timers_due` (0136) and the console's Inbox; today's 5 minutes already is the founder step. CFG1 changed no value and pinned the behaviour with a test that moves each step by changing the setting. | `settings.support` | test only |
 
+## Listings before they sign, 17 November 2026
+Recorded by session LV1 (first commit, documents only) from the founder's decision of 17 November. It changes one line of `CLAUDE.md` (the
+prospect list is now shown, only as a listing, under the rules below) and supersedes the sentence of `docs/BUILD_PLAN.md` 8.13 that said there
+is no public claim page and that we do not list unsigned businesses. Each line supersedes any earlier line that disagrees.
+
+**Decision.** Chouf food places are listed on the website before they sign, so customers can ask for them and owners can claim or remove them.
+
+| # | Rule | Applied in |
+| --- | --- | --- |
+| 1 | **A listing is not a merchant.** It lives in its own table (`listings`), is never orderable, never has a menu, price, stock or order, and never becomes a merchant by import. Invariant 11 is unchanged: a restaurant opens only through `approve_merchant()`, and nobody phones an order in to a listing. | 0224 |
+| 2 | **What a listing shows:** name, kind, village, distance from the hub, a map link, and the line "Not on Alo King yet. You can't order from here yet." (Arabic, English, French). **Never** a phone number, rating, review count, menu, hours or photo, and never an Offer in the page's structured data (JSON-LD is a LocalBusiness with a name and an address locality only). The file the table is loaded from has none of them by design, and the repository's personal-data guard must pass on it. Sort is by distance or name only (invariant 14). | 0224, 0225, website |
+| 3 | **"I want to order from here"** is one tap, logged per place as demand (`log_demand`, kind `listing`), counted once per anonymous session or signed-in customer, and asks for no contact detail. | 0224 |
+| 4 | **"Remove this listing"** hides the page at once. The form asks who the person is (owner, manager, staff, someone else) and an optional reason; the request and its time are logged and a staff case is raised. We do not verify before hiding: hiding is the safe side. Only an ops lead or an admin can restore a listing, with a reason; every restore is logged. | 0224, console |
+| 5 | **"Is this your place? Claim it"** opens our WhatsApp with "Claim <listing_id>" typed. The customer-line turn recognises it by code (no model), opens a staff case with the listing and the sender's number, and replies that we will be in touch. **We never message a listed number** (the file has none): the owner's own message starts the thread (invariant 17), and verification is that message or a visit. What happens after a verified claim is Phase 8's decision (E1). A claim changes nothing about the listing and never makes it orderable. | 0224, gateway turn |
+| 6 | **Staff:** the console's Listings page: search, hidden listings with their removal request, restore with a reason, the demand count per place, and the claims. | console |
+| 7 | **Nothing else about the prospect list changes.** Its phones, ratings and review counts stay in the private bucket and out of the repository; the numbers on it are never messaged; it is never imported as merchants. | `CLAUDE.md` |
+
+
+## Founder decision, 17 November 2026, nothing packaged sells before its label
+Recorded by session SELL1 (Sonnet 5.5), first commit, documents only. It follows the label day (16 November, decision 2 of "Coordinator decisions").
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | **Every item with a pack is photographed on the label day, and no packaged item can be sold until it is fact-complete from its label.** Loose produce, meat and unpacked bakery sell on the core (they have no pack to read). | SELL1, migration 0226 |
+| 2 | **"Packaged" is a property of the item, decided by data.** True for the packaged-food, baby-food, water, cleaning, beauty, baby and pet templates, and for a bakery or meat item that has a real barcode (a GTIN with a right check digit that is not one of the store's own price-label ranges, `web_real_gtin`). False for loose produce, meat and bakery with no real barcode, and for a restaurant dish. A packaged item with a pack is never "loose" because of its name or category. | `product_is_packaged` |
+| 3 | **A setting `sell_requires_label`, false on staging today.** When true, a packaged item that is not fact-complete **from a label reading** cannot be quoted, added to a card, returned by search as orderable, or shown on the website or in the WhatsApp catalogue as orderable. The chat says in code-written lines (Arabic, English, French) that it is coming soon; the website shows "Coming soon". The check lives in SQL (`quote_order`, the catalogue reads, `find_products`, `search_catalog`), never in a prompt. Loose items are unaffected. Turning it on is a person's decision in `settings`; no code switches it. | `product_orderable` (0226) |
+| 4 | **What "from a label" means.** Fact-complete (PD1, 0206), and every record the template requires for fact-complete is a reading of the label: facts with source `label`, field values with source `label_photo`, and a field the standard says a person approves (allergens, hazard warnings, certificates) is approved by a person, never by the automatic party. A fact from the barcode database, a web page, a supplier sheet or a rule alone is not enough. Nothing is inferred from a name (invariants 15 and 16). | `product_label_status` |
+| 5 | **Gate A gains:** "`sell_requires_label` turned on; every packaged item in stock label-ready." | `docs/NEXT_SESSIONS.md`, `docs/HANDOFF.md` |

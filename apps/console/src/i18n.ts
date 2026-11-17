@@ -126,7 +126,7 @@ const D = {
   file_h: { en: "Report a language mistake", ar: "الإبلاغ عن خطأ في الفهم" },
   file_intro: { en: "Files one case for the next evaluation round. It changes nothing on the order.", ar: "يسجّل حالة واحدة لجولة التقييم القادمة. لا يغيّر شيئاً في الطلب." },
   wrong_product: { en: "Wrong product", ar: "منتج خاطئ" },
-  bot_at_fault: { en: "Bot at fault", ar: "الخطأ من الروبوت" },
+  bot_at_fault: { en: "Bot at fault", ar: "الخطأ من البوت" },
   note_ph: { en: "What went wrong (optional)", ar: "ما الذي حدث (اختياري)" },
 } satisfies Record<string, Entry>;
 
@@ -140,9 +140,9 @@ export function t(lang: Lang, key: Key, vars: Record<string, string | number> = 
 export const NAV_AR: Record<string, string> = {
   "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور",
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
-  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المركز", "/payments": "المدفوعات",
+  "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "نقد المستودع", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
-  "/riders": "المناديب والنقد", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات",
+  "/riders": "المناديب والنقد", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام",
 };
 
 /** Inline pair for a short string that belongs to one page (a table heading, a status word). The long, shared ones are in the dictionary above. */

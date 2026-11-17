@@ -14,6 +14,8 @@ export interface Found {
   product_id: string; sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string | null;
   source_id: string; source_name: string; source_kind: string; price_usd: number; available: number; unit_price: unknown;
   word_rank: number | null; meaning_rank: number | null; score: number; evidence: Evidence[];
+  /** SELL1 (0226): false while sell_requires_label is on and this packaged item has no label reading yet (coming soon). Absent on an older database. */
+  orderable?: boolean; coming_soon?: boolean;
 }
 export interface FindResult {
   matches: Found[]; reason: "no_match" | "none_pass" | null; failed: Record<string, number>; meaning: "given" | "cache" | "none";

@@ -63,6 +63,9 @@ export const en: Messages = {
     handoff: "Someone from our team will contact you shortly.",
     optOut: "Done. We won't send you messages anymore.\nIf you want to order, just write to us.",
     optIn: "Offers are turned on. Thank you!",
+    listingClaimed: (name) => `We got your message about ${name}.
+Someone from our team will get in touch with you here on WhatsApp.
+Until then nothing changes on the page.`,
     outOfStock: "⚠️ Sorry, an item ran out before we could confirm the order.\nTell me what you'd like instead, or remove it.",
     error: "Something went wrong on our side.\nSomeone from the team will contact you.",
     notAvailable: (shops) => shops.length
@@ -149,6 +152,7 @@ export const en: Messages = {
     houseDefault: (said, name) => `"${said}": we put ${name}.\nIf you want another one, tell me.`,
     changed: (rows) => `✅ Your order is updated:\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Not available now:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
+    comingSoon: (names) => `Coming soon, we can't take it yet:\n${bullets(names)}\nTell me what you'd like instead, or remove it.`,
     cancelRefused: (code) => `Order ${code} is already being prepared, so it can't be cancelled from here.\nA person from our team will call you about it.`,
   },
 

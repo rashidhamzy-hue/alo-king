@@ -41,7 +41,7 @@ export function plain(L: Lang, e: unknown): unknown {
   if (/^CASH_CAP/.test(m)) return say("That rider holds or carries too much cash to take another cash order (the cap is in the settings).", "هذا المندوب يحمل نقداً كثيراً فلا يمكنه أخذ طلب نقدي آخر (السقف في الإعدادات).");
   if (/^ALREADY_WITH_A_RIDER/.test(m)) return say("A rider already has this order.", "هذا الطلب مع مندوب بالفعل.");
   if (/^NOT_WAITING_FOR_RIDER/.test(m)) return say("This order is not waiting for a rider now.", "هذا الطلب لا ينتظر مندوباً الآن.");
-  if (/^PICKUP_ORDER/.test(m)) return say("This is a pickup order: the customer collects it at the hub.", "هذا طلب استلام: يستلمه الزبون من المركز.");
+  if (/^PICKUP_ORDER/.test(m)) return say("This is a pickup order: the customer collects it at the hub.", "هذا طلب استلام: يستلمه الزبون من المستودع.");
   if (/^AMOUNT_MISMATCH/.test(m)) return say("The amount does not match the order total (up to $1 of difference is allowed). Count again.", "المبلغ لا يطابق مجموع الطلب (يُسمح بفرق دولار واحد). أعد العدّ.");
   if (/^CHANGE_EXCEEDS_RECEIVED/.test(m)) return say("The change given is more than the money received.", "الباقي المُعاد أكبر من المبلغ المستلم.");
   if (/^NEGATIVE_AMOUNT/.test(m)) return say("An amount cannot be negative.", "لا يمكن أن يكون المبلغ سالباً.");
@@ -117,7 +117,7 @@ ${form(c.f, `/rider-jobs/${r.driver_id}/collect`, html`<input type="hidden" name
     const capState = hard && exposure >= hard ? badge(pick(L, "at the hard cap: no new cash order", "عند السقف الصارم: لا طلب نقدي جديد"), "danger", "alert") : soft && exposure >= soft ? badge(pick(L, "over the soft cap: plan a drop", "فوق السقف المرن: خطّط لتسليم النقد"), "warn", "alert") : "";
     return card(html`
 <p class="head">${r.on_shift ? badge(`${pick(L, "on shift since", "في الوردية منذ")} ${hm(r.shift_since)}`, "ok", "bike") : badge(pick(L, "off shift", "خارج الوردية"))}
- ${d ? badge(pick(L, ...(STATUS[d.status] ?? [d.status, d.status])), d.status === "offered" ? "warn" : "gold", "truck") : badge(pick(L, "at the hub", "في المركز"), "neutral", "store")}</p>
+ ${d ? badge(pick(L, ...(STATUS[d.status] ?? [d.status, d.status])), d.status === "offered" ? "warn" : "gold", "truck") : badge(pick(L, "at the hub", "في المستودع"), "neutral", "store")}</p>
 <p>${pick(L, "Cash held", "النقد معه")}: <strong><bdi>${usd(r.cash_usd)}</bdi> + <bdi>${lbp(r.cash_lbp)}</bdi></strong> ${capState}</p>
 ${hard ? limitBar({ value: exposure, soft: soft || null, hard, label: pick(L, `${usd(exposure)} of the ${usd(hard)} hard cap`, `${usd(exposure)} من السقف الصارم ${usd(hard)}`) }) : ""}
 <p class="muted"><bdi>${usd(exposure)}</bdi> ${pick(L, "counting cash still to collect", "مع النقد المنتظر تحصيله")} · ${capWords ? pick(L, `soft ${usd(soft)}, hard ${usd(hard)}`, `مرن ${usd(soft)}، صارم ${usd(hard)}`) : ""}</p>
@@ -126,8 +126,8 @@ ${!r.on_shift ? html`<div class="actions-row">${form(c.f, `/rider-jobs/${r.drive
 ${d && d.status === "offered" ? html`<div class="actions-row">${form(c.f, `/rider-jobs/${r.driver_id}/accept`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Accept for the rider", "اقبل نيابةً عنه"), variant: "primary", icon: "check" })}`, { cls: "inline" })}
 ${form(c.f, `/rider-jobs/${r.driver_id}/decline`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Decline for the rider", "ارفض نيابةً عنه") })}`, { cls: "inline" })}</div>
 <p class="muted">${pick(L, "Orders", "الطلبات")}: ${drops.map((s) => s.short_code).join(pick(L, ", ", "، "))}</p>` : ""}
-${d && d.status === "accepted" ? html`${pickups_.map((s) => html`<p>${pick(L, "Pick up at", "الاستلام من")} <strong>${s.source ?? pick(L, "the hub", "المركز")}</strong>: ${drops.map((x) => x.short_code).join(pick(L, ", ", "، "))}</p>`)}
-${stillPicking.length ? html`<p class="note">${icon("alert")} ${pick(L, `Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed.`, `ما زال قيد التجهيز في المركز: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز.`)}</p>` : ""}
+${d && d.status === "accepted" ? html`${pickups_.map((s) => html`<p>${pick(L, "Pick up at", "الاستلام من")} <strong>${s.source ?? pick(L, "the hub", "المستودع")}</strong>: ${drops.map((x) => x.short_code).join(pick(L, ", ", "، "))}</p>`)}
+${stillPicking.length ? html`<p class="note">${icon("alert")} ${pick(L, `Still being picked at the hub: ${stillPicking.join(", ")}. Wait until it is packed.`, `ما زال قيد التجهيز في المستودع: ${stillPicking.join(pick(L, ", ", "، "))}. انتظر حتى يُجهَّز.`)}</p>` : ""}
 <div class="actions-row">${form(c.f, `/rider-jobs/${r.driver_id}/picked_up`, html`<input type="hidden" name="delivery" value="${d.delivery_id}">${button({ label: pick(L, "Picked up: on the way", "تم الاستلام: في الطريق"), variant: "primary", icon: "truck" })}`, { cls: "inline" })}</div>` : ""}
 ${d && d.status === "in_progress" && drops.length ? html`<ul class="ak-rows">${drops.map((s) => stopRow(r, s, job!))}</ul>` : ""}
 ${r.unpaid.length ? html`<h3>${pick(L, "Cash to record", "نقد بانتظار التسجيل")}</h3><ul class="ak-rows">${r.unpaid.map((u) => cash(r, u))}</ul>` : ""}`, { title: r.name ?? pick(L, "Rider", "مندوب") });
@@ -157,7 +157,7 @@ ${packed.length === 0 ? empty({ ok: true, title: pick(L, "No packed order is wai
 ${notPacked.length ? html`<h2>${pick(L, "Not packed yet", "لم يُجهَّز بعد")} (${notPacked.length})</h2><p class="muted">${pick(L, "These can be given now; the rider leaves only when each is packed.", "يمكن إعطاؤها الآن؛ لا يغادر المندوب إلا بعد تجهيز كل طلب.")}</p><ul class="ak-rows">${notPacked.map(waitingRow)}</ul>` : ""}
 <p class="muted">${pick(L, "The system also offers these to riders on its own every minute. Giving one here offers it and accepts it for that rider.", "يعرض النظام هذه الطلبات على المناديب تلقائياً كل دقيقة. الإعطاء هنا يعرضها ويقبلها نيابةً عن ذلك المندوب.")}</p>
 <h2 id="pickup">${icon("store")} ${pick(L, "Pickup shelf", "رف الاستلام")} (${pickups.length})</h2>
-${pickups.length === 0 ? html`<p class="muted">${pick(L, "No order waits to be collected at the hub.", "لا طلب ينتظر الاستلام من المركز.")}</p>` : html`<ul class="ak-rows">${pickups.map(pickupRow)}</ul>`}
+${pickups.length === 0 ? html`<p class="muted">${pick(L, "No order waits to be collected at the hub.", "لا طلب ينتظر الاستلام من المستودع.")}</p>` : html`<ul class="ak-rows">${pickups.map(pickupRow)}</ul>`}
 </div><div>
 <h2>${icon("bike")} ${pick(L, "Riders on shift", "المناديب في الوردية")} (${onShift.length})</h2>
 ${onShift.length === 0 ? empty({ title: pick(L, "No rider is on shift.", "لا مندوب في الوردية.") }) : html`<div class="ak-cards">${onShift.map(riderCard)}</div>`}
@@ -205,7 +205,7 @@ async function tap(c: Ctx) {
     if (action === "picked_up") {
       const dlv = uuid(L, delivery);
       const r = await db.rpc<{ ok: boolean; status?: string; waiting?: string[] }>("act_for_rider", { ...base, p_delivery: dlv });
-      if (!r.ok && r.status === "not_ready") throw new UserError(pick(L, `Still being picked at the hub: ${(r.waiting ?? []).join(", ")}.`, `ما زال قيد التجهيز في المركز: ${(r.waiting ?? []).join(pick(L, ", ", "، "))}.`));
+      if (!r.ok && r.status === "not_ready") throw new UserError(pick(L, `Still being picked at the hub: ${(r.waiting ?? []).join(", ")}.`, `ما زال قيد التجهيز في المستودع: ${(r.waiting ?? []).join(pick(L, ", ", "، "))}.`));
       if (!r.ok) throw new UserError(pick(L, `This job is ${r.status}: nothing was picked up.`, `هذه المهمة ${r.status}: لم يُستلم شيء.`));
       return pick(L, "Picked up: the orders are on the road.", "تم الاستلام: الطلبات في الطريق.") + (await tellOnTheWay(c, dlv));
     }

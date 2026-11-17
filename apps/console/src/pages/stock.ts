@@ -28,7 +28,7 @@ const num_ = (v: number) => String(Math.round(v * 1000) / 1000);
 
 async function hub(c: Ctx): Promise<string> {
   const s = (await c.deps.db.rows<{ id: string }>("sources", { select: "id", where: { kind: "dark_store" }, order: [{ col: "id" }], limit: 1 }))[0];
-  if (!s) throw new UserError(pick(c.lang, "There is no hub (dark store) in the database.", "لا يوجد مركز (مستودع) في قاعدة البيانات."));
+  if (!s) throw new UserError(pick(c.lang, "There is no hub (dark store) in the database.", "لا يوجد مستودع في قاعدة البيانات."));
   return s.id;
 }
 

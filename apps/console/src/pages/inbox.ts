@@ -63,14 +63,14 @@ async function list(c: Ctx) {
 
   return render(c, t(L, "nav_inbox"), html`
 ${inboxTabs(L, "cases", rows.length)}
-<p class="muted">${pick(L, "Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; press I'm on it to take a case and step the bot back.", "الزبائن الذين ينتظرون شخصاً، الأطول انتظاراً أولاً. الروبوت يواصل الرد عليهم؛ اضغط «أنا عليها» لتستلم الحالة ويتراجع الروبوت.")}</p>
+<p class="muted">${pick(L, "Customers waiting for a person, the longest wait first. The bot keeps answering them meanwhile; press I'm on it to take a case and step the bot back.", "الزبائن الذين ينتظرون شخصاً، الأطول انتظاراً أولاً. البوت يواصل الرد عليهم؛ اضغط «سأتولّاها» لتستلم الحالة ويتراجع البوت.")}</p>
 ${rows.length === 0 ? empty({ ok: true, title: pick(L, "Nobody is waiting for a person.", "لا أحد ينتظر شخصاً.") }) : caseList(rows.map((r) => caseRow({
     href: `/inbox/${r.case_id}`, openLabel: pick(L, "Open", "افتح"),
     state: r.late ? "late" : r.state === "claimed" ? "claimed" : "open",
     timer: timerChip({ minutes: r.minutes, promise: null, text: `${r.minutes} ${pick(L, "min", "د")}`, state: r.late ? "late" : r.state === "claimed" ? "idle" : r.minutes >= claimAt ? "warn" : "ok" }),
     title: `${kindName(r.kind, L)} · ${r.customer}`, order: r.order_code,
     steps: steps(L, cfg, r.minutes, r.state === "claimed"),
-    actions: r.state === "claimed" ? undefined : form(c.f, `/inbox/${r.case_id}/claim`, html`<input type="hidden" name="back" value="/inbox">${button({ label: pick(L, "I'm on it", "أنا عليها"), variant: "primary", icon: "user" })}`, { cls: "inline" }),
+    actions: r.state === "claimed" ? undefined : form(c.f, `/inbox/${r.case_id}/claim`, html`<input type="hidden" name="back" value="/inbox">${button({ label: pick(L, "I'm on it", "سأتولّاها"), variant: "primary", icon: "user" })}`, { cls: "inline" }),
     last: r.last_message ? `${r.last_message.direction === "inbound" ? r.customer : pick(L, "us", "نحن")}: ${said(r.last_message, L).slice(0, 120)}` : undefined,
     tags: [
       r.state === "claimed" ? badge(r.claimed_by ?? pick(L, "someone", "أحدهم"), "ok", "user") : badge(pick(L, "nobody yet", "لا أحد بعد"), "warn"),
@@ -106,15 +106,15 @@ ${x.late ? html` ${badge(pick(L, "late", "متأخرة"), "danger")}` : ""}${x.c
 ${x.topic ? html`<p class="muted">${pick(L, "About", "الموضوع")}: ${x.topic}</p>` : ""}
 ${x.order ? html`<p>${pick(L, "Order", "الطلب")} <a href="/orders/${x.order.short_code}">${x.order.short_code}</a>: ${x.order.status}, ${usd(x.order.total_usd)}, ${x.order.payment_method}</p>` : ""}
 ${x.state === "resolved" ? "" : steps(L, await support(c), Math.max(0, Math.floor((c.deps.now().getTime() - new Date(x.ladder_from ?? x.opened_at).getTime()) / 60000)), x.state !== "open")}
-<p class="muted">${paused ? html`${pick(L, "The bot is stepped back until", "الروبوت متراجع حتى")} ${when(x.pause_until)}${pick(L, "; each reply you send renews it.", "؛ كل رد ترسله يجدّد ذلك.")}` : pick(L, "The bot is answering this customer.", "الروبوت يرد على هذا الزبون.")}</p></div>
+<p class="muted">${paused ? html`${pick(L, "The bot is stepped back until", "البوت متراجع حتى")} ${when(x.pause_until)}${pick(L, "; each reply you send renews it.", "؛ كل رد ترسله يجدّد ذلك.")}` : pick(L, "The bot is answering this customer.", "البوت يرد على هذا الزبون.")}</p></div>
 <h2>${pick(L, "The chat", "المحادثة")}</h2>
 <ol class="ak-chat">${x.messages.map((m) => html`<li class="${m.direction === "inbound" ? "" : "us"}"><time>${when(m.at)} · ${m.direction === "inbound" ? pick(L, "customer", "الزبون") : pick(L, "us", "نحن")}</time><span dir="auto">${said(m, L)}</span></li>`)}</ol>
 ${!open ? html`<p class="muted">${pick(L, "Resolved.", "حُلّت.")}</p>` : html`
-${x.state === "open" ? form(c.f, `/inbox/${caseId}/claim`, button({ label: pick(L, "I'm on it (the bot steps back)", "أنا عليها (يتراجع الروبوت)"), variant: "primary", icon: "user" })) : ""}
+${x.state === "open" ? form(c.f, `/inbox/${caseId}/claim`, button({ label: pick(L, "I'm on it (the bot steps back)", "سأتولّاها (يتوقف البوت)"), variant: "primary", icon: "user" })) : ""}
 ${x.window_open ? form(c.f, `/inbox/${caseId}/reply`, html`<h2>${pick(L, "Reply", "الرد")}</h2><p class="muted">${pick(L, "A draft from the case; edit it before sending. It goes from the customer number.", "مسودة من الحالة؛ عدّلها قبل الإرسال. تُرسل من رقم الزبائن.")}</p>
 <p><textarea name="text" rows="4" cols="60" maxlength="1500" required dir="auto">${draft}</textarea></p><p><button>${pick(L, "Send", "إرسال")}</button></p>`, { cls: "reply" })
                 : html`<p><strong class="warn">${pick(L, "WhatsApp's 24-hour window is closed: a reply cannot be sent. Call the customer.", "نافذة واتساب (24 ساعة) مغلقة: لا يمكن إرسال رد. اتصل بالزبون.")}</strong></p>`}
-<div class="actions-row">${paused ? form(c.f, `/inbox/${caseId}/release`, html`<button class="secondary">${pick(L, "Give back to the bot now", "أعِدها إلى الروبوت الآن")}</button>`) : ""}</div>
+<div class="actions-row">${paused ? form(c.f, `/inbox/${caseId}/release`, html`<button class="secondary">${pick(L, "Give back to the bot now", "أعِدها إلى البوت الآن")}</button>`) : ""}</div>
 ${form(c.f, `/inbox/${caseId}/resolve`, html`<h2>${pick(L, "Resolve", "إغلاق الحالة")}</h2><p><input name="outcome" maxlength="500" required placeholder="${pick(L, "What was done (for the record)", "ماذا فُعل (للسجل)")}" size="34"> <button>${pick(L, "Resolve", "حُلّت")}</button></p>`)}`}`, { translated: true });
 }
 

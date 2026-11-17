@@ -220,7 +220,7 @@ async function today(c: Ctx) {
   if (lead) {
     try {
       const v = await c.deps.db.rpc<{ drawer: { usd: number | string; lbp: number | string } }>("hub_cash_view", { p_since: beirutMidnight(now).toISOString() });
-      drawer = html`<h2>${t(L, "drawer_h")}</h2><p>${t(L, "drawer_line", { amount: `${usd(v.drawer.usd)}${Number(v.drawer.lbp) ? ` + ${lbp(v.drawer.lbp)}` : ""}` })} <a href="/money">${pick(L, "Hub money", "نقد المركز")}</a></p>`;
+      drawer = html`<h2>${t(L, "drawer_h")}</h2><p>${t(L, "drawer_line", { amount: `${usd(v.drawer.usd)}${Number(v.drawer.lbp) ? ` + ${lbp(v.drawer.lbp)}` : ""}` })} <a href="/money">${pick(L, "Hub money", "نقد المستودع")}</a></p>`;
     } catch { /* the drawer line stays off */ }
   }
 

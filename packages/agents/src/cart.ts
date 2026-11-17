@@ -14,7 +14,7 @@ interface CartPlan {
   ok: boolean; error?: string;
   lines: { sku: string; product_id: string; name: string; name_ar: string | null; qty: number }[];
   quote_lines: QuoteLineInput[]; quote: Quote | null; issues: { code: string; [k: string]: unknown }[];
-  removed: { sku: string; name?: string; name_ar?: string | null; reason: "unknown" | "out_of_stock" }[];
+  removed: { sku: string; name?: string; name_ar?: string | null; reason: "unknown" | "out_of_stock" | "coming_soon" }[];
   price_changed: { sku: string; name: string; name_ar: string | null; cart_price: number; price_usd: number }[];
   village_id: string | null; place_id: string | null; payment_method: "cod" | "whish" | "omt";
 }
@@ -60,7 +60,10 @@ export async function takeCart(ctx: ToolContext, order: CartOrder | undefined): 
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   const gone = plan.removed.filter((r) => r.reason === "out_of_stock").map((r) => r.name_ar ?? r.name ?? r.sku);
   const unknown = plan.removed.filter((r) => r.reason === "unknown").length;
+  // SELL1 (0226): an item of the cart that is coming soon (a packaged item with no label reading yet) is left out and named, by code.
+  const soon = plan.removed.filter((r) => r.reason === "coming_soon").map((r) => r.name_ar ?? r.name ?? r.sku);
   const before = [gone.length || unknown ? CART_TEXT.removed(gone, unknown) : null,
+                  soon.length ? messages(ctx.state.lang ?? "ar").basket.comingSoon(soon) : null,
                   plan.price_changed.length ? CART_TEXT.priceChanged(plan.price_changed.map((c) => ({ name: c.name_ar ?? c.name, price: c.price_usd }))) : null]
     .filter(Boolean).join("\n") || undefined;
   if (!plan.quote_lines.length || !plan.quote) {

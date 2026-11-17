@@ -215,7 +215,7 @@ function orderBody(c: Ctx, x: Loaded): Raw {
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   const paidConfirmed = x.pays.filter((p) => p.status === "confirmed").reduce((a, p) => a + Number(p.amount_usd), 0);
-  const choice = { best_match: pick(L, "the closest match", "الأقرب شبهاً"), remove: pick(L, "take it off the order", "أزل البند من الطلب"), ask: pick(L, "ask me first", "اسألني أولاً") }[o.missing_pref ?? "ask"] ?? pick(L, "ask me first", "اسألني أولاً");
+  const choice = { best_match: pick(L, "the closest match", "أقرب بديل"), remove: pick(L, "take it off the order", "أزل البند من الطلب"), ask: pick(L, "ask me first", "اسألني أولاً") }[o.missing_pref ?? "ask"] ?? pick(L, "ask me first", "اسألني أولاً");
   const h = x.handover;
   const handover = !h.needed ? html`${badge(pick(L, "no code needed", "لا رمز مطلوب"))}`
     : h.verifiedAt ? badge(pick(L, `code checked ${when_(h.verifiedAt)}`, `فُحص الرمز ${when_(h.verifiedAt)}`), "ok", "check")
@@ -234,7 +234,7 @@ ${input({ name: "reason", label: pick(L, "Why (for the record)", "السبب (ل
 <div class="actions-row">${button({ label: pick(L, "Cancel the order", "إلغاء الطلب"), variant: "danger" })}</div>`));
       else steps.push(html`<p>${icon("alert")} ${pick(L, `It cannot be cancelled here: ${why[x.terms?.reason ?? ""]?.[0] ?? "the database says no"}.`, `لا يمكن إلغاؤه من هنا: ${why[x.terms?.reason ?? ""]?.[1] ?? "قاعدة البيانات ترفض"}.`)}</p>`);
     } else if (to === "confirmed") steps.push(html`<p>${button({ label: pick(L, "Confirm the payment", "تأكيد الدفع"), href: "/payments", icon: "wallet" })}</p>`);
-    else if (to === "delivered" && o.is_pickup) steps.push(html`<p>${button({ label: pick(L, "Hand over at the hub", "التسليم في المركز"), href: "/rider-jobs#pickup", icon: "store" })}</p>`);
+    else if (to === "delivered" && o.is_pickup) steps.push(html`<p>${button({ label: pick(L, "Hand over at the hub", "التسليم في المستودع"), href: "/rider-jobs#pickup", icon: "store" })}</p>`);
     else if (to === "failed_delivery" || to === "returned" || (to === "out_for_delivery" && o.status === "failed_delivery")) steps.push(html`<p>${button({ label: pick(L, "Decide it as a rider incident", "قرّر بوصفها حادثة مندوب"), href: "/rider-incidents", icon: "bike" })}</p>`);
     else if (to === "closed") steps.push(html`<p>${icon("wallet")} ${pick(L, "It closes when its payment is recorded: delivered is not paid.", "يُغلق عند تسجيل دفعه: التسليم لا يعني الدفع.")} ${button({ label: pick(L, "Payments", "المدفوعات"), href: "/payments", variant: "ghost" })}</p>`);
   }
@@ -242,7 +242,7 @@ ${input({ name: "reason", label: pick(L, "Why (for the record)", "السبب (ل
   return html`<div class="card"><dl class="facts">
 <dt>${pick(L, "Status", "الحالة")}</dt><dd>${statusPill(o.status, { lang: L, reason: o.cancel_reason })}</dd>
 <dt>${t(L, "customer")}</dt><dd>${x.customer}</dd>
-<dt>${t(L, "village")}</dt><dd>${o.is_pickup ? pick(L, "pickup at the hub", "استلام من المركز") : x.village}</dd>
+<dt>${t(L, "village")}</dt><dd>${o.is_pickup ? pick(L, "pickup at the hub", "استلام من المستودع") : x.village}</dd>
 <dt>${t(L, "channel")}</dt><dd>${o.channel}</dd>
 <dt>${pick(L, "Picker", "المجهّز")}</dt><dd>${x.picker ?? pick(L, "nobody yet", "لا أحد بعد")}</dd>
 <dt>${pick(L, "Rider", "المندوب")}</dt><dd>${x.rider ?? pick(L, "none yet", "لا مندوب بعد")}</dd>
@@ -257,7 +257,7 @@ ${steps.length ? html`<div class="card stack">${steps}</div>` : html`<p class="m
 <h2>${t(L, "lines_h")}</h2>
 ${dataTable({ caption: t(L, "lines_h"), columns: [{ label: pick(L, "Item", "الصنف"), wrap: true }, { label: pick(L, "Qty", "الكمية"), num: true }, { label: pick(L, "Price", "السعر"), num: true }, { label: pick(L, "Change", "التغيير") }],
     rows: items.map((i) => ({ cells: [html`${i.name_snapshot}${i.note ? html`<br><span class="muted">${i.note}</span>` : ""}`, Number(i.qty), usd(i.unit_price_usd),
-      html`${x.picked.has(i.id) ? badge(pick(L, "picked", "مُلتقط"), "ok", "check") : ""}${i.status === "substituted" ? badge(pick(L, "substituted", "استُبدل"), "warn") : i.status === "removed" ? badge(pick(L, "removed", "أُزيل"), "danger") : ""}${i.substitution_of ? html`${pick(L, "replaces", "بديل عن")} ${name.get(i.substitution_of) ?? ""}` : ""}`] })) })}
+      html`${x.picked.has(i.id) ? badge(pick(L, "picked", "أُخذ"), "ok", "check") : ""}${i.status === "substituted" ? badge(pick(L, "substituted", "استُبدل"), "warn") : i.status === "removed" ? badge(pick(L, "removed", "أُزيل"), "danger") : ""}${i.substitution_of ? html`${pick(L, "replaces", "بديل عن")} ${name.get(i.substitution_of) ?? ""}` : ""}`] })) })}
 <h2>${pick(L, "Status history", "سجل الحالات")}</h2>
 ${events.length === 0 ? html`<p class="muted">${pick(L, "No change yet.", "لا تغيير بعد.")}</p>` : html`<ol class="ak-history">${events.filter((e) => e.from_status !== e.to_status).map((e) => html`<li>${statusPill(e.to_status, { lang: L })}<span class="muted">${when_(e.created_at)} · ${e.actor}${e.reason ? html` · <bdi>${e.reason}</bdi>` : ""}</span></li>`)}</ol>`}
 <h2>${t(L, "timeline_h")}</h2>

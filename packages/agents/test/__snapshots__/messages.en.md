@@ -849,6 +849,14 @@ The rider will call you before leaving, to check the address.
 This shop is not on Alo King yet, so we can't take an order from it now.
 ```
 
+## fixed.listingClaimed
+
+```text
+We got your message about مخبز الشوف.
+Someone from our team will get in touch with you here on WhatsApp.
+Until then nothing changes on the page.
+```
+
 ## fixed.pinReceived
 
 ```text
@@ -1366,6 +1374,14 @@ Najjar Classic coffee 180 g: 1 → 3
 
 ```text
 ⚠️ Not available now:
+• Najjar Classic coffee 180 g
+Tell me what you'd like instead, or remove it.
+```
+
+## basket.comingSoon
+
+```text
+Coming soon, we can't take it yet:
 • Najjar Classic coffee 180 g
 Tell me what you'd like instead, or remove it.
 ```

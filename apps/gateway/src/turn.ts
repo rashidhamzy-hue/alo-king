@@ -28,6 +28,7 @@ import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 import { takeCart, type CartOrder } from "@ak/agents/cart";
 import { personSignal } from "@ak/agents/person-request";
+import type { ClaimListingResult } from "@ak/commerce/index";
 import { CASE_KEEP, CASE_VOICE, MENU_BROWSE, MENU_ORDER, MENU_PERSON, RETRY_PREFIX, openCase, parseCallbackButton, remindCase, retryButtonId,
          supportMessage, tellOpened, type OpenedCase } from "@ak/agents/support";
 import { buttons as buttonMsg } from "@ak/wa/kapso";
@@ -69,7 +70,7 @@ export interface TurnDeps {
  * answers; the 2-minute alarm watches); "menu" the hourly cap's fixed menu; "technical" the fixed technical line after the
  * turn was queued again once. Nothing locks a chat: "human" and "agent_handoff" are no longer produced.
  */
-export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "paused" | "agent_ok" | "case" | "menu" | "technical" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "paused" | "agent_ok" | "case" | "menu" | "technical" | "card" | "answered" | "rider" | "duplicate" | "error" | "claim"; sent: string[] }
 
 /** HO1: the model was unavailable or the turn failed before anything was sent. The turn is queued again once, after `ms`. */
 export class RetryTurnLater extends Error {
@@ -177,7 +178,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     state.speech = keepLanguage(prev, { reading: reading ?? null, own, taps: tapTitles }) ?? state.speech;
     state.lang = langOfSpeech(state.speech) ?? state.lang;
   };
-  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false, personAsked = false, chased = false;
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false, personAsked = false, chased = false, claimed = false;
   const openCases = conv.cases ?? [];
 
   // HO1: a tap whose handler failed is a technical failure, not a hand-off: the error line with a button that repeats the tap,
@@ -454,7 +455,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 3. STOP wins, before any model.
     if (m.type === "text") {
       const body = m.text?.body ?? "";
-      learnLang([body]);
+      // LV1: "Claim <listing_id>" is a code we typed for the owner, not the customer's own words: it says nothing of their language.
+      const claimShaped = /^\s*claim\s+\S+\s*$/i.test(body);
+      if (!claimShaped) learnLang([body]);
       const signal = detectConsentSignal(body);
       if (signal === "opt_out") {
         await say(T().fixed.optOut);                                    // the one permitted confirmation, sent before the gate closes
@@ -465,6 +468,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_in", p_source: "start_keyword", p_wamid: m.id });
         await say(T().fixed.optIn);
         return { outcome: "opt_in", sent };
+      }
+      // LV1: "Claim <listing_id>", typed for the owner by the website's button. Read by code, before any model: a staff case with the listing and the sender, and one
+      // fixed line that we will be in touch. Only the exact words and a listing we know are a claim; anything else (a word or two after "Claim") goes on as a message.
+      // Nothing is sent to anyone else, nothing about the listing changes, and nothing can be ordered from it.
+      if (claimShaped) {
+        const claim = await call<ClaimListingResult>(db, "claim_listing", { p_party: conv.party_id, p_conversation: conv.conversation_id, p_text: body, p_wamid: m.id });
+        if (claim.ok) { await say(T().fixed.listingClaimed(claim.name)); claimed = true; continue; }
+        learnLang([body]);                          // not a claim after all: ordinary words
       }
       // The number a rider can call, when we have just asked for it (1.19). Read only then, so a quantity is never taken for a phone.
       if (state.awaiting === "phone") {
@@ -526,7 +537,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // language of what they said or spoke (sim-test 43772497024: a first English voice note got it in Arabic when it went before the
   // note was read). STOP and START returned above, so a first message that is either gets none. Asked of the database once per
   // conversation (open_turn's welcome_due); claim_welcome records it.
-  if (!state.welcomed) {
+  if (!state.welcomed && !claimed) {                // a claim is answered by its own line; the welcome comes with the next message
     if (conv.welcome_due) {
       welcome = await sendWelcome(ctx, turnIds);
       if (welcome) sent.push(welcome);
@@ -536,7 +547,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
     if (audioFailed > 0) { await say(T().fixed.audioUnusable); return { outcome: "audio_unusable", sent }; }
-    return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
+    return { outcome: claimed ? "claim" : buttonsHandled ? "buttons" : "ignored", sent };
   }
   // CX1: a first message that only says hello is answered by the welcome itself.
   if (welcome && transcripts.length === 0 && pins === 0 && texts.length > 0

@@ -2,7 +2,7 @@
 // The Worker holds the project's anon key (the gateway of the API wants an `apikey`; it is a public key) and a token whose role claim
 // is web_channel. Those two and the project address are Worker secrets (docs/HANDOFF.md, WEB1). What the role may call is the nine
 // session functions and the four catalog functions; the database refuses everything else.
-import { webCatalog, type RpcSource } from "@ak/commerce/index";
+import { webCatalog, webListings, type RpcSource } from "@ak/commerce/index";
 
 export interface WebEnv { ENVIRONMENT?: string; SENTRY_DSN?: string; SUPABASE_URL?: string; SUPABASE_ANON_KEY?: string; WEB_CHANNEL_JWT?: string; PICTURE_TRANSFORMS?: string; PAGE_CACHE?: string }
 
@@ -34,6 +34,8 @@ export function postgrestSource(env: WebEnv, fetchImpl: typeof fetch = fetch, ti
 }
 
 export const catalogFor = (env: WebEnv, fetchImpl?: typeof fetch) => webCatalog(postgrestSource(env, fetchImpl));
+/** The Food pages' reads and its two writes (LV1), as the same role. */
+export const listingsFor = (env: WebEnv, fetchImpl?: typeof fetch) => webListings(postgrestSource(env, fetchImpl));
 
 /** The address of a picture in the public `catalog` bucket. With PICTURE_TRANSFORMS=on the storage service resizes it (a paid-plan feature). */
 export function pictureUrl(env: Pick<WebEnv, "SUPABASE_URL" | "PICTURE_TRANSFORMS">, path: string, width?: number): string {

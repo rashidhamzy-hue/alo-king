@@ -63,6 +63,9 @@ export const fr: Messages = {
     handoff: "Une personne de notre équipe va vous contacter rapidement.",
     optOut: "C'est fait. Nous ne vous enverrons plus de messages.\nPour commander, écrivez-nous simplement.",
     optIn: "Les offres sont activées. Merci !",
+    listingClaimed: (name) => `Nous avons bien reçu votre message au sujet de ${name}.
+Quelqu'un de notre équipe vous contactera ici sur WhatsApp.
+D'ici là, rien ne change sur la page.`,
     outOfStock: "⚠️ Désolé, un article s'est épuisé avant la confirmation.\nDites-moi ce que vous voulez à la place, ou retirez-le.",
     error: "Un petit problème est survenu de notre côté.\nUne personne de l'équipe va vous contacter.",
     notAvailable: (shops) => shops.length
@@ -149,6 +152,7 @@ export const fr: Messages = {
     houseDefault: (said, name) => `« ${said} » : nous avons mis ${name}.\nSi vous en voulez un autre, dites-le-moi.`,
     changed: (rows) => `✅ Votre commande est modifiée :\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Plus disponible maintenant :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
+    comingSoon: (names) => `Bientôt disponible, nous ne pouvons pas encore le vendre :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
     cancelRefused: (code) => `La commande ${code} est déjà en préparation, on ne peut pas l'annuler d'ici.\nUne personne de notre équipe vous appellera.`,
   },
 
