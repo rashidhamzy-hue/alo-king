@@ -113,12 +113,13 @@ DS2; DS2 touches no SQL). CI runs them.
 - **Undo.** The toast with Undo exists; no console action offers Undo yet, because taking an action back is a logged server action per
   page (UX2a). The console's flash line is styled as the toast.
 - **Status words on Today and Orders.** Those pages still word statuses themselves ("being picked", "card sent, waiting for the
-  customer's tap"); UX2a moves them to the label table. The customer words in Arabic are listed unread in `docs/ARABIC_REVIEW.md`.
+  customer's tap"); UX2a moves them to the label table. The customer words in Arabic were read by the coordinator on 17 November (`docs/ARABIC_REVIEW.md`, "DS2").
 - **The crown.** Still DS1's original drawing, now ink on a gold tile as the reference's logo; it still waits for the founder's approval.
 - **The reference zip had no `src/data/vendors.json`** (the kitchens list). It was run with an empty list to photograph it, so its Food
   screens show no kitchens; that matches the launch decision, and no restaurant screen was needed here.
 - **The review note itself was not in this session's prompt** (only its decisions were). The split of UX2 into UX2a and UX2b below is
-  read from the reference's own documents (`docs/FOR_RASHID.md`, `docs/OPS.md`); the coordinator should correct it if the note differs.
+  read from the reference's own documents (`docs/FOR_RASHID.md`, `docs/OPS.md`). **The coordinator accepted it on 17 November, with Riders
+  added to UX2b; the Arabic aisle page's weight is left to WEB2.**
 
 **Every reference screen, and the session that builds it.** DS2 restyled what exists; the rest is un-parked.
 
@@ -156,7 +157,7 @@ DS2; DS2 touches no SQL). CI runs them.
 | Intake `/ops/intake` (progress board, photograph, check) | LB1's photographing and label approvals in the new look; in the picker's phone bar | UX2b |
 | Money `/ops/money` | Older pages in the new look | UX2b |
 | Settings `/ops/settings` (people, village pause, hours, alerts, log) | Older pages in the new look | UX2b |
-| Riders `/ops/riders` (roster, shifts, applicants) | Cash and riders page only | Later (RD1) |
+| Riders `/ops/riders` (roster, shifts, applicants) | Cash and riders page only | UX2b (the page); RD1 (applications, shifts) |
 | Reports `/ops/reports` | No page | Later (AN1) |
 | Vendors `/ops/vendors` | Hidden from navigation | Later, Phase 8 (E1) |
 
@@ -166,8 +167,9 @@ DS2; DS2 touches no SQL). CI runs them.
 2. **Say what to change.** Colours, radii and fonts are one file (`packages/ui/tokens.css`); a change there reaches both apps.
 3. **Decide the heading weight.** The reference uses weight 700; we serve 600 to keep the Arabic home page under 100 KB. If you want
    700, say which you prefer: a heavier page, or 700 in place of 600.
-4. **Read the Arabic status words** (`docs/ARABIC_REVIEW.md`, "DS2") before WEB2 shows them to a customer.
-5. **Confirm the build order** in the table above (UX2a, UX2b), or send the review note's own order.
+4. ~~Read the Arabic status words.~~ Done by the coordinator, 17 November ("RA 17 Nov"; `preparing` and `ready` changed).
+5. ~~Confirm the build order.~~ Accepted by the coordinator, 17 November: UX2a = Today, Inbox, Orders, Pick, Dispatch, Stock; UX2b =
+   Approve, Intake, Money, Settings, Riders.
 
 ### CFG1: settings and small rules from the design review, 17 November 2026 (Sonnet 5.5); migrations 0222 and 0223
 Branch `claude/magical-planck-sqn56u`, one pull request. Decisions with their reasons: `docs/DECISIONS.md`, "Design reference, 17 November 2026, settings".

@@ -236,15 +236,15 @@ Written by a model, read by the founder on 16 November, "approved as written" (A
 ## CFG1, the reminder, reopening a lapsed order, and the pickup code (17 November 2026)
 
 Source: `messages(...).notice.confirmReminder`, `.card.reopenedFrom`, `.cx.reopenButton`, `.cx.handoverCodePickup` in `packages/agents/src/messages/ar.ts`
-(and the changed `cx.pickupReady` above). When each is sent: `docs/HANDOFF.md`, CFG1. Written by a model; **not read by a person yet** (the same rule as every other new line).
+(and the changed `cx.pickupReady` above). When each is sent: `docs/HANDOFF.md`, CFG1. Written by a model; read by the coordinator on 17 November 2026 ("RA 17 Nov"), who changed `notice.confirmReminder` (since AR1 «الورقة» means the banknote) and `card.reopenedFrom`. The coordinator wrote `card.reopenedFrom` with a leading 🔁; the line is stored without it, as in `en.ts` and `fr.ts`, because the message rules allow only a fixed set of emoji (rule 4, `messages.rules.test.ts`) and 🔁 is not in it.
 The English and French lines are in `en.ts` and `fr.ts`; they are listed here so the reader can see what the Arabic is meant to say.
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `notice.confirmReminder` | طلبك AK-1234 بعدو ناطر تأكيدك.<br>بتقدر تأكّده أو تعدّله من الورقة فوق. | Your order AK-1234 is still waiting for your confirmation.<br>You can confirm or edit it from the card above. | Votre commande AK-1234 attend toujours votre confirmation.<br>Vous pouvez la confirmer ou la modifier depuis la carte ci-dessus. | |
-| `card.reopenedFrom` | طلب مفتوح من جديد من AK-1234، بأسعار اليوم. | 🔁 Reopened from AK-1234, at today's prices. | 🔁 Rouverte à partir de AK-1234, aux prix d'aujourd'hui. | |
-| `cx.reopenButton` | افتح الطلب من جديد | Reopen order | Rouvrir la commande | |
-| `cx.handoverCodePickup` | 🔢 رمز الاستلام: 4821<br>عطيه لموظف المستودع بس لمّا تاخد طلبك. | 🔢 Your handover code: 4821<br>Give it to our hub staff only when you take your order. | 🔢 Votre code de remise : 4821<br>Donnez-le à notre équipe au dépôt seulement quand vous prenez votre commande. | |
+| `notice.confirmReminder` | طلبك AK-1234 بعدو ناطر تأكيدك.<br>فيك تأكّدو أو تعدّلو من الرسالة يلي فوق. | Your order AK-1234 is still waiting for your confirmation.<br>You can confirm or edit it from the card above. | Votre commande AK-1234 attend toujours votre confirmation.<br>Vous pouvez la confirmer ou la modifier depuis la carte ci-dessus. || RA 17 Nov |
+| `card.reopenedFrom` | رجعنا فتحنا طلبك من AK-1234، بأسعار اليوم. | 🔁 Reopened from AK-1234, at today's prices. | 🔁 Rouverte à partir de AK-1234, aux prix d'aujourd'hui. || RA 17 Nov |
+| `cx.reopenButton` | افتح الطلب من جديد | Reopen order | Rouvrir la commande || RA 17 Nov |
+| `cx.handoverCodePickup` | 🔢 رمز الاستلام: 4821<br>عطيه لموظف المستودع بس لمّا تاخد طلبك. | 🔢 Your handover code: 4821<br>Give it to our hub staff only when you take your order. | 🔢 Votre code de remise : 4821<br>Donnez-le à notre équipe au dépôt seulement quand vous prenez votre commande. || RA 17 Nov |
 
 ## LB1, the label day pages (console, staff-facing, written by a model; 16 November 2026)
 
@@ -261,26 +261,26 @@ Source: `apps/console/src/pages/capture.ts` and `apps/console/src/pages/labelque
 | Approvals | موافقات الملصقات · مسبّبات الحساسية · الحلال وبطاقات الحمية والشهادات · تحذيرات الخطر والتحذيرات المطبوعة · اختلاف المصادر · بقية قراءات الملصقات · أكّد · ارفض | Label approvals · Allergens · Halal, diet labels and certificates · Hazard and printed warnings · Disagreements between sources · The rest of the label readings · Confirm · Reject | RA 16 Nov |
 | Menu | تصوير الملصقات · موافقات الملصقات | Label day photos · Label approvals | RA 16 Nov |
 
-## DS2, the order status words (17 November 2026; not read yet)
+## DS2, the order status words (17 November 2026; RA 17 Nov)
 
 Source: `STATUS_LABELS` in `packages/ui/src/status.ts`, the one label table for order statuses (`docs/DECISIONS.md`, "Design reference,
 17 November 2026"). The customer words are **not shown to any customer yet**: the website's order page is WEB2's, and WhatsApp messages
-keep their own wording in `packages/agents/src/messages/ar.ts`. They need a person's read before WEB2 shows them. The staff words and the
+keep their own wording in `packages/agents/src/messages/ar.ts`. Read by the coordinator on 17 November ("RA 17 Nov"); two were changed (`preparing`, `ready`). The staff words and the
 two navigation words (`nav_dispatch`: «التوزيع», `nav_intake`: «التصوير», `apps/console/src/i18n.ts`) are staff-facing.
 
 | Status (customer words) | Arabic | English | Read by |
 |---|---|---|---|
-| `status.awaiting_confirmation.customer` | بانتظار تأكيدك | Waiting for your Confirm | |
-| `status.awaiting_payment.customer` | بانتظار الدفع | Waiting for payment | |
-| `status.confirmed.customer` | مؤكد | Confirmed | |
-| `status.preparing.customer` | نجهّز طلبك في المركز | Packing at the hub | |
-| `status.ready.customer` | جُهّز | Packed | |
-| `status.ready.pickup` | جاهز للاستلام | Ready for pickup | |
-| `status.out_for_delivery.customer` | في الطريق | On the way | |
-| `status.arrived.customer` | عند الباب | At your door | |
-| `status.delivered.customer` | سُلّم | Delivered | |
-| `status.delivered.pickup` | استُلم | Collected | |
-| `status.failed_delivery.customer` | لم يُسلَّم | Not delivered | |
-| `status.returned.customer` | أُعيد | Returned | |
-| `status.cancelled.customer` | مُلغى | Cancelled | |
+| `status.awaiting_confirmation.customer` | بانتظار تأكيدك | Waiting for your Confirm || RA 17 Nov |
+| `status.awaiting_payment.customer` | بانتظار الدفع | Waiting for payment || RA 17 Nov |
+| `status.confirmed.customer` | مؤكد | Confirmed || RA 17 Nov |
+| `status.preparing.customer` | نجهّز طلبك في المستودع | Packing at the hub || RA 17 Nov |
+| `status.ready.customer` | جاهز | Packed || RA 17 Nov |
+| `status.ready.pickup` | جاهز للاستلام | Ready for pickup || RA 17 Nov |
+| `status.out_for_delivery.customer` | في الطريق | On the way || RA 17 Nov |
+| `status.arrived.customer` | عند الباب | At your door || RA 17 Nov |
+| `status.delivered.customer` | سُلّم | Delivered || RA 17 Nov |
+| `status.delivered.pickup` | استُلم | Collected || RA 17 Nov |
+| `status.failed_delivery.customer` | لم يُسلَّم | Not delivered || RA 17 Nov |
+| `status.returned.customer` | أُعيد | Returned || RA 17 Nov |
+| `status.cancelled.customer` | مُلغى | Cancelled || RA 17 Nov |
 

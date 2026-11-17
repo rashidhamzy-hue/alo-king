@@ -34,7 +34,7 @@ export const ar: Messages = {
     prepayFirst: (how, cap) => `أول طلب كاش لحدّ:\n${usd(cap)}\nهالطلب أكبر، فبينّدفع سلف (${how}) قبل التحضير.\nبعد التأكيد منبعتلك التفاصيل.`,
     prepay: (how) => `في مبلغ مستحق من قبل، فهالطلب بينّدفع سلف (${how}) قبل التحضير.\nبعد التأكيد منبعتلك التفاصيل.`,
     replaces: (code) => `هالورقة بتحلّ محل طلبك ${code}.\nما بيتغيّر شي قبل ما تأكّدها.`,
-    reopenedFrom: (code) => `طلب مفتوح من جديد من ${code}، بأسعار اليوم.`,
+    reopenedFrom: (code) => `رجعنا فتحنا طلبك من ${code}، بأسعار اليوم.`,
     consent: "بتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة.",
     confirm: "تأكيد الطلب", edit: "تعديل", cancel: "إلغاء",
   },
@@ -194,7 +194,7 @@ export const ar: Messages = {
   notice: {
     orderCancelled: (code, reason) => `انلغى طلبك ${code}: ${reason}.\nاكتبلنا إذا بعدك بدّك ياه.`,
     riderAtDoor: (code) => `🛵 السائق واصل عندك بطلب ${code} وعم يستناك.`,
-    confirmReminder: (code) => `طلبك ${code} بعدو ناطر تأكيدك.\nبتقدر تأكّده أو تعدّله من الورقة فوق.`,
+    confirmReminder: (code) => `طلبك ${code} بعدو ناطر تأكيدك.\nفيك تأكّدو أو تعدّلو من الرسالة يلي فوق.`,
     paymentReceived: (code, summary) => `✅ وصلنا دفعك لطلب ${code}:\n${summary}`,
     onTheWay: (code) => `🛵 طلبك ${code} صار عالطريق.`,
     riderWaiting: (code) => `🛵 السائق واصل عندك بطلب ${code} وعم يستناك.`,

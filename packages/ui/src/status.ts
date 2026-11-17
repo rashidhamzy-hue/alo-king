@@ -20,8 +20,8 @@ export const STATUS_LABELS: Record<OrderStatusId, StatusLabel> = {
   awaiting_confirmation: { staff: { en: "Awaiting confirm", ar: "بانتظار التأكيد" }, customer: { en: "Waiting for your Confirm", ar: "بانتظار تأكيدك" }, tone: "neutral", icon: "clock" },
   awaiting_payment: { staff: { en: "Awaiting payment", ar: "بانتظار الدفع" }, customer: { en: "Waiting for payment", ar: "بانتظار الدفع" }, tone: "warn", icon: "wallet" },
   confirmed: { staff: { en: "To pick", ar: "للتجهيز" }, customer: { en: "Confirmed", ar: "مؤكد" }, tone: "ink", icon: "list" },
-  preparing: { staff: { en: "Picking", ar: "قيد التجهيز" }, customer: { en: "Packing at the hub", ar: "نجهّز طلبك في المركز" }, tone: "gold", icon: "orders" },
-  ready: { staff: { en: "Packed", ar: "جُهّز" }, customer: { en: "Packed", ar: "جُهّز" }, customerPickup: { en: "Ready for pickup", ar: "جاهز للاستلام" }, tone: "info", icon: "orders" },
+  preparing: { staff: { en: "Picking", ar: "قيد التجهيز" }, customer: { en: "Packing at the hub", ar: "نجهّز طلبك في المستودع" }, tone: "gold", icon: "orders" },
+  ready: { staff: { en: "Packed", ar: "جُهّز" }, customer: { en: "Packed", ar: "جاهز" }, customerPickup: { en: "Ready for pickup", ar: "جاهز للاستلام" }, tone: "info", icon: "orders" },
   out_for_delivery: { staff: { en: "On the way", ar: "في الطريق" }, customer: { en: "On the way", ar: "في الطريق" }, tone: "transit", icon: "bike" },
   arrived: { staff: { en: "Rider at the door", ar: "الدليفري عند الباب" }, customer: { en: "At your door", ar: "عند الباب" }, tone: "transit", icon: "pin" },
   // Delivered is not paid (invariant 12): staff read that the order still waits for its payment to be recorded.
