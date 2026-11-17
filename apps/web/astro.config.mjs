@@ -21,6 +21,8 @@ export default defineConfig({
     "@ak/commerce": fileURLToPath(new URL("../../packages/commerce/src", import.meta.url)),
     // SR1: the search box is read by the chat's own reading step (pure code, no dependency): one search, one set of filters (invariant 19)
     "@ak/search": fileURLToPath(new URL("../../packages/search/src", import.meta.url)),
+    // WEB2: the order card's words (order-card-text.ts and the message files, no WhatsApp client), so the page prints the WhatsApp card
+    "@ak/agents": fileURLToPath(new URL("../../packages/agents/src", import.meta.url)),
     "@ak/ui-astro": fileURLToPath(new URL("../../packages/ui/astro", import.meta.url)),
     "@ak/ui": fileURLToPath(new URL("../../packages/ui/src", import.meta.url)),
   } } },

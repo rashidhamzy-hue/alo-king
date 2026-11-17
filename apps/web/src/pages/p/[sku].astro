@@ -2,7 +2,8 @@
 // One product (redesigned in DS1; docs/strategy/05, section B; product data in LD1; the look and the fact rows are DS2's): a large picture, the name, how it is sold, the price,
 // the stock, and the fields of the item's OWN template: food facts only for a template that has them, with their status and source, and
 // "not confirmed yet" for a field not approved (invariant 15: unknown is never safe). The page and its JSON-LD are built from the same
-// read through the same view (lib/product.ts), so they cannot disagree. The one action is "order on WhatsApp" until the cart exists (WEB2).
+// read through the same view (lib/product.ts), so they cannot disagree. WEB2: the action is "Add to basket" (a form with no script); asking on
+// WhatsApp stays as the second way.
 // Not here yet (docs/HANDOFF.md, DS1): a substitute when out of stock.
 import Base from "../../layouts/Base.astro";
 import Unavailable from "../../components/Unavailable.astro";
@@ -57,6 +58,8 @@ const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin,
           {view.priced ? <Price amount={usd(view.price)} big /> : <span class="muted">{t(lang, "no_price")}</span>}
           {view.inStock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, view.comingSoon ? "coming_soon" : "out_of_stock")} tone="warn" />}
         </div>
+        {view.inStock && !view.comingSoon && view.priced && <form method="post" action="/cart/line"><input type="hidden" name="sku" value={ok.product.sku}><input type="hidden" name="add" value="1"><input type="hidden" name="back" value={Astro.url.pathname}><input type="hidden" name="price" value={String(view.price)}>
+          <Button label={t(lang, "w2_add")} icon="plus" variant="gold" size="lg" /></form>}
         {ask && !view.comingSoon && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "whatsapp" : "default"} size="lg" external /></p>}
 
         {view.food.show && <>

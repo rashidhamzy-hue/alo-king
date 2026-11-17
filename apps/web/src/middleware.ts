@@ -10,6 +10,10 @@ import { guarded, reportCheckIn } from "./lib/sentry";
 const searchLimit = makeLimiter(30, 60_000);
 // LV1: the Food pages' two form posts ("I want to order from here", "Remove this listing"). Per address, in one isolate's memory like the search limit; the database also caps what they write.
 const foodPostLimit = makeLimiter(20, 60_000);
+// WEB2: the basket, sign-in, checkout, history and account form posts, per address (one isolate's memory, like the search limit). The database
+// guards what they write (one code per session at a time, one order per request key).
+// WEB_POST_LIMIT (a number) changes it; the tests set it high, because they post from one address.
+let orderPostLimit: ReturnType<typeof makeLimiter> | null = null;
 const CACHEABLE = /^\/(?:$|c\/[^/]+$|p\/[^/]+$)/;
 
 export function securityHeaders(h: Headers, env: WebEnv) {
@@ -49,6 +53,10 @@ async function handle(ctx: any, next: () => Promise<Response>, env: WebEnv): Pro
   }
 
   if (req.method === "POST" && /^\/food\/[^/]+\/(?:want|remove)$/.test(url.pathname) && !foodPostLimit(req.headers.get("cf-connecting-ip") ?? "unknown")) {
+    return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
+  }
+
+  if (req.method === "POST" && /^\/(?:cart(?:\/\w+)?|checkout|signin|account|orders)$/.test(url.pathname) && !(orderPostLimit ??= makeLimiter(Number(env.WEB_POST_LIMIT) || 60, 60_000))(req.headers.get("cf-connecting-ip") ?? "unknown")) {
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 

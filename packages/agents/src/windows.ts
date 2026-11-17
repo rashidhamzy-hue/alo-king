@@ -163,14 +163,19 @@ export async function pickWindow(ctx: ToolContext, villageId: string | null, fre
 const say = async (ctx: ToolContext, text: string, orderId?: string) => (await deliver(ctx, { type: "text", text: { body: text } }, text, orderId)).ok;
 
 interface StoredCard { order_id: string; short_code: string; status: string; payment_method: "cod" | "whish" | "omt"; change_for_usd: number | null;
-  window: DeliveryWindow | null; replaces: string | null; prepay: { reason: "first_order"; maxCodUsd: number } | null; quote: Quote }
+  window: DeliveryWindow | null; replaces: string | null; prepay: { reason: "first_order"; maxCodUsd: number } | null; quote: Quote;
+  /** WEB2 (0229): the choices on the card, so a card sent again says what the first said. Absent on an older database. */
+  change_for_lbp?: number | null; missing_pref?: "best_match" | "ask" | "remove" | null; keep_change?: boolean; reopened_from?: string | null;
+  missing_items?: { product_id: string; name: string; name_ar: string | null; pref: "best_match" | "ask" | "remove" }[] }
 
 /** The card of an order sent again, as stored (no new order, no new price), with the window it now carries. */
 export async function resendCard(ctx: ToolContext, orderId: string): Promise<boolean> {
   const c = await rpc<StoredCard | null>(ctx.db, "order_card", { p_order: orderId, p_party: ctx.partyId });
   if (!c) return false;
   return (await sendCard(ctx, { orderId, shortCode: c.short_code, quote: c.quote, paymentMethod: c.payment_method, changeForUsd: c.change_for_usd,
-                                prepay: c.prepay, window: c.window, replaces: c.replaces })).ok;
+                                prepay: c.prepay, window: c.window, replaces: c.replaces, reopenedFrom: c.reopened_from ?? null,
+                                changeForLbp: c.change_for_lbp ?? null, missingPref: c.missing_pref ?? null, missingItems: c.missing_items ?? null,
+                                keepChange: c.keep_change ?? false })).ok;
 }
 
 type Requested = { ok: boolean; reason?: string; status?: string; short_code: string; window?: DeliveryWindow | null; windows?: DeliveryWindow[] };

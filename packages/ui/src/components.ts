@@ -211,8 +211,8 @@ export interface ProductCardOpts {
   unitPrice?: { amount: string; per: string } | null;
   picture: { src: string; width: number; height: number } | null;
   labels: { inStock: string; outOfStock: string; noPicture: string };
-  /** The one-tap action. Until the cart exists (WEB2) it is "order this on WhatsApp"; then it becomes "add". */
-  action?: { href: string; label: string; icon: IconName; external?: boolean } | null;
+  /** The one-tap action: a link ("order this on WhatsApp"), or, since WEB2, a form that posts (add to the basket, with no script). */
+  action?: { href: string; label: string; icon: IconName; external?: boolean } | { post: { action: string; fields: Record<string, string> }; label: string; icon: IconName } | null;
   /** schema.org Product microdata (no script): the shop's pages set it, the gallery does not. */
   microdata?: { sku: string; brand?: string | null; priceUsd: number };
 }
@@ -222,7 +222,9 @@ export function productCard(o: ProductCardOpts): Raw {
     ? html`<img class="pic" src="${o.picture.src}" alt="" loading="lazy" decoding="async" width="${o.picture.width}" height="${o.picture.height}"${md ? new Raw(' itemprop="image"') : ""}>`
     : html`<span class="ph" role="img" aria-label="${o.labels.noPicture}">${icon("image")}</span>`}
 <span class="body"><span class="price"><bdi>${o.price}</bdi></span><span class="name"${md ? new Raw(' itemprop="name"') : ""}>${o.name}</span>${o.meta || o.unitPrice ? html`<span class="meta">${o.meta ?? ""}${o.unitPrice ? html`${o.meta ? " · " : ""}<bdi>${o.unitPrice.amount}</bdi>/${o.unitPrice.per}` : ""}</span>` : ""}${o.inStock ? badge(o.labels.inStock, "ok") : badge(o.labels.outOfStock, "warn")}</span></a>
-<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}${o.action ? button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external }) : ""}</div></li>`;
+<div class="foot"${md ? new Raw(' itemprop="offers" itemscope itemtype="https://schema.org/Offer"') : ""}>${md ? html`<meta itemprop="sku" content="${md.sku}"><meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="${md.priceUsd.toFixed(2)}"><link itemprop="availability" href="https://schema.org/${o.inStock ? "InStock" : "OutOfStock"}">` : ""}${o.action ? ("post" in o.action
+    ? html`<form method="post" action="${o.action.post.action}">${Object.entries(o.action.post.fields).map(([k, v]) => html`<input type="hidden" name="${k}" value="${v}">`)}${button({ label: o.action.label, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add" })}</form>`
+    : button({ label: o.action.label, href: o.action.href, icon: o.action.icon, iconOnly: true, variant: "primary", cls: "add", external: o.action.external })) : ""}</div></li>`;
 }
 
 // ---------- cart bar ----------

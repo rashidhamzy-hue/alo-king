@@ -97,7 +97,7 @@ function render(m: Messages): Rendered[] {
   add("card.orLbp", c.orLbp(651000)); add("card.address", c.address("Baakline")); add("card.pickup", c.pickup); add("card.eta", c.eta(30));
   add("card.deliverNow", c.deliverNow); add("card.window", c.window(when)); add("card.payment", c.payment("cod"));
   for (const k of ["cod", "whish", "omt"] as const) add(`card.payName.${k}`, c.payName[k]);
-  add("card.changeFor", c.changeFor); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
+  add("card.changeFor", c.changeFor); add("card.changeForLbp", `${c.changeForLbp}\n${m.lbp(2000000)}`); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
   add("card.replaces", c.replaces("AK-1040")); add("card.reopenedFrom", c.reopenedFrom("AK-1040")); add("card.consent", c.consent);
   add("card.confirm", c.confirm); add("card.edit", c.edit); add("card.cancel", c.cancel);
   for (const x of cards(L)) formatOrderCard(x.input).forEach((o, i, all) => add(`${x.key}${all.length > 1 ? `.${i + 1}` : ""}`, bodyOf(o), { kind: i === all.length - 1 ? "card" : undefined }));
@@ -155,6 +155,9 @@ function render(m: Messages): Rendered[] {
   add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!])); add("basket.comingSoon", bk.comingSoon([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));
   add("payment.proofReceived", m.payment.proofReceived(CODE)); add("payment.proofResend", m.payment.proofResend);
+  // WEB2: the website's sign-in, sign out and its card, answered by code.
+  for (const k of ["linked", "codeExpired", "codeUsed", "codeUnknown", "notSignedIn", "cardUnknown"] as const) add(`web.${k}`, m.web[k]);
+  add("web.signedOut.one", m.web.signedOut(1)); add("web.signedOut.many", m.web.signedOut(2)); add("web.cardNotWaiting", m.web.cardNotWaiting(CODE));
   // PD1 (g): the honest answer when nothing fits, as code sends it (one message).
   const h = m.honest;
   add("honest.notCarried", h.notCarried(["protein bars"])); add("honest.notCarried.two", h.notCarried(["protein bars", "dates"]));
@@ -174,7 +177,7 @@ function render(m: Messages): Rendered[] {
   for (const k of ["privacy", "orderButton", "areaButton", "orderAsk", "areaAsk", "keepLine", "choicesButton", "choicesMissing", "choicesNote", "choicesOrder",
                    "exactRow", "keepRow", "cancelRow", "exactSet", "needsNote", "cancelYes", "pickupOff"] as const) add(`cx.${k}`, cx[k]);
   for (const p of ["best_match", "ask", "remove"] as const) {
-    add(`cx.missingLine.${p}`, cx.missingLine(p)); add(`cx.missingRow.${p}`, cx.missingRow[p]); add(`cx.missingSet.${p}`, cx.missingSet(p));
+    add(`cx.missingLine.${p}`, cx.missingLine(p)); add(`cx.missingItemLine.${p}`, cx.missingItemLine("Labneh 500 g", p)); add(`cx.missingRow.${p}`, cx.missingRow[p]); add(`cx.missingSet.${p}`, cx.missingSet(p));
   }
   add("cx.noteRow", cx.noteRow(20)); add("cx.noteSet", cx.noteSet(20, 12.73)); add("cx.keepSet", cx.keepSet(12.73)); add("cx.noteTooSmall", cx.noteTooSmall(7.27));
   add("cx.choiceTooLate", cx.choiceTooLate(CODE)); add("cx.cancelAsk", cx.cancelAsk(CODE, 0)); add("cx.cancelAsk.credit", cx.cancelAsk(CODE, 7.27));

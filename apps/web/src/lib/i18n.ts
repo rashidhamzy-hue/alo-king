@@ -2,6 +2,8 @@
 // in the same file. The language follows the visitor's choice, kept in the `lang` cookie; with no choice it follows the browser's
 // Accept-Language, and with neither it is Arabic. Names come from the database in Arabic and English; French shows the English name.
 
+import { W2 } from "./i18n-web2";
+
 export const LANGS = ["ar", "en", "fr"] as const;
 export type Lang = (typeof LANGS)[number];
 export const DEFAULT_LANG: Lang = "ar";
@@ -196,9 +198,10 @@ const fr: Dict = {
   food_remove_queued: "Nous avons votre demande. Notre équipe va l'examiner.",
   kind_restaurant: "Restaurant", kind_cafe: "Café", kind_bakery: "Boulangerie", kind_sweets: "Pâtisserie", kind_catering: "Traiteur", kind_butcher: "Boucherie",
 };
-export const DICTS: Record<Lang, Dict> = { en, ar, fr };
+export const DICTS: Record<Lang, Dict> = { en: { ...en, ...W2.en }, ar: { ...ar, ...W2.ar }, fr: { ...fr, ...W2.fr } };
 
-export type Key = keyof typeof en;
+/** A word's key: any key of the English dictionary (WEB2's `w2_` keys included). A missing key is a bug the test names. */
+export type Key = string;
 /** A string in the page language, with {name} placeholders filled. A missing key is a bug the test names; the key itself is shown. */
 export function t(l: Lang, key: Key, vars: Record<string, string | number> = {}): string {
   const s = DICTS[l][key] ?? DICTS.en[key] ?? String(key);

@@ -157,3 +157,12 @@
   .bottom .ak-btn { flex: 1; }
   @media (min-width: 46rem) { .bottom { display: none; } footer.site { padding-block-end: var(--ak-space-6); } }
 }
+
+/* WEB2: the basket and account doors in the header, and "added to your basket" after an add with no script. */
+@layer components {
+  header.top .basket, header.top .me { min-block-size: var(--ak-tap); min-inline-size: var(--ak-tap); position: relative; }
+  header.top .basket .n:empty { display: none; }
+  header.top .basket .n { position: absolute; inset-block-start: -4px; inset-inline-end: -4px; min-inline-size: 20px; block-size: 20px; padding-inline: 5px; border-radius: 10px; background: var(--ak-gold); color: var(--ak-ink); font-size: 12px; font-weight: var(--ak-weight-strong); display: grid; place-items: center; }
+  .added { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ak-space-2); margin: 0 0 var(--ak-space-3); padding: var(--ak-space-2) var(--ak-space-3); border-radius: var(--ak-radius-md); background: var(--ak-surface); box-shadow: var(--ak-shadow-1); font-weight: var(--ak-weight-strong); }
+  .added a { color: var(--ak-text); }
+}
