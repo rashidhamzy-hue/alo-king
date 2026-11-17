@@ -49,7 +49,7 @@ describe("the chat says coming soon, by code", () => {
     const t = flow(db, [read(order([LABNEH], { village: "بعقلين" }))]);
     await t.customer();
     await t.text("بدي لبنة ليبان ليه 900 غ عبعقلين");
-    expect(outbound.map(bodyOf).join("\n")).not.toContain("جاي قريباً");
+    expect(outbound.map(bodyOf).join("\n")).not.toContain("جايي قريباً");
     expect(outbound.some((s) => isPinRequest(s) || isCard(s))).toBe(true);
   }, 30_000);
 
@@ -60,7 +60,7 @@ describe("the chat says coming soon, by code", () => {
     const t = flow(db, [read(order([LABNEH], { village: "بعقلين" }))]);
     await t.customer();
     await t.text("بدي لبنة ليبان ليه 900 غ عبعقلين");
-    expect(outbound.map(bodyOf).join("\n")).not.toContain("جاي قريباً");
+    expect(outbound.map(bodyOf).join("\n")).not.toContain("جايي قريباً");
     expect(outbound.some((s) => isPinRequest(s) || isCard(s))).toBe(true);
     await gate(false);
   }, 30_000);

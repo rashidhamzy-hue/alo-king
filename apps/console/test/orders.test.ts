@@ -41,7 +41,7 @@ describe("Orders", () => {
     expect(page).toContain("whatsapp");                                                       // the channel
     expect(page).toMatch(/closed/);                                                           // where it ended
     const at = (s: string) => page.indexOf(s);
-    expect(at("being picked") === -1 ? at("confirmed") : at("being picked")).toBeGreaterThan(at("Timeline"));
+    expect(page.slice(at("Timeline"))).toMatch(/To pick|Picking/);                            // the steps, in the label table's words, are in the timeline
     expect(at("بدي لبنة وعيش")).toBeGreaterThan(0); expect(page).toContain("customer: بدي لبنة وعيش"); expect(page).toContain("us: Your order card is ready");
     expect(page).toContain("customer: [audio]"); expect(page).not.toContain("SECRET WORDS");   // a voice note is never read out
     expect(page).toMatch(/cod · /);                                                           // the payment

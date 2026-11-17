@@ -31,10 +31,11 @@ import { staffSection } from "./staff";
 import { templatesSection } from "./templates";
 import { gallerySection } from "./gallery";
 import { pickSection } from "./pick";
+import { stockSection } from "./stock";
 import { riderJobsSection } from "./riderjobs";
 import { riderIncidentsSection } from "./riderincidents";
 import { captureSection } from "./capture";
 import { labelQueueSection } from "./labelqueue";
 import { listingsSection } from "./listings";
 
-export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection];
+export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection];

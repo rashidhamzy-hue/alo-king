@@ -60,7 +60,7 @@ async function page(c: Ctx) {
       empty: empty({ title: pick(L, "No claims yet.", "لا مطالبات بعد."), text: pick(L, "An owner's claim arrives as \"Claim <place>\" on the customer line and opens a case in the Inbox.", "تصل مطالبة صاحب المكان كرسالة \"Claim <المكان>\" على خط الزبائن وتفتح حالة في الوارد."), icon: "inbox", ok: true }) });
   } else if (tab === "hidden") {
     body = dataTable({ caption: pick(L, "Hidden places and removal requests", "الأماكن المخفية وطلبات الإزالة"),
-      columns: [{ label: pick(L, "Place", "المكان") }, { label: pick(L, "Request", "الطلب"), wrap: true }, { label: pick(L, "Wants", "الطالبون"), num: true }, { label: pick(L, "Decide", "القرار"), wrap: true }],
+      columns: [{ label: pick(L, "Place", "المكان") }, { label: pick(L, "Request", "الطلب"), wrap: true }, { label: pick(L, "Wants", "يريدونه"), num: true }, { label: pick(L, "Decide", "القرار"), wrap: true }],
       rows: review.map((r) => ({ cells: [html`${place(r, L)}<br>${status(r, L)}`,
         r.request ? html`${whoName(r.request.who, L)} · ${when(r.request.requested_at)}${r.request.status === "closed" ? html` · ${pick(L, "closed", "مغلق")}` : ""}<br>${r.request.reason ? html`“${r.request.reason}”` : html`<span class="muted">${pick(L, "no reason given", "بلا سبب")}</span>`}${r.request.hidden ? "" : html`<br><small class="warn">${pick(L, "Over a limit: the page was left up for you to decide.", "تجاوز الحد: تُركت الصفحة ظاهرة لتقرّر أنت.")}</small>`}` : html`<span class="muted">${pick(L, "hidden by staff", "أخفاها موظف")}</span>`,
         r.wants,
@@ -71,7 +71,7 @@ ${r.open_requests > 0 && r.request ? form(c.f, "/listings/keep", html`<input typ
   } else {
     body = html`<form method="get" action="/listings" class="ak-search"><input class="ak-input" type="search" name="q" value="${q}" placeholder="${pick(L, "Name or village", "الاسم أو القرية")}" aria-label="${pick(L, "Search places", "ابحث عن الأماكن")}" maxlength="80"> <button class="ak-btn ak-btn--primary">${pick(L, "Search", "بحث")}</button></form>
 ${dataTable({ caption: pick(L, "Places", "الأماكن"),
-      columns: [{ label: pick(L, "Place", "المكان") }, { label: pick(L, "Kind", "النوع") }, { label: pick(L, "Village", "القرية") }, { label: pick(L, "km", "كم"), num: true }, { label: pick(L, "Wants", "الطالبون"), num: true },
+      columns: [{ label: pick(L, "Place", "المكان") }, { label: pick(L, "Kind", "النوع") }, { label: pick(L, "Village", "القرية") }, { label: pick(L, "km", "كم"), num: true }, { label: pick(L, "Wants", "يريدونه"), num: true },
         { label: pick(L, "Claims", "المطالبات"), num: true }, { label: pick(L, "Status", "الحالة") }, { label: pick(L, "Hide", "إخفاء"), wrap: true }],
       rows: found.map((r) => ({ cells: [place(r, L), kindName(r.kind, L), r.village ?? pick(L, "not listed", "غير مذكورة"), km(r.km_from_hub), r.wants, r.claims, status(r, L),
         r.hidden_at ? html`<a href="/listings?tab=hidden">${pick(L, "see Hidden", "انظر المخفي")}</a>`

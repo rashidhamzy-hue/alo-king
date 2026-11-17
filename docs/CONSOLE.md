@@ -22,6 +22,9 @@ their markup, data and actions did not change. The reference's rules for staff s
 targets, no swipes, a toast with Undo instead of "are you sure", timers and statuses with words and an icon. The screens of the
 reference that are not built yet, each with its session, are a table in `docs/HANDOFF.md`, DS2.
 
+## The six staff pages on the design system, 17 November (session UX2a)
+Today (four link tiles), Inbox (the escalation steps and "I'm on it"), Orders (the drawer with only the transitions `order_transitions` allows), Pick (the one-handed runner), Dispatch (cash against the cap, the code at the door, the pickup shelf) and Stock (counts and adjustments with a reason) are rebuilt on `packages/ui`; the SQL and the permissions did not change. A reversible action's toast carries Undo (`flashRedirect`'s `undo`), offered only where the database can take the action back (a pick mark). The command bar's search posts to `/go`, which opens an order by its code. Details and what is not proven: `docs/HANDOFF.md`, UX2a.
+
 ## What never changes
 - The browser never holds a database key; the acting person comes from the session; every action is logged before it runs and
   does not run if the log cannot be written; the console has no insert, update or delete of its own (`no-direct-writes.test.ts`).

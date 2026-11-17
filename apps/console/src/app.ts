@@ -11,7 +11,7 @@ import { DbError, isMissingFunction } from "./db";
 import type { StaffAuth } from "./auth";
 import { AuthUnavailable, MIN_PASSWORD } from "./auth";
 import type { Media } from "./media";
-import { CSS, THEMES, form, html, page, type FormCtx, type Raw, type Theme } from "./html";
+import { CSS, THEMES, form, html, page, type FlashUndo, type FormCtx, type Raw, type Theme } from "./html";
 import {
   FLASH_COOKIE, SESSION_COOKIE, SESSION_SECONDS, SETPW_COOKIE, clearCookie, hmac, randomToken, readCookie, same, seal, setCookie, unseal,
 } from "./session";
@@ -46,7 +46,7 @@ export interface Deps {
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
 export interface Ctx {
   req: Request; url: URL; deps: Deps; staff: Staff; params: Record<string, string>; sections: Section[];
-  form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string } | null; f: FormCtx;
+  form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string; undo?: FlashUndo } | null; f: FormCtx;
   /** The staff member's language (cookie), and what is waiting per page address (computed on a page view, empty on a post). */
   lang: Lang; badges: Record<string, number>;
   /** The appearance this person chose (a cookie), and the bell's items (the open high-priority exceptions; computed on a page view). */
@@ -161,6 +161,7 @@ export function explain(e: unknown): string {
       [/^UNKNOWN_ENTRY/, "That calendar entry was not found."],
       [/^UNKNOWN_SLOT/, "That window was not found."],
       [/^ORDER_NOT_FOUND/, "That order was not found."],
+      [/^ILLEGAL_TRANSITION/, "The order machine does not allow that step from where the order is."],
       [/^NOT_YOUR_ORDER/, "That order is not the customer's own."],
       [/^REASON_REQUIRED/, "Write the reason (at least 3 characters)."],
       [/^NOT_HIDDEN/, "That page is not hidden."],
@@ -248,8 +249,14 @@ export async function auditQuietly(deps: Deps, staff: Staff | null, e: AuditEntr
   catch (err) { console.error(JSON.stringify({ level: "error", event: "console_audit_write_failed", action: e.action, phase: e.phase, err: String(err).slice(0, 200) })); }
 }
 
-export async function flashRedirect(deps: Deps, to: string, msg: { ok?: string; err?: string }) {
-  return redirect(to, [setCookie(FLASH_COOKIE, await seal(deps.secret, "flash", { ok: msg.ok?.slice(0, 400), err: msg.err?.slice(0, 400) }, 120, deps.now()), 120)]);
+/**
+ * `undo` (UX2a): a reversible action says so in the toast. It is a POST to one of the console's own routes, built here on the server and
+ * sealed in the cookie, so the browser cannot make one up. The toast carries it only for an action the database can take back
+ * (a pick line marked or unmarked); money and messages are never undoable and never get one.
+ */
+export async function flashRedirect(deps: Deps, to: string, msg: { ok?: string; err?: string }, undo?: FlashUndo) {
+  const safe = undo && undo.action.startsWith("/") && !undo.action.startsWith("//") && !undo.action.includes("\\") ? { label: undo.label.slice(0, 40), action: undo.action.slice(0, 200), fields: undo.fields } : undefined;
+  return redirect(to, [setCookie(FLASH_COOKIE, await seal(deps.secret, "flash", { ok: msg.ok?.slice(0, 400), err: msg.err?.slice(0, 400), undo: msg.ok ? safe : undefined }, 120, deps.now()), 120)]);
 }
 
 // ---------- staff ----------
@@ -278,7 +285,7 @@ function withHeaders(res: Response, deps: Deps): Response {
   return new Response(res.body, { status: res.status, headers: h });
 }
 
-const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string } | null = null, lang: Lang = "en", theme: Theme = "auto") =>
+const plain = (deps: Deps, title: string, body: Raw | Raw[], flash: { ok?: string; err?: string; undo?: FlashUndo } | null = null, lang: Lang = "en", theme: Theme = "auto") =>
   withHeaders(page({ title, body, flash, lang, translated: false, environment: deps.environment, theme }), deps);
 
 export const THEME_COOKIE = "ak_theme";
@@ -416,7 +423,7 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
 
   let flash: Ctx["flash"] = null;
   const flashCookie = readCookie(req, FLASH_COOKIE);
-  if (flashCookie) flash = await unseal<{ ok?: string; err?: string }>(deps.secret, "flash", flashCookie, now);
+  if (flashCookie) flash = await unseal<{ ok?: string; err?: string; undo?: FlashUndo }>(deps.secret, "flash", flashCookie, now);
 
   for (const s of sections) for (const r of s.routes) {
     if (r.method !== method) continue;
