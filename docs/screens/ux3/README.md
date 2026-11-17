@@ -16,4 +16,4 @@ migrations; invented people only; the number confirmation is run as it runs for 
 | Riders, Applicants tab (two waiting, one accepted, one declined) | `ux3-riders-applicants-390-*` | `ref-ops-riders-390` |
 | Riders, Roster (the same page with its new tab bar) | `ux3-riders-roster-390-*` | `ref-ops-riders-390` |
 
-`web-weights.txt`: what each website page downloads on a first visit in Chromium (page, stylesheet, script, fonts; nothing cached). All under 100 KB; the Arabic form page is the heaviest at 93.1 KB.
+`web-weights.txt`: what each website page downloads on a first visit in Chromium (page, stylesheet, script, fonts; nothing cached). All under 100 KB, measured after WEB2 was merged in; the Arabic form page is the heaviest at 80.0 KB.

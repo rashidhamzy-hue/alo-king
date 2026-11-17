@@ -914,20 +914,25 @@ describe("UX3: /join/rider and /for-vendors", () => {
   };
   const cookieOf = (r: Response) => /(?:^|,\s*)(ak_session=[0-9a-f]{64})/.exec(r.headers.get("set-cookie") ?? "")?.[1] ?? null;
   const mainOf = (h: string) => /<main[\s\S]*<\/main>/.exec(body(h))![0];
-  /** A first visit's weight: the page, its stylesheet, its scripts and the font files a browser would fetch for it (a face is fetched when the page's text uses a character in its unicode-range; both weights are counted). */
+  /** A first visit's weight, as a browser pays it (the method of test/web/web2-pages.test.ts): the page, its stylesheets and scripts, and a font file only when the page's text
+   *  has a character (other than a space) that the first family of its stack that covers it supplies. An Arabic page's Latin letters and digits take the small figures face. */
   async function weigh(path: string, h: Record<string, string> = {}) {
+    const lang = (h["accept-language"] ?? "en") === "ar" ? "ar" : "en";
     const { html } = await page(path, h);
-    let bytes = Buffer.byteLength(html);
-    const chars = new Set([...text(body(html))].map((c) => c.codePointAt(0)!));
-    const inRange = (range: string) => range.split(",").map((r) => r.trim().replace(/^U\+/i, "").split("-").map((x) => parseInt(x, 16))).some(([lo, hi]) => [...chars].some((c) => c >= lo! && c <= (hi ?? lo!)));
+    let bytes = Buffer.byteLength(html); let css = "";
+    for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) { const c = await (await get(href)).text(); bytes += Buffer.byteLength(c); css += c; }
+    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
+    const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => ({ family: /font-family:\s*["']?([^"';]+)["']?/.exec(m[1]!)?.[1] ?? "", url: /url\(["']?([^"')]+)["']?\)/.exec(m[1]!)?.[1] ?? "",
+      spans: (/unicode-range:([^;}]+)/.exec(m[1]!)?.[1] ?? "").split(",").map((r) => r.trim().replace(/^U\+/i, "").split("-").map((x) => parseInt(x, 16))) }));
+    const stack = lang === "ar" ? ["IBM Plex Sans Arabic", "IBM Plex Figures"] : ["IBM Plex Sans", "IBM Plex Sans Arabic"];
     const fonts = new Set<string>();
-    for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) {
-      const css = await (await get(href)).text();
-      bytes += Buffer.byteLength(css);
-      for (const f of css.matchAll(/@font-face\s*\{[^}]*?url\(["']?([^"')]+\.woff2)["']?\)[^}]*?unicode-range:\s*([^;}]+)/g)) if (inRange(f[2]!)) fonts.add(new URL(f[1]!, new URL(href, base + "/")).pathname);
+    const noSwitch = html.replace(/<nav class="langs"[\s\S]*?<\/nav>/, "");
+    for (const ch of new Set(text(noSwitch))) {
+      const c = ch.codePointAt(0)!; if (c <= 0x20) continue;
+      const fam = stack.find((fm) => faces.some((f) => f.family === fm && f.spans.some(([lo, hi]) => c >= lo! && c <= (hi ?? lo!))));
+      if (fam) for (const f of faces) if (f.family === fam) fonts.add(new URL(f.url, new URL("/_astro/x.css", base)).pathname);
     }
     for (const f of fonts) bytes += (await (await get(f)).arrayBuffer()).byteLength;
-    for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
     return { bytes, html };
   }
   let seq = 0;
