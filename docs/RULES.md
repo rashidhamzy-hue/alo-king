@@ -1,0 +1,138 @@
+# Rules and settings: every current value, with the decision that set it
+
+Read in full by every session, with `CLAUDE.md` and `docs/STATUS.md`. Written on 18 November 2026 by session DOC2 from `docs/DECISIONS.md`, the
+migrations (a database built from all of them was read for the setting values) and the workflows. **The latest decision wins**: where an older
+line anywhere says otherwise, this table is right and that line is stale. A value marked *setting* lives in the `settings` table (changed on the
+console's Settings page by an admin, or by a migration); *code* means it is in TypeScript or SQL; *workflow* means a workflow input. If you change
+a rule or a setting value, change its row here in the same pull request. `CLAUDE.md` holds the 21 invariants; they are not repeated.
+
+Abbreviations in "Set by": D12 = `DECISIONS.md` "Decisions (12 November 2026)" and its confirmed rows; R4 = "Founder answers, 14 November"; F15 =
+"Founder decisions, 15 November 2026"; F15b = "Founder decisions, 15 November 2026 (later)"; C15 = "Coordinator decisions, 15 November 2026, 13:30"; F16 and C16 = the 16 November sections; DS = "Design
+reference, 17 November 2026"; CFG = its "settings" section; LV = "Listings before they sign"; SELL = "nothing packaged sells before its label"; WEB2,
+UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"**.
+
+## Money, riders and cash
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Delivery fee and tips | Belong to whoever delivers (our rider, or the vendor whose driver delivers); never company revenue; settle to `rider_payable` when an order closes. `rider_pay`: fee share 1, tip share 1, guarantee per hour 0 | D12, R4 (invariant 10); *setting* |
+| Rider wage | None. Riders keep 100% of fees and tips. A guarantee for eight weeks is approved (capped, from company money; built by RD1) | D12; F15 5 |
+| Rider cash cap (`cash_cap`) | **Soft 100 USD, hard 150 USD.** Enforced in SQL (`driver_can_take`, `offer_delivery`) | CFG 5 (replaced 150/200 of D12); *setting*, invariant 5 |
+| COD tolerance (`over_short.cod_tolerance_usd`) | 0.25 USD per order. A shortfall above it may be recorded as owed by a rider; **never deducted** from fees, tips or earnings. `cod_max_usd` 1, `auto_writeoff_usd` 1 | R4 3; *setting* |
+| Currency | Prices in dollars; the lira amount at the day's approved rate when asked. Cash on delivery in USD or LBP; Whish and OMT confirmed by a person | D12; R4 / D12 |
+| Lira rate (`fx`) | Changing it needs a **second person** (`fx_rate_second_person` true); a move over 3% (`pause_move_pct`, `fx_breaker.pct`) pauses the rate; time zone Asia/Beirut | CFG 4; *setting* |
+| Cash in lira | Round amount above the total, a multiple of the smallest step in `card_choices.lbp_steps` (100,000, 500,000, 1,000,000); notes in dollars 10, 20, 50, 100; best-match extra at most 0.50 USD | WEB2 3; *setting* |
+| Minimum order | **5 USD.** Stated by code from the quote, never by the model | C15 2; *setting* `min_order_usd` |
+| Small-order fee (`small_order_fee`) | **Off** (0 and 0); supported as a setting. Never together with the minimum | C15 2 (replaced R4 2) |
+| First order (`first_order.max_cod_usd`) | 0 (no cap in force) | *setting* |
+| Combined orders | One delivery line: zone fee plus 0.50 USD per extra pickup, all to the rider (not built) | C5 / R4 1 |
+| Loyalty | None at launch; a stamp card after four clean pilot weeks, priced first | R4 5 |
+| Refunds and credit | `support.auto_credit`: at most 5 USD each, 10 USD per customer per month, 2 per customer per month, without a person | *setting* |
+| Failed delivery (`failed_delivery`) | The delivery fee and the merchant's food are charged | *setting* |
+| Delivered is not paid | An order closes only with a recorded payment; inferred or late taps never post money | invariant 12 |
+| Payment proofs | Model reads the screenshot (`model_read` true); a proof older than 24 h (`late_hours`) is late; overpayment approval over 5% (`overpay_pct`) | *setting* |
+| Prepay before prep | `prepay_before_prep` true | *setting* |
+
+## Two-person rule and approvals
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Who approves | The person who asked can never approve their own request. Hussein is the second approver for the founder's own refunds and price changes | C11 / R4 8; D2 |
+| Refund limit (`approvals.refund_usd`) | **10 USD** (a larger refund waits for a second person) | CFG 4 (was 20) |
+| Price-change limit (`approvals.price_change_pct`) | 10 % | CFG 4 |
+| The two-person list (rows of `editable_settings`; change the rows to change the list) | A change to either limit above; switching the LBP second-person rule **off**; a change to the **cash caps** (soft may not exceed hard); **`sell_requires_label` switched on**. Switching a stricter value on, or `sell_requires_label` off, is immediate | UX2b 2 |
+| Settings page | Admin only; only fields on `editable_settings`; every change logged (who, when, before, after, why); out of bounds, an unknown key and the marketing lock refused in SQL; embeddings can be switched on only when the model's vectors exist | UX2b 1, 3 |
+| Who may act | Roles `admin`, `ops_lead`, `picker`; the role is read on every request and checked again in SQL. Payment and cash decisions: ops lead or admin | D1; invariant 4 |
+| Automatic approval | Only for the rows of SYSTEM_PLAN 4's table, each after a passing spot check (one in ten); pictures from public pages, allergens, halal, certificates, hazard warnings, prices and costs always need a person. The "two published sources agree" rule for nutrition and ingredients is one row the founder can switch off. Arabic reader sample: 50 checked with no error before model-written Arabic can auto-approve (`auto_approval.arabic_reader`, not passed) | C6 / R4 1; F16 6; `auto_approval` |
+| Who approves names, pictures, food facts, search words | Rashid until an ops lead is hired | D12; CONSOLE.md |
+
+## Ordering, timers and limits
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Confirmation | Only the customer's own confirm action on a channel where we verified them (a WhatsApp button, or a signed-in web session's confirm button). The agent can never confirm. **`web.confirm_on_page` is false**: the website sends the card to WhatsApp and the tap there confirms | invariant 4; WEB2 1 |
+| Timers (`timers`) | Draft 60 min; confirmation 60 min; payment 30 min; offer 90 s; dark after 10 min, dark alert 20 min; **one reminder for an unconfirmed card after 20 min** (once per order, once per customer in 24 h) | *setting*; CFG 1 |
+| A lapsed card | Reopened as a new card (own Confirm tap, today's prices and stock) only if the timer cancelled it; a customer's own cancel stays final | CFG 2 |
+| Quote validity (`quote.valid_min`) | 20 min | *setting* |
+| Missing-item choice | Per item overrides the order's; the card says each item that differs | WEB2 4 |
+| Pickup (`pickup`) | **Off** until the hub's place is named; every pickup order needs the handover code (`handover.max_attempts` 5) | CFG 3; *setting* |
+| A first order without a pin | Accepted with a typed village and landmark, marked for a rider call. A pin outside the service area is refused. Pin lookup: at most 2.5 km, margin 0.4 km, 3 candidates (`pin_locate`) | C15 3; *setting* |
+| Batching (`batching`) | At most 3 orders, detour 8 min (5 chilled) | *setting* |
+| Door wait (`door_wait`), dispatch | 8 min default, 12 outer; unpaid alert 10 min; position fresh 30 min | *setting* |
+| Picking (`picking`) | Console queue off by default (a person turns it on); pick alert 10 min; substitutes **off**; substitute answer 5 min. A dearer substitute only after the customer's tap with both prices | *setting*; C2 rules |
+| Stock adjust | A picker may adjust at most 12 units; a unit not found is written off and a recount asked | `stock_adjust`; C2 |
+| Scheduled orders (`scheduling`) | Offer up to 6 windows, 7 days ahead, release 60 min before; fresh goods bought to order | *setting* |
+| Message budget (`message_budget`) | At most 4 code-started messages per order to a customer, 3 to a driver; essential kinds exempt | *setting* |
+| Marketing | **Off, locked twice** (`PILOT_MARKETING_LOCK` and the trigger of 0012); `marketing.enabled` false; frequency cap 4 per 30 days, gap 72 h (for when it exists) | invariant 17 |
+| Messages out | Text, interactive, template; location on the ops line only; **never audio**. Every send has a `dedupeKey`, `can_send()`, an outbox claim; STOP wins | invariants 1, 2, 6, 20 |
+| Model turns | At most 20 per customer per hour (`model_turns`); reply buffer 6 s (`BUFFER_SECONDS`); burst 1.2 s quiet, 4 s max | *setting*, `wrangler.jsonc` |
+| Voice notes | Customers 3 min, merchants 5, riders and staff 2 (`voice_limits` 180, 300, 120, 120 s; 900 s per sender per hour). Voice never moves money | D12 |
+| Speech to text (`stt`) | Primary ElevenLabs Scribe, secondary Kapso; minimum confidence 0.75; audio kept | *setting* |
+| Launch hours | **09:00 to 21:00, with delivery rounds** (decision). The `hours` setting on staging still says 08:00 to 23:00, and the draft rider shifts (`join.rider.shifts`) are 08:00 to 15:30 and 15:30 to 23:00: **to change on the Settings page before the friends' test** | F15 9; *setting* (mismatch noted by DOC2) |
+| Service area | Hub near Baakline or Baqaata (not a confirmed property); 25 villages (core and mid rings); villages, zones, fees and the hub are **data**, never code | D12; invariant 13 |
+| Sign-in throttle | 5 failures per email, 20 per IP in 15 min; locked 15 min (`signin_throttle`) | *setting* |
+| Inbox timers (`support`) | Claim alert 3 min (lead), founder alert 5, late 15; unanswered 2; topic reminder 10 | CFG 6; *setting* |
+
+## Catalogue, food facts and search
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Catalogue | 291 items; no tobacco, no alcohol, nothing branded Tawfeer; Joud and Super Value excluded | D12 |
+| Neutral and factual | No reply rates, praises or criticises a merchant or product, calls food healthy or invents a score; sort by measurable facts | invariant 14 |
+| Food facts | Only from approved records with their status; unknown is never safe; a stated allergy is an allergy; explicit restrictions outrank learned preferences and paid placement | invariants 15, 16 |
+| Nothing packaged sells before its label | `sell_requires_label` (**off today**; turning it on is a two-person change). A packaged item that is not fact-complete from a label reading cannot be quoted, carted, searched as orderable or shown as orderable; chat and site say "coming soon". Loose produce, meat and unpacked bakery sell on the core | SELL 1 to 5; `product_orderable` |
+| Label day | Every pack photographed (front, back, the side with nutrition or directions); label beats web; allergens, halal, certificates and hazard warnings decided by a person. The 466 web-based proposals are not approved by hand | C16 2 |
+| Facts before stock | Nutrition and ingredients live when two independent published sources for the same market agree exactly; printed claims need a label photo or the brand's page | F16 6 |
+| Pictures | Any public web page may be the source; a person approves each; the source address is stored; withdrawn at once on objection; recorded licence `public_page`. No new picture search service (candidates come from `data/pictures/candidates.csv`). Customer-facing: exactly the item, no watermark, logo, price tag or text | Founder 14 Nov (pictures); F15b 3 |
+| Picture files | 1200 px JPEG under 300 KB; public `catalog` bucket for approved pictures only; signed links 300 s (`product_images`), 600 s in the console | `scripts/images`; *setting* |
+| Search (`search`) | Words always; **meaning (embeddings) off** until the Workers AI token is fixed and the model beats words alone; model `@cf/baai/bge-m3`; daily cap 0.50 USD; fact thresholds (`thresholds`) | SR1; *setting* |
+| Search words | Every new item gets them in every ordering language; unfound items go to a review list, never a guess | Founder 13 Nov |
+| WhatsApp catalogue | Set up **once product pictures are approved** (RUNBOOK, "WhatsApp catalog"); at most 30 products and 10 sections in a list | F18 4; *setting* `catalog` |
+| Restaurants | Orderable only through `approve_merchant()`. **For the friends' test (F18 3):** Safa Chicken and up to 10 Baqaata places with real menus photographed by the founder, visible and orderable by testers only; **Alo King buys for the customer** (the rider orders and pays at the counter); a place is public only after its owner agrees. Commission 5 to 10 % in Chouf, agreed before anyone starts, never published as a figure | invariant 11; F18 3; D12; UX3 7 |
+| Listings before they sign | A listing is not a merchant; shows name, kind, village, distance, a map link; never a phone, rating, review count, menu, hours or photo; "I want to order from here" is one tap; removal hides at once; claim by WhatsApp "Claim <id>"; we never message a listed number | LV 1 to 7 |
+| Prospect list | Private `media` bucket only; never in the repository; never imported as merchants; never messaged | CLAUDE.md |
+| Group ordering | After five restaurants are live and scheduled orders exist; organiser pays; codes expire and cap at 15 people | D12 (task 8.15) |
+
+## Warehouse
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Stock enters | Only by receiving a purchase order (`receive_goods` is the one SQL door); an ops lead or admin writes the order; received once; numbers `PO-0001` onward; no partial receipts | WH1a 1, 2 |
+| Receiving | Counts every line, damaged apart, lot, expiry (required for chilled, frozen, fresh); a past date is refused; short and damaged recorded for a credit note by hand | WH1a 3 |
+| Lots | First-to-expire; an expired lot is never picked while a good one is left and `pick_mark_line` refuses it (`LOT_EXPIRED`); stock with no lot reads "check the date on the pack" | WH1a 5 to 7 |
+| Bins | Code of letters, digits, dash, up to 12; one bin per item in the item's own zone; walk order ambient, fresh, chilled, frozen | WH1a 8; UX2a |
+| Temperature log (`temperature_log`) | Chilled zone, **0 to 5 °C**, two readings a day: morning from 08:30 due by 12:00, evening from 16:00 due by 20:00; photo plus a typed number (no model reads it); alerts only after the first reading. Frozen waits. Hub backup power (generator subscription, UPS, insulated bags) is a founder step | WH1a 9; F15 6 |
+| Packing checklist | `packing_checklist` (cold bag first, eggs and bread on top, and so on) | UX2a, WH1a 10 |
+| Returnable zones (`self_cancel`) | Ambient, chilled, frozen; self-service cancel until picking | CX1; *setting* |
+
+## Website, console and design
+| Rule or setting | Value | Set by |
+|---|---|---|
+| The website | A cash-only website at launch on the same core as WhatsApp (not Phase 9). **It must look like the founder's design reference, every page, phone and desktop.** Method: the reference's React components rendered by Astro on the server (`@astrojs/react`, Tailwind 4), islands only where a page is interactive. **One palette: `packages/ui/tokens.css` feeds both apps; no second set of colour values.** Arabic is mirrored with start/end classes (logical properties), never by hand. Only the look comes from the reference: no demo data, demo store, localStorage logic or invented numbers | C4 / R4 1; F18 2 |
+| Page weight | **The 100 KB first-visit budget is lifted (F18 2).** The first-visit weight is still **reported per page in each pull request**; free savings stay (subset fonts, no unused script, compressed pictures). Today's tests (`test/web/*`, `test/screens/ds2.test.ts`) still assert 100 KB: the website-to-the-reference session turns them into a report | F18 2 |
+| Switches | Ask Alo King (WEB3), Send home (SH1) and public restaurant pages take the design behind their switches; they stay off | F18 2 |
+| Console | **Unchanged: no React, HTML functions** (`packages/ui` for both apps; Astro on the website) (decision 11 of F15). Brand: ink `#0E0F12`, gold `#C9A227`, gold-deep `#8A6A12`, paper `#FAF8F3`, green `#14663B` only for "available" and "done"; WhatsApp green only on WhatsApp actions; IBM Plex Sans, self-hosted | F15 11; DS 1 |
+| Staff-screen rules | Every tap target at least 44 px; no swipe decides anything; a reversible action shows a toast with Undo instead of "are you sure" (undo only where the database can take it back: a name); a timer always carries words and an icon | DS 4; UX2b 7 |
+| Statuses | The database's ids stay; one label table maps them (staff and customer words, Arabic and English) | DS 2 |
+| Website sessions (`web`) | Signed-in 90 days, anonymous 30; the order link is signed, 7 days, at most 48 h after the order ended; link code 10 min | WEB2 5; *setting* |
+| Join pages (`join`) | 3 applications per session a day, 30 an hour in all; an application is a row and a staff case, never a rider and never a merchant; accepting a rider sends nothing | UX3 1 to 9 |
+| Aisle | 24 cards a page; Arabic pages use the small "figures" font | WEB2 6, 7 |
+| Screenshots | Never in the repository. Private bucket `screens` (10 MB per file); the `screens` workflow shoots and uploads; the console's **Screens** page (any staff role) lists them by session beside the reference's screen; the latest set per page is kept | F18 7 |
+
+## Model spend and tests
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Testing | Every pull request: free tests only (USD 0). Live language gate once per session, only if reading, planner or prompt code changed. Simulated customers: at most one run per session, limit 50, only for ordering-code sessions; limit 150 only at a gate check (T1 for gate A, then gate B). Data and intake sessions run no simulation. **Model credits are for live testing: no simulation beyond these rules and the monthly cap** | C16 1; F18 5 |
+| Monthly simulation ceiling (`sim_monthly_cap_usd`) | **55 USD for November 2026, 10 a month after** (FIX1, 0241); `sim-test` refuses to start above it | C16 1; *setting* |
+| Storage and database size alert (`usage_alerts`) | A staff alert (`usage_near_limit`) when the weekly `usage-check` reads 600 MB of file storage or 350 MB of database (the free plan holds 1 GB and 500 MB); it closes when the size falls | FIX1; *setting* |
+| Capture page photos | Shrunk on the phone to at most 1600 px on the long side, JPEG quality 0.8 | FIX1 |
+| Workflow caps (all recorded in `model_costs`, COST1) | `label-read` 5 USD (batch, MODEL_FAST); `enrich` 15 (of which Open Food Facts 4, research 0.5); `intake` 15, `intake` search 0.75; `images` 2; `product-data` 3; `language-pack` 5; `search-eval` 1; a model is called only through a workflow with a cap | F15 12; the workflows |
+| Models | `MODEL_FAST` claude-haiku-5-5, `MODEL_SMART` claude-sonnet-5-5 (`wrangler.jsonc`) | `wrangler.jsonc` |
+| Accounts | No paid plans before the paid pilot (Supabase Pro, a second Cloudflare account and the numbers are bought at gate C); about USD 83 a month at launch; the 100 USD Claude plan, at most three sessions at once | F15 2, 10; R4 7; BUILD_PLAN |
+
+## Repository, process and data
+| Rule or setting | Value | Set by |
+|---|---|---|
+| Repository | Public until the build ends, then private (PRIV, the last step). **No git history rewrite until then.** Secrets only in Cloudflare and Supabase; seed and test data invented; a check blocks secrets and real phone numbers; gitleaks in CI | F15 2; F18 6 |
+| File rules (CI) | **No file over 300 KB; no image under `docs/`** (`scripts/ci/repo-hygiene.mjs`; the seven files already over 300 KB, all data or an applied migration, are listed in `scripts/ci/size-allow.json` with a ceiling they may not pass) | F18 7 |
+| Migrations | Append-only, next number. Next free: **0241** (0219 and 0220 are WEB3's; 0134 is T1's) | invariant 8 |
+| Sessions | At most three at once; one pull request at a time; merge `main` before merging; never dispatch `deploy-staging` from a branch; every bug in language understanding becomes an `evals/` case first; every session writes `docs/log/<session>.md` and updates `docs/STATUS.md` only where its facts changed | `NEXT_SESSIONS.md` |
+| Retention | Voice notes and photos 90 days unless tied to a payment or complaint; chat text 12 months; financial records as the law requires (a lawyer confirms; RET1) | D12 proposal 7 (not yet confirmed) |
+| Backups | Supabase Pro with daily backups and one tested restore before real money; a nightly encrypted copy and a restore check exist now (BK0) | R4 9; BK0 |
+| Private buckets | `media` (20 MB, voice notes, receipts, label photos, thermometer photos; never logged), `screens` (10 MB). Public: `catalog` (approved pictures only) | CLAUDE.md |
+| Open founder choices | The capital figure and the SARL's status; gift-order refund terms (a lawyer checks); the lawyer's pound-display and shortfall answers | F15 7; D12 |

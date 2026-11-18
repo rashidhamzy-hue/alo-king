@@ -1,4 +1,6 @@
-# Decisions (12 November 2026)
+# Decisions (12 November 2026, with every later section below)
+
+Sections are in date order and the latest wins; `docs/RULES.md` lists every current rule and setting value with the decision that set it. Where a row of an older section is superseded, it says so in the row (added 18 November by session DOC2).
 
 ## Confirmed by the founder
 | Decision | Where it lives |
@@ -6,10 +8,10 @@
 | Riders keep 100% of delivery fees and tips. No hourly wage. | Rule 10; migration 0009 |
 | Only signed, approved restaurants are orderable. Commission 5 to 10% in Chouf. | Rule 11; `approve_merchant()` |
 | No tobacco, no alcohol, nothing branded Tawfeer; Joud and Super Value excluded from the catalog. 291 items. | `supabase/seed/catalog.csv` |
-| Cash on delivery in USD or LBP at the daily rate; Whish and OMT confirmed by a person. Rider cash cap 150 soft, 200 hard. | Settings; migrations 0002, 0006 |
+| Cash on delivery in USD or LBP at the daily rate; Whish and OMT confirmed by a person. Rider cash cap 150 soft, 200 hard (**superseded 17 November: soft 100, hard 150**, CFG 5). | Settings; migrations 0002, 0006, 0222 |
 | No AI voice notes out. No promotional broadcasts from the customer number. Marketing locked off for the pilot. | Rules 17, 20; migration 0012 |
 | Neutral and factual; food facts only from approved records; unknown is never safe. | Rules 14 to 16 |
-| WhatsApp first. Website and diaspora orders are Phase 9. | Build plan Phase 9 |
+| WhatsApp first. Website and diaspora orders are Phase 9. (**Superseded 14 November, C4: a cash-only website at launch; only card payment and diaspora orders stay Phase 9.**) | Build plan Phase 9 |
 | One Concierge agent, narrow AI functions, deterministic services. | Rule 21 |
 | Hub near Baakline or Baqaata; not a confirmed property. Zones and fees are data. | Rule 13 |
 | Restaurant outreach starts during the pilot, in person. | Task 5.16 |
@@ -312,7 +314,7 @@ Astro components for the website). Each line supersedes any earlier line that di
 | 2 | **Statuses keep the database's ids.** One label table (staff words and customer words, Arabic and English) maps them; no id is renamed to match the reference. `awaiting_confirmation`: "Waiting for your Confirm" (customer), "Awaiting confirm" (staff). `confirmed`: "Confirmed", "To pick". `preparing`: "Packing at the hub", "Picking". `ready`: "Packed" (or "Ready for pickup" for a pickup). `out_for_delivery`: "On the way". Then arrived, delivered, failed delivery, returned, closed, and cancelled with its reason. | DS2 (`packages/ui/src/status.ts`) |
 | 3 | **Restaurants are not shown at launch.** The reference's Food door, vendor pages and menus wait for Phase 8 (invariant 11: a restaurant is orderable only through `approve_merchant()`). | DS2 (nothing built), Phase 8 |
 | 4 | **The reference's rules for staff screens are part of `packages/ui`:** every tap target at least 44 px; no swipe decides anything; a reversible action shows a toast with Undo instead of "are you sure"; a timer always carries words and an icon, never colour alone. | DS2 (`packages/ui`, its tests) |
-| 5 | **DS2 is a restyle.** The same data, the same functions, the same tests: tokens, fonts and components change, behaviour does not. The reference's screens that do not exist yet are built by WEB2, UX2a, UX2b, UX3 and later sessions, in the review's build order (`docs/HANDOFF.md`, DS2). | DS2 |
+| 5 | **DS2 is a restyle.** The same data, the same functions, the same tests: tokens, fonts and components change, behaviour does not. The reference's screens that do not exist yet are built by WEB2, UX2a, UX2b, UX3 and later sessions, in the review's build order (`docs/log/ds2.md`). | DS2 |
 
 ## Design reference, 17 November 2026, settings
 Recorded by session CFG1 (Sonnet 5.5) from the design review's small rules. Each is a setting or a small rule; none adds a model, an agent or a
@@ -420,6 +422,19 @@ Recorded by session WH1a (Opus 5.5). The prompt (`docs/strategy/02-journeys.md`,
 | 9 | **The temperature log.** The chilled zone only (frozen waits, strategy decision 6), range 0 to 5 °C, two readings a day: morning (from 08:30, due by 12:00) and evening (from 16:00, due by 20:00). All of it is data (`settings.temperature_log`). A reading is the thermometer's photo (private bucket, `temperature/<hub>/<day>/`) and the number **typed by the person** (no model reads the photo: rule 12). Out of range raises `temperature_out_of_range` at once; a reading time passed with none raises `temperature_missed` (the console's two-minute cron calls `temperature_log_check`), and a late reading closes it; both wake a phone (OPS1's push list) and reach the ops line through the existing exception alerts. **Missed readings are alerted only once the zone's first reading has been taken**, so nothing alerts before the fridge is in use; the history shows those days as "log not started". The prompt's "hold all chilled items in one tap" is not built: the out-of-range message says to move or hold them, and `hold_product` exists. | 0240 | Temperature log |
 | 10 | **The packing checklist is UX2a's, kept as it is** (`settings.packing_checklist`, `finish_pick_packed`); a test holds it. | none | Pick |
 | 11 | **A purchase order prints from one page with no menu**, in the language asked for (`?lang=ar` or `en`) whatever the staff member reads, through the browser's Print (paper or PDF). No PDF is generated by us and nothing is sent to the supplier by us: the founder sends it as they choose. | `purchaseorders.ts` | Purchase orders |
+
+## Founder decisions, 18 November 2026
+Recorded by session DOC2 (Sonnet, high), first commit, documents only. Each line supersedes any earlier line that disagrees.
+
+| # | Decision | Applied in |
+|---|---|---|
+| 1 | **Code no longer blocks gate A.** What blocks it now is approvals, the label day and stock. | `docs/STATUS.md` (critical path) |
+| 2 | **The website must look like the founder's design reference, every page, phone and desktop.** The 100 KB page budget is lifted; the first-visit weight is still reported per page in each pull request; free savings stay (subsetted fonts, no unused script, compressed pictures). **Method:** the reference's React components rendered by Astro on the server (`@astrojs/react`, Tailwind 4), islands only where a page is interactive. **One palette:** `packages/ui/tokens.css` feeds both apps; no second set of colour values anywhere. **Arabic is mirrored with start/end classes** (logical properties), never by hand. **Only the look comes from the reference:** no demo data, demo store, localStorage logic or invented numbers. **The console is unchanged** (decision 11 of "Founder decisions, 15 November 2026": no React in the console). Ask Alo King, Send home and the public restaurant pages take the design behind their switches (they stay off). | `docs/RULES.md` (page rules) |
+| 3 | **The friends' test includes food:** Safa Chicken and up to 10 Baqaata places with real menus photographed by the founder, **visible and orderable by testers only**; **Alo King buys for the customer** (the rider orders and pays at the counter); a place is public only after its owner agrees; `approve_merchant()` for each (invariant 11). | `docs/STATUS.md` (FD1 step) |
+| 4 | **The WhatsApp catalogue is set up once product pictures are approved** (RUNBOOK, "WhatsApp catalog"). | `docs/STATUS.md` |
+| 5 | **Model credits are for live testing:** no simulation beyond the rules in `docs/NEXT_SESSIONS.md` (rule 12) and the monthly cap (`sim_monthly_cap_usd`). | `docs/RULES.md` |
+| 6 | **No git history rewrite until the repository goes private** (PRIV). | `docs/RULES.md` |
+| 7 | **Repository hygiene (DOC2).** `docs/STATUS.md` (under 400 lines) and `docs/RULES.md` (one table of every current rule and setting value) are the two files every session reads in full. Session reports live in `docs/log/<session>.md`, opened only when needed. Screenshots live in the private Supabase Storage bucket `screens`, not in the repository; a CI check refuses any file over 300 KB and any image under `docs/`. | `CLAUDE.md`, `docs/NEXT_SESSIONS.md`, CI |
 
 ## FIX1, Khraibeh, Safa Chicken, limits, 18 November 2026
 Recorded by session FIX1 (Sonnet 5.5). Items 2 to 6 of the prompt; item 1 (the Sentry fix) is in HANDOFF. Migration 0241. No simulation, no live model call.

@@ -1,54 +1,56 @@
 # Alo King Chouf
 
-A WhatsApp-first dark store and delivery network for the Chouf, Lebanon. Customers order in Lebanese Arabic, Arabizi or
-voice notes; language models read the message, the database decides everything else.
+A WhatsApp-first dark store and delivery network for the Chouf, Lebanon. Customers order in Lebanese Arabic, Arabizi or voice notes (or on the
+website); language models read the message, the database decides everything else.
 
-**Status (12 November 2026):** planning is closed; implementation starts at Phase 0. The database layer and the rider flow
-are built and tested. Nothing has run against a live WhatsApp, Supabase or Cloudflare account yet. Not launch-ready.
+**Status (18 November 2026):** everything runs on **staging only** (Supabase, three Cloudflare Workers, Kapso's US test number). Nothing has run with
+real customers, real money or the two +961 numbers. The code for the friends' test is built; what blocks it now is approvals, the label day and
+stock. The path, with owners and exact clicks, is the first table of `docs/STATUS.md`.
 
 ## Read in this order
 | File | What it is |
 | --- | --- |
-| `CLAUDE.md` | Rules that hold in every session |
-| `docs/HANDOFF.md` | Business rules and status: built and tested, built but untested, needs a live account |
-| `docs/BUILD_PLAN.md` | The one current roadmap: Phases 0-7 to a paid grocery pilot, Phase 8 restaurants |
-| `docs/COST_MODEL.md` | Cost assumptions and results |
-| `docs/history/` | Superseded material. Not current. |
+| `CLAUDE.md` | The 21 invariants and the working agreement; they hold in every session |
+| `docs/STATUS.md` | The critical path to the friends' test, what is live on staging, open founder actions, the session table, migration numbers |
+| `docs/RULES.md` | Every current rule and setting value, with the decision that set it |
+| `docs/BUILD_PLAN.md` | The roadmap by phase and task number, and the sessions still open |
+| `docs/NEXT_SESSIONS.md` | Session rules, gates A, B and C, prompts for the sessions still to run |
+| `docs/DECISIONS.md` | The founder's and coordinator's decisions, newest last |
+| `docs/log/` | One report per finished session. Open one only when you need it |
+| `docs/history/` | Superseded material. Never build from it |
 
 ## Layout
 ```
-apps/gateway/            Cloudflare Worker: Kapso webhooks, conversation object, cron, customer turn, rider turn
+apps/gateway/            Cloudflare Worker: Kapso webhooks, conversation object, cron, customer turn, ops-line turn
+apps/console/            The staff console (a Worker; HTML pages, no framework): orders, pick, dispatch, approvals, stock, money, settings, screens
+apps/web/                The customer website (Astro on a Worker): catalogue, search, basket, checkout, order page, account, Food listings
 packages/wa/             Kapso contract and client; the gateway that is the only door out
-packages/core/           State-machine mirror, cash rules, cash-message parser, dispatch scoring, merchant channels
-packages/agents/         Concierge, prompts, order card, rider job cards, menu import, speech checks
-supabase/migrations/     0001-0011: schema, rules, rider flow, reliability, learning, founder decisions
-supabase/seed/           Catalog (291 items), aliases, draft villages and zones, estimated travel times
-test/db/                 Tests that run the real migrations in an in-process Postgres (PGlite)
-scripts/                 Alias enrichment, village coordinates, travel times, permission check
-templates/               WhatsApp templates to submit to Meta
-evals/                   Voice-note evaluation harness
+packages/core/           State-machine mirror, cash rules, parsers, dispatch scoring, screenshot-name rules
+packages/agents/         The Concierge, prompts, order card, fixed messages, reading and planning
+packages/commerce/       The one commerce core every channel calls
+packages/search/         Search by words and, when switched on, by meaning
+packages/ui/             The design system: tokens (the one palette), components, fonts; HTML functions for the console, Astro components for the website
+supabase/migrations/     0001-0240: schema, rules, functions (append-only; the next is 0241)
+supabase/seed/           Catalogue (291 items), aliases, villages and zones, delivery windows, the Chouf listings
+test/ , apps/*/test      Tests: the real migrations in PGlite, the console's pages, the website, CI rules; test/pg runs a real Postgres
+scripts/                 CI checks, label and image tools, screenshots (scripts/screens), staging helpers
+evals/                   Language gate, simulated customers, search evaluation
+templates/               WhatsApp templates submitted to Meta
 ```
 
 ## Run
 ```
-npm install
-npx tsc --noEmit
-npx vitest run
+npm ci
+npm run typecheck && npm test
 ```
-Database on a real Postgres or Supabase branch:
+`npm test` needs Postgres 16 with pgvector for the seven `test/pg` files (or set `TEST_DATABASE_URL`); the rest run in-process.
+Database on a real Postgres or a Supabase branch:
 ```
 for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
-psql "$DATABASE_URL" -f supabase/seed/load_catalog.sql -f supabase/seed/load_aliases.sql -f supabase/seed/villages.sql -f supabase/seed/travel_times_estimate.sql
 DATABASE_URL=... scripts/check_permissions.sh     # scratch database only: it creates roles
 ```
-Deploy (`wrangler deploy`) is Phase 0 of the build plan.
+Deploys run from GitHub Actions (`deploy-staging` after a merge to `main`; `console`, `web`). Never from a branch. `docs/RUNBOOK.md` has the steps.
 
-## Added 12 November 2026 (final handoff)
-- `docs/RUNBOOK.md`: deploy, roll back, recover.
-- `docs/TOOLS.md`: which developer tools and open-source libraries are used, deferred or rejected.
-- `.github/workflows/ci.yml`: typecheck, tests, permission check, secret scan, dependency scan.
-- `supabase/migrations/0012_pilot_locks.sql`: marketing locked off; outbox lease always has a value.
-- The founder's Chouf business list (original, cleaned, shortlist) is not in the repository: it holds business phone numbers and ratings, so it lives in the private `media` bucket under `research/prospects/` (research only; its README travels with it).
-
-## New here?
-Open `START_HERE.md`.
+## Not in the repository
+Screenshots (the private Supabase bucket `screens`; the console's **Screens** page lists them), the Chouf prospect list with phones and ratings
+(private `media` bucket, `research/prospects/`), voice notes and receipts, and every secret.

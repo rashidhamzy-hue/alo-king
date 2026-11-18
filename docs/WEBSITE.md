@@ -11,9 +11,9 @@ Order on WhatsApp on every page, home with "Do we deliver to you?", category wit
 **17 November, session DS2:** the pages wear the founder's design reference (`docs/DECISIONS.md`, "Design reference, 17 November 2026"):
 the warm band and the ink delivery check on home, pill buttons, WhatsApp green on the WhatsApp buttons only, the product card with its
 action on the picture's corner, the "not confirmed yet" tag on the product page, an ink footer. Same data, same reads, same tests.
-Restaurants are not shown (Phase 8). The reference's pages that do not exist yet are listed with their session in `docs/HANDOFF.md`, DS2.
+Restaurants are not shown (Phase 8). The reference's pages that do not exist yet are listed with their session in `docs/log/ds2.md`.
 One small script (`public/site.js`) makes the delivery check and the search quicker; every page works without it. A gallery of every
-component is at `/gallery` on staging. Cart, checkout and tracking are WEB2's; what DS1 left out is a table in `docs/HANDOFF.md`, DS1.
+component is at `/gallery` on staging. Cart, checkout and tracking are WEB2's; what DS1 left out is a table in `docs/log/ds1.md`.
 
 ## Shape
 - A third Cloudflare Worker, `apps/web/`, **Astro 6 with the Cloudflare adapter, rendered on the server** (RESEARCH_REGISTER b).
@@ -22,7 +22,7 @@ component is at `/gallery` on staging. Cart, checkout and tracking are WEB2's; w
   kept in a cookie; `dir="rtl"` and logical CSS properties, one stylesheet.
 - Installable (manifest, icons, a service worker that caches the shell and the catalog pages for reading offline; ordering always needs the network).
 - It connects to the database as `web_channel` (execute on a short list of functions), never with the service key.
-- Fast on phones: pages under 100 KB before pictures; pictures from the public `catalog` bucket at 400 px and 1200 px; catalog
+- Fast on phones: first-visit weight reported per page (the 100 KB budget was lifted on 18 November 2026; free savings stay); pictures from the public `catalog` bucket at 400 px and 1200 px; catalog
   pages cached at the edge for 60 seconds, price and stock re-read at the cart and at checkout by `quote_order`.
 - No customer passwords. Identity is the phone, proved once by WhatsApp (below).
 - Domain and address: the founder's choice (founder list). Until then `alo-king-web-staging.<account>.workers.dev`.
@@ -51,7 +51,7 @@ This keeps invariant 17 (the customer messaged us first), costs no SMS, and make
 
 **Confirmation (C1 as decided for WEB2, 17 November):** step 5 does not confirm on the page: it sends the order card to the customer's
 WhatsApp (through the gateway), and the tap there confirms, exactly as for a chat order. The page then shows the tracking view.
-**Built by WEB2 (17 November; `docs/HANDOFF.md`, WEB2):** `/cart`, `/signin`, `/checkout`, `/o/<code>?k=<signed link>`, `/orders`, `/account`, `/how`.
+**Built by WEB2 (17 November; `docs/log/web2.md`):** `/cart`, `/signin`, `/checkout`, `/o/<code>?k=<signed link>`, `/orders`, `/account`, `/how`.
 Function names differ from the table above where the build reused C4's: `cart_set_line`, `cart_view`, `checkout_quote` and `web_place_order`
 (over `checkout_order`), `web_order_page`, `web_orders`, `web_order_again`, `web_account`, `web_save_pin`, `web_windows`, `web_service_facts`.
 

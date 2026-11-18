@@ -1,6 +1,6 @@
--- NOT APPLIED AUTOMATICALLY. These values were proposed on 12 November 2026 and are waiting for the founder's yes
--- (docs/DECISIONS.md, "Proposed, not yet confirmed"). Run this file by hand on staging only after he confirms.
--- Both are data, so either can be changed again from the console (task 3.9) without a deploy.
+-- Applied once per database by scripts/ci/load-seeds.sh (marker row `seed_applied:proposed_pilot_settings`); the founder approved it on 14 November 2026
+-- (docs/DECISIONS.md, "Founder answers, 14 November"). After that the console owns these values. Current values: docs/RULES.md.
+-- Both are data, so either can be changed again from the console (the Settings page) without a deploy.
 
 -- 1. Launch zone: serve the core and mid rings (25 villages); keep the outer ring (17 villages) off for now.
 update villages v set is_served = (z.name in ('core', 'mid')) from zones z where z.id = v.zone_id;

@@ -1,3 +1,5 @@
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
 // Screenshots of the website for a pull request (docs/NEXT_SESSIONS.md, rule 8): 390 and 1440 px, Arabic and English, light and dark.
 // Skipped unless SCREENS names a folder, because it needs a browser (Playwright's Chromium) that CI does not install.
 //   SCREENS=/tmp/shots npx vitest run test/screens/web.test.ts

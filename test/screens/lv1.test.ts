@@ -1,7 +1,9 @@
-// LV1: screenshots of the Food page and one place page, at 390 px, in Arabic and English (docs/screens/lv1), and the weight of every Food page on a
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
+// LV1: screenshots of the Food page and one place page, at 390 px, in Arabic and English (the screens bucket, lv1/), and the weight of every Food page on a
 // first visit (page, stylesheet, script and font files, uncompressed, nothing cached), which must be under 100 KB. Skipped unless SCREENS names a folder,
 // because it needs a browser (Playwright's Chromium) that CI does not install:
-//   SCREENS=docs/screens/lv1 npx vitest run test/screens/lv1.test.ts
+//   SCREENS=/tmp/shots/lv1 npx vitest run test/screens/lv1.test.ts
 // The website runs built, in the Worker runtime, over the real migrations and the founder's listings file. Invented data only (the listings are the file).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { build, preview } from "astro";

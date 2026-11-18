@@ -1,5 +1,7 @@
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
 // DS2: screenshots of every page the design reference was applied to (docs/HANDOFF.md, DS2), at 390 and 1280 px, Arabic and English,
-// for docs/screens/ds2 (beside the reference's matching screens, which are photographed from the founder's reference app and never
+// for the screens bucket (ds2/) (beside the reference's matching screens, which are photographed from the founder's reference app and never
 // committed as code). Skipped unless SCREENS names a folder, because it needs a browser (Playwright's Chromium) that CI does not install:
 //   SCREENS=/tmp/shots npx vitest run test/screens/ds2.test.ts
 // The website runs built, in the Worker runtime, over the real migrations and the seed catalog (as test/screens/web.test.ts); the

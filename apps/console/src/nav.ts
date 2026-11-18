@@ -24,7 +24,7 @@ export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null
   { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/purchase-orders", "/bins", "/temperature", "/capture", "/catalog", "/readiness", "/receiving", "/returns"] },
   { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/money", "/payments", "/refunds", "/day-open", "/day-close", "/fx"], also: ["/money/drops"] },
   { id: "riders", key: "g_riders", icon: "bike", hub: "/more", hrefs: ["/riders", "/rider-jobs"], also: ["/rider-incidents"] },
-  { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/settings", "/zones", "/windows", "/staff", "/templates"] },
+  { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/settings", "/zones", "/windows", "/staff", "/templates", "/screens"] },
 ];
 /** Pages that keep their route and are in no menu (section A: "Hide until the first vendor"). */
 export const HIDDEN = ["/merchants"];
