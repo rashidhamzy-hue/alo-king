@@ -1,113 +1,57 @@
 ---
-// One product (redesigned in DS1; docs/strategy/05, section B; product data in LD1; the look and the fact rows are DS2's): a large picture, the name, how it is sold, the price,
-// the stock, and the fields of the item's OWN template: food facts only for a template that has them, with their status and source, and
-// "not confirmed yet" for a field not approved (invariant 15: unknown is never safe). The page and its JSON-LD are built from the same
-// read through the same view (lib/product.ts), so they cannot disagree. WEB2: the action is "Add to basket" (a form with no script); asking on
-// WhatsApp stays as the second way.
-// Not here yet (docs/HANDOFF.md, DS1): a substitute when out of stock.
+// One product. WEB4a stage 2: the reference's layout (components/ref/Shop.tsx, ProductPage and ProductFacts): back to its aisle, the picture
+// (or its aisle's icon), brand, name, the price and what it is for (0244), the one primary action "Add to basket", the delivery line, the facts
+// in folded sections, more from the aisle. LD1 holds: only the fields of the item's own template, "not confirmed yet" for a field not
+// approved (invariant 15), the page and its JSON-LD built from the same read and view (lib/product.ts), so they cannot disagree. SELL1:
+// "coming soon" has no Add. Asking on WhatsApp is a plain link (one primary action per page).
 import Base from "../../layouts/Base.astro";
 import Unavailable from "../../components/Unavailable.astro";
-import Button from "@ak/ui-astro/Button.astro";
-import Badge from "@ak/ui-astro/Badge.astro";
-import Icon from "@ak/ui-astro/Icon.astro";
-import FactRow from "@ak/ui-astro/FactRow.astro";
-import NotConfirmed from "@ak/ui-astro/NotConfirmed.astro";
-import Price from "@ak/ui-astro/Price.astro";
-import { chatBase, nameIn, t, unitLabel, usd } from "../../lib/i18n";
+import AddForm from "../../components/AddForm.astro";
+import { ProductPage, type ProductPageView } from "../../components/ref/Shop";
+import { nameIn, t, unitLabel } from "../../lib/i18n";
 import { pictureUrl } from "../../lib/db";
 import { productView } from "../../lib/product";
 import { productJsonLd } from "../../lib/jsonld";
+import { frameOf } from "../../lib/frame";
+import { priceForText, toCard } from "../../lib/cards";
+import { toneOf } from "../../lib/category-photos";
 const { lang, catalog, env } = Astro.locals;
-let r; let failed = false;
+let r; let failed = false; let more: ReturnType<typeof toCard>[] = [];
 const sku = String(Astro.params.sku ?? "");
 try { r = /^[a-z0-9_-]{1,40}$/i.test(sku) ? await catalog().product(sku) : { ok: false as const, error: "unknown_product" as const }; } catch { failed = true; Astro.response.status = 503; }
 if (r && !r.ok) Astro.response.status = 404;
 const ok = r && r.ok ? r : null;
 const view = ok ? productView(lang, ok) : null;
 const name = view ? view.name : t(lang, "not_found");
-const unit = ok ? unitLabel(lang, ok.product.sell_unit) : "";
 const pic = ok?.picture ?? null;
 const imageUrl = pic ? pictureUrl(env, pic.path, 1200) : null;
 const ask = ok?.whatsapp ? ok.whatsapp.replaceAll("{sku}", encodeURIComponent(ok.product.sku)) : null;
-const nothingConfirmed = !!view && view.food.groups.every((g) => g.empty) && !view.nutrition;
 const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin, imageUrl }, view)] : [];
+let f = null;
+if (ok && view) {
+  const [frame, aisle] = await Promise.all([
+    frameOf(env, Astro.request.headers.get("cookie"), { lang, path: Astro.url.pathname }),
+    catalog().category(ok.category.code).catch(() => null),
+  ]);
+  f = frame;
+  if (aisle?.ok) more = aisle.sections.flatMap((s) => s.items).filter((c) => c.sku !== ok.product.sku && c.in_stock).slice(0, 12).map((c) => toCard(lang, env, c, ok.category.code));
+}
+const per = ok ? priceForText(lang, ok.product.price_for) : null;
+const unit = ok && !ok.product.price_for ? unitLabel(lang, ok.product.sell_unit) : "";
+const pv: ProductPageView | null = ok && view && f ? {
+  f, sku: ok.product.sku, name, altName: view.altName, brand: view.brand,
+  aisle: { code: ok.category.code, name: nameIn(lang, ok.category.name_en, ok.category.name_ar) },
+  card: { ...toCard(lang, env, { ...ok.product, picture: null, category_code: ok.category.code } as any, ok.category.code), tone: toneOf(ok.category.code) },
+  picture: pic && imageUrl ? { src: imageUrl, width: pic.width_px ?? 1200, height: pic.height_px ?? 1200, credit: pic.attribution ?? null } : null,
+  chips: [view.size, unit, view.gtin ? `${t(lang, "barcode")}: ${view.gtin}` : null].filter((x): x is string => !!x),
+  priced: view.priced, price: view.price, per, status: view.comingSoon ? "soon" : view.inStock ? "in" : "out",
+  canAdd: view.inStock && !view.comingSoon && view.priced, addBack: Astro.url.pathname, ask: ask && !view.comingSoon ? ask : null,
+  view, creditOff: !!ok.credit_open_food_facts, more,
+} : null;
 ---
-<Base title={name} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(ok?.whatsapp)} jsonld={jsonld}>
-  {failed ? <Unavailable lang={lang} /> : !ok || !view ? <Unavailable lang={lang} notFound /> : <>
-    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li><a href={`/c/${ok.category.code}`}>{nameIn(lang, ok.category.name_en, ok.category.name_ar)}</a></li></ol>
-    <div class="product">
-      <div>
-        {pic
-          ? <img class="pic" src={imageUrl} alt={name} width={pic.width_px ?? 1200} height={pic.height_px ?? 1200} decoding="async" fetchpriority="high" />
-          : <div class="ph" role="img" aria-label={t(lang, "no_picture")}><Icon name="image" /></div>}
-        {pic?.attribution && <p class="muted small">{pic.attribution}{pic.source_url && <> · <a href={pic.source_url} rel="noopener nofollow">{new URL(pic.source_url).hostname}</a></>}</p>}
-      </div>
-      <div>
-        <h1>{name}</h1>
-        {view.altName && <p class="muted" lang={view.altName.lang} dir={view.altName.lang === "ar" ? "rtl" : "ltr"}>{view.altName.text}</p>}
-        <p class="muted small">
-          {view.brand && <span>{t(lang, "brand")}: <span>{view.brand}</span></span>}
-          {view.brand && (view.size || unit || view.gtin) && " · "}
-          {view.size && <span>{t(lang, "size_label")}: <bdi>{view.size}</bdi></span>}
-          {view.size && (unit || view.gtin) && " · "}
-          {unit && <span>{t(lang, "size_unit")}: {unit}</span>}
-          {unit && view.gtin && " · "}
-          {view.gtin && <span>{t(lang, "barcode")}: <bdi>{view.gtin}</bdi></span>}
-        </p>
-        <div class="buy">
-          {view.priced ? <Price amount={usd(view.price)} big /> : <span class="muted">{t(lang, "no_price")}</span>}
-          {view.inStock ? <Badge label={t(lang, "in_stock")} tone="ok" icon="check" /> : <Badge label={t(lang, view.comingSoon ? "coming_soon" : "out_of_stock")} tone="warn" />}
-        </div>
-        {view.inStock && !view.comingSoon && view.priced && <form method="post" action="/cart/line"><input type="hidden" name="sku" value={ok.product.sku}><input type="hidden" name="add" value="1"><input type="hidden" name="back" value={Astro.url.pathname}><input type="hidden" name="price" value={String(view.price)}>
-          <Button label={t(lang, "w2_add")} icon="plus" variant="gold" size="lg" /></form>}
-        {ask && !view.comingSoon && <p><Button label={view.inStock ? t(lang, "order_whatsapp") : t(lang, "ask_whatsapp")} href={ask} icon="chat" variant={view.inStock ? "whatsapp" : "default"} size="lg" external /></p>}
-
-        {view.food.show && <>
-          <h2>{t(lang, "facts_title")}</h2>
-          <p class="notice small">{t(lang, "facts_intro")}</p>
-          <div class="facts">
-            {nothingConfirmed && <p>{t(lang, "nothing_verified")}</p>}
-            {view.food.groups.map((g) => (
-              <section>
-                <h3>{g.title}</h3>
-                {g.lines.length > 0 && <ul>{g.lines.map((l) => <li>{l.text} <span class="muted small">({l.how})</span></li>)}</ul>}
-                {g.notVerified.length > 0 && (
-                  g.kind === "allergen" || g.kind === "diet"
-                    ? <p class="muted small">{t(lang, "not_verified_list", { list: g.notVerified.join(lang === "ar" ? "، " : ", ") })}</p>
-                    : <p><NotConfirmed words={t(lang, "not_confirmed_yet")} /></p>
-                )}
-              </section>
-            ))}
-            {(view.nutrition || view.nutritionNotConfirmed) && (
-              <section>
-                <h3>{t(lang, "nutrition")}</h3>
-                {view.nutrition ? <>
-                  <p class="muted small">{t(lang, "per_amount", { amount: view.nutrition.per })}</p>
-                  <table class="panel">{view.nutrition.rows.map((p) => <tr><th scope="row">{p.label}</th><td><bdi>{p.value}</bdi></td></tr>)}</table>
-                  {view.nutrition.how && <p class="muted small">({view.nutrition.how})</p>}
-                </> : <p><NotConfirmed words={t(lang, "not_confirmed_yet")} /></p>}
-              </section>
-            )}
-          </div>
-        </>}
-
-        {(view.details.length > 0 || view.claims.length > 0) && <>
-          <h2>{t(lang, "details_title")}</h2>
-          <p class="notice small">{t(lang, "details_intro")}</p>
-          <div class="facts">
-            {view.details.length > 0 && (
-              <dl class="ak-facts">{view.details.map((d) => <FactRow label={d.label} value={d.value} source={d.how ? `(${d.how})` : null} notConfirmed={t(lang, "not_confirmed_yet")} />)}</dl>
-            )}
-            {view.claims.length > 0 && (
-              <section>
-                <h3>{t(lang, "claims_title")}</h3>
-                <ul>{view.claims.map((c) => <li>“{c.quote}” {c.how && <span class="muted small">({c.how})</span>}</li>)}</ul>
-              </section>
-            )}
-          </div>
-        </>}
-        {ok.credit_open_food_facts && <p class="muted small credit">{t(lang, "credit_off")}</p>}
-      </div>
-    </div>
+<Base title={name} lang={lang} path={Astro.url.pathname} whatsapp={ok?.whatsapp ? ok.whatsapp.replace(/\?.*$/, "") : null} jsonld={jsonld} frame={f ?? undefined} bare={!!pv}>
+  {failed ? <Unavailable lang={lang} /> : !pv || !view ? <Unavailable lang={lang} notFound /> : <>
+    <AddForm />
+    <ProductPage v={pv} />
   </>}
 </Base>

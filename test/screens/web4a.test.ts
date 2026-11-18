@@ -26,6 +26,10 @@ const root = fileURLToPath(new URL("../../apps/.web4a-test/", import.meta.url));
 const freePort = () => new Promise<number>((ok) => { const s = netServer(); s.listen(0, "127.0.0.1", () => { const p = (s.address() as any).port; s.close(() => ok(p)); }); });
 const WIDE = `document.documentElement.scrollWidth <= window.innerWidth + 1 ? [] : [...document.querySelectorAll("body *")].filter((e) => { const r = e.getBoundingClientRect(); return (document.dir === "rtl" ? r.left < -1 : r.right > window.innerWidth + 1) && r.width > 0 && !e.closest(".no-scrollbar"); }).map((e) => e.tagName + "." + e.className)`;
 // The site's own images (not the catalogue bucket's product pictures): WebP; below the first screen, lazy.
+// The visible primary calls to action in the page's own content (not the header, the footer or the phone's bar): a filled gold or primary button,
+// a WhatsApp button, or what a page marks data-primary. Product cards' small "+" are each card's own and are not counted.
+const PRIMARY = `[...document.querySelectorAll("main [data-primary], main .ak-btn--gold, main .ak-btn--primary, main .ak-btn--whatsapp")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }).length`;
+const STAGE2 = ["/aisles", "/c/", "/p/", "/search", "/cart"];
 const IMAGES = `[...document.images].filter((i) => new URL(i.currentSrc || i.src).origin === location.origin).map((i) => ({ src: new URL(i.currentSrc || i.src).pathname, lazy: i.loading === "lazy", top: i.getBoundingClientRect().top + scrollY }))`;
 
 describe.skipIf(!OUT)("WEB4a screenshots: the frame and the home page", () => {
@@ -126,7 +130,7 @@ describe.skipIf(!OUT)("WEB4a screenshots: the frame and the home page", () => {
   it("every page, in Arabic, English and French, at 390 and 1440 px: the frame never makes a page scroll sideways; the weights", async () => {
     const { chromium } = createRequire(import.meta.url)("playwright") as any;
     const browser = await chromium.launch();
-    const pages = ["/", "/c/dairy_eggs", "/p/AK-0042", "/search?q=labneh", "/cart", "/checkout", "/signin", "/orders", "/account", "/how", "/food",
+    const pages = ["/", "/aisles", "/c/dairy_eggs", "/p/AK-0042", "/search?q=labneh", "/cart", "/checkout", "/signin", "/orders", "/account", "/how", "/food",
       "/join/rider", "/for-vendors", "/village", "/privacy", "/terms", waiting];
     const weights: string[] = [];
     for (const lang of ["ar", "en", "fr"]) for (const width of [390, 1440]) for (const path of pages) {
@@ -138,10 +142,57 @@ describe.skipIf(!OUT)("WEB4a screenshots: the frame and the home page", () => {
         expect(await page.locator("header a[data-basket]").count(), path).toBe(0);
         expect(await page.locator("[data-bottom]").count(), path).toBe(0);
       }
-      if (lang === "ar" && OUT) await shoot(page, `web4a${path === "/" ? "-frame-home" : path.startsWith("/o/") ? "-order" : path.replace(/\?.*$/, "").replace(/[^a-z0-9]+/gi, "-").replace(/-$/, "")}-${width}-ar.png`, width);
+      // one primary action per page (the founder's test): at most one filled call to action is visible, the frame's own doors aside
+      expect(await page.evaluate(PRIMARY), `${path} (${lang}, ${width} px): more than one primary action`).toBeLessThanOrEqual(1);
+      // stage 2's pages are shot by the stage 2 test, under the reference's names
+      if (lang === "ar" && OUT && !STAGE2.some((x) => path.startsWith(x))) await shoot(page, `web4a${path === "/" ? "-frame-home" : path.startsWith("/o/") ? "-order" : path.replace(/\?.*$/, "").replace(/[^a-z0-9]+/gi, "-").replace(/-$/, "")}-${width}-ar.png`, width);
       await ctx.close();
     }
     await browser.close();
     writeFileSync(join(OUT!, "web4a-weights-pages.txt"), weights.join("\n") + "\n");
+  }, 1_800_000);
+  it("stage 2, beside the reference's: the aisles, an aisle, a product, search and the basket, 390 and 1440 px, Arabic and English", async () => {
+    const { chromium } = createRequire(import.meta.url)("playwright") as any;
+    const browser = await chromium.launch();
+    mkdirSync(OUT!, { recursive: true });
+    const weights: string[] = [];
+    const shots: [string, string, boolean][] = [
+      ["aisles", "/aisles", false], ["aisle", "/c/dairy_eggs", false], ["product", "/p/AK-0042", false], ["product-pack", "/p/AK-0028", false],
+      ["product-kg", "/p/AK-0044", false], ["search", "/search?q=labneh", false], ["search-none", "/search?q=zzqq", false], ["cart", "/cart", true],
+    ];
+    for (const lang of ["ar", "en"]) for (const width of [390, 1440]) for (const [name, path, basket] of shots) {
+      const { ctx, page, bytes } = await open(browser, { lang, width, path, who: basket ? "basket" : null });
+      expect(await page.evaluate(WIDE), `${path} (${lang}) at ${width} px scrolls sideways`).toEqual([]);
+      expect(await page.evaluate(PRIMARY), `${path} (${lang}, ${width} px): more than one primary action`).toBeLessThanOrEqual(1);
+      const imgs = await page.evaluate(IMAGES) as { src: string; lazy: boolean; top: number }[];
+      for (const i of imgs) { expect(i.src).toMatch(/\.webp$/); if (i.top > 844) expect(i.lazy, i.src).toBe(true); }
+      const body = await page.locator("main").innerText();
+      if (name === "product") {
+        // a product sold by weight says what its price is for; with no weight on file, it says so (never a guess); one Add
+        expect(body).toMatch(lang === "ar" ? /للعبوة، الوزن لم يتأكد بعد/ : /per pack, weight not confirmed yet/);
+        expect(await page.locator("main [data-primary]").count()).toBe(1);
+        // no photo: the aisle's icon, and the name only once (the heading), never drawn on the placeholder
+        expect(await page.locator("main [role=img] svg").count()).toBe(1);
+      }
+      if (name === "product-pack") expect(body).toMatch(lang === "ar" ? /للعبوة، حوالي 500 غ/ : /per pack of about 500 g/);
+      if (name === "product-kg") expect(body).toMatch(lang === "ar" ? /للكيلو/ : /per kg/);
+      if (name === "aisle") {
+        const first = page.locator("main li.ak-product").first();
+        expect(await first.locator("svg").count()).toBeGreaterThan(0);                       // the placeholder's icon (and the + button)
+        const name1 = await first.locator(".nm").innerText();
+        expect((await first.innerText()).split(name1).length - 1, "a card shows its name once").toBe(1);
+      }
+      if (name === "cart") expect(body).toMatch(lang === "ar" ? /للعبوة/ : /per pack/);   // AK-0042 is in the basket: its line says what the price is for
+      if (width === 390) weights.push(`${path} ${lang}: ${await bytes()} bytes (${((await bytes()) / 1024).toFixed(1)} KB)`);
+      await shoot(page, `web4a-${name}-${width}-${lang}.png`, width);
+      await ctx.close();
+    }
+    for (const lang of ["ar", "en"]) for (const [name, path] of [["aisle", "/c/dairy_eggs"], ["product", "/p/AK-0042"]] as const) {
+      const { ctx, page } = await open(browser, { lang, width: 390, dark: true, path });
+      await shoot(page, `web4a-${name}-390-${lang}-dark.png`, 390);
+      await ctx.close();
+    }
+    await browser.close();
+    writeFileSync(join(OUT!, "web4a-weights-stage2.txt"), weights.join("\n") + "\n");
   }, 1_800_000);
 });

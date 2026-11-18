@@ -890,7 +890,6 @@ Neutral wording only: no rating, praise, health, diet or "popular" word (invaria
 | `web.w4_most_ordered_sub` | بعدد الطلبات، لا بتقييم منّا | Counted from orders, not ranked by us | Comptés d'après les commandes, sans classement de notre part | not yet |
 | `web.w4_rail_sub` | بترتيب القسم | In the aisle's order | Dans l'ordre du rayon | not yet |
 | `web.w4_add` | أضف {name} إلى السلة | Add {name} to the basket | Ajouter {name} au panier | not yet |
-| `web.w4_sold_out` | نفد | Sold out | Épuisé | not yet |
 | `web.w4_wa_kicker` | الطلب عبر واتساب | WhatsApp ordering | Commander sur WhatsApp | not yet |
 | `web.w4_wa_title` | بلا تطبيق. راسلنا فقط. | No app needed. Just message us. | Pas d'application. Écrivez-nous. | not yet |
 | `web.w4_wa_text` | نردّ عليك بسلتك ومجموعها. تؤكّد أنت، ونوصّل نحن. وتصلك أخبار الطلب في المحادثة نفسها. | We reply with your basket and total. You confirm, we deliver. Updates come to the same chat. | Nous répondons avec votre panier et le total. Vous confirmez, nous livrons. Le suivi arrive dans la même conversation. | not yet |
@@ -921,6 +920,25 @@ Neutral wording only: no rating, praise, health, diet or "popular" word (invaria
 | `web.w4_not_sold` | لا تبغ ولا كحول ولا أدوية | No tobacco, alcohol or pharmacy items | Pas de tabac, d'alcool ni de pharmacie | not yet |
 | `web.w4_photos` | الصور | Photos | Photos | not yet |
 | `web.w4_photos_text` | صور الأقسام من Unsplash (unsplash.com)، مجانية بموجب رخصة Unsplash. كل صورة محفوظة على هذا الموقع، لا تُحمَّل من موقعهم: | The category photos are from Unsplash (unsplash.com), free to use under the Unsplash License. Each one is kept on this site, not loaded from theirs: | Les photos des rayons viennent d'Unsplash (unsplash.com), libres d'utilisation sous la licence Unsplash. Chacune est gardée sur ce site, pas chargée depuis le leur : | not yet |
+| `web.w4_per_kg` | للكيلو | per kg | le kg | not yet |
+| `web.w4_per_pack_about` | للعبوة، حوالي {g} غ | per pack of about {g} g | la barquette d'environ {g} g | not yet |
+| `web.w4_per_pack` | للعبوة، الوزن لم يتأكد بعد | per pack, weight not confirmed yet | la barquette, poids pas encore confirmé | not yet |
+| `web.w4_aisles_kicker` | البقالة | Groceries | Épicerie | not yet |
+| `web.w4_aisles_title` | متجرنا، نجهّز طلبك عند الطلب. | Our own store, packed to order. | Notre propre magasin, préparé à la commande. | not yet |
+| `web.w4_aisles_text` | {n} منتج يومي، يختارها فريقنا ويتحقق منها ويجهّزها في مستودعنا. | {n} everyday items, picked, checked and packed by our team at our own hub. | {n} articles du quotidien, choisis, vérifiés et préparés par notre équipe dans notre dépôt. | not yet |
+| `web.w4_aisles_out` | نعرض ما نفد، ولا نخفيه | Out of stock is shown, never hidden | Les ruptures sont affichées, jamais cachées | not yet |
+| `web.w4_jump` | انتقل إلى قسم | Jump to an aisle | Aller à un rayon | not yet |
+| `web.w4_back_aisles` | الأقسام | Aisles | Rayons | not yet |
+| `web.w4_filter` | تصفية | Filter | Filtrer | not yet |
+| `web.w4_all` | الكل | All | Tout | not yet |
+| `web.w4_all_brands` | كل الماركات | All brands | Toutes les marques | not yet |
+| `web.w4_more_in` | المزيد في {aisle} | More in {aisle} | Plus dans {aisle} | not yet |
+| `web.w4_ask_item` | اسألنا عن هذا المنتج عبر واتساب | Ask about this item on WhatsApp | Poser une question sur WhatsApp à propos de cet article | not yet |
+| `web.w4_results` | {n} نتيجة لـ«{q}» | {n} results for “{q}” | {n} résultats pour « {q} » | not yet |
+| `web.w4_browse_or` | أو تصفّح قسمًا | Or browse an aisle | Ou parcourez un rayon | not yet |
+| `web.w4_clear` | امسح البحث | Clear search | Effacer la recherche | not yet |
+| `web.w4_by_aisle` | تصفية حسب القسم | Filter by aisle | Filtrer par rayon | not yet |
+| `web.w4_change` | تغيير | Change | Changer | not yet |
 
 ## UX2b, Approve, Intake, Money, Settings and Riders (console, staff-facing, written by a model; 17 November 2026)
 

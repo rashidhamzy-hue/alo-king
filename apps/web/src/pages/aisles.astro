@@ -1,0 +1,21 @@
+---
+// WEB4a stage 2: every aisle, from the reference's /aisles (components/ref/Shop.tsx), with the database's names and counts (web_catalog_home).
+import Base from "../layouts/Base.astro";
+import Unavailable from "../components/Unavailable.astro";
+import { Aisles, type AisleLink } from "../components/ref/Shop";
+import { nameIn, t } from "../lib/i18n";
+import { frameOf } from "../lib/frame";
+import { CATEGORY_PHOTOS, toneOf } from "../lib/category-photos";
+const { lang, catalog, env } = Astro.locals;
+let aisles: AisleLink[] = []; let failed = false; let whatsapp: string | null = null;
+const f = await frameOf(env, Astro.request.headers.get("cookie"), { lang, path: "/aisles" });
+try {
+  const home = await catalog().home();
+  whatsapp = home.whatsapp.home;
+  aisles = home.categories.map((c) => ({ code: c.code, name: nameIn(lang, c.name_en, c.name_ar), count: c.count, tone: toneOf(c.code), fresh: !!CATEGORY_PHOTOS[c.code]?.fresh }));
+} catch { failed = true; Astro.response.status = 503; }
+if (!f.chat && whatsapp) f.chat = whatsapp.replace(/\?.*$/, "") || null;
+---
+<Base title={t(lang, "w4_all_aisles")} lang={lang} path="/aisles" frame={f} bare={!failed}>
+  {failed ? <Unavailable lang={lang} /> : <Aisles f={f} aisles={aisles} total={aisles.reduce((a, x) => a + x.count, 0)} />}
+</Base>

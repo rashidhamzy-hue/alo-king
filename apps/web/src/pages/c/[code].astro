@@ -1,22 +1,28 @@
 ---
-// A category (redesigned in DS1; docs/strategy/05, section B): product cards, and filters by brand, how it is sold and stock, with a
-// sort by price. The filters are in the address and applied here to what the database returned, so they work with no script; the
-// plain address stays the one the Worker caches. Sorting is by facts only (invariant 14). Not here because the catalog reads do not
-// give it yet (docs/HANDOFF.md, DS1): pack size as a number, and popularity.
+// An aisle. WEB4a stage 2: the reference's layout (components/ref/Shop.tsx, Aisle): the aisles beside it on a laptop, its photo and count,
+// the filters (brand, how it is sold, in stock, sort by price only: invariant 14), the cards. The filters are in the address and applied here
+// to what the database returned, so they work with no script (site.js submits them on change); the plain address stays the one the Worker
+// caches. 24 cards a page (WEB2 6); the shelf's sub-groups keep their titles and are chips. JSON-LD as LD1.
 import Base from "../../layouts/Base.astro";
-import Card from "../../components/Card.astro";
-import CardKit from "../../components/CardKit.astro";
 import Unavailable from "../../components/Unavailable.astro";
-import Button from "@ak/ui-astro/Button.astro";
-import Icon from "@ak/ui-astro/Icon.astro";
-import Empty from "@ak/ui-astro/Empty.astro";
-import { chatBase, nameIn, t, unitLabel } from "../../lib/i18n";
+import AddForm from "../../components/AddForm.astro";
+import { Aisle, type AisleLink, type AisleView } from "../../components/ref/Shop";
+import { nameIn, t, unitLabel } from "../../lib/i18n";
 import { categoryJsonLd } from "../../lib/jsonld";
+import { toCard } from "../../lib/cards";
+import { CATEGORY_PHOTOS, toneOf } from "../../lib/category-photos";
 const { lang, catalog, env } = Astro.locals;
-let r; let failed = false;
+let r; let failed = false; let aisles: AisleLink[] = [];
 const code = String(Astro.params.code ?? "");
 // A code is letters, digits, underscore and hyphen: anything else is not a category, and never reaches the database.
-try { r = /^[a-z0-9_-]{1,60}$/i.test(code) ? await catalog().category(code) : { ok: false as const, error: "unknown_category" as const }; } catch { failed = true; Astro.response.status = 503; }
+try {
+  const [c, home] = await Promise.all([
+    /^[a-z0-9_-]{1,60}$/i.test(code) ? catalog().category(code) : Promise.resolve({ ok: false as const, error: "unknown_category" as const }),
+    catalog().home().catch(() => null),
+  ]);
+  r = c;
+  aisles = (home?.categories ?? []).map((x) => ({ code: x.code, name: nameIn(lang, x.name_en, x.name_ar), count: x.count, tone: toneOf(x.code), fresh: !!CATEGORY_PHOTOS[x.code]?.fresh }));
+} catch { failed = true; Astro.response.status = 503; }
 if (r && !r.ok) Astro.response.status = 404;
 const all = r && r.ok ? r.sections : [];
 const total = all.reduce((a, s) => a + s.items.length, 0);
@@ -28,58 +34,45 @@ const brand = brands.includes(p.get("brand") ?? "") ? p.get("brand")! : "";
 const unit = units.includes(p.get("unit") ?? "") ? p.get("unit")! : "";
 const stock = p.get("stock") === "1";
 const sort = p.get("sort") === "price_asc" || p.get("sort") === "price_desc" ? p.get("sort")! : "";
-const filtered = !!(brand || unit || stock || sort);
+const titled = all.filter((s) => s.title_en || s.title_ar);
+const subNo = Number.parseInt(p.get("sub") ?? "", 10);
+const sub = titled.length > 1 && subNo >= 1 && subNo <= all.length && (all[subNo - 1]!.title_en || all[subNo - 1]!.title_ar) ? subNo : 0;
+const filtered = !!(brand || unit || stock || sort || sub);
 const keep = (i: (typeof everything)[number]) => (!brand || i.brand === brand) && (!unit || i.sell_unit === unit) && (!stock || i.in_stock);
+const base = all.map((s, i) => ({ ...s, i: i + 1 })).filter((s) => !sub || s.i === sub);
 // Sorted by price, the shelf's sub-groups no longer mean anything: one list.
 const sections = sort
-  ? [{ title_en: null, title_ar: null, items: everything.filter(keep).sort((a, b) => (sort === "price_asc" ? 1 : -1) * (Number(a.price_usd) - Number(b.price_usd))) }]
-  : all.map((s) => ({ ...s, items: s.items.filter(keep) })).filter((s) => s.items.length > 0);
+  ? [{ title_en: null as string | null, title_ar: null as string | null, items: base.flatMap((s) => s.items).filter(keep).sort((a, b) => (sort === "price_asc" ? 1 : -1) * (Number(a.price_usd) - Number(b.price_usd))) }]
+  : base.map((s) => ({ ...s, items: s.items.filter(keep) })).filter((s) => s.items.length > 0);
 const count = sections.reduce((a, s) => a + s.items.length, 0);
-// WEB2: at most PAGE cards a page (docs/WEBSITE.md: a page under 100 KB with its fonts on a first visit; the longest aisle had 30-odd cards).
-// The filters and the sort apply to the whole aisle first; the shelf's sub-groups keep their titles across pages.
 const PAGE = 24;
 const pages = Math.max(1, Math.ceil(count / PAGE));
 const pageNo = Math.min(pages, Math.max(1, Number.parseInt(p.get("page") ?? "1", 10) || 1));
 let skip = (pageNo - 1) * PAGE, room = PAGE;
 const shown = sections.map((s) => { const take = s.items.slice(Math.min(skip, s.items.length)).slice(0, room); skip = Math.max(0, skip - s.items.length); room -= take.length; return { ...s, items: take }; })
   .filter((s) => s.items.length > 0);
-const pageHref = (n: number) => { const u = new URLSearchParams(p); u.delete("added"); if (n > 1) u.set("page", String(n)); else u.delete("page"); const q = u.toString(); return `${Astro.url.pathname}${q ? `?${q}` : ""}`; };
+const href = (change: Record<string, string | null>) => { const u = new URLSearchParams(p); u.delete("added"); u.delete("v"); for (const [k, val] of Object.entries(change)) if (val) u.set(k, val); else u.delete(k); const q = u.toString(); return `${Astro.url.pathname}${q ? `?${q}` : ""}`; };
 const anyCredit = sections.some((s) => s.items.some((i) => i.picture?.licence === "cc_by_sa"));
 const title = r && r.ok ? nameIn(lang, r.category.name_en, r.category.name_ar) : t(lang, "not_found");
 const whatsapp = r && r.ok ? r.whatsapp : null;
 if (filtered || p.has("page")) Astro.response.headers.set("Cache-Control", "no-store");
-// The list data for search engines: what this page lists, in its order (LD1).
 const jsonld = r && r.ok ? [categoryJsonLd(lang, { name: title, path: Astro.url.pathname, cards: shown.flatMap((s) => s.items) }, Astro.url.origin)] : [];
+const view: AisleView | null = r && r.ok ? {
+  lang, code: r.category.code, name: title, tone: toneOf(r.category.code), total,
+  countText: filtered ? t(lang, "items_of", { n: count, total }) : t(lang, "items", { n: total }),
+  aisles,
+  subs: titled.length > 1 ? [{ label: t(lang, "w4_all"), href: href({ sub: null, page: null }), current: !sub },
+    ...all.map((s, i) => ({ s, i: i + 1 })).filter(({ s }) => s.title_en || s.title_ar).map(({ s, i }) => ({ label: nameIn(lang, s.title_en, s.title_ar), href: href({ sub: String(i), page: null }), current: sub === i }))] : [],
+  form: { action: Astro.url.pathname, brands, brand, units: units.map((u) => ({ value: u, label: unitLabel(lang, u) || t(lang, "unit_each") })), unit, sort, stock, filtered },
+  sections: shown.map((s) => ({ title: sort || sub ? null : (s.title_en || s.title_ar ? nameIn(lang, s.title_en, s.title_ar) : null), items: s.items.map((c) => toCard(lang, env, c, r.category.code)) })),
+  empty: count === 0,
+  pager: pages > 1 ? { label: t(lang, "w2_page_n", { n: pageNo, total: pages }), prev: pageNo > 1 ? href({ page: pageNo - 1 > 1 ? String(pageNo - 1) : null }) : null, next: pageNo < pages ? href({ page: String(pageNo + 1) }) : null } : null,
+  credit: anyCredit ? t(lang, "credit_pictures") : null,
+} : null;
 ---
-<Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={chatBase(whatsapp)} jsonld={jsonld}>
-  {failed ? <Unavailable lang={lang} /> : !r || !r.ok ? <Unavailable lang={lang} notFound /> : <>
-    <ol class="crumbs"><li><a href="/">{t(lang, "home")}</a></li><li><Icon name="chevron" flip /></li><li>{title}</li></ol>
-    <h1>{title}</h1>
-    <form class="filters" method="get" action={Astro.url.pathname}>
-      {brands.length > 1 && <label class="ak-field"><span>{t(lang, "filter_brand")}</span>
-        <select class="ak-select" name="brand"><option value="">{t(lang, "filter_all")}</option>{brands.map((b) => <option value={b} selected={b === brand}>{b}</option>)}</select></label>}
-      {units.length > 1 && <label class="ak-field"><span>{t(lang, "filter_unit")}</span>
-        <select class="ak-select" name="unit"><option value="">{t(lang, "filter_all")}</option>{units.map((u) => <option value={u} selected={u === unit}>{unitLabel(lang, u) || t(lang, "unit_each")}</option>)}</select></label>}
-      <label class="ak-field"><span>{t(lang, "sort")}</span>
-        <select class="ak-select" name="sort"><option value="">{t(lang, "sort_default")}</option><option value="price_asc" selected={sort === "price_asc"}>{t(lang, "sort_price_asc")}</option><option value="price_desc" selected={sort === "price_desc"}>{t(lang, "sort_price_desc")}</option></select></label>
-      <label class="tick"><input type="checkbox" name="stock" value="1" checked={stock}> {t(lang, "filter_stock")}</label>
-      <Button label={t(lang, "filter_show")} />
-      {filtered && <Button label={t(lang, "filter_clear")} href={Astro.url.pathname} variant="ghost" />}
-    </form>
-    <p class="muted">{filtered ? t(lang, "items_of", { n: count, total }) : t(lang, "items", { n: total })}</p>
-    {count === 0 && <Empty title={t(lang, "filter_none")} icon="search" />}
-    {count > 0 && <CardKit />}
-    {shown.map((s) => (
-      <section>
-        {(s.title_en || s.title_ar) && <h2 class="sec-title">{nameIn(lang, s.title_en, s.title_ar)}</h2>}
-        <ul class="ak-grid">{s.items.map((item) => <Card item={item} lang={lang} env={env} whatsapp={whatsapp} />)}</ul>
-      </section>
-    ))}
-    {pages > 1 && <nav class="pager" aria-label={t(lang, "w2_page_n", { n: pageNo, total: pages })}>
-      {pageNo > 1 && <a class="ak-btn ak-btn--ghost" href={pageHref(pageNo - 1)} rel="prev">{t(lang, "w2_page_prev")}</a>}
-      <span class="muted">{t(lang, "w2_page_n", { n: pageNo, total: pages })}</span>
-      {pageNo < pages && <a class="ak-btn ak-btn--soft" href={pageHref(pageNo + 1)} rel="next">{t(lang, "w2_page_next")}</a>}
-    </nav>}
-    {anyCredit && <p class="muted small credit">{t(lang, "credit_pictures")}</p>}
+<Base title={title} lang={lang} path={Astro.url.pathname} whatsapp={whatsapp ? whatsapp.replace(/\?.*$/, "") : null} jsonld={jsonld} bare={!!view}>
+  {failed ? <Unavailable lang={lang} /> : !view ? <Unavailable lang={lang} notFound /> : <>
+    <AddForm />
+    <Aisle v={view} />
   </>}
 </Base>

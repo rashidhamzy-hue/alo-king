@@ -4,12 +4,12 @@
 // rails, "most ordered" once there are 30 days of orders, and the Ask strip's switch (web_home_extras, 0243). Works with no script.
 import Base from "../layouts/Base.astro";
 import Unavailable from "../components/Unavailable.astro";
-import { Home, type CardData, type HomeData } from "../components/ref/Home";
-import { nameIn, t, unitLabel } from "../lib/i18n";
-import { pictureUrl } from "../lib/db";
+import AddForm from "../components/AddForm.astro";
+import { Home, type HomeData } from "../components/ref/Home";
+import { nameIn, t } from "../lib/i18n";
+import { toCard } from "../lib/cards";
 import { frameOf } from "../lib/frame";
 import { CATEGORY_PHOTOS, toneOf } from "../lib/category-photos";
-import type { CatalogCard } from "@ak/commerce/index";
 const { lang, catalog, env } = Astro.locals;
 let d: HomeData | null = null; let failed = false; let whatsapp: string | null = null;
 // The rails drawn, in this order, when the category has items (a look choice, as the reference's: the rest are one tap away in the aisles).
@@ -18,10 +18,7 @@ try {
   const [home, extras, f] = await Promise.all([catalog().home(), catalog().homeExtras(12), frameOf(env, Astro.request.headers.get("cookie"), { lang, path: "/" })]);
   whatsapp = home.whatsapp.home;
   if (!f.chat && whatsapp) f.chat = whatsapp.replace(/\?.*$/, "") || null;
-  const card = (code: string) => (c: CatalogCard): CardData => ({
-    sku: c.sku, name: nameIn(lang, c.name_en, c.name_ar), unit: unitLabel(lang, c.sell_unit), price: Number(c.price_usd), inStock: !!c.in_stock,
-    comingSoon: !!c.coming_soon, img: c.picture ? pictureUrl(env, c.picture.path, 400) : null, imgAlt: nameIn(lang, c.name_en, c.name_ar), tone: toneOf(code),
-  });
+  const card = (code: string) => (c: Parameters<typeof toCard>[2]) => toCard(lang, env, c, code);
   const rails = RAILS.map((code) => extras.rails.find((r) => r.code === code)).filter((r): r is NonNullable<typeof r> => !!r)
     .map((r) => ({ code: r.code, name: nameIn(lang, r.name_en, r.name_ar), items: r.items.map(card(r.code)) }));
   d = {
@@ -41,6 +38,7 @@ try {
     {d.f.hours && <meta itemprop="openingHours" content={`Mo-Su ${d.f.hours.replace("–", "-")}`}>}
     <meta itemprop="paymentAccepted" content="Cash">
     {d.f.villages.map((v) => <meta itemprop="areaServed" content={v.name}>)}
+    <AddForm />
     <Home d={d} />
     {env.ENVIRONMENT !== "production" && <p class="small wrap"><a href="/gallery">{t(lang, "gallery")}</a></p>}
   </div>}

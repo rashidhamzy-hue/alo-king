@@ -47,7 +47,8 @@ function ownImages(html: string, path: string) {
   const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]).filter((t) => /\ssrc="\/[^/]/.test(t));
   for (const i of imgs) expect(i, `${path}: the site's own pictures are WebP`).toMatch(/src="[^"]+\.webp"/);
   const eager = imgs.filter((i) => !/loading="lazy"/.test(i));
-  expect(eager.length, `${path}: only the hero's two doors load before they are seen`).toBeLessThanOrEqual(path === "/" ? 2 : 0);
+  // above the fold: the home hero's two doors, an aisle's own photo at its top (WEB4a stage 2)
+  expect(eager.length, `${path}: only the pictures at the top load before they are seen`).toBeLessThanOrEqual(path === "/" ? 2 : path.startsWith("/c/") ? 1 : 0);
   return imgs.length;
 }
 const text = (html: string) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ");
@@ -515,12 +516,12 @@ describe("DS1: the redesigned pages", () => {
       const stock = await page("/c/dairy_eggs?stock=1");
       expect((await every("/c/dairy_eggs?stock=1")).skus).toEqual(all.filter((x) => x !== "AK-0042"));
       expect(stock.headers.get("cache-control")).toBe("no-store");
-      const brand = /<select class="ak-select" name="brand">[\s\S]*?<option value="([^"]+)"/.exec(plain.html.replace(/<option value="">[^<]*<\/option>/g, ""))![1]!;
+      const brand = /<select name="brand"[^>]*>[\s\S]*?<option value="([^"]+)"/.exec(plain.html.replace(/<option value="">[^<]*<\/option>/g, ""))![1]!;
       const byBrand = await page(`/c/dairy_eggs?brand=${encodeURIComponent(brand)}`);
       const byBrandAll = (await every(`/c/dairy_eggs?brand=${encodeURIComponent(brand)}`)).skus;
       expect(byBrandAll.length).toBeGreaterThan(0); expect(byBrandAll.length).toBeLessThan(all.length);
       expect(text(byBrand.html)).toMatch(new RegExp(`${byBrandAll.length} of ${all.length} items`));
-      const prices = (h: string) => [...h.matchAll(/<span class="price"><bdi>\$([\d.]+)<\/bdi>/g)].map((m) => Number(m[1]));
+      const prices = (h: string) => [...h.matchAll(/<span class="price"><bdi[^>]*>\$([\d.]+)<\/bdi>/g)].map((m) => Number(m[1]));
       const up = prices((await every("/c/dairy_eggs?sort=price_asc")).html), down = prices((await every("/c/dairy_eggs?sort=price_desc")).html);
       expect(up.length).toBe(all.length); expect([...up].sort((a, b) => a - b)).toEqual(up); expect([...down].sort((a, b) => b - a)).toEqual(down);
       // a filter that is not one is ignored; nothing but facts can sort (invariant 14)
@@ -534,7 +535,7 @@ describe("DS1: the redesigned pages", () => {
     try {
       const cat = (await page("/c/dairy_eggs")).html;
       const card = (sku: string) => body(cat).split('<li class="ak-product').find((c) => c.includes(`/p/${sku}"`))!;
-      expect(card("AK-0042")).toMatch(/form="ak-add" name="sku" value="AK-0042:[\d.]+"/); expect(card("AK-0046")).not.toContain("ak-add");
+      expect(card("AK-0042")).toMatch(/<button(?=[^>]*form="ak-add")(?=[^>]*name="sku")[^>]*value="AK-0042:[\d.]+"/); expect(card("AK-0046")).not.toContain("ak-add");
       const prod = (await page("/p/AK-0042")).html;
       expect(ld(prod).offers).toMatchObject({ priceCurrency: "USD", availability: "https://schema.org/InStock" });
       expect(ld((await page("/p/AK-0046")).html).offers.availability).toBe("https://schema.org/OutOfStock");

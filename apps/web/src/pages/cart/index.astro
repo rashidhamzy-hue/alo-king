@@ -17,6 +17,7 @@ import { nameIn, t, usd } from "../../lib/i18n";
 import { lbp, ordering, commerce, visitorOf } from "../../lib/order";
 import { PickerBody } from "../../components/ref/Frame";
 import { frameOf } from "../../lib/frame";
+import { priceForText } from "../../lib/cards";
 const { lang, env, catalog } = Astro.locals;
 Astro.response.headers.set("Cache-Control", "no-store");
 const cookie = Astro.request.headers.get("cookie");
@@ -34,6 +35,11 @@ try {
 } catch { failed = true; Astro.response.status = 503; }
 // WEB4a: the reference's village picker replaces the dropdown (the same list as the header's chip, grouped by zone with fee and time).
 const pickerFrame = failed ? null : await frameOf(env, cookie, { lang, path: "/cart" });
+// WEB4a stage 2 (0244): what each line's price is for ("per kg", "per pack of about 500 g"), only for the items sold by weight.
+let perOf: Record<string, string> = {};
+if (!failed && (q?.lines ?? []).length) {
+  try { const pf = await catalog().priceFor((q!.lines ?? []).map((l) => l.sku)); perOf = Object.fromEntries(Object.entries(pf).map(([s, x]) => [s, priceForText(lang, x) ?? ""]).filter(([, w]) => w)); } catch { perOf = {}; }
+}
 const village = facts && villageId ? facts.served.find((x: any) => x.village_id === villageId) ?? null : null;
 const quote = q?.quote ?? null;
 const removed = q?.removed ?? [];
@@ -63,7 +69,8 @@ const ltr = (x: string) => (lang === "ar" ? "\u2066" + x + "\u2069" : x);
         <ul class="w2-lines">
           {lines.map((l) => { const p = priced(l.sku); return (
             <li>
-              <a class="nm" href={`/p/${encodeURIComponent(l.sku)}`}>{nameIn(lang, l.name, l.name_ar)}</a>
+              <span class="nmc"><a class="nm" href={`/p/${encodeURIComponent(l.sku)}`}>{nameIn(lang, l.name, l.name_ar)}</a>
+                {perOf[l.sku] && <small class="per" data-per>{perOf[l.sku]}</small>}</span>
               <span class="amt"><bdi>{p ? usd(p.line_total_usd) : ""}</bdi>{p && Number(l.qty) > 1 && <small><bdi>{usd(p.unit_price_usd)}</bdi> × {l.qty}</small>}</span>
               <form method="post" action="/cart/line" class="qty"><input type="hidden" name="sku" value={l.sku}><input type="hidden" name="back" value="/cart">
                 <Stepper name="qty" value={Number(l.qty)} min={0} max={99} labels={{ less: t(lang, "w2_less"), more: t(lang, "w2_more"), quantity: t(lang, "w2_qty") }} />
@@ -89,7 +96,7 @@ const ltr = (x: string) => (lang === "ar" ? "\u2066" + x + "\u2069" : x);
           : facts && Number(facts.min_order_usd) > 0 && <p class="muted small">{t(lang, "w2_min_ok")}</p>)}
         <div class="w2-actions">
           {minOk && <Button label={t(lang, "w2_checkout")} href="/checkout" variant="gold" size="lg" icon="check" />}
-          <Button label={t(lang, "w2_browse")} href="/#aisles" variant="ghost" />
+          <Button label={t(lang, "w2_browse")} href="/aisles" variant="ghost" />
         </div>
         <p class="muted small">{t(lang, "w2_prices_note")} {t(lang, "w2_rider_fee_note")}</p>
       </>}
