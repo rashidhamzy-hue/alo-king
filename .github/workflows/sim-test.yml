@@ -10,7 +10,7 @@
 # still only reads staging. The key and its own usage limit are unchanged.
 # Test budget (LB1, 16 Nov; docs/NEXT_SESSIONS.md rule 12): one run per session, limit 50 by default (150 only at a gate check), and
 # the first real step refuses to start when this month's sim-test spend in model_costs plus budget_usd (33 if empty) would pass the
-# setting sim_monthly_cap_usd (60 for November 2026, 20 a month after; migration 0211), saying why in the run summary.
+# setting sim_monthly_cap_usd (55 for November 2026, 10 a month after; migrations 0211 and 0241), saying why in the run summary.
 # Key: secrets.ANTHROPIC_API_KEY_SIM only. The job stops at once if it is missing; it never falls back to another key, and the
 # key is never printed (it is passed to the one step that needs it, as an environment variable).
 # Output: the artifact sim-results (report.md, cases/sim_<class>.json, results.jsonl, summary.json), the head of the report in

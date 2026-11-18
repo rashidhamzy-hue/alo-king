@@ -1,5 +1,6 @@
 # Weekly: how full is the staging Supabase project, and how much of the Cloudflare Workers Paid allowance has the account used this month? Reads database size, storage size and egress (read only) and FAILS when any of
 # them is above 70% of the plan's included amount, or cannot be read (AUDIT-G1 point 11). A red run emails the repository's watchers.
+# FIX1: it also raises a staff alert (ops exception usage_near_limit, closed again when the size falls) at 600 MB of storage or 350 MB of database, before the 70% line.
 # Database and storage come from SQL; egress from the dashboard's usage report, which SQL cannot see. The plan is the repository
 # variable SUPABASE_PLAN (free or pro; free when unset); the limits are one table in scripts/ci/usage-check.mjs.
 # Cloudflare (second job): Workers requests and Durable Object duration for the whole account, month to date, from the GraphQL Analytics
@@ -47,6 +48,9 @@ jobs:
         run: |
           echo "DB_BYTES=$(psql "$DATABASE_URL" -At -c "select pg_database_size(current_database())")" >> "$GITHUB_ENV"
           echo "STORAGE_BYTES=$(psql "$DATABASE_URL" -At -c "select coalesce(sum((metadata->>'size')::bigint), 0)::bigint from storage.objects")" >> "$GITHUB_ENV"
+      - name: Staff alert at 600 MB of storage or 350 MB of database (FIX1; the limits are settings.usage_alerts, migration 0241)
+        run: |
+          psql "$DATABASE_URL" -At -c "select usage_size_check($STORAGE_BYTES, $DB_BYTES)"
       - name: Compare with the plan (fails above 70%)
         run: node scripts/ci/usage-check.mjs
   cloudflare:

@@ -1,6 +1,6 @@
 // LB1: the label day's capture page script (served as /capture.js; the CSP allows scripts from this address only, and the page has no
 // inline script). It adds four things to a page that already works as a plain form:
-//   1 a photo is shrunk (at most 2000 px on its long side, JPEG) so it uploads fast on a mobile connection, then KEPT IN THE PHONE (IndexedDB)
+//   1 a photo is shrunk (at most 1600 px on its long side, JPEG) so it uploads fast on a mobile connection, then KEPT IN THE PHONE (IndexedDB)
 //     until the server has answered "saved". A photo that fails to upload (no signal, a timeout, a server error) is retried with a growing
 //     wait, when the network comes back, when the page is opened again and when the phone wakes: it is never thrown away. Only a refusal
 //     that retrying cannot fix (422) stops the retries, and the photo is still kept, with the reason, and a "send again" button;
@@ -15,7 +15,7 @@ export const CAPTURE_JS = `(function(){
 "use strict";
 var root=document.querySelector("[data-capture]");
 if(!root){return;}
-var DB="ak-capture",STORE="photos",MAX=2000,busy=false,timer=null,memory=[],tries=0;
+var DB="ak-capture",STORE="photos",MAX=1600,busy=false,timer=null,memory=[],tries=0;
 function msg(k,n){var s=root.getAttribute("data-msg-"+k)||"";return n===undefined?s:s.replace("{n}",String(n));}
 function csrf(){var i=document.querySelector("input[name=_csrf]");return i?i.value:"";}
 function each(sel,fn){Array.prototype.forEach.call(document.querySelectorAll(sel),fn);}
@@ -76,7 +76,7 @@ function shrink(file){
       if(k===1&&file.type==="image/jpeg"&&file.size<900000){ok(file);return;}
       var c=document.createElement("canvas");c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
       c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
-      c.toBlob(function(b){ok(b&&b.size?b:file);},"image/jpeg",0.85);
+      c.toBlob(function(b){ok(b&&b.size?b:file);},"image/jpeg",0.8);
     }).catch(function(){ok(file);});
   });
 }

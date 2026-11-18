@@ -94,8 +94,8 @@ const scan = (p: string, reading: Record<string, unknown>, by = picker) =>
 const withBarcode = async (n = 0) => (await db.one(`select id, barcode from products where is_active and intake_barcode_key(barcode) is not null order by sku offset ${n} limit 1`));
 
 describe("0211: the monthly ceiling of the simulated customers is a setting", () => {
-  it("sim_monthly_cap_usd is 60 for November 2026 and 20 a month after", async () => {
-    expect((await db.one(`select value from settings where key = 'sim_monthly_cap_usd'`)).value).toEqual({ default_usd: 20, months: { "2026-11": 60 } });
+  it("sim_monthly_cap_usd is 55 for November 2026 (FIX1, 0241) and 10 a month after", async () => {
+    expect((await db.one(`select value from settings where key = 'sim_monthly_cap_usd'`)).value).toEqual({ default_usd: 10, months: { "2026-11": 55 } });
   });
 });
 

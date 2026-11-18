@@ -557,7 +557,7 @@ describe("LV1: Chouf places listed before they sign", () => {
     expect(text(mainOf(r.html))).toContain("Restaurant");
     expect(text(mainOf(r.html))).toContain("Baakleen");
     expect(text(mainOf(r.html))).toMatch(/0\.4 km from our hub/);
-    expect(text(mainOf(r.html))).toContain("Places: 460");
+    expect(text(mainOf(r.html))).toContain("Places: 461");
     // the choices: kind and village from the database, sort by distance or name and nothing else
     expect(mainOf(r.html)).toMatch(/<option value="bakery"[^>]*>Bakery/);
     expect(mainOf(r.html)).toMatch(/<option value="Boqaata"/);
@@ -609,7 +609,7 @@ describe("LV1: Chouf places listed before they sign", () => {
     expect(rowsOf(p2.html).filter((x) => rowsOf(p1.html).includes(x))).toEqual([]);
     expect(p1.html).toMatch(/href="\/food\?page=2"/);
     expect(p2.html).toMatch(/href="\/food"/);                                  // Previous goes to the plain address
-    expect(text(p2.html)).toContain("Page 2 of 23");
+    expect(text(p2.html)).toContain("Page 2 of 24");
     const k = await page("/food?kind=bakery&sort=name&page=2");
     expect(k.html).toMatch(/href="\/food\?kind=bakery&amp;sort=name&amp;page=3"/);
     expect(k.html).toMatch(/href="\/food\?kind=bakery&amp;sort=name"/);
