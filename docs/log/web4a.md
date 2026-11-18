@@ -211,7 +211,14 @@ checked at 390 and 1440 px in Arabic and English. Screens on the console's Scree
 
 | Page | Arabic | English |
 | --- | --- | --- |
-WEIGHTS2
+| `/aisles` | 610.5 KB | 601.4 KB |
+| `/c/dairy_eggs` | 243.8 KB | 234.6 KB |
+| `/p/AK-0042` | 214.0 KB | 204.7 KB |
+| `/p/AK-0028` | 225.9 KB | 215.6 KB |
+| `/p/AK-0044` | 213.8 KB | 204.6 KB |
+| `/search?q=labneh` | 176.6 KB | 179.0 KB |
+| `/search?q=zzqq` | 271.3 KB | 262.5 KB |
+| `/cart` | 198.2 KB | 189.2 KB |
 
 `/aisles` carries the aisle photos (the first ones load at once, the rest lazily); the others are mostly the stylesheet and the fonts.
 
