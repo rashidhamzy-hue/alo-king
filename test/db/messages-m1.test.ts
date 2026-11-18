@@ -28,9 +28,9 @@ describe("the conversation's language (M1)", () => {
     expect(outbound).toHaveLength(1);
     const card = bodyOf(outbound[0]!);
     expect(card).toMatch(/^🛒 \*Your order AK-\d+\*/);
-    expect(card).toContain("Delivery (Baakline): $1.00");
-    expect(card).toMatch(/\*Total: \$\d+\.\d\d\*/);
-    expect(card).toMatch(/^📍 Baakline/mu);
+    expect(card).toContain("Delivery to Baakline · $1.00");
+    expect(card).toMatch(/\*Total · \$\d+\.\d\d\*/);
+    expect(card).toMatch(/^📍 \*Deliver to\*\nBaakline/mu);
     expect(card).toContain(en.card.payment("cod"));
     expect(card).toContain(en.card.consent);
     expect(outbound[0]!.body.interactive.action.buttons.map((b: any) => b.reply.title)).toEqual([en.card.confirm, en.card.edit, en.card.cancel]);

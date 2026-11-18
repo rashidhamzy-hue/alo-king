@@ -47,3 +47,52 @@ No model was called in stage 1: the live language gate and the sim-test run once
 
 ### Founder action
 Read `docs/MESSAGES.md` and the Screens page (session cx2) and reply in the chat with what to change. Stage 2 waits for that reply.
+
+## Stage 2: the approved messages in the code (18 November 2026)
+
+The founder replied "approved, with five changes", all applied: (1) the card's missing-item line «منسألك قبل ما نبدّل» / "We ask you before
+swapping anything"; (2) 👑 retired (👋 greets); (3) every customer message in the new layout (order number bold, one emoji at the start of a line,
+the 22 emojis only), a status answer and the notice for the same state the same words; (4) `windows.freshForWindow`: «طازة» / "Fresh" before each
+product's own name, now from the quote (the database), never the customer's words; (5) restaurant and food messages untouched (FD2).
+`docs/MESSAGES.md` is now the frozen record of the approval; the snapshots are the source.
+
+| What | Where |
+|---|---|
+| The three packs restyled (staff `ops.*` unchanged): bold heading line, emoji at the start of a line, « · » before an amount, italic consent/privacy | `packages/agents/src/messages/{ar,en,fr}.ts`, `types.ts` |
+| The card: one line per item with its amount, a totals block (items, delivery, fees, **total**, lira), sections 📍 ⏱️ 💵 🔁, buttons ✅ ✏️ ❌; a long basket's card says the items are in the message above | `order-card-text.ts`, `order-card.ts` |
+| «Which one?» as a list message (short name, full name and price per row, up to ten); a line not found goes first as its own message | `choice.ts` (`listTitle`) |
+| Out of area: a location request, never a list of villages | `answers.ts`, `pipeline.ts` |
+| Feedback question and answers in the customer's language (`customer_language`) | `feedback.ts`, `turn.ts` |
+| Notices: the free message first; the template only when the 24-hour window has closed (it went inside the window before) | `apps/gateway/src/index.ts` |
+| On the way: the cash to have ready (`orders.total_usd`, as `rider_job`); the status answer says the same | `index.ts`, `answers.ts` |
+| The website prints the card without WhatsApp's marks | `apps/web/src/lib/order.ts` (`plainWords`, `splitAmount`) |
+| **0257**: `catalog_other_kind` (0256) failed on a plan line whose `candidates` is JSON null ("cannot extract elements from a scalar"); a non-array now counts as empty | `supabase/migrations/0257_cx2_other_kind_guard.sql`, a case in `test/db/cx2-founder-chat.test.ts` |
+
+**Tests changed on purpose:** the message rules (22 emojis, one at the start of a line, the order number bold, amounts at the end after « · »;
+staff messages keep M1's rules), the sim's rule checks (`evals/sim/checks.ts`), the three snapshots, and the flow tests and eval cases that pinned
+old wording or a button picker. New: `packages/agents/test/cx2-stage2.test.ts`. `docs/ARABIC_REVIEW.md` lists every new Arabic line (CX2 stage 2).
+`npm run typecheck` clean; `npm test`: all pass except the seven `test/pg` files (pgvector, CI only), which pass in CI.
+
+**The model runs.**
+
+| Run | Result | Spend |
+|---|---|---|
+| Language gate, first dispatch, run 44303688282 | **Stopped on the 0256 bug** before any score (the error above). No gate result | USD 0.011 |
+| Language gate, run [44305776838](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44305776838) (after 0257): the one scored run | **holds**: wrong products **0** (precision 1.000), F1 **0.911** (B1e 0.913); ar_lb 0.919, arabizi 0.886, en 0.966, fr 0.932, mixed 0.930; zero-wrong 28 of 28; the 0.13 demo right | USD 0.197 |
+| Sim-test, limit 50, budget 2, repeats 0, run [44303693502](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44303693502) (before 0257) | 50 judged, **23 passed**; **0 silences after a hand-off**, **0 replies in another language**, 0 message-rule breaks, 0 no-reply; **3 turn errors** (sim-006, sim-016, sim-028: the technical line on the turn after a correction, path `agent_error`), most likely the same 0256 failure 0257 fixes; not proven (the sim's copy of staging is not kept, and no second run was made) | USD 1.17 |
+
+The gate was dispatched twice because the first stopped on a bug of this session before scoring; the sim-test once.
+
+**Not proven here:** the new messages on a real phone (WhatsApp's own rendering of bold, italic, list messages and RTL amounts); the three turn
+errors gone (the next sim-test or the founder's test shows it); the notices' free-message-first order with a real template outside the window.
+
+### Founder test (CX2)
+After `deploy-staging` from `main` has run, on the US test number, between 09:00 and 21:00 Beirut (the new hours; outside them the first
+message gets the "closed, your order is saved" message instead, in the new layout):
+1. **«بدي كرتونة مي تنورين ونسكافيه ونص كفة»** (typed or as a voice note). Expect: «which one?» as a list (tap *اختار*, each row a name with
+   its full name and price), the kafta found (no silence about it), then the card: one line per item with its price, the totals block, the
+   sections 📍 ⏱️ 💵 🔁 with «منسألك قبل ما نبدّل», the consent line in italics, and the buttons ✅ ✏️ ❌. Tap ✅ to confirm.
+2. **«وين طلبي؟»** a minute later. Expect: 📦 with the order number in bold; when the test rider takes it, «🛵 *طلبك … عالطريق*» with the
+   cash to have ready; after delivery the question «📦 *وصلك طلبك … مزبوط؟*» with ✅ / ⚠️, in the language you wrote in.
+3. **«بتوصلو على صيدا؟»**. Expect: «📍 *لهلّق ما منوصّل على صيدا*» and the location button, with no list of villages.
+Send back, per message, "as written" or what differed, with a screenshot.

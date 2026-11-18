@@ -19,7 +19,9 @@ const LABNEH = line("لبنة ليبان ليه 900 غ", "Liban Lait Labneh Bala
 const order = (lines: unknown[]) => ({ intent: "order", fulfilment: "delivery", lines,
   address: { village: null, landmark: null, building: null, floor: null, recipient_name: null, verbatim: null } });
 const bodyOf = (s: Sent): string => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
-const buttonsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
+// CX2: a "which one?" is a list message: its rows are the choices, as a button message's buttons are.
+const buttonsOf = (s: Sent): { id: string; title: string }[] => [...(s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply),
+  ...(s.body.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => ({ id: r.id, title: r.title })))];
 const rowsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows);
 const isCard = (s: Sent) => buttonsOf(s).some((b) => b.id.startsWith("order:confirm:"));
 const all = () => outbound.map(bodyOf).join("\n---\n");

@@ -4,13 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { buttons, type Outbound } from "@ak/wa/kapso";
 import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import { claimOrderMessage } from "./messages/notify";
+import { asLang, messages, type Lang } from "./messages";
 
-export const FEEDBACK_TEXT = {
-  ask: (code: string) => `وصلك طلبك ${code}؟ إذا في شي ناقص أو مش مزبوط، دقّ «في مشكلة» وبيحكيك حدا من الفريق.`,
-  fine: "تمام، شكراً 🙏",
-  problem: (code: string) => `آسفين عالإزعاج. حدا من الفريق رح يحكيك عن الطلب ${code} بأقرب وقت. فيك تكتبلنا شو صار هون.`,
-  opsAlert: (code: string) => `⚠️ الزبون دقّ «في مشكلة» بعد توصيل الطلب #${code}. المحادثة صارت مع موظف.`,
-};
+// CX2: the words are in the message packs (messages/{ar,en,fr}.ts, `feedback`), in the customer's language.
 
 export const feedbackButtonId = (orderId: string, verdict: "fine" | "problem") => `fb:${verdict}:${orderId}`;
 export function parseFeedbackButton(id: string): { verdict: "fine" | "problem"; orderId: string } | null {
@@ -18,10 +14,11 @@ export function parseFeedbackButton(id: string): { verdict: "fine" | "problem"; 
   return m ? { verdict: m[1] as "fine" | "problem", orderId: m[2]! } : null;
 }
 
-export function feedbackCard(orderId: string, shortCode: string): Outbound {
-  return buttons(FEEDBACK_TEXT.ask(shortCode), [
-    { id: feedbackButtonId(orderId, "fine"), title: "وصل تمام ✅" },
-    { id: feedbackButtonId(orderId, "problem"), title: "في مشكلة" },
+export function feedbackCard(orderId: string, shortCode: string, lang: Lang = "ar"): Outbound {
+  const F = messages(lang).feedback;
+  return buttons(F.ask(shortCode), [
+    { id: feedbackButtonId(orderId, "fine"), title: F.fineButton },
+    { id: feedbackButtonId(orderId, "problem"), title: F.problemButton },
   ]);
 }
 
@@ -40,7 +37,9 @@ export async function sendFeedbackRequests(deps: { db: SupabaseClient; send: (r:
     if (!(await claimOrderMessage(deps.db, d.order_id, "feedback", `feedback:${d.order_id}`, d.customer_id))) {
       await deps.db.rpc("mark_feedback_asked", { p_order: d.order_id }); continue;
     }
-    const r = await deps.send({ line: "customer", partyId: d.customer_id, to, msg: feedbackCard(d.order_id, d.short_code), category: "service",
+    // CX2: in the customer's language (customer_language, 0093), never Arabic for everyone (the founder's chat, 08:54).
+    const lang = asLang(((await deps.db.rpc("customer_language", { p_party: d.customer_id })).data as string | null) ?? "ar");
+    const r = await deps.send({ line: "customer", partyId: d.customer_id, to, msg: feedbackCard(d.order_id, d.short_code, lang), category: "service",
                                 orderId: d.order_id, dedupeKey: `feedback:${d.order_id}` });
     if (r.ok) { await deps.db.rpc("mark_feedback_asked", { p_order: d.order_id }); n++; }
   }

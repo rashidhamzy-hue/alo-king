@@ -30,10 +30,10 @@ describe("lane B requests (B4)", () => {
 
     await t.text("بدي علبتين لبنة ليبان ليه عبعقلين بناية النسيم");
     const card = bodyOf(outbound.at(-1)!);
-    expect(card).toContain("رصيد إلك من قبل: -$1.25");
+    expect(card).toContain("رصيدك من قبل · -$1.25");
     const o = await db.one(`select id, total_usd, subtotal_usd, delivery_fee_usd from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id]);
     expect(Number(o.total_usd)).toBeCloseTo(Number(o.subtotal_usd) + Number(o.delivery_fee_usd) - 1.25, 2);
-    expect(card).toContain(`*المجموع: $${Number(o.total_usd).toFixed(2)}*`);
+    expect(card).toContain(`*المجموع · $${Number(o.total_usd).toFixed(2)}*`);
     expect(Number(await db.rpc("customer_credit_usd", { p_party: c.party_id }))).toBeCloseTo(0, 2);    // promised to this order
   }, 60_000);
 

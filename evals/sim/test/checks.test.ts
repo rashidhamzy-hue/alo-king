@@ -48,8 +48,9 @@ describe("checks", () => {
   });
 
   it("flags the rules test's problems", () => {
-    expect(ruleProblems({ kind: "text", text: "Total $5.00 and $6.00", options: [] }).join()).toMatch(/rule 7/);
-    expect(ruleProblems({ kind: "text", text: "🎉 done", options: [] }).join()).toMatch(/rule 4/);
+    expect(ruleProblems({ kind: "text", text: "Total $5.00 and $6.00", options: [] }).join()).toMatch(/rule 4: line 1 has 2 amounts/);
+    expect(ruleProblems({ kind: "text", text: "🎉 done", options: [] }).join()).toMatch(/rule 2: emoji/);
+    expect(ruleProblems({ kind: "text", text: "👑 Welcome", options: [] }).join()).toMatch(/rule 2: emoji/);   // CX2: the crown is retired
     expect(ruleProblems({ kind: "text", text: "٣ علب", options: [] }).join()).toMatch(/Arabic-Indic/);
   });
 

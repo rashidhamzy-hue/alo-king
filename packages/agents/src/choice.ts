@@ -8,7 +8,7 @@
 // carries the product. The line's own words, count and unit wait in the conversation with the question, and the other lines of the
 // message stay in the basket. The tap re-plans that one line with the product chosen (plan_order's p_choices), so the count, the
 // unit and the price are the database's, and the basket goes on (the next question, the minimum, the pin, the card).
-import { buttons } from "@ak/wa/kapso";
+import { buttons, list } from "@ak/wa/kapso";
 import { deliver, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import type { Quote } from "./order-card";
 import { messages, productName, type Lang } from "./messages";
@@ -70,17 +70,35 @@ export function pickTitles(cands: { name: string; name_ar: string | null; produc
   return short.map((n, i) => `${i + 1}. ${n}`.slice(0, 20));
 }
 
+/** CX2: a list row's title, at most 24 characters: the whole name, else cut at a word with the size kept when it fits. */
+export function listTitle(n: string): string {
+  if (n.length <= 24) return n;
+  const size = /(\d+(?:[.,]\d+)?\s?(?:kg|g|ml|cl|l|ltr|غ|ل|كغ|مل|كلغ))$/iu.exec(n)?.[1] ?? "";
+  const room = 24 - (size ? size.length + 1 : 0);
+  let head = n.slice(0, n.length - size.length).trim();
+  while (head.length > room && head.includes(" ")) head = head.slice(0, head.lastIndexOf(" "));
+  head = head.slice(0, room).trim();
+  return (size ? `${head} ${size}` : head).slice(0, 24).trim();
+}
+
 /** Asks the first waiting line by code. False when nothing waits or the question could not go out. */
 export async function askChoice(ctx: ToolContext, before?: string): Promise<boolean> {
   const q = ctx.state.asking?.[0];
   if (!q || !q.candidates.length) return false;
   const lang = ctx.state.lang ?? "ar";
   const T = messages(lang);
-  const usd = (n: number | null) => (n == null ? "" : `: $${Number(n).toFixed(2)}`);
-  const rows = q.candidates.map((c) => `${productName(c, lang)}${usd(c.price_usd)}`);
-  const titles = pickTitles(q.candidates, lang);
-  const text = [before, T.basket.which(q.raw, rows)].filter(Boolean).join("\n");
-  return (await deliver(ctx, buttons(text, q.candidates.map((c, i) => ({ id: pickButtonId(c.product_id), title: titles[i]! }))), `[which] ${text}`)).ok;
+  // CX2 (the founder's chat, 08:39: two buttons cut to «1. نسكافيه قهوة سريع»): a list message, one row a product: its short name, then its
+  // full name and price under it. `before` (a line not found, a shop not on Alo King) goes as its own message first.
+  const price = (n: number | null) => (n == null ? "" : ` · $${Number(n).toFixed(2)}`);
+  const rows = q.candidates.slice(0, 10).map((c) => {
+    const name = productName(c, lang);
+    const tail = price(c.price_usd);
+    const desc = `${name}${tail}`;
+    return { id: pickButtonId(c.product_id), title: listTitle(name), description: desc.length <= 72 ? desc : `${name.slice(0, 71 - tail.length).trimEnd()}…${tail}` };
+  });
+  if (before && !(await deliver(ctx, { type: "text", text: { body: before } }, before)).ok) return false;
+  const text = T.basket.which(quoted(q.raw), rows.length);
+  return (await deliver(ctx, list(text, T.basket.whichButton, rows), `[which] ${text} ${rows.map((r) => r.description).join(" | ")}`)).ok;
 }
 
 type Done = { done: true; path: string } | { done: false };
