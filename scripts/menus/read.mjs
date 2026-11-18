@@ -38,7 +38,7 @@ const download = async (path) => {
 // The dry run's photos: two invented menus, committed as small JPEGs (no real place, no number).
 const fixtures = () => {
   const dir = fileURLToPath(new URL("../../test/fixtures/menus/", import.meta.url));
-  return readdirSync(dir).filter((f) => /\.jpe?g$/i.test(f)).sort().map((f) => ({ photo_id: f, place: f.replace(/\.jpe?g$/i, ""), media_path: f, bytes: new Uint8Array(readFileSync(join(dir, f))), mime: "image/jpeg" }));
+  return readdirSync(dir).filter((f) => /\.jpe?g$/i.test(f)).sort().map((f) => ({ photo_id: f.replace(/\.jpe?g$/i, "").replace(/[^A-Za-z0-9_-]/g, "_"), place: f.replace(/\.jpe?g$/i, ""), media_path: f, bytes: new Uint8Array(readFileSync(join(dir, f))), mime: "image/jpeg" }));
 };
 
 let out;

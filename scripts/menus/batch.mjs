@@ -76,6 +76,8 @@ export async function runMenuRead(d) {
     selected = ready.map((f) => f.p);
     // ---------- 2 one batch (a menu photo is well under the API's size limit; 150 MB is checked anyway) ----------
     const tool = menuTool(); const system = menuPrompt();
+    // The Batch API takes ids of letters, digits, _ and - only (64 at most): a photo id is a uuid; a dry run's is the file's name.
+    for (const { p } of ready) if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(p.photo_id))) throw new Error(`a photo id the Batch API refuses: ${String(p.photo_id).slice(0, 40)}`);
     const requests = ready.map(({ p, img }) => ({ custom_id: p.photo_id, params: { model: d.model, max_tokens: MAX_OUT, system, tools: [tool], tool_choice: { type: "tool", name: tool.name },
       messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: img.mime, data: b64(img.bytes) } },
         { type: "text", text: "Read this menu photo." }] }] } }));

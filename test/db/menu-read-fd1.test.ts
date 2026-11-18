@@ -124,10 +124,12 @@ describe("the dry run", () => {
     const before = (await db.one(`select count(*)::int as n from menu_dish_proposals`)).n;
     const api = fakeApi(() => READING);
     const out = await runMenuRead(deps(api, { rpc: async () => { throw new Error("the dry run must not call the database"); },
-      dryRunPhotos: [{ photo_id: "example-bakery.jpg", place: "example-bakery", media_path: "example-bakery.jpg", bytes: JPEG, mime: "image/jpeg" },
-                     { photo_id: "example-grill-house.jpg", place: "example-grill-house", media_path: "example-grill-house.jpg", bytes: JPEG, mime: "image/jpeg" }] }));
+      dryRunPhotos: [{ photo_id: "example-bakery", place: "example-bakery", media_path: "example-bakery.jpg", bytes: JPEG, mime: "image/jpeg" },
+                     { photo_id: "example-grill-house", place: "example-grill-house", media_path: "example-grill-house.jpg", bytes: JPEG, mime: "image/jpeg" }] }));
     expect(out).toMatchObject({ queued: 2, read: 2, dishes: 4 });
     expect(out.cost.lines[0].step).toBe("dry_run");
+    for (const q of api.calls.find((c) => c.method === "POST")!.body.requests) expect(q.custom_id).toMatch(/^[A-Za-z0-9_-]{1,64}$/);   // the API's own rule
+    await expect(runMenuRead(deps(fakeApi(() => READING), { dryRunPhotos: [{ photo_id: "a.jpg", place: "x", media_path: "a.jpg", bytes: JPEG, mime: "image/jpeg" }] }))).rejects.toThrow(/Batch API refuses/);
     expect(out.summary).toMatch(/dry run: nothing written but the cost/);
     expect((await db.one(`select count(*)::int as n from menu_dish_proposals`)).n).toBe(before);
   });
