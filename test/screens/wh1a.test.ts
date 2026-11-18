@@ -81,7 +81,7 @@ describe.skipIf(!OUT)("WH1a screenshots: purchase orders, receiving, bins, tempe
       ["lead", "purchase-orders", "/purchase-orders"], ["lead", "purchase-order-new", "/purchase-orders?new=1"],
       ["picker", "receiving", `/purchase-orders/${open.po_id}`], ["lead", "received", `/purchase-orders/${got.po_id}`],
       ["lead", "print-en", `/purchase-orders/${open.po_id}/print?lang=en`], ["lead", "print-ar", `/purchase-orders/${open.po_id}/print?lang=ar`],
-      ["lead", "bins", "/bins"], ["picker", "temperature", "/temperature"], ["lead", "stock", "/stock"], ["picker", "runner", `/pick/${o.order_id}`]];
+      ["lead", "bins", "/bins"], ["lead", "suppliers", "/receiving"], ["picker", "temperature", "/temperature"], ["lead", "stock", "/stock"], ["picker", "runner", `/pick/${o.order_id}`]];
     mkdirSync(OUT!, { recursive: true });
     let shots = 0;
     for (const width of WIDTHS) for (const lang of ["en", "ar"]) for (const who of Object.keys(people) as (keyof typeof people)[]) {

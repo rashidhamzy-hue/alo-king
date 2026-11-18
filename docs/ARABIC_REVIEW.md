@@ -1600,3 +1600,44 @@ Source: the `pick(L, "English", "Arabic")` pairs of `apps/console/src/pages/{pur
 | Purchase orders (menu) | طلبات الشراء | unread |
 | Bins (menu) | الرفوف | unread |
 | Temperature log (menu) | سجل الحرارة | unread |
+
+### The Receiving page (`receiving.ts`), put into Arabic at the coordinator's request, 18 November
+
+Suppliers, what we owe them, paying from the drawer, the last receipts. Its refusals from the database are said in both languages through `plain()` in `warehouse.ts`.
+
+| English | Arabic | Read by |
+|---|---|---|
+| Receiving | الاستلام | unread |
+| Goods in | البضاعة الداخلة | unread |
+| No supplier yet. | لا مورّد بعد. | unread |
+| Add one below first. | أضف واحداً أدناه أولاً. | unread |
+| Ask the ops lead to add the supplier. | اطلب من مسؤول العمليات إضافة المورّد. | unread |
+| Goods come in only against a purchase order: open it on Purchase orders, count each line, and receive it there. A delivery with no order: the ops lead writes one first. | تدخل البضاعة فقط مقابل طلب شراء: افتحه في «طلبات الشراء»، عُدّ كل سطر، واستلمه هناك. تسليم بلا طلب: يكتب مسؤول العمليات طلباً أولاً. | unread |
+| Last receipts | آخر الاستلامات | unread |
+| None. | لا شيء. | unread |
+| on credit | بالدَّين | unread |
+| from the drawer | من الصندوق | unread |
+| Number | الرقم | unread |
+| none | لا يوجد | unread |
+| Total at cost | المجموع بالكلفة | unread |
+| Stock at cost | المخزون بالكلفة | unread |
+| books | الدفاتر | unread |
+| ${uncosted} items on the shelf have no cost yet | ${uncosted} صنف على الرف بلا كلفة بعد | unread |
+| Suppliers | المورّدون | unread |
+| We owe ${usd(balances[i])} | ندين ${usd(balances[i])} | unread |
+| Pay from the drawer | ادفع من الصندوق | unread |
+| Amount USD | المبلغ بالدولار | unread |
+| Receipt number | رقم الإيصال | unread |
+| Pay | ادفع | unread |
+| Add a supplier | أضف مورّداً | unread |
+| Name | الاسم | unread |
+| Phone | الهاتف | unread |
+| Terms | الشروط | unread |
+| cash on delivery, 30 days | نقداً عند التسليم، 30 يوماً | unread |
+| Add | أضف | unread |
+| Write the supplier's name. | اكتب اسم المورّد. | unread |
+| Supplier ${name} saved. | حُفظ المورّد ${name}. | unread |
+| That record is not valid. | هذا السجل غير صالح. | unread |
+| Type the receipt number. | اكتب رقم الإيصال. | unread |
+| That payment was already recorded. | سُجّلت هذه الدفعة من قبل. | unread |
+| Paid ${usd(amount)} from the drawer. We now owe ${usd(r.owed_usd)}. | دُفع ${usd(amount)} من الصندوق. ندين الآن ${usd(r.owed_usd)}. | unread |

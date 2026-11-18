@@ -100,6 +100,18 @@ describe("receiving against a purchase order", () => {
   });
 });
 
+describe("the Receiving page in Arabic (coordinator, 18 November)", () => {
+  it("says suppliers, what we owe, receipts and its forms in Arabic, and answers in Arabic", async () => {
+    const lead = await who("ops_lead", "Maya4", "ar");
+    const page = (await lead.b.get("/receiving")).text;
+    for (const w of ["البضاعة الداخلة", "آخر الاستلامات", "المورّدون", "أضف مورّداً", "طلبات الشراء", "المخزون بالكلفة"]) expect(page).toContain(w);
+    expect(page).not.toMatch(/<h2>(Goods in|Suppliers|Last receipts)<\/h2>/);
+    expect(page).not.toContain('lang="en" dir="ltr"><h1>');                                // a translated page: no English island in the Arabic shell
+    expect(flashOf((await lead.b.post("/suppliers", { name: "Example Bakery" })).text)).toBe("حُفظ المورّد Example Bakery.");
+    expect(flashOf((await lead.b.post("/suppliers", { name: "x" })).text)).toBe("اكتب اسم المورّد.");
+  });
+});
+
 describe("lots on the Stock page", () => {
   it("use soon lists each lot with its code, date and units left; a lead writes a lot off", async () => {
     const lead = await who("ops_lead", "Hussein");
