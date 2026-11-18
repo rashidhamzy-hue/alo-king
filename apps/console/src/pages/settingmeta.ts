@@ -23,6 +23,7 @@ export const META: Record<string, { group: GroupId; name: Words; unit?: Words; h
   "min_order_usd.": { group: "hours", name: { en: "Minimum order", ar: "الحد الأدنى للطلب" }, unit: { en: "USD", ar: "دولار" } },
   "small_order_fee.below_subtotal_usd": { group: "fees", name: { en: "Small-order fee applies below", ar: "رسم الطلب الصغير ينطبق تحت" }, unit: { en: "USD of goods; 0 is off", ar: "دولار من المشتريات؛ 0 يعني معطّل" } },
   "small_order_fee.fee_usd": { group: "fees", name: { en: "Small-order fee", ar: "رسم الطلب الصغير" }, unit: { en: "USD", ar: "دولار" } },
+  "food.service_fee_usd": { group: "fees", name: { en: "Food service fee (per restaurant order)", ar: "رسم خدمة الطعام (لكل طلب من مطعم)" }, unit: { en: "USD; 0 is off", ar: "دولار؛ 0 يعني معطّل" }, help: { en: "Company income. The delivery fee for food is the zone's and belongs to whoever delivers.", ar: "دخل للشركة. رسم توصيل الطعام هو رسم المنطقة ويعود لمن يوصّل." } },
   "timers.awaiting_payment_min": { group: "timers", name: { en: "A transfer waits for payment", ar: "التحويل ينتظر الدفع" }, unit: { en: "minutes", ar: "دقيقة" } },
   "timers.awaiting_confirmation_min": { group: "timers", name: { en: "An order card waits for the customer's tap", ar: "بطاقة الطلب تنتظر ضغطة الزبون" }, unit: { en: "minutes", ar: "دقيقة" } },
   "timers.confirm_reminder_min": { group: "timers", name: { en: "One reminder for an unconfirmed card after", ar: "تذكير واحد بالبطاقة غير المؤكدة بعد" }, unit: { en: "minutes", ar: "دقيقة" } },
