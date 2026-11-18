@@ -1,0 +1,34 @@
+{
+  "about": "FD2 (18 Nov 2026): ordering food from a place on WhatsApp, the same way as groceries. Code (packages/agents/src/food.ts), never the model, finds the place the customer named (its name or the names customers use: «مطبخ التجربة», \"test kitchen\"), matches the dishes on its approved menu, asks every required choice and offers each optional one once as WhatsApp list or button messages, and sends the card with «🍗 من: <place>». A customer the place is not visible to (testers only) gets the honest «not on Alo King yet». The place is the seeded test place (scripts/staging/test-place.sql): invented, never a listed place. Run by test/db/fd2-food-flow.test.ts with the readings scripted as the live model gives them (the place in source_hint, the dish as the line).",
+  "place": "Alo King test kitchen",
+  "cases": [
+    {
+      "id": "fd2-required-choice",
+      "said": "بدي ٢ سندويش شاورما دجاج من مطبخ التجربة",
+      "tester": true,
+      "lines": [{ "raw": "٢ سندويش شاورما دجاج", "query": "سندويش شاورما دجاج", "qty": 2, "source_hint": "مطبخ التجربة" }],
+      "expect": { "first": "choice", "group": "الحجم", "rows": ["عادي", "كبير"] }
+    },
+    {
+      "id": "fd2-options-in-the-words",
+      "said": "2 chicken shawarma sandwich large on saj from the test kitchen",
+      "tester": true,
+      "lines": [{ "raw": "2 chicken shawarma sandwich large on saj", "query": "chicken shawarma sandwich", "qty": 2, "source_hint": "test kitchen" }],
+      "expect": { "first": "optional", "group": "Add-ons" }
+    },
+    {
+      "id": "fd2-non-tester",
+      "said": "بدي فلافل من مطبخ التجربة",
+      "tester": false,
+      "lines": [{ "raw": "فلافل", "query": "سندويش فلافل", "qty": 1, "source_hint": "مطبخ التجربة" }],
+      "expect": { "contains": ["مش متوفّر بعد على ألو كينغ"], "not_contains": ["🍗"] }
+    },
+    {
+      "id": "fd2-not-on-menu",
+      "said": "بدي بيتزا من مطبخ التجربة",
+      "tester": true,
+      "lines": [{ "raw": "بيتزا", "query": "بيتزا", "qty": 1, "source_hint": "مطبخ التجربة" }],
+      "expect": { "contains": ["«بيتزا» بقائمة Alo King test kitchen"], "menu": true }
+    }
+  ]
+}

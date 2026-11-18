@@ -1,0 +1,312 @@
+[
+ {
+  "id": "food-001",
+  "seed": 20000,
+  "category": "food",
+  "variant": "required_choice",
+  "lang": "ar",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a careful customer who checks every price and item",
+  "goal": "Order 2 chicken shawarma sandwiches from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\") for delivery to your home. When the shop asks which size and which bread, choose large and saj; no extras. When the order card arrives and it is right, confirm it by tapping its confirm button.",
+  "success": "The shop asks the size and the bread with buttons or a list before any card; the card names the place, shows the choices and a total from the menu; the customer confirms by tapping.",
+  "style": [
+   "عطيني ليبتون يلو ليبل، علبة الـ١٠٠ كيس",
+   "بدي زبدة لورباك",
+   "بدي دومو هوت شوكولا بالكراميل"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-002",
+  "seed": 20001,
+  "category": "food",
+  "variant": "required_choice",
+  "lang": "en",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a busy worker on a break; impatient, wants it done quickly",
+  "goal": "Order one taouk plate from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\") for delivery to your home. When asked which sauce, choose garlic. When the order card arrives and it is right, confirm it by tapping its confirm button.",
+  "success": "The shop asks the sauce before any card; the card names the place and shows the taouk plate with garlic; the customer confirms by tapping.",
+  "style": [
+   "one Wellplus hand soap sea breeze 500ml thanks",
+   "Can I get Najjar coffee with cardamom, the 180g?",
+   "Please send Loulou diapers size 6"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-003",
+  "seed": 20002,
+  "category": "food",
+  "variant": "item_missing",
+  "lang": "ar",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a careful customer who checks every price and item",
+  "goal": "Order a taouk plate (garlic sauce) and french fries from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). When the order card arrives and it is right, confirm it by tapping its confirm button. If the shop later says something is missing, choose to go on without it.",
+  "success": "After the confirmation the customer is asked about the missing item (never swapped silently), goes on without it, is told the new total, and later that the place took the order.",
+  "style": [
+   "بدي ٣ كورن فلكس بوبينز الصغار",
+   "بدي لحمة مفرومة ناعمة، كيلو",
+   "ابعتلي كيلو فيليه سمك أبيض مفرز"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-004",
+  "seed": 20003,
+  "category": "food",
+  "variant": "item_missing",
+  "lang": "en",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a parent ordering the family's groceries; short messages, polite",
+  "goal": "Order 2 falafel sandwiches and a taouk plate (spicy sauce) from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). When the order card arrives and it is right, confirm it by tapping its confirm button. If the shop later says something is missing, cancel the whole order.",
+  "success": "After the confirmation the customer is asked about the missing item, cancels, and is told the order is cancelled and nothing is charged.",
+  "style": [
+   "Can I have the Nestle Pure Life small bottles, 600ml x12",
+   "Hey, send me a Dark Blue energy drink",
+   "Can I get a tray of white eggs, 30 pieces, Hawa Chicken"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-005",
+  "seed": 20004,
+  "category": "food",
+  "variant": "price_up",
+  "lang": "ar",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a student who types fast with typos and abbreviations",
+  "goal": "Order one taouk plate (garlic sauce) from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). When the order card arrives and it is right, confirm it by tapping its confirm button. If the shop says the price went up, accept the new price.",
+  "success": "The higher price is asked before anything changes; the customer's own tap accepts it; the new total is said; then the place takes the order.",
+  "style": [
+   "مرحبا، بدي شامبو هيد اند شولدرز",
+   "عطيني فيتاليس إنرجي، تروبيكال",
+   "ابعتلي كيلو بصل احمر، مش الابيض"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-006",
+  "seed": 20005,
+  "category": "food",
+  "variant": "price_up",
+  "lang": "en",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a busy worker on a break; impatient, wants it done quickly",
+  "goal": "Order 2 falafel sandwiches from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). When the order card arrives and it is right, confirm it by tapping its confirm button. If the shop says the price went up, decline and cancel.",
+  "success": "The higher price is asked before anything changes; the customer declines and the order is cancelled with nothing charged.",
+  "style": [
+   "Send me some Torabika cappuccino sachets please",
+   "Hi, can you send me one can of Prime sweet corn?",
+   "Can you send one Al Taghziah chicken luncheon, the round one"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-007",
+  "seed": 20006,
+  "category": "food",
+  "variant": "closed_place",
+  "lang": "ar",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a customer new to ordering on WhatsApp; unsure how it works",
+  "goal": "Order a taouk plate from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). If the shop says the place is closed now, accept it and end politely.",
+  "success": "The shop says plainly the place is closed (and when it opens, if known), makes no card for it, invents nothing.",
+  "style": [
+   "ابعتلي كيس بازيلا وجزر مفرزة",
+   "ابعتلي ٣ ميرندا لو سمحت",
+   "عطيني كيس بطاطا فريت من فوديز، الكيس الكبير ٩٠٠ غرام"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-008",
+  "seed": 20007,
+  "category": "food",
+  "variant": "closed_place",
+  "lang": "en",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "an older customer; polite, longer messages, not used to buttons",
+  "goal": "Order 2 chicken shawarma sandwiches from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). If the shop says the place is closed now, ask once if they can get it anyway, then end politely.",
+  "success": "The shop says plainly the place is closed, never offers to phone an order in anyway, makes no card, invents nothing.",
+  "style": [
+   "hey can I get a pack of tortilla wraps",
+   "Please send one bunch of fresh coriander, thanks",
+   "Hi, can you send me the big Aqua Family 10L?"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": true
+  }
+ },
+ {
+  "id": "food-009",
+  "seed": 20008,
+  "category": "food",
+  "variant": "non_tester",
+  "lang": "ar",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a busy worker on a break; impatient, wants it done quickly",
+  "goal": "Order 2 chicken shawarma sandwiches from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). If the shop says it is not available, end politely.",
+  "success": "The shop says plainly the place is not on Alo King yet, shows no menu and no price from it, makes no card.",
+  "style": [
+   "بدي ليبتون آيس تي تروبيكال زيرو",
+   "صباح الخير، بدي ظرفين بيكنغ باودر دومو",
+   "عطيني صحة ليتر ونص، باكيت الستة"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": false
+  }
+ },
+ {
+  "id": "food-010",
+  "seed": 20009,
+  "category": "food",
+  "variant": "non_tester",
+  "lang": "en",
+  "voice": false,
+  "burst": false,
+  "clock": "day",
+  "village": {
+   "name_en": "Baakline",
+   "name_ar": "بعقلين"
+  },
+  "pin": "home",
+  "items": [],
+  "oos_sku": null,
+  "not_sold": null,
+  "history": null,
+  "persona": "a busy worker on a break; impatient, wants it done quickly",
+  "goal": "Order a taouk plate from the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\"). If the shop says it is not available, ask once more, then end politely.",
+  "success": "The shop says plainly the place is not on Alo King yet, shows no menu and no price from it, makes no card, and offers groceries instead at most.",
+  "style": [
+   "one Wellplus hand soap sea breeze 500ml thanks",
+   "Hi, can you send me the white piston bread from Wooden Bakery? Not the rustique one",
+   "please send 2 Sanita laundry liquid, the 2.5L"
+  ],
+  "max_turns": 12,
+  "food": {
+   "tester": false
+  }
+ }
+]

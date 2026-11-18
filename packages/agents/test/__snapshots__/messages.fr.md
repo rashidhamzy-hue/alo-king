@@ -189,6 +189,18 @@ _En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes 
 ❌ Annuler
 ```
 
+## card.from
+
+```text
+🍗 De : Alo King test kitchen
+```
+
+## card.serviceFee
+
+```text
+Frais de service · $0.50
+```
+
 ## card.now
 
 ```text
@@ -432,6 +444,33 @@ ou 651,000 LBP
 📍 *Livrer à*
 Baakline
 ⏱️ Dans environ 30 minutes
+
+💵 *Paiement*
+Espèces à la livraison
+
+🔁 *S'il manque un article*
+Nous vous demandons avant de remplacer quoi que ce soit
+
+_En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation._
+```
+
+## card.food
+
+```text
+🛒 *Votre commande AK-1042*
+🍗 De : Alo King test kitchen
+
+2 × Chicken shawarma sandwich (Large, Saj) · $13.00
+
+Articles · $13.00
+Livraison à Baakline · $1.00
+Frais de service · $0.50
+*Total · $14.50*
+ou 1,298,000 LBP
+
+📍 *Livrer à*
+Baakline, بيت الاختبار, الطابق 2
+⏱️ Dans environ 35 minutes
 
 💵 *Paiement*
 Espèces à la livraison
@@ -991,12 +1030,6 @@ Choisissez un créneau.
 
 ```text
 🏠 Le retrait au magasin n'a pas d'horaire fixe : passez pendant les heures d'ouverture.
-```
-
-## windows.restaurantNoWindow
-
-```text
-Les commandes de restaurant n'ont pas de créneau pour l'instant : elles arrivent quand elles sont prêtes.
 ```
 
 ## windows.freshForWindow
@@ -2505,6 +2538,206 @@ AK-1042
 1 × Najjar Cardamom 180 g
 $3.49
 5
+```
+
+## food.secondOrder
+
+```text
+🛒 *Une deuxième commande, chez Alo King test kitchen*
+Un commerce par commande : vos autres articles restent gardés dans leur commande.
+```
+
+## food.menu
+
+```text
+🍗 *Alo King test kitchen*
+Que souhaitez-vous ? Choisissez un plat.
+```
+
+## food.menu.more
+
+```text
+🍗 *Alo King test kitchen*
+Que souhaitez-vous ? Choisissez un plat ou écrivez son nom.
+```
+
+## food.dishesButton
+
+```text
+Plats
+```
+
+## food.whichDish
+
+```text
+🔎 *Quel plat voulez-vous dire ?*
+« shawarma » chez Alo King test kitchen
+```
+
+## food.notOnMenu
+
+```text
+⚠️ Nous n'avons pas trouvé « pizza » sur la carte de Alo King test kitchen.
+```
+
+## food.choose
+
+```text
+📝 *Chicken shawarma sandwich*
+Choisissez : size
+```
+
+## food.choose.optional
+
+```text
+📝 *Chicken shawarma sandwich*
+Souhaitez-vous ajouter : add-ons ?
+```
+
+## food.chooseButton
+
+```text
+Choisir
+```
+
+## food.noThanks
+
+```text
+Non, merci
+```
+
+## food.closed
+
+```text
+🕘 *Alo King test kitchen est fermé pour l'instant*
+Ouverture à 11:00. Votre commande est gardée ici.
+```
+
+## food.closed.noTime
+
+```text
+🕘 *Alo King test kitchen est fermé pour l'instant*
+Votre commande est gardée ici.
+```
+
+## food.askPlace
+
+```text
+💬 Nous n'avons pas d'information confirmée sur la composition de Chicken shawarma sandwich ni sur ses allergènes.
+Nous demanderons à Alo King test kitchen en les appelant, sans dire que c'est sans risque avant de savoir.
+```
+
+## food.arrives
+
+```text
+⏱️ Les commandes de Alo King test kitchen arrivent quand elles sont prêtes, dans environ 35 minutes.
+```
+
+## food.arrives.none
+
+```text
+⏱️ Les commandes de restaurant arrivent quand elles sont prêtes.
+```
+
+## food.accepted
+
+```text
+✅ *Commande AK-1042*
+Alo King test kitchen a pris la commande et la prépare.
+⏱️ Elle arrive dans environ 35 minutes.
+```
+
+## food.itemMissing
+
+```text
+⚠️ *Commande AK-1042*
+Alo King test kitchen n'a plus Chicken shawarma sandwich pour l'instant.
+On continue sans, ou on annule ? Nous ne remplaçons jamais rien sans vous demander.
+```
+
+## food.keepRest
+
+```text
+✅ Continuer sans
+```
+
+## food.cancelOrder
+
+```text
+❌ Annuler
+```
+
+## food.acceptPrice
+
+```text
+✅ D'accord
+```
+
+## food.closedNow
+
+```text
+❌ *Commande AK-1042 annulée*
+Alo King test kitchen est fermé, nous ne pouvons pas prendre la commande.
+Vous ne payez rien.
+```
+
+## food.priceLower
+
+```text
+✅ *Commande AK-1042*
+Chicken shawarma sandwich coûte moins cher chez Alo King test kitchen.
+*Nouveau total · $12.50*
+```
+
+## food.priceUp
+
+```text
+⚠️ *Commande AK-1042 : le prix de Chicken shawarma sandwich a changé*
+Chez Alo King test kitchen, avant · $6.50
+Maintenant · $7.00
+*Nouveau total · $15.00*
+Êtes-vous d'accord ?
+```
+
+## food.dropped
+
+```text
+✅ *Commande AK-1042*
+Nous avons retiré l'article manquant et continuons avec le reste.
+*Nouveau total · $9.00*
+```
+
+## food.priceAccepted
+
+```text
+✅ *Commande AK-1042*
+Nous continuons au nouveau prix.
+*Nouveau total · $15.00*
+```
+
+## food.answerCancelled
+
+```text
+❌ *Commande AK-1042 annulée*
+Vous ne payez rien.
+```
+
+## food.notWaiting
+
+```text
+💬 La commande *AK-1042* n'attend plus de réponse. Écrivez-nous si quelque chose ne va pas.
+```
+
+## food.notWaiting.none
+
+```text
+💬 Aucune question n'attend de réponse. Écrivez-nous si quelque chose ne va pas.
+```
+
+## ops.foodCall
+
+```text
+📦 Appeler Alo King test kitchen pour la commande #AK-1042 (console, Repas)
 ```
 
 ## ops.newPick

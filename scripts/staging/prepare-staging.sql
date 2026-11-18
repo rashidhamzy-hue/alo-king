@@ -9,6 +9,7 @@
 --     nothing can be sent to it), a pinned address, the riders on shift. The ops lead only confirms the riders' cash drops
 --     (probe_remit_cash, 0140): without that the riders' cash rose past the cap and the probe orders stopped at "confirmed" (15 Nov).
 --     Messages to them never reach WhatsApp (can_send answers probe_sink). PROBE_MODE=on in the staging Worker turns the cron's probe on.
+--   * FD2: the seeded test place, "Alo King test kitchen" (invented, testers only), through FD1's own functions (test-place.sql).
 \set ON_ERROR_STOP on
 insert into fx_rates(lbp_per_usd) select 89500 where not exists (select 1 from fx_rates);
 
@@ -52,6 +53,9 @@ begin
   update settings set value = value || jsonb_build_object('enabled', true, 'pin', jsonb_build_object('lat', lat, 'lng', lng),
     'order_text', 'بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين') where key = 'probe';
 end $$;
+
+-- FD2: the seeded test place (an invented kitchen, testers only; scripts/staging/test-place.sql). Idempotent.
+\ir test-place.sql
 
 select 'staging prepared: fx ' || (select count(*) from fx_rates) || ', hub ' || coalesce((select v.name_en from sources s join villages v on v.id = s.village_id where s.kind = 'dark_store'), 'none')
     || ', stocked products ' || (select count(*) from stock_levels where on_hand > 0)

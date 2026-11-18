@@ -203,11 +203,18 @@ export async function orderWindowTap(ctx: ToolContext, slotId: string | null, or
   if (r.ok) return resendCard(ctx, orderId);
   if (r.reason === "status") return say(ctx, T(ctx).windows.notChangeable(r.short_code), orderId);
   if (r.reason === "pickup") return say(ctx, T(ctx).windows.pickupNoWindow, orderId);
-  if (r.reason === "restaurant") return say(ctx, T(ctx).windows.restaurantNoWindow, orderId);
+  if (r.reason === "restaurant") return say(ctx, await foodArrives(ctx, orderId), orderId);
   const windows = r.windows ?? [];
   if (!windows.length) return say(ctx, T(ctx).windows.none, orderId);
   const body = r.reason === "now_unavailable" ? T(ctx).windows.nowUnavailable : T(ctx).windows.gone;
   return (await deliver(ctx, formatWindowChoice(orderId, windows, { lang: ctx.state.lang, body }), `[windows ${r.short_code}] ${body}`, orderId)).ok;
+}
+
+/** FD2: food from a place has no delivery window: it comes when ready, in about the place's preparation time plus the ride (0249). */
+async function foodArrives(ctx: ToolContext, orderId: string): Promise<string> {
+  const c = await rpc<{ quote?: { shop?: { name?: string } | null; eta_minutes?: number | null } } | null>(ctx.db, "order_card", { p_order: orderId, p_party: ctx.partyId })
+    .catch(() => null);
+  return T(ctx).food.arrives(c?.quote?.shop?.name ?? null, c?.quote?.eta_minutes ?? null);
 }
 
 /** The card waiting on this customer's tap (card_in_hand, 0119). */
@@ -220,7 +227,7 @@ export async function cardInHand(ctx: ToolContext): Promise<CardInHand | null> {
 /** A time said while a card waits on the tap (C3's request 1): one window goes on the card; several, or none that match, a list. */
 export async function cardWhen(ctx: ToolContext, card: CardInHand, when: When): Promise<boolean> {
   if (card.pickup) return say(ctx, T(ctx).windows.pickupNoWindow, card.order_id);
-  if (!card.hub_only) return say(ctx, T(ctx).windows.restaurantNoWindow, card.order_id);
+  if (!card.hub_only) return say(ctx, await foodArrives(ctx, card.order_id), card.order_id);
   const p = await pickWindow(ctx, card.village_id, card.fresh, when);
   if (p.kind === "one") return orderWindowTap(ctx, p.window.slot_id, card.order_id);
   if (p.kind === "nothing") return say(ctx, T(ctx).windows.none, card.order_id);

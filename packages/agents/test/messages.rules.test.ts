@@ -15,7 +15,8 @@ import { cashAsk, dropCard, offerCard, pickupCard, type Job } from "@ak/agents/j
 
 // ---------- the rules ----------
 // CX2 (approved by the founder, 18 November 2026; docs/MESSAGES.md and packages/agents/src/messages/types.ts): the customer's messages.
-const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝"]);
+// FD2 (18 November 2026): 🍗 added, for the food card's place line «🍗 من: <place>» and the place's menu heading only (the session's prompt).
+const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝", "🍗"]);
 const MAX_LINE = 120;          // rule 1: about three phone lines
 const MAX_EMOJI = 3, MAX_EMOJI_CARD = 6;
 const AMOUNT = /-?\$\d+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+ (?:ل\.ل|LBP)|\b\d+ (?:ل\.ل|LBP)/gu;
@@ -88,6 +89,10 @@ function cards(lang: Lang): { key: string; input: CardInput }[] {
     { key: "card.firstOrder", input: { ...base, paymentMethod: "whish", prepay: { reason: "first_order", maxCodUsd: 50 } } },
     { key: "card.replaces", input: { ...base, window: W(1), replaces: "AK-1040" } },
     { key: "card.noAddress", input: { ...base, address: null } },
+    // FD2: a food card: the place under the heading, a dish's options after its name, the food service fee when above 0.
+    { key: "card.food", input: { ...base, quote: { ...QUOTE, lines: [{ product_id: "d1", name: "Chicken shawarma sandwich", name_ar: "سندويش شاورما دجاج", qty: 2, unit: "piece",
+        line_total_usd: 13, options: [{ name_en: "Large", name_ar: "كبير" }, { name_en: "Saj", name_ar: "صاج" }] }], subtotal_usd: 13, service_fee_usd: 0.5, total_usd: 14.5,
+        total_lbp: 1298000, eta_minutes: 35, shop: { source_id: "s1", name: "Alo King test kitchen", kind: "place" }, food: true } } },
   ];
 }
 const bodyOf = (o: Outbound): string => o.type === "text" ? o.text.body : o.type === "interactive" ? (o.interactive as { body: { text: string } }).body.text : JSON.stringify(o);
@@ -111,6 +116,7 @@ function render(m: Messages): Rendered[] {
   add("card.changeFor", c.changeFor); add("card.changeForLbp", `${c.changeForLbp} · ${m.lbp(2000000)}`); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
   add("card.replaces", c.replaces("AK-1040")); add("card.reopenedFrom", c.reopenedFrom("AK-1040")); add("card.consent", c.consent);
   add("card.confirm", c.confirm); add("card.edit", c.edit); add("card.cancel", c.cancel);
+  add("card.from", c.from("Alo King test kitchen")); add("card.serviceFee", m.amount(c.serviceFee, 0.5));
   for (const x of cards(L)) formatOrderCard(x.input).forEach((o, i, all) => add(`${x.key}${all.length > 1 ? `.${i + 1}` : ""}`, bodyOf(o), { kind: i === all.length - 1 ? "card" : undefined }));
   const long = formatOrderCard({ orderId: ORDER, shortCode: CODE, quote: { ...QUOTE, lines: Array.from({ length: 40 }, (_, i) => ({ ...LINES[i % 3]!, qty: i + 1 })) }, paymentMethod: "cod", lang: L, address: ADDRESS },
                                { before: m.answer.someMissing([names[2]!]) });
@@ -138,7 +144,7 @@ function render(m: Messages): Rendered[] {
   add("fixed.priced", [f.priced(names[0]!, 2.01, true), f.priced(names[2]!, 3.25, false)].join("\n"));
 
   const w = m.windows;
-  for (const k of ["choose", "button", "now", "none", "gone", "noneAt", "noneAtAll", "nowUnavailable", "orChoose", "pickupNoWindow", "restaurantNoWindow"] as const) add(`windows.${k}`, w[k]);
+  for (const k of ["choose", "button", "now", "none", "gone", "noneAt", "noneAtAll", "nowUnavailable", "orChoose", "pickupNoWindow"] as const) add(`windows.${k}`, w[k]);
   add("windows.freshForWindow", w.freshForWindow([names[1]!])); add("windows.notChangeable", w.notChangeable(CODE));
   const list = formatWindowChoice(ORDER, [W(0), W(1), W(2, 4), W(3, 5), W(4, 6), W(5, 7), W(6, 1)], { withNow: true, lang: L });
   const rows = (list as unknown as { interactive: { action: { sections: { rows: { title: string; description?: string }[] }[] } } }).interactive.action.sections[0]!.rows;
@@ -231,8 +237,22 @@ function render(m: Messages): Rendered[] {
                                    qty: 1, replaced_total_usd: 3.25, line_total_usd: 3.49, diff_usd: 0.24, answer_min: 5 }, L);
   add("sub.message", bodyOf(q.msg)); add("sub.template", q.params.join("\n"), { kind: "template" });
 
+  // FD2: ordering food from a place, and what staff found when they called it.
+  const fd = m.food; const P = "Alo King test kitchen"; const dish = L === "ar" ? "سندويش شاورما دجاج" : "Chicken shawarma sandwich";
+  add("food.secondOrder", fd.secondOrder(P)); add("food.menu", fd.menu(P, false)); add("food.menu.more", fd.menu(P, true)); add("food.dishesButton", fd.dishesButton);
+  add("food.whichDish", fd.whichDish(L === "ar" ? "شاورما" : "shawarma", P)); add("food.notOnMenu", fd.notOnMenu([L === "ar" ? "بيتزا" : "pizza"], P));
+  add("food.choose", fd.choose(dish, L === "ar" ? "الحجم" : "Size", true)); add("food.choose.optional", fd.choose(dish, L === "ar" ? "إضافات" : "Add-ons", false));
+  add("food.chooseButton", fd.chooseButton); add("food.noThanks", fd.noThanks); add("food.closed", fd.closed(P, "11:00")); add("food.closed.noTime", fd.closed(P, null));
+  add("food.askPlace", fd.askPlace(dish, P)); add("food.arrives", fd.arrives(P, 35)); add("food.arrives.none", fd.arrives(null, null));
+  add("food.accepted", fd.accepted(CODE, P, 35)); add("food.itemMissing", fd.itemMissing(CODE, P, dish));
+  add("food.keepRest", fd.keepRest); add("food.cancelOrder", fd.cancelOrder); add("food.acceptPrice", fd.acceptPrice);
+  add("food.closedNow", fd.closedNow(CODE, P)); add("food.priceLower", fd.priceLower(CODE, P, dish, 12.5)); add("food.priceUp", fd.priceUp(CODE, P, dish, 6.5, 7, 15));
+  add("food.dropped", fd.dropped(CODE, 9)); add("food.priceAccepted", fd.priceAccepted(CODE, 15)); add("food.answerCancelled", fd.answerCancelled(CODE));
+  add("food.notWaiting", fd.notWaiting(CODE)); add("food.notWaiting.none", fd.notWaiting(""));
+
   const o = m.ops;
   const S = (k: string, v: string) => add(`ops.${k}`, v);
+  S("foodCall", o.foodCall(CODE, "Alo King test kitchen"));
   S("newPick", o.newPick(CODE)); S("startButton", o.startButton(CODE)); S("pickWait", o.pickWait(CODE, 12)); S("noRider", o.noRider(CODE));
   for (const k of ["noOrders", "taken", "noOpenPick", "subNotSent", "unknown", "noReturns", "countReturn", "returnDefault", "returnAllFit", "returnAllWaste", "opsOnly",
                    "noRiders", "riderCannot", "riderConfirmButton", "cashReceivedButton", "riderOffToRider", "error", "pickDone", "pickMissing", "whichMissingButton",
