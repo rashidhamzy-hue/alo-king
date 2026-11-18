@@ -63,10 +63,25 @@ path is code (invariant 21); the Concierge still reads the turn and never adds a
   snapshots `messages.{ar,en,fr}.md` hold them as sent. `test/ci/fd2-arabic.test.ts`: the Food page's Arabic equals `docs/ARABIC_REVIEW.md`.
 - `evals/sim`: ten food scenarios (`food-scenarios.json`, apart from the 500), the seeded place in the world, the call ahead played by the driver.
   A dry run with stand-in models passed through the harness.
-- `npm run typecheck` and `npm test`: RESULT_TESTS. `npm run check:personal-data`: clean.
+- `npm run typecheck`: clean. `npm test` here: 3,248 passed; the `test/pg` suites need pgvector, which this machine lacks, and pass in CI.
+  CI green on PR #135 (head 84ebc4b) and on the follow-up PR. `npm run check:personal-data`: clean.
 
 ## The live runs (one each, at the end)
-LIVE_RUNS
+All on 18 November 2026. Total model spend USD 0.40 (cap 2 for the sim, 2 for the gate).
+- **Deploy** (deploy-staging run 44378496082, from main at fdaacec, 19:15 UTC, green): 0249, 0250 and 0251 applied; the staging checks 170/170;
+  the permission check passes (`web_channel` holds 43 functions); `prepare-staging.sql` made the test kitchen.
+- **Language gate** (run 44378552599): wrong 0, precision 1.000, F1 0.915 (Lebanese Arabic 0.919, Arabizi 0.891, English 0.966, French 0.94,
+  mixed 0.937); the demo answered right. About USD 0.10 (249,490 tokens in, 158,217 out). Results on branch `language-pack-out/44378552599`.
+- **Sim-test, food scenarios** (run 44378571504, limit 10, repeats 0, budget 2): **3 of 10 passed** (food-007 non-tester, food-009, food-010),
+  USD 0.18. The seven failures were the harness's, not the food path's, and one wording: (a) the simulation's copy of staging brought the test
+  kitchen's dishes without their option groups (`dish_option_groups`, `dish_options` were not in its table list), so no choice was asked;
+  (b) the simulation's own emoji list lacked 🍗, a hard failure on every food card; (c) the closed-place reply said "your order is kept here",
+  and the model then promised to send it at opening (judged an invented fact). Fixed in ab1c28d: the two tables copied, 🍗 in the list, the
+  reply now says nothing is sent by itself (ar, en, fr; the CX2 rules and snapshots pass).
+- **Sim-test re-run** (run 44381374885, on the fix's branch, the seven that failed, repeats 0, budget 1): **7 of 7 passed** (food-001 and -002
+  required choice, -003 and -004 item missing, -005 and -006 price up, -008 closed place), no hard failure, USD 0.12; staging requests 36, all
+  GET; 56 sends recorded, none made. This is a re-run after a fix to the harness, named so here, not a second roll for luck: the first world
+  had no choices to ask.
 
 ## Not proven (only a live account can)
 - A real place: none is approved on staging yet (the founder's steps in `docs/log/FD1.md`); the test kitchen stands in. A real phone call to a

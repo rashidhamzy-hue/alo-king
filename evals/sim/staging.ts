@@ -9,6 +9,8 @@ export const COPY_TABLES: CopySpec[] = [
   { table: "zones" }, { table: "villages" }, { table: "village_coords" }, { table: "travel_times" },
   { table: "sources" },
   { table: "products" }, { table: "product_aliases" }, { table: "offers" }, { table: "stock_levels" },
+  // FD2: a place's dishes carry their option groups (sizes, bread, sauce); without them a dish would be ordered with no choice asked.
+  { table: "dish_option_groups" }, { table: "dish_options" },
   { table: "language_pack" }, { table: "catalog_negation" }, { table: "catalog_filler" },
   { table: "catalog_categories" }, { table: "catalog_subgroups" }, { table: "catalog_placements" },
   { table: "delivery_window_plans" }, { table: "delivery_calendar" }, { table: "delivery_slots" },
