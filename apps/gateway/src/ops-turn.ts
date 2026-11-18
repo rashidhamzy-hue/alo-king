@@ -41,6 +41,11 @@ export async function dispatchAndOffer(deps: TurnDeps, orderId: string): Promise
     }
     return d;
   }
+  // FD2: a food order waits for staff to call the place (the console's Food page). Ops hear of it once; no rider before it is accepted.
+  if (d.status === "waiting_for_place") {
+    await alertOps(deps, O.foodCall(d.short_code ?? "", String((d as { place?: string }).place ?? "")), `foodcall:${orderId}`);
+    return d;
+  }
   if (d.status === "offered" && d.delivery_id && d.driver_id) {
     const job = await rpc<Job>(deps.db, "rider_job", { p_delivery: d.delivery_id });
     await sendToParty(deps, d.driver_id, offerCard(job, d.minutes_to_pickup), `offer:${d.delivery_id}`);

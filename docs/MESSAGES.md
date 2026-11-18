@@ -13,6 +13,14 @@ The founder's five changes (applied in stage 2):
 4. `windows.freshForWindow`: «طازة» / "Fresh" before each product's own name from the quote (the database), never the customer's words.
 5. Restaurant and food messages untouched (`windows.restaurantNoWindow`, `fixed.notAvailable`, `fixed.listingClaimed`): FD2 owns them.
 
+**FD2 (18 November 2026), food from a place.** In the same layout: the food card is the order card with one more line under the heading,
+«🍗 من: <place>» ("🍗 From: <place>"), the dish's chosen options after its name, and «رسم الخدمة» (Service fee) in the totals when above 0;
+🍗 joins the emoji set for that line and a place's menu heading only (23 emojis now; at most six on a card still). New: `food.*` (the menu as a
+list, which dish, each choice as buttons or a list, "a second order", the place closed, "we'll ask the place", and what staff found on the
+phone: accepted with the estimate, an item missing, closed, a price lower or higher), `card.from`, `card.serviceFee`, `ops.foodCall`.
+`windows.restaurantNoWindow` is replaced by `food.arrives` (it comes when ready, in about the place's time plus the ride). Every one, as sent,
+is in `packages/agents/test/__snapshots__/messages.{ar,en,fr}.md`, checked by the same rules test.
+
 ## The rules, before and after
 
 | Rule | Before (M1, SYSTEM_BRIEF) | After (approved, in the code) |

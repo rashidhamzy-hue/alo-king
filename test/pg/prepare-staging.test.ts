@@ -24,6 +24,10 @@ run("staging preparation", () => {
       (select count(*) from customer_places cp join parties p on p.id = cp.party_id where p.is_probe)::int places`;
     expect(s).toEqual({ fx: 1, hub: "Baakline", stocked: s!.rows, rows: s!.rows, max_on_hand: 5000, probes: 4, open_shifts: 2, enabled: "true", places: 1 });
     expect((await sql`select on_hand from stock_levels where on_hand = 4321`).length).toBe(1);    // the second run did not overwrite stock
+    // FD2: the seeded test place, once, testers only, approved, its listing hidden (scripts/staging/test-place.sql, run twice above)
+    const kitchen = await sql`select s.visibility, s.approved_at is not null as approved, (select count(*)::int from products p where p.owner_source_id = s.id) as dishes,
+        (select hidden_at is not null from listings l where l.listing_id = s.listing_id) as hidden from sources s where s.listing_id = 'ak-test-kitchen-staging'`;
+    expect(kitchen).toEqual([{ visibility: "testers", approved: true, dishes: 4, hidden: true }]);
     const [g] = await sql`select can_send(p.id, 'customer', 'service', false) g from parties p where p.is_probe and p.role = 'customer'`;
     expect(g!.g).toBe("probe_sink");
     // OPS1: a probe ops lead confirms the probe riders' cash drops (0140). It has no identity, so no message and no push can reach it.

@@ -127,7 +127,7 @@ export async function takePick(ctx: ToolContext, productId: string, route: Route
                                                  modifiers: picked.modifiers, note: picked.note ?? null }]).lines;
   const pickup = held?.pickup ?? false;
   const villageId = pickup ? null : ctx.state.villageId ?? held?.villageId ?? null;
-  const quote = await rpc<Quote>(ctx, "quote_order", { p_lines: lines, p_village: villageId, p_pickup: pickup, ...(ctx.state.slotId ? { p_slot: ctx.state.slotId } : {}) });
+  const quote = await rpc<Quote>(ctx, "quote_order", { p_party: ctx.partyId, p_lines: lines, p_village: villageId, p_pickup: pickup, ...(ctx.state.slotId ? { p_slot: ctx.state.slotId } : {}) });
   ctx.state.lastQuote = { lines, villageId, pickup, quote };
   ctx.state.basketAt = Date.now();
   ctx.state.asking = ctx.state.asking!.slice(1);

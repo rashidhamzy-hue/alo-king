@@ -12,6 +12,7 @@ import { answerQuick, answerWhen, askPinVillage, nameLost, settlePinVillage, bas
          routeBasket, waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { parsePickButton, takePick } from "@ak/agents/choice";
+import { parseCallButton, parseFoodButton, takeCallAnswer, takeFoodTap } from "@ak/agents/food";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/agents/answers";
@@ -414,6 +415,27 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
           buttonsHandled++; await tapFailed(tapped, "basket", err); continue;
         }
+      }
+      // FD2: a dish, an option or "no, thanks" from the food questions code asked (food.ts). An old button is read as words.
+      const foodTap = parseFoodButton(tapped);
+      if (foodTap) {
+        try {
+          if ((await takeFoodTap(ctx, foodTap, routeBasket)).done) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
+        } catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          buttonsHandled++; await tapFailed(tapped, "basket", err); continue;
+        }
+      }
+      // FD2: the customer's answer to what staff found when they called the place (keep the rest, accept a new price, or cancel). Code answers.
+      const callAnswer = parseCallButton(tapped);
+      if (callAnswer) {
+        buttonsHandled++;
+        try { await takeCallAnswer(ctx, callAnswer); sent.push(...ctx.sent.texts.splice(0)); }
+        catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          await tapFailed(tapped, "choice", err);
+        }
+        continue;
       }
       // HO1: the buttons of the case lines and of the fixed technical, cap and stalled lines. Code answers each; never the model.
       if (await supportTap(tapped)) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }

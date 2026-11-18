@@ -6,6 +6,9 @@ import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { turnKeyOf, type Pending } from "../../apps/gateway/src/turn";
 import type { ModelClient } from "../../packages/agents/src/concierge";
 import { supabaseOver } from "../../test/db/supabase-shim";
+import { send as gatewaySend } from "../../packages/wa/src/gateway";
+import { sendCodeStarted } from "../../packages/agents/src/messages/notify";
+import { foodNotice, type CallOutcome } from "../../packages/agents/src/food-notices";
 import { basketRows } from "./basket";
 import { cardOf, HARD_SEVERITY, renderKapso, ruleProblems, totalMismatch, wrongLanguage, type BotMsg, type Option } from "./checks";
 import { amountsIn, numbersIn, type Meter } from "./metered";
@@ -94,6 +97,15 @@ export class SimConversation {
   async start(): Promise<void> {
     const t = await this.world.db.rpc("touch_conversation", { p_line: "customer", p_wa_user_id: this.who.waUserId, p_phone: this.who.phone, p_name: "Sim customer" });
     this.partyId = t.party_id; this.conversationId = t.conversation_id;
+    // FD2: a food scenario. The customer is on the tester list or not; the closed-place one finds the place closed for the day (the others
+    // open it again: run the food scenarios with concurrency 1).
+    const f = this.scenario.food;
+    if (f) {
+      const lead = (await this.sql<{ id: string }>(`select id from parties where is_probe and role = 'ops_lead' order by id limit 1`))[0]?.id;
+      if (lead) await this.world.db.rpc("set_tester", { p_by: lead, p_phone: this.who.phone, p_on: f.tester });
+      await this.sql(`update sources set closed_on = case when $1 then (now() at time zone coalesce((select value->>'tz' from settings where key = 'hours'), 'Asia/Beirut'))::date end
+                       where listing_id = 'ak-test-kitchen-staging'`, [this.scenario.variant === "closed_place"]);
+    }
     const h = this.scenario.history;
     if (!h) return;
     const v = this.world.villages.get(this.scenario.village.name_en);
@@ -187,6 +199,7 @@ export class SimConversation {
       if (!this.store.has("inflight") && !(((this.store.get("pending") as unknown[]) ?? []).length)) break;
     }
     const seconds = (Date.now() - started) / 1000;
+    await this.staffStep();
     const replies = this.guard.kapso.slice(mark.kapso).filter((k) => k.pnid === "PN_CUSTOMER" && norm(k.body?.to) === norm(this.who.phone)).map((k) => renderKapso(k.body));
     for (const r of replies) for (const o of r.options) {
       const ref = `b${this.options.size + 1}`;
@@ -246,6 +259,36 @@ export class SimConversation {
                               basket: basketRows(this.store.get("state") as Parameters<typeof basketRows>[0]) };
     this.turns.push(rec);
     return rec;
+  }
+
+  /**
+   * FD2: staff calling the place ahead, played by the run: a food order of this customer that waits for its call gets the scenario's outcome
+   * the first time (an item missing, a price up 25%), and "accepted, ready in 15 minutes" after that; the customer hears it through the gateway,
+   * with the console's own words (packages/agents/src/food-notices.ts). Only the run's own database; Kapso is the guard.
+   */
+  private readonly calls = new Map<string, number>();
+  private async staffStep(): Promise<void> {
+    if (!this.scenario.food) return;
+    const lead = (await this.sql<{ id: string }>(`select id from parties where is_probe and role = 'ops_lead' order by id limit 1`))[0]?.id;
+    if (!lead) return;
+    const waiting = await this.sql<{ id: string; order_id: string }>(`select c.id, c.order_id from place_calls c join orders o on o.id = c.order_id
+        where o.customer_id = $1 and c.status = 'to_call' and o.status = 'confirmed' order by c.created_at`, [this.partyId]);
+    for (const c of waiting) {
+      const times = this.calls.get(c.id) ?? 0;
+      this.calls.set(c.id, times + 1);
+      const item = (await this.sql<{ id: string; unit_price_usd: string }>(`select id, unit_price_usd from order_items where order_id = $1 and status = 'ok' order by id desc limit 1`, [c.order_id]))[0];
+      let r: CallOutcome;
+      try {
+        if (times === 0 && this.scenario.variant === "item_missing" && item) r = await this.world.db.rpc("food_call_item_missing", { p_call: c.id, p_by: lead, p_item: item.id });
+        else if (times === 0 && this.scenario.variant === "price_up" && item)
+          r = await this.world.db.rpc("food_call_price", { p_call: c.id, p_by: lead, p_item: item.id, p_unit_usd: Math.round(Number(item.unit_price_usd) * 125) / 100 });
+        else r = await this.world.db.rpc("food_call_accept", { p_call: c.id, p_by: lead, p_ready_in_min: 15 });
+      } catch { continue; }
+      const n = foodNotice(r);
+      if (!n) continue;
+      const env = { KAPSO_BASE_URL: `${KAPSO_ORIGIN}/v24.0`, KAPSO_API_KEY: "sim-not-a-key", PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS" };
+      await sendCodeStarted({ db: this.client, send: (req) => gatewaySend(this.client, env, req) }, this.partyId, n.event, n.build, n.key, r.order_id).catch(() => undefined);
+    }
   }
 
   async handedOff(): Promise<boolean> {

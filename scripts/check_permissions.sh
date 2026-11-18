@@ -112,7 +112,7 @@ do $$ declare web_allowed text[] := array['web_session_start', 'web_session_stat
                                            'web_place_order', 'web_order_page', 'web_orders', 'web_order_again', 'web_account', 'web_memory_forget',
                                            'web_memory_pref', 'web_sign_out_everywhere', 'web_save_pin', 'web_pin_village', 'web_place_details',
                                            'web_windows', 'web_service_facts', 'web_cart_count',
-                                           'web_join_options', 'web_join_state', 'web_join_code', 'web_apply_rider', 'web_apply_vendor'];
+                                           'web_join_options', 'web_join_state', 'web_join_code', 'web_apply_rider', 'web_apply_vendor', 'web_food_places', 'web_food_menu', 'web_food_quote', 'web_food_order'];
               t text; n int; begin
   if not exists (select 1 from pg_roles where rolname = 'web_channel') then raise exception 'role web_channel is missing (migration 0132)'; end if;
   select string_agg(p.oid::regprocedure::text, ', ') into t from pg_proc p

@@ -8,7 +8,9 @@ import { loadCatalog, loadStyle, loadVillages, type CatalogItem } from "./catalo
 
 export type Lang = "ar" | "arabizi" | "en" | "fr" | "mixed";
 export type Category = "plain_order" | "vague_items" | "not_sold" | "out_of_stock" | "edit_after_card" | "cancel" | "window" | "night"
-  | "address" | "food_facts" | "money" | "person" | "off_topic" | "same_as_last";
+  | "address" | "food_facts" | "money" | "person" | "off_topic" | "same_as_last"
+  /** FD2: ordering food from the seeded test place (evals/sim/food-scenarios.json, apart from the 500). */
+  | "food";
 
 export interface ScenarioItem { sku: string; name_en: string; name_ar: string | null; qty: number; unit: string }
 export interface Scenario {
@@ -27,12 +29,14 @@ export interface Scenario {
   /** Three customer messages from evals/language (invented) in this language: style only, never content. */
   style: string[];
   max_turns: number;
+  /** FD2: a food scenario: whether the customer's number is on the tester list (the seeded test place is testers only). */
+  food?: { tester: boolean } | null;
 }
 
 /** Counts per category, as the brief lists them (500 in all). */
 export const COUNTS: Record<Category, number> = {
   plain_order: 55, vague_items: 45, not_sold: 30, out_of_stock: 45, edit_after_card: 35, cancel: 45, window: 35, night: 35,
-  address: 35, food_facts: 30, money: 25, person: 45, off_topic: 30, same_as_last: 10,
+  address: 35, food_facts: 30, money: 25, person: 45, off_topic: 30, same_as_last: 10, food: 0,
 };
 export const LANG_COUNTS: Record<Lang, number> = { ar: 225, arabizi: 125, en: 75, fr: 50, mixed: 25 };
 export const VOICE_COUNT = 125, BURST_COUNT = 50, TOTAL = 500, MASTER_SEED = 20261115, MAX_TURNS = 12;
@@ -52,6 +56,7 @@ const VARIANTS: Record<Category, [string, number][]> = {
   person: [["wants_person", 15], ["complaint", 15], ["refund", 15]],
   off_topic: [["off_topic", 8], ["injection_confirm", 4], ["injection_discount", 4], ["abuse", 7], ["stop", 7]],
   same_as_last: [["same_as_last", 10]],
+  food: [],
 };
 
 const NOT_SOLD: Record<string, { en: string; ar: string; fr: string }[]> = {
@@ -261,5 +266,58 @@ export function makeScenarios(): Scenario[] {
       }
     }
     return s;
+  });
+}
+
+/**
+ * FD2: ten food scenarios, apart from the 500 (so those stay as they are): the seeded test place (scripts/staging/test-place.sql, invented),
+ * which is testers only. evals/sim/food-scenarios.json is this function's output; run them with the sim-test input `only` (food-001,...)
+ * and concurrency 1 (the closed-place scenarios close the place for the day). The staff side (the call ahead) is played by the driver:
+ * the place takes the order, or an item is missing, or a price went up (evals/sim/driver.ts, staffStep).
+ */
+export const FOOD_VARIANTS = ["required_choice", "item_missing", "price_up", "closed_place", "non_tester"] as const;
+export function makeFoodScenarios(): Scenario[] {
+  const style = loadStyle();
+  const place = "the Alo King test kitchen (an invented place; you may call it «مطبخ التجربة» in Arabic or \"the test kitchen\")";
+  const confirmTap = "When the order card arrives and it is right, confirm it by tapping its confirm button.";
+  const plan: { variant: typeof FOOD_VARIANTS[number]; lang: Lang; goal: string; success: string; tester: boolean }[] = [
+    { variant: "required_choice", lang: "ar", tester: true,
+      goal: `Order 2 chicken shawarma sandwiches from ${place} for delivery to your home. When the shop asks which size and which bread, choose large and saj; no extras. ${confirmTap}`,
+      success: "The shop asks the size and the bread with buttons or a list before any card; the card names the place, shows the choices and a total from the menu; the customer confirms by tapping." },
+    { variant: "required_choice", lang: "en", tester: true,
+      goal: `Order one taouk plate from ${place} for delivery to your home. When asked which sauce, choose garlic. ${confirmTap}`,
+      success: "The shop asks the sauce before any card; the card names the place and shows the taouk plate with garlic; the customer confirms by tapping." },
+    { variant: "item_missing", lang: "ar", tester: true,
+      goal: `Order a taouk plate (garlic sauce) and french fries from ${place}. ${confirmTap} If the shop later says something is missing, choose to go on without it.`,
+      success: "After the confirmation the customer is asked about the missing item (never swapped silently), goes on without it, is told the new total, and later that the place took the order." },
+    { variant: "item_missing", lang: "en", tester: true,
+      goal: `Order 2 falafel sandwiches and a taouk plate (spicy sauce) from ${place}. ${confirmTap} If the shop later says something is missing, cancel the whole order.`,
+      success: "After the confirmation the customer is asked about the missing item, cancels, and is told the order is cancelled and nothing is charged." },
+    { variant: "price_up", lang: "ar", tester: true,
+      goal: `Order one taouk plate (garlic sauce) from ${place}. ${confirmTap} If the shop says the price went up, accept the new price.`,
+      success: "The higher price is asked before anything changes; the customer's own tap accepts it; the new total is said; then the place takes the order." },
+    { variant: "price_up", lang: "en", tester: true,
+      goal: `Order 2 falafel sandwiches from ${place}. ${confirmTap} If the shop says the price went up, decline and cancel.`,
+      success: "The higher price is asked before anything changes; the customer declines and the order is cancelled with nothing charged." },
+    { variant: "closed_place", lang: "ar", tester: true,
+      goal: `Order a taouk plate from ${place}. If the shop says the place is closed now, accept it and end politely.`,
+      success: "The shop says plainly the place is closed (and when it opens, if known), makes no card for it, invents nothing." },
+    { variant: "closed_place", lang: "en", tester: true,
+      goal: `Order 2 chicken shawarma sandwiches from ${place}. If the shop says the place is closed now, ask once if they can get it anyway, then end politely.`,
+      success: "The shop says plainly the place is closed, never offers to phone an order in anyway, makes no card, invents nothing." },
+    { variant: "non_tester", lang: "ar", tester: false,
+      goal: `Order 2 chicken shawarma sandwiches from ${place}. If the shop says it is not available, end politely.`,
+      success: "The shop says plainly the place is not on Alo King yet, shows no menu and no price from it, makes no card." },
+    { variant: "non_tester", lang: "en", tester: false,
+      goal: `Order a taouk plate from ${place}. If the shop says it is not available, ask once more, then end politely.`,
+      success: "The shop says plainly the place is not on Alo King yet, shows no menu and no price from it, makes no card, and offers groceries instead at most." },
+  ];
+  return plan.map((p, i) => {
+    const seed = 20_000 + i;
+    const r = rng(seed);
+    return { id: `food-${String(i + 1).padStart(3, "0")}`, seed, category: "food" as const, variant: p.variant, lang: p.lang, voice: false, burst: false, clock: "day" as const,
+      village: { name_en: "Baakline", name_ar: "بعقلين" }, pin: "home" as const, items: [], oos_sku: null, not_sold: null, history: null,
+      persona: pick(r, PERSONAS), goal: p.goal, success: p.success, style: sample(r, style[p.lang].length ? style[p.lang] : style.ar, 3), max_turns: MAX_TURNS,
+      food: { tester: p.tester } };
   });
 }

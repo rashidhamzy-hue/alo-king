@@ -53,6 +53,8 @@ export const ar: Messages = {
     reopenedFrom: (code) => `🔁 رجعنا فتحنا طلبك من ${o(code)}، بأسعار اليوم.`,
     consent: "_بتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة._",
     confirm: "✅ تأكيد الطلب", edit: "✏️ تعديل", cancel: "❌ إلغاء",
+    from: (place) => `🍗 من: ${place}`,
+    serviceFee: "رسم الخدمة",
   },
 
   tap: {
@@ -124,7 +126,6 @@ export const ar: Messages = {
     orChoose: "🕘 أو اختار من هون وقت للتوصيل.",
     freshForWindow: (names) => `🕘 *منجيبن طازة عالطلب*\n${bullets(names.map((n) => `طازة ${n}`))}\nفبيوصلو بوقت محدّد. اختار الوقت.`,
     pickupNoWindow: "🏠 الاستلام من المحل ما إلو وقت محدّد: فيك تمرق وقت الدوام.",
-    restaurantNoWindow: "طلبات المطاعم ما إلها وقت محدّد هلّق: بتوصل لما تجهز.",
     notChangeable: (code) => `🕘 *طلبك ${code} تأكّد*\nما عاد فينا نغيّر وقتو من هون. إذا في شي ضروري اكتبلنا.`,
   },
 
@@ -323,6 +324,30 @@ export const ar: Messages = {
     tooMany: (max) => `🛒 فيني ضبّط سلة لحد ${max} شخص. قلّي شو بدك وبزيدو.`,
     none: "🔎 *ما قدرت ضبّط هالسلة من يلي عنّا هلّق*\nقلّي شو بدك وبزيدو.",
   },
+  food: {
+    secondOrder: (place) => `🛒 *طلب تاني من ${place}*\nكل محل بطلب لحالو: أغراضك التانية بتضلّ محفوظة بطلبها.`,
+    menu: (place, more) => `🍗 *${place}*\nشو بتحب تطلب؟ اختار طبق${more ? " أو اكتب اسمو" : ""}.`,
+    dishesButton: "الأطباق",
+    whichDish: (words, place) => `🔎 *أيّا طبق قصدك؟*\n«${words}» من ${place}`,
+    notOnMenu: (words, place) => `⚠️ ما لقينا ${join(words.map((w) => `«${w}»`))} بقائمة ${place}.`,
+    choose: (dish, group, required) => required ? `📝 *${dish}*\nاختار ${group}:` : `📝 *${dish}*\nبتحب تزيد ${group}؟`,
+    chooseButton: "اختار",
+    noThanks: "لا، شكراً",
+    closed: (place, opens) => `🕘 *${place} مسكّر هلّق*\n${opens ? `بيفتح الساعة ${opens}. ` : ""}طلبك محفوظ هون.`,
+    askPlace: (dish, place) => `💬 ما عنّا معلومات مؤكّدة عن مكوّنات ${dish} أو إذا فيه شي بيعمل حساسية.\nمنسأل ${place} لما نتّصل فيهن، وما منقول إنّو آمن قبل ما نعرف.`,
+    arrives: (place, minutes) => `⏱️ طلبات ${place ?? "المطاعم"} ما إلها وقت محدّد: بتوصل لما تجهز${minutes ? `، خلال حوالي ${minutes} دقيقة` : ""}.`,
+    accepted: (code, place, minutes) => `✅ *طلبك ${code}*\n${place} قبل الطلب وعم يحضّرو.\n⏱️ بيوصلك خلال حوالي ${minutes} دقيقة.`,
+    itemMissing: (code, place, item) => `⚠️ *طلبك ${code}*\n${item} مش متوفّر عند ${place}.\nمنكمّل بلاه أو منلغي الطلب؟ ما منبدّل شي بلا ما نسألك.`,
+    keepRest: "✅ كمّل بلاه", cancelOrder: "❌ ألغِ الطلب", acceptPrice: "✅ موافق",
+    closedNow: (code, place) => `❌ *طلبك ${code} انلغى*\n${place} مسكّر هلّق، فما فينا ناخد الطلب.\nما رح تدفع شي.`,
+    priceLower: (code, place, item, total) => `✅ *طلبك ${code}*\nسعر ${item} عند ${place} صار أرخص.\n*المجموع الجديد · ${usd(total)}*`,
+    priceUp: (code, place, item, was, now, total) => `⚠️ *طلبك ${code}: تغيّر سعر ${item}*\nعند ${place} كان · ${usd(was)}\nصار · ${usd(now)}\n*المجموع الجديد · ${usd(total)}*\nبتوافق؟`,
+    dropped: (code, total) => `✅ *طلبك ${code}*\nشلنا الغرض الناقص ومنكمّل بالباقي.\n*المجموع الجديد · ${usd(total)}*`,
+    priceAccepted: (code, total) => `✅ *طلبك ${code}*\nمنكمّل بالسعر الجديد.\n*المجموع الجديد · ${usd(total)}*`,
+    answerCancelled: (code) => `❌ *طلبك ${code} انلغى*\nما رح تدفع شي.`,
+    notWaiting: (code) => code ? `💬 طلبك ${o(code)} ما عاد ناطر جواب. إذا في شي اكتبلنا.` : "💬 ما في سؤال ناطر جواب. إذا في شي اكتبلنا.",
+  },
+
   ops: {
     newPick: (code) => `📦 طلب جديد للتحضير #${code}`,
     startButton: (code) => `بلّش #${code}`,
@@ -447,6 +472,7 @@ export const ar: Messages = {
     codeLocked: (code) => `⚠️ الرمز غلط كذا مرة للطلب #${code}. ما تسلّم، العمليات رح تتصل فيك.`,
     codeLockedAlert: (code) => `⚠️ رمز الاستلام للطلب #${code} انقفل بعد محاولات غلط. اتصلوا بالزبون والدليفري.`,
     codeOk: (code) => `✅ الرمز صحيح. سلّم الطلب #${code}.`,
+    foodCall: (code, place) => `📦 اتّصل بـ ${place} للطلب #${code} (الكونسول، الأكل)`,
     keepChange: (note) => `💵 ما في فراطة: الزبون بيترك الباقي رصيد. الورقة: ${usd(note)}`,
   },
 };

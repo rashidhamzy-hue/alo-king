@@ -18,7 +18,9 @@ import { badge, dataTable, empty, tabs } from "@ak/ui/components";
 type Place = { source_id: string; listing_id: string; name: string; village_id: string | null; village_en: string | null; village_ar: string | null;
   phone: string | null; hours: { open?: string; close?: string; days_off?: string[] } | null; prep_minutes: number; visibility: "off" | "testers" | "public";
   is_open: boolean; approved: boolean; approved_at: string | null; owner_on_file: boolean; maps_url: string | null; listing_name: string | null;
-  listing_village: string | null; menu_checked_on: string | null; photos_waiting: number; dishes_waiting: number; dishes: number };
+  listing_village: string | null; menu_checked_on: string | null; photos_waiting: number; dishes_waiting: number; dishes: number;
+  /** FD2 (0249): the other names customers use for the place («صفا», "safa"), for the chat to find it; never shown as its name. */
+  aliases?: string[] };
 type Listing = { listing_id: string; name: string; kind: string; village: string | null; km_from_hub: number | string; maps_url: string; hidden_at: string | null };
 type Village = { id: string; name_en: string; name_ar: string | null; aliases: string[] | null; is_served: boolean };
 
@@ -142,6 +144,7 @@ ${form(c.f, `/places/${src}/approve`, html`<button class="ak-btn ak-btn--primary
 ${villageSelect(L, villages, p.village_id)}
 <label class="ak-field"><span>${pick(L, "The place's public phone (shown here only; empty removes it)", "هاتف المكان العام (يظهر هنا فقط؛ فارغ يحذفه)")}</span><input class="ak-input" name="phone" value="${p.phone ?? ""}" inputmode="tel" maxlength="16"></label>
 ${hoursFields(L, p.hours, p.prep_minutes)}
+<label class="ak-field"><span>${pick(L, "Other names customers use for it, separated by commas (the chat finds the place by these too)", "أسماء أخرى يستعملها الزبائن له، تفصل بينها فواصل (المحادثة تجد المكان بها أيضاً)")}</span><input class="ak-input" name="aliases" value="${(p.aliases ?? []).join(", ")}" maxlength="400"></label>
 <button class="ak-btn ak-btn--primary">${pick(L, "Save the details", "احفظ التفاصيل")}</button>`)}`, { translated: true });
 }
 
@@ -162,7 +165,9 @@ async function create(c: Ctx) {
 }
 async function details(c: Ctx) {
   const L = c.lang; const src = id(c, "source");
-  const d = { name: text(c, "name", 120), village_id: (c.form.village_id ?? "").trim(), phone: text(c, "phone", 16), hours: hoursFrom(c, L), prep_minutes: num(c, "prep_minutes", { min: 0, max: 180 }) };
+  const d: Record<string, unknown> = { name: text(c, "name", 120), village_id: (c.form.village_id ?? "").trim(), phone: text(c, "phone", 16), hours: hoursFrom(c, L), prep_minutes: num(c, "prep_minutes", { min: 0, max: 180 }) };
+  // FD2: the names customers use, when the form has the field (an older page without it changes nothing).
+  if ("aliases" in c.form) d.aliases = text(c, "aliases", 400).split(/[,،]/).map((x) => x.trim()).filter(Boolean);
   return act(c, "place_details", { source: src }, async () => {
     await c.deps.db.rpc("set_place_details", { p_source: src, p_by: c.staff.partyId, p_details: d });
     return pick(L, "Saved.", "تم الحفظ.");

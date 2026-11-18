@@ -114,7 +114,7 @@ describe("packages/commerce: every method calls a real function with its real ar
 
   it("the web_channel list is the same in the client, the migration's grants and the permission script", () => {
     // 0132 granted the session functions, 0155 the catalog's; a later website migration adds its file here with its names.
-    const grants = ["0132_web_channel_role.sql", "0155_web_catalog_grants.sql", "0224_listings.sql", "0230_web_grants.sql", "0233_join_applications.sql", "0243_web4a_home_reads.sql", "0244_web4a_price_for.sql"].flatMap((f) => readFileSync(migrations + f, "utf8")
+    const grants = ["0132_web_channel_role.sql", "0155_web_catalog_grants.sql", "0224_listings.sql", "0230_web_grants.sql", "0233_join_applications.sql", "0243_web4a_home_reads.sql", "0244_web4a_price_for.sql", "0251_web_food_api.sql"].flatMap((f) => readFileSync(migrations + f, "utf8")
       .match(/grant execute on function (\w+)\(/g)!.map((g) => g.replace(/grant execute on function |\(/g, "")));
     expect([...grants].sort()).toEqual([...WEB_CHANNEL_FUNCTIONS].sort());
     const script = readFileSync(fileURLToPath(new URL("../../../scripts/check_permissions.sh", import.meta.url)), "utf8");

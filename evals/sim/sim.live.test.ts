@@ -20,6 +20,7 @@ import { readStaging } from "./staging";
 import { limitsFor } from "./budget";
 import type { Scenario } from "./scenarios";
 import scenarioFile from "./scenarios.json";
+import foodScenarioFile from "./food-scenarios.json";
 
 const env = ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {});
 const on = env.ALO_SIM === "1";
@@ -57,7 +58,8 @@ describe.skipIf(!on)("SIM1: simulated customers", () => {
       const raw = mock ? { concierge: mockConcierge(), customer: mockCustomer(mockItems), judge: mockJudge() }
         : { concierge: new Anthropic({ apiKey: key!, maxRetries: 0 }),         // as the Worker builds it: turn.ts retries capacity itself
             customer: new Anthropic({ apiKey: key!, maxRetries: 4 }), judge: new Anthropic({ apiKey: key!, maxRetries: 4 }) };
-      let scenarios = scenarioFile as Scenario[];
+      // FD2: the food scenarios come after the 500 (reached with SIM_ONLY=food-001,...; SIM_LIMIT alone never reaches them).
+      let scenarios = [...(scenarioFile as Scenario[]), ...(foodScenarioFile as Scenario[])];
       if (env.SIM_ONLY) { const ids = new Set(env.SIM_ONLY.split(",").map((s) => s.trim())); scenarios = scenarios.filter((s) => ids.has(s.id)); }
       let again = new Set<string>();
       if (env.SIM_FOLLOWUP) {

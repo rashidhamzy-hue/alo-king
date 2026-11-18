@@ -9,7 +9,9 @@ import { messages } from "./index";
 import type { Lang, Messages } from "./types";
 
 /** The code-started customer events that have a utility template (0121). */
-export type TemplateEvent = "shelf_changes" | "substitute_question" | "order_delayed" | "delivery_called_off" | "kept_order_open" | "on_the_way" | "rider_at_door";
+export type TemplateEvent = "shelf_changes" | "substitute_question" | "order_delayed" | "delivery_called_off" | "kept_order_open" | "on_the_way" | "rider_at_door"
+  /** FD2: what staff found when they called the place (0250). No template yet: inside the 24-hour window only (a food order is minutes old). */
+  | "food_accepted" | "food_item_missing" | "food_closed" | "food_price";
 
 export interface Built {
   /** The free message, inside the 24-hour window. */

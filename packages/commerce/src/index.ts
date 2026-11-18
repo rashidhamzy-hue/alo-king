@@ -95,8 +95,12 @@ export const WEB_ORDER_FUNCTIONS = [
   "web_place_order", "web_order_page", "web_orders", "web_order_again", "web_account", "web_memory_forget", "web_memory_pref",
   "web_sign_out_everywhere", "web_save_pin", "web_pin_village", "web_place_details", "web_windows", "web_service_facts", "web_cart_count",
 ] as const;
+/** FD2 (migration 0251): food from a place, for WEB4b's pages. The places this visitor may order from (testers only today: an anonymous visitor sees
+ *  public places only), one place's approved menu with its option groups and facts status, a food basket priced (one shop), and the order as a
+ *  card for the WhatsApp tap (cash on delivery). Same SQL as the chat (invariant 19); the page never confirms (invariant 4). */
+export const WEB_FOOD_FUNCTIONS = ["web_food_places", "web_food_menu", "web_food_quote", "web_food_order"] as const;
 /** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
-export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_HOME_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_ORDER_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_HOME_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_ORDER_FUNCTIONS, ...WEB_JOIN_FUNCTIONS, ...WEB_FOOD_FUNCTIONS] as const;
 
 // ---------- the catalog pages' shapes ----------
 export interface CatalogPicture {
@@ -317,6 +321,30 @@ export function webOrdering(db: RpcSource) {
   };
 }
 export type WebOrdering = ReturnType<typeof webOrdering>;
+
+// ---------- FD2: food from a place (0251), for WEB4b ----------
+export interface FoodOption { id: string; name_en: string; name_ar: string | null; price_delta_usd: number }
+export interface FoodGroup { group_id: string; name_en: string; name_ar: string | null; required: boolean; min: number; max: number; options: FoodOption[] }
+export interface FoodDish { product_id: string; name_en: string; name_ar: string | null; price_usd: number; section: string | null; groups: FoodGroup[];
+  /** Each food fact: declared by the place, or not confirmed yet (never "safe": invariant 15). */
+  facts?: { attribute: string; status: "declared_by_vendor" | "not_confirmed"; value: string | null }[] }
+export interface OrderablePlace { source_id: string; name: string; village_en: string | null; village_ar: string | null; prep_minutes: number;
+  open: { open: boolean; reason: string | null; opens: string | null; closes: string | null } }
+/** A line of a food basket: a dish of the place, its count, the option ids chosen (the database prices them). */
+export interface FoodLine { product_id: string; qty: number; options?: string[] }
+export function webFood(db: RpcSource) {
+  return {
+    places: (token: string | null) => call<OrderablePlace[]>(db, "web_food_places", { p_token: token }),
+    menu: (token: string | null, place: string) => call<{ ok: boolean; reason?: string; name?: string; dishes: FoodDish[] } & Record<string, any>>(db, "web_food_menu", { p_token: token, p_place: place }),
+    quote: (token: string | null, place: string, lines: FoodLine[], at?: string | null) =>
+      call<{ ok: boolean; error?: string; quote?: Quote & Record<string, any> }>(db, "web_food_quote", { p_token: token, p_place: place, p_lines: lines, p_at: at ?? null }),
+    /** The card goes to the customer's WhatsApp (cash on delivery); the tap there confirms. */
+    order: (token: string, o: { requestKey: string; at: string; place: string; lines: FoodLine[]; notes?: string | null; lang: "ar" | "en" | "fr" }) =>
+      call<PlacedOrder & Record<string, any>>(db, "web_food_order", { p_token: token, p_request_key: o.requestKey, p_at: o.at, p_place: o.place, p_lines: o.lines,
+        p_notes: o.notes ?? null, p_lang: o.lang }),
+  };
+}
+export type WebFood = ReturnType<typeof webFood>;
 
 // ---------- the gateway and the console (service role) ----------
 export function channelCommerce(db: RpcSource) {
