@@ -118,8 +118,30 @@ function wholeMessageChanges(intent: OrderIntent, said: string): OrderIntent {
   return lines === intent.lines ? intent : { ...intent, lines };
 }
 
+/** B1f: a line that says only a count and a container ("7 2anenin", «٧ قناني», "7 bottles"): no word of a product of its own. */
+const COUNT_ONLY = /^(?:\d+(?:\.\d+)?|[\p{L}]+)? ?(?:2annine|2anine|2anenin|2nenin|annine|anenin|قنينه|قناني|قنينات|bottle|bottles|bouteilles?|3elbe|3elab|3lab|علبه|علب|kis|kyes|akyas|كيس|اكياس|pack|packs|packets?|باكيت|باكيتات|cans?|tanke|tankat|pieces?|pcs|7abbe|7abbet|حبه|حبات)?(?: (?:in total|total|en tout|au total|بالمجموع|kello|kellon|كلن|كلهن))?$/u;
+
+/** B1f (b1b-yani-total-arabizi, read live as two lines): «زيد واحدة، يعني 7» read as "one more" plus a line of 7 of the same item is one
+ *  line set to 7. Only when the message says the total and the two lines are one item (the same search words, or the second says only a
+ *  count): two items are never merged. */
+function totalAcrossTwo(intent: OrderIntent, total: number | null): OrderIntent {
+  if (total == null || total <= 0 || intent.lines.length !== 2) return intent;
+  const [a, b] = intent.lines as [Line, Line];
+  if (a.change === "remove" || b.change === "remove") return intent;
+  const withTotal = [a, b].find((l) => l.qty === total);
+  const other = withTotal === a ? b : a;
+  if (!withTotal || other.qty === total) return intent;
+  const same = fold(a.query) === fold(b.query) || COUNT_ONLY.test(fold(withTotal.raw).replace(/[,،.]/gu, " ").replace(/\s+/gu, " ").trim());
+  if (!same) return intent;
+  return { ...intent, lines: [{ ...other, qty: total, change: "set" }] };
+}
+
 function addOrSet(intent: OrderIntent, said: string): OrderIntent {
   const t = fold(said);
+  if (intent.lines.length === 2 && intent.intent !== "cancel") {
+    const merged = totalAcrossTwo(intent, num(TOTAL_AFTER.exec(t)?.[1]) ?? num(TOTAL_BEFORE.exec(t)?.[1]));
+    if (merged !== intent) return merged;
+  }
   // Only an edit to what is in hand: a message that names one item, with a quantity.
   if (intent.lines.length !== 1 || intent.intent === "cancel") return intent;
   const l = intent.lines[0] as Line;

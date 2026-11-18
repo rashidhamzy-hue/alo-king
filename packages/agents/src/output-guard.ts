@@ -12,7 +12,7 @@
 //     a list, a status, is a fixed message that code builds (packages/agents/src/messages/).
 
 export type GuardCode = "money_in_free_text" | "quality_judgement" | "unapproved_food_claim" | "allergy_reassurance" | "sensitive_inference" | "too_long"
-  | "minimum_by_code" | "catalogue_claim" | "change_claim" | "area_claim" | "wrong_language";
+  | "minimum_by_code" | "catalogue_claim" | "change_claim" | "area_claim" | "wrong_language" | "time_claim";
 export interface Violation { code: GuardCode; match: string }
 import { wordsLanguage, type Speech } from "./language";
 
@@ -139,6 +139,10 @@ export interface CheckOptions {
   areas?: readonly { names: readonly string[]; served: boolean }[];
   /** B1e: the conversation's language (language.ts). Given, the model's own words must be in it: names a tool returned are left out. */
   replyLanguage?: Speech | null;
+  /** B1f: whether a tool returned delivery times this turn (quote_order's ETA, the delivery windows), and the hours (settings.hours,
+   *  from the database). Given, the model may say when an order arrives only after such a tool, and never names a clock time outside the
+   *  hours. Unknown (undefined): not checked (the wording evals). */
+  times?: { quoted: boolean; hours?: { open: string; close: string } | null };
 }
 
 // B1a (SIM1 fix 1): the minimum order, the basket and the gap are said by code with their amounts (basket.ts); the model never words
@@ -327,6 +331,58 @@ function areaClaim(t: string, areas: NonNullable<CheckOptions["areas"]>): string
   return null;
 }
 
+// ---------- B1f: when it arrives ----------
+// A sentence that says when an order is delivered or arrives: a delivery word and a time in the same sentence. Times come only from the
+// database (quote_order, the windows), like prices (invariant 7); sim-015 of B1e's run heard «ma 3andi wa2t tawseel bokra» with no tool.
+const DELIVERY_WORD = new RegExp([
+  "\\b(?:deliver(?:s|ed|y|ing)?|arriv(?:e|es|ed|ing|al)|reach(?:es)? you|get(?:s)? to you|on (?:its|the) way|eta|be there|come(?:s)? to you)\\b",
+  "\\b(?:livr(?:e|é|ée|ons|ez|aison|er)|arriv(?:e|era|ée|ent)|chez vous)", 
+  "توصيل|التوصيل|بيوصل|بتوصل|يوصل|يوصلك|بوصلك|بيوصلك|منوص(?:ّ)?ل|بنوص(?:ّ)?ل|منبعت|بيجي|بيجيك|عالطريق",
+  "\\b(?:taws(?:ee|i|ea)l|by(?:ou|o|w)a?s(?:s)?a?l|bywasel|byousal|ywasel|bywassel|mnwasel|mnwassel|mnwasslak|bywaslak|byousalak|3al tari2|byeje|byijik)\\b",
+].join("|"), "iu");
+const TIME_WORD = new RegExp([
+  "\\b\\d+(?:[.,]\\d+)?\\s?(?:-\\s?\\d+\\s?)?(?:min|mins|minutes?|hours?|hrs?|h\\b|d2i2a|d2aye2|da2i2a|se3a|sa3a|s3a)",
+  "\\b(?:an?|one|half an?|une|une demi|a few|few|quelques) (?:hour|minutes?|heure|minutes)\\b",
+  "\\b(?:today|tonight|tomorrow|this (?:morning|afternoon|evening)|now|right away|asap|aujourd'hui|ce soir|demain|maintenant|tout de suite|bokra|bukra|lyom|el ?yom|lyoum|halla2|hala2|el masa|l masa|l sobo7|el sob7|ba3d se3a|ba3d nos se3a)\\b",
+  "\\b(?:dans|d'ici|within|in|khilal|ba3d|after)\\s+(?:\\d+|une|an?|half|nos|nus)\\b",
+  "\\b\\d{1,2}(?::\\d{2})?\\s?(?:am|pm|h\\d{0,2})\\b", "\\b\\d{1,2}:\\d{2}\\b", "\\bat \\d{1,2}\\b", "\\b3al se3a\\b",
+  "خلال|بعد (?:\\d+|ساعه|ساعة|نص|ربع|شوي)|دقيقه|دقيقة|دقايق|دقائق|ساعه|ساعة|ساعات|اليوم|الليله|الليلة|بكرا|بكرة|بكره|هلق|هلّق|الصبح|المسا|العصر|الضهر|الساعه|الساعة",
+].join("|"), "iu");
+/** The clock times a sentence names, in minutes after midnight ("22:30", "11pm", «الساعة 8 الصبح», "at 10"); "pm" and «المسا» add 12 hours. */
+function clockTimes(s: string): number[] {
+  const out: number[] = [];
+  const re = /(?:^|[^\d:])(\d{1,2})(?::(\d{2}))?\s?(am|pm|h(?:\d{2})?)?(?=[^\d:]|$)/giu;
+  for (const m of s.matchAll(re)) {
+    const before = s.slice(Math.max(0, m.index! - 12), m.index! + 1);
+    const unit = (m[3] ?? "").toLowerCase();
+    const isClock = !!m[2] || unit === "am" || unit === "pm" || unit.startsWith("h") || /(?:\bat|\bà|الساع[هة]|3al se3a|el se3a)\s*$/iu.test(before);
+    if (!isClock) continue;
+    let h = Number(m[1]); const min = Number(m[2] ?? (unit.startsWith("h") && unit.length > 1 ? unit.slice(1) : 0));
+    if (h > 24 || min > 59) continue;
+    const rest = s.slice(m.index! + m[0].length, m.index! + m[0].length + 14);
+    if ((unit === "pm" || /^\s*(?:المسا|بالليل|masa|tonight|du soir|le soir)/iu.test(rest)) && h < 12) h += 12;
+    if (unit === "am" && h === 12) h = 0;
+    out.push(h * 60 + min);
+  }
+  return out;
+}
+const minutesOf = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return (h ?? 0) * 60 + (m ?? 0); };
+const OPEN_WORD = /\b(?:open|closed|close|opens|ouvert|fermé|ferme|fat7in|msakkrin|msakker)\b|فاتحين|مسكّرين|مسكرين|بنفتح|منفتح|منسكّر/iu;
+/** A sentence that says when it arrives with no tool behind it, or a clock time outside the hours. Null when it may be sent. */
+function timeClaim(t: string, times: NonNullable<CheckOptions["times"]>): string | null {
+  for (const s of t.split(/[.!?؟؛;\n]+/u).map((x) => x.trim()).filter(Boolean)) {
+    const delivery = DELIVERY_WORD.exec(s);
+    const when = TIME_WORD.exec(s);
+    if (times.hours && (delivery || OPEN_WORD.test(s))) {
+      const open = minutesOf(times.hours.open), close = minutesOf(times.hours.close);
+      const outside = clockTimes(s).find((m) => m < open || m > close);
+      if (outside !== undefined) return `${String(Math.floor(outside / 60)).padStart(2, "0")}:${String(outside % 60).padStart(2, "0")}`;
+    }
+    if (delivery && when && !times.quoted) return `${delivery[0]} … ${when[0]}`.trim();
+  }
+  return null;
+}
+
 // ---------- B1e: the conversation's language ----------
 /** The model's own words in a language other than the conversation's (sim-021: English to an Arabizi customer). Names are taken out first. */
 function otherLanguage(t: string, expected: Speech): string | null {
@@ -358,6 +414,8 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
   // B1e: where we deliver is the database's to say, for the place it was asked of (sim-021).
   if (opts.areas) { const a = areaClaim(t, opts.areas); if (a) return { code: "area_claim", match: a }; }
+  // B1f: when it arrives is the database's to say (sim-015), and never outside the hours.
+  if (opts.times) { const w = timeClaim(t, opts.times); if (w) return { code: "time_claim", match: w }; }
   // PD1 (e): names a tool returned this turn and the customer's request said back are taken out; the rest is checked as before.
   const named = withoutNames(t, opts.products);
   if (opts.replyLanguage) { const l = otherLanguage(named, opts.replyLanguage); if (l) return { code: "wrong_language", match: l }; }
@@ -411,6 +469,7 @@ export const GUARD_HINT: Record<GuardCode, string> = {
   change_claim: "Never say the order or basket was changed unless quote_order changed it this turn. To change it, call quote_order with the new lines (and remove), then send_confirmation for the new card; or ask what to change.",
   catalogue_claim: "Say only what a tool returned about the catalogue, and never offer the catalogue while it is not connected: ask what they need in words. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",
   area_claim: "Never say whether we deliver to a place, or what delivery costs or how long it takes: only the system says it, from the database. If the customer asks, the system answers; if the plan has no village or does not recognise it (no_delivery_village, village_not_recognised), ask for the village or a location pin.",
+  time_claim: "Never say when an order arrives or is delivered (minutes, hours, today, tonight, tomorrow, a clock time) unless quote_order or the delivery windows returned that time this turn, and never name a time outside our opening hours. Leave times out: the card and the windows list say them, from the database.",
   wrong_language: "Write in the customer's own language and script (reply_language), as they write: never switch to another language. Product names stay as the tools returned them.",
   money_in_free_text: "Prices, fees and totals are never written in free text. Leave amounts out: pass the product ids in `price_of` and the system adds prices from the database, or call quote_order and send_confirmation so the card shows the total.",
 };

@@ -106,6 +106,10 @@ export interface ToolContext {
   catalogueReady?: boolean;
   /** B1e: the places a tool or the planner returned this turn, with their answer: the only places the model may say we deliver to or not. */
   areas?: { names: string[]; served: boolean }[];
+  /** B1f: quote_order or the delivery windows returned times this turn: only then may the model say when it arrives (time_claim). */
+  timesQuoted?: boolean;
+  /** B1f: the opening hours (settings.hours), read once a turn: the model never names a time outside them. */
+  hours?: { open: string; close: string } | null;
   /** SR1: query embeddings for search by meaning (Workers AI). Absent, or failing: the search runs on words alone (search.ts). */
   embedder?: import("./embeddings").Embedder;
 }
@@ -116,6 +120,8 @@ export interface Authored {
   products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean;
   /** B1e */
   areas?: { names: string[]; served: boolean }[]; replyLanguage?: import("./language").Speech | null;
+  /** B1f */
+  times?: { quoted: boolean; hours?: { open: string; close: string } | null };
 }
 
 /** PD1 (e): keep the names of products a tool returned this turn. */
@@ -140,11 +146,21 @@ export function noteArea(ctx: Pick<ToolContext, "areas">, names: unknown[], serv
 }
 /** B1e: the places a plan (plan_order) answered: the village it priced (served), and a village it found and does not serve. "No village yet"
  *  (no_delivery_village) and "not recognised" say nothing about delivery. */
-export function notePlanAreas(ctx: Pick<ToolContext, "areas">, plan: unknown, saidVillage: string | null | undefined): void {
+export function notePlanAreas(ctx: Pick<ToolContext, "areas" | "timesQuoted">, plan: unknown, saidVillage: string | null | undefined): void {
   const p = plan as { village_id?: string | null; issues?: { code?: string; said?: string; village?: string; village_ar?: string }[] } | null;
   if (!p) return;
   if (p.village_id && saidVillage) noteArea(ctx, [saidVillage], true);
+  // B1f: a plan priced with its ETA (quote_order's eta_minutes) has a time from the database behind it
+  if (JSON.stringify(plan).includes('"eta_minutes":')) ctx.timesQuoted = true;
   for (const i of p.issues ?? []) if (i.code === "village_not_served") noteArea(ctx, [i.said, i.village, i.village_ar], false);
+}
+/** B1f: the opening hours (settings.hours) for the time guard. Unreadable: null (the "no time without a tool" rule still holds). */
+export async function deliveryHours(db: SupabaseClient): Promise<{ open: string; close: string } | null> {
+  try {
+    const { data } = await db.rpc("setting", { p_key: "hours" });
+    const h = data as { open?: string; close?: string } | null;
+    return h?.open && h?.close ? { open: String(h.open).slice(0, 5), close: String(h.close).slice(0, 5) } : null;
+  } catch { return null; }
 }
 /** PD1 (g): settings.catalog names a WhatsApp catalogue. Unreadable counts as not connected (fail closed: the offer is not made). */
 export async function catalogueReady(db: SupabaseClient): Promise<boolean> {
@@ -162,13 +178,14 @@ export function guardOptions(ctx: ToolContext) {
     approvedByProduct: ctx.approvedByProduct ?? new Map<string, Set<string>>(),
     ...(ctx.catalogueReady !== undefined ? { catalogueReady: ctx.catalogueReady } : {}),
     areas: ctx.areas ?? [], replyLanguage: ctx.state.speech ?? null,
+    times: { quoted: !!ctx.timesQuoted, hours: ctx.hours ?? null },
   };
 }
 function authored(ctx: ToolContext): Authored {
   const o = guardOptions(ctx);
   return { by: "model", catalogueSearched: o.catalogueSearched, basketChanged: o.basketChanged, products: o.products, customerWords: o.customerWords,
            approvedByProduct: Object.fromEntries([...o.approvedByProduct.entries()].map(([k, v]) => [k, [...v]])),
-           ...(o.catalogueReady !== undefined ? { catalogueReady: o.catalogueReady } : {}), areas: o.areas, replyLanguage: o.replyLanguage };
+           ...(o.catalogueReady !== undefined ? { catalogueReady: o.catalogueReady } : {}), areas: o.areas, replyLanguage: o.replyLanguage, times: o.times };
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -289,6 +306,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const basket = applyEdits(held?.lines ?? [], edits).lines;
       const villageId = pickup ? null : ctx.state.villageId ?? null;
       const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: basket, p_village: villageId, p_pickup: !!pickup });
+      ctx.timesQuoted = true;                                         // B1f: the quote carries the ETA
       ctx.state.lastQuote = { lines: basket, villageId, pickup: !!pickup, quote };
       ctx.state.basketAt = Date.now();
       ctx.basketChanged = true;
@@ -469,6 +487,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   // basket so the card goes out as soon as the number arrives.
   if (!basket.pickup && !(await rpc<string | null>(ctx.db, "customer_contact_phone", { p_party: ctx.partyId }))) {
     const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: basket.lines, p_village: basket.villageId, p_pickup: false, p_slot: slotId });
+    ctx.timesQuoted = true;
     ctx.state.slotId = slotId;
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     if (basket.placeId) ctx.state.placeId = basket.placeId;
@@ -510,6 +529,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     if (basket.placeId) ctx.state.placeId = basket.placeId;
     ctx.state.pending = terms; ctx.state.slotId = null; ctx.state.awaiting = "window";
     const windows = await rpc<DeliveryWindow[]>(ctx.db, "open_delivery_windows", { p_village: basket.villageId, p_fresh: !!created.quote.bought_to_order });
+    ctx.timesQuoted = true;
     const body = [opts.before, T(ctx).windows.gone].filter(Boolean).join("\n");
     const offered = await deliver(ctx, formatWindowChoice(null, windows, { lang: ctx.state.lang, body }), `[windows] ${body}`);
     return offered.ok ? { ok: true, waiting_for: "window" } : offered;

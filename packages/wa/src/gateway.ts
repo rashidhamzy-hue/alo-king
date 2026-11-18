@@ -24,7 +24,9 @@ export interface SendRequest {
   authored?: { by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean;
                products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean;
                /** B1e: the places a tool returned this turn with their answer, and the conversation's language. */
-               areas?: { names: string[]; served: boolean }[]; replyLanguage?: "ar" | "arabizi" | "en" | "fr" | null };
+               areas?: { names: string[]; served: boolean }[]; replyLanguage?: "ar" | "arabizi" | "en" | "fr" | null;
+               /** B1f: whether a tool returned delivery times this turn, and the hours from the database. */
+               times?: { quoted: boolean; hours?: { open: string; close: string } | null } };
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -57,7 +59,7 @@ export function preflight(req: SendRequest): string | null {
       catalogueSearched: !!a.catalogueSearched, basketChanged: !!a.basketChanged, products: a.products ?? [], customerWords: a.customerWords ?? "",
       ...(a.approvedByProduct ? { approvedByProduct: new Map(Object.entries(a.approvedByProduct).map(([k, x]) => [k, new Set(x)])) } : {}),
       ...(a.catalogueReady !== undefined ? { catalogueReady: a.catalogueReady } : {}),
-      ...(a.areas ? { areas: a.areas } : {}), ...(a.replyLanguage ? { replyLanguage: a.replyLanguage } : {}) });
+      ...(a.areas ? { areas: a.areas } : {}), ...(a.replyLanguage ? { replyLanguage: a.replyLanguage } : {}), ...(a.times ? { times: a.times } : {}) });
     if (v) return `model_text_${v.code}`;
   }
   if (typeof req.dedupeKey !== "string" || req.dedupeKey.length < 3) return "missing_dedupe_key";   // every send goes through the outbox claim

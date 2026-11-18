@@ -1,0 +1,20 @@
+{
+  "about": "B1f (the founder, 18 Nov 2026; docs/log/web4a.md, 'For B1f'): on staging «لبنة» found six items (the three labneh, two laban, an apricot Greek yoghurt: AK-0048, AK-0056, AK-0057) where 'labne' and 'labneh' found the three labneh. Cause: the search-words job (version auto-2026-11-16) had written «لبنة» as a kind word of those three. 'labni' found nothing. Every spelling below must find the same labneh items, and «لبن» must still find laban. The staging terms are written into the test database through save_search_words (the job's own door) after the seeds, as on staging; the Arabic names are staging's. Run by test/db/b1f-search.test.ts on find_products (the search page's and the chat's search) and web_catalog_search (the website).",
+  "labneh_skus": ["AK-0042", "AK-0046", "AK-0051"],
+  "same_as_labneh": ["لبنة", "لبنه", "labne", "labneh", "labni", "اللبنة", "Labneh", "lebneh"],
+  "laban": { "query": "لبن", "must_find": ["AK-0048", "AK-0050", "AK-0056"], "must_not_find": ["AK-0042", "AK-0046", "AK-0051"] },
+  "staging_names": {
+    "AK-0042": "لبنة ليون تعنايل بريميوم", "AK-0046": "لبنة بلدية ليبان لايت 450 غ", "AK-0051": "لبنة بلدية ليبان لايت 900 غ",
+    "AK-0048": "لبن مزرعتنا 1 كغ", "AK-0050": "لبن ليبان لايت 1 كغ", "AK-0056": "لبن كاملة الدسم كانديا 1 كغ",
+    "AK-0057": "زبادي يوناني مشمش قليل الدسم دايري خوري 175 غ", "AK-0052": "زبادي يوناني عادي قليل الدسم دايري خوري 175 غ"
+  },
+  "staging_terms": {
+    "AK-0042": [["لبنة", "kind"], ["لبنه", "kind"], ["لبنة بلدي", "kind"], ["اللبنة", "kind"], ["لبنة ليون تعنايل", "exact"]],
+    "AK-0051": [["لبنة", "kind"], ["لبنه", "kind"], ["لبنة بلدية", "kind"], ["اللبنة", "kind"], ["لبنة بلدية 900", "exact"]],
+    "AK-0048": [["لبن", "kind"], ["لبنة", "kind"], ["لبن عيران", "kind"], ["لبن كيلو", "kind"], ["لبن مزرعتنا", "exact"]],
+    "AK-0050": [["لبن", "kind"], ["لبن ليبان 1 كغ", "exact"]],
+    "AK-0056": [["لبن", "kind"], ["لبنة", "kind"], ["لبن كامل", "kind"], ["لبنة كاملة", "kind"], ["لبن كانديا", "exact"]],
+    "AK-0057": [["لبنة", "kind"]]
+  },
+  "talaya": { "sku": "AK-0106", "queries": ["مياه تالايا الفوارة ليمون وليم", "مياه فوارة طلاية"] }
+}

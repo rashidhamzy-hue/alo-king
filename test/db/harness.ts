@@ -57,9 +57,11 @@ const enc = (v: unknown): unknown =>
 
 /** `welcome`: CX1's first-ever welcome (0143) stays on. Off by default, so a test's fresh customer is answered as before CX1; the CX1
  *  tests and the simulated customers (evals/sim/world.ts) turn it on. */
-export async function openTestDb(opts: { seeds?: boolean; welcome?: boolean } = {}): Promise<TestDb> {
+export async function openTestDb(opts: { seeds?: boolean; welcome?: boolean; without?: string[] } = {}): Promise<TestDb> {
   const pg = new PGlite({ extensions: { pg_trgm, pgcrypto, vector } });
   for (const f of readdirSync(root + "migrations").sort()) {
+    // B1f: a test may leave out named migrations, to show a fault on the database as it was before them (and gone with them)
+    if (opts.without?.some((w) => f.startsWith(w))) continue;
     try { await pg.exec(readFileSync(root + "migrations/" + f, "utf8")); }
     catch (e) { throw new Error(`${f}: ${(e as Error).message}`); }
   }

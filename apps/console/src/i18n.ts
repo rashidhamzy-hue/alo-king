@@ -144,7 +144,7 @@ export const NAV_AR: Record<string, string> = {
   "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "المال", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/approve": "الموافقات", "/settings": "الإعدادات", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
   "/riders": "المناديب", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام", "/places": "الأماكن", "/menus": "القوائم", "/food": "الأكل",
-  "/purchase-orders": "طلبات الشراء", "/bins": "الرفوف", "/temperature": "سجل الحرارة", "/screens": "الشاشات",
+  "/purchase-orders": "طلبات الشراء", "/bins": "الرفوف", "/temperature": "سجل الحرارة", "/weights": "أوزان للتسجيل يوم الملصقات", "/screens": "الشاشات",
 };
 
 /** Inline pair for a short string that belongs to one page (a table heading, a status word). The long, shared ones are in the dictionary above. */

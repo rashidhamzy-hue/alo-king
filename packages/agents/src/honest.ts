@@ -104,6 +104,28 @@ export function kindSaid(said: string): string | null {
   return words.join(" ");
 }
 
+const INSIDE_WHAT = /^\s*(?:in|into|inside|on|dans|fi|bel|bil|bi|b|3al|3a)\s+(?:the\s+|my\s+|le\s+|la\s+|les\s+|l'|el\s+|l\s+)?([\p{L}'-]+)|^\s*(?:بال|في\s+(?:ال)?|عال)([\p{L}]+)/iu;
+/**
+ * B1f (B1e's pinned case): the message without a fact said of another item ("no sugar in the coffee", «بلا سكر بالقهوة», "sans sucre dans
+ * le café") when that item is not the line's own: with one line, the whole message's facts were asked of that line ("I can't confirm the
+ * sugar for our labneh"). Said of the line's own item ("no sugar in the labneh"), it stays.
+ */
+export function withoutOthersFacts(said: string, lineWords: string): string {
+  const own = lineWords.toLowerCase();
+  let out = said;
+  for (const [, re] of FACT_WORDS) {
+    for (const m of said.matchAll(new RegExp(re.source, "giu"))) {
+      const after = said.slice(m.index! + m[0].length);
+      const w = INSIDE_WHAT.exec(after);
+      if (!w) continue;
+      const item = (w[1] ?? w[2] ?? "").toLowerCase().replace(/^ال/u, "");
+      if (item.length >= 3 && own.includes(item)) continue;
+      out = out.replace(m[0] + after.slice(0, w[0].length), " ");
+    }
+  }
+  return out;
+}
+
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await db.rpc(fn, args);
   if (error) throw new Error(`${fn}: ${error.message}`);
@@ -128,6 +150,12 @@ interface Match { product_id: string; name_en?: string | null; name_ar?: string 
 export async function honestAnswer(ctx: ToolContext, intent: OrderIntent, said: string): Promise<boolean> {
   if (!ASK_INTENTS.has(intent.intent) || intent.lines.length === 0 || intent.repeat_last) return false;
   const one = intent.lines.length === 1;
+  // B1f: with one line, a fact said of another item is not that line's
+  if (one) {
+    const lw = [intent.lines[0]!.raw, intent.lines[0]!.query, ...(intent.lines[0]!.modifiers ?? [])].join(" ");
+    said = withoutOthersFacts(said, lw);
+    intent = { ...intent, restrictions: (intent.restrictions ?? []).map((r) => withoutOthersFacts(r, lw)).filter((r) => r.trim()) };
+  }
   const said_ = readSearch(said);
   const stated = readSearch((intent.restrictions ?? []).join(". "));
   const asks: Ask[] = [];
