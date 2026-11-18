@@ -5,6 +5,7 @@
 import { buttons } from "@ak/wa/kapso";
 import { deliver, type ToolContext } from "./concierge-tools";
 import { normalise } from "./quick-intent";
+import { messages } from "./messages";
 
 export type MemoryCommand = "show" | "forget" | "stop" | "start";
 
@@ -70,11 +71,6 @@ export const MEMORY_TEXT = {
   notForgotten: "تمام، ما محينا شي.",
   stopped: "تم، ما رح نتعلّم شي جديد عنك من هلّق، وما منستعمل يلي محفوظ إلا القيود يلي طلبت نتذكّرها. إذا بدك نمحي يلي محفوظ قلّي «إنسى».",
   started: "تم، رجعنا نتذكّر طلباتك لنسهّلها عليك. فيك توقّفها بأي وقت.",
-  keepOffer: (rs: string[]) => `سجّلنا «${rs.join("، ")}» على طلبك، ولازم المطبخ يأكّد. بتحب نتذكّرها لطلباتك الجاية؟`,
-  keepYes: "إيه، تذكّرها",
-  keepNo: "بس هالمرة",
-  kept: "تم، رح نتذكّرها ونحطّها على كل طلب. فيك تقلّي «إنسى» بأي وقت.",
-  notKept: "تمام، بس لهالطلب.",
 };
 
 export const MEMORY_BUTTON = { forgetYes: "memory:forget:yes", forgetNo: "memory:forget:no", keepYes: "memory:keep:yes", keepNo: "memory:keep:no" };
@@ -104,9 +100,9 @@ export async function handleMemoryButton(ctx: ToolContext, id: string): Promise<
     case MEMORY_BUTTON.keepYes: {
       for (const r of ctx.state.pendingRestrictions ?? []) await rpc(ctx, "save_stated_restriction", { p_party: ctx.partyId, p_text: r });
       ctx.state.pendingRestrictions = null;
-      await say(ctx, MEMORY_TEXT.kept, "restriction_saved"); return true;
+      await say(ctx, messages(ctx.state.lang).remember.kept, "restriction_saved"); return true;
     }
-    case MEMORY_BUTTON.keepNo: ctx.state.pendingRestrictions = null; await say(ctx, MEMORY_TEXT.notKept, "restriction_once"); return true;
+    case MEMORY_BUTTON.keepNo: ctx.state.pendingRestrictions = null; await say(ctx, messages(ctx.state.lang).remember.notKept, "restriction_once"); return true;
     default: return false;
   }
 }
@@ -125,7 +121,20 @@ export async function offerToRemember(ctx: ToolContext, stated: string[]): Promi
   const fresh = [...new Set(stated.map((s) => s.trim()).filter((s) => s.length >= 2 && !saved.has(fold(s))))].slice(0, 3);
   if (fresh.length === 0) return;
   ctx.state.pendingRestrictions = fresh;
-  const body = MEMORY_TEXT.keepOffer(fresh);
-  const r = await ctx.send(buttons(body, [{ id: MEMORY_BUTTON.keepYes, title: MEMORY_TEXT.keepYes }, { id: MEMORY_BUTTON.keepNo, title: MEMORY_TEXT.keepNo }]));
+  // B1e (QA1): in the customer's language, and "on your order" only when there is one: a basket, a card, or an order under way.
+  const R = messages(ctx.state.lang).remember;
+  const body = R.offer(fresh, await orderInHand(ctx));
+  const r = await ctx.send(buttons(body, [{ id: MEMORY_BUTTON.keepYes, title: R.yes }, { id: MEMORY_BUTTON.keepNo, title: R.no }]));
   if (r.ok) { ctx.sent.count++; ctx.sent.texts.push(body); }
+}
+
+/** B1e: a basket, a card waiting on the tap, or an order not yet delivered: what a restriction said now goes on. Unreadable counts as none. */
+const DONE = new Set(["delivered", "closed", "cancelled", "canceled", "lapsed", "failed", "refunded", "returned"]);
+async function orderInHand(ctx: ToolContext): Promise<boolean> {
+  if (ctx.state.lastQuote?.lines?.length || ctx.state.editing) return true;
+  try {
+    if (await rpc<unknown>(ctx, "card_in_hand", { p_party: ctx.partyId, p_conversation: ctx.conversationId })) return true;
+    const s = await rpc<{ status?: string } | null>(ctx, "order_status_for", { p_party: ctx.partyId });
+    return !!s?.status && !DONE.has(s.status);
+  } catch { return false; }
 }

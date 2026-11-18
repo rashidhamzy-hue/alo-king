@@ -338,6 +338,12 @@ export interface Messages {
     /** SR1: the last line after items that fit. */
     closeFits: S;
   };
+  /**
+   * 1.14, B1e: the offer to remember a restriction the customer stated, in their language. `onOrder`: a basket, a card or an order is in
+   * hand, so the restriction is on it; otherwise it is noted for the order to come (QA1: «سجّلنا … على طلبك» about no order, in Arabic
+   * to an English message).
+   */
+  remember: { offer: (restrictions: S[], onOrder: boolean) => S; yes: S; no: S; kept: S; notKept: S };
   /** SR1 (6): a basket built by code (0215), said before its card; the card is the customer's to confirm (invariant 4). */
   built: {
     dish: (dish: S, people: number) => S;

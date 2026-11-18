@@ -70,7 +70,7 @@ describe("the number is confirmed the WEB2 way: they message us first", () => {
     expect(s.party_id).toBe(v.party);
     const c = await db.one<any>(`select source, wording, evidence_message_id from consent_events where party_id = $1 and source = 'web_link_code'`, [v.party]);
     expect(c.evidence_message_id).toMatch(/^wamid-ux3-/);
-    expect(c.wording).toContain("مندوب");                                               // the rider's words, not the checkout's "updates on your orders"
+    expect(c.wording).toContain("طلب انضمامك كدليفري");                                // the rider's words (0235, read 18 Nov), not the checkout's "updates on your orders"
     const checkout = await confirmedVisitor("checkout");
     expect((await db.one<any>(`select wording from consent_events where party_id = $1`, [checkout.party])).wording).toContain("طلباتك");
     const vendor = await confirmedVisitor("vendor");

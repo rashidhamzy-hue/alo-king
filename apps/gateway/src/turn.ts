@@ -16,7 +16,7 @@ import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
-import { catalogueReady, makeConciergeTools, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
+import { catalogueReady, makeConciergeTools, notePlanAreas, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
 import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/windows";
 import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
@@ -25,6 +25,7 @@ import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
 import { keepLanguage, langOfSpeech, replyLanguage, type Speech } from "@ak/agents/language";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
+import { factsAsked } from "@ak/agents/honest";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 import { takeCart, type CartOrder } from "@ak/agents/cart";
@@ -713,7 +714,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // M1: the reading names the customer's language when their own words have not (B1b: it never overrides them, language.ts).
     learnLang([...ownTexts, ...transcripts.map((t) => t.primary)], intent?.language);
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
-    const stated = intent?.restrictions ?? [];
+    const stated = [...(intent?.restrictions ?? [])];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
     const said = [...texts, ...transcripts.map((t) => t.primary)].join("\n");
     // PD1 (e): the customer's own words this turn, so their request said back («you asked for protein bars») is not read as a claim.
@@ -725,12 +726,20 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     }
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent, said);
+    // B1e (QA1): after the honest answer, a fact that only describes the kind asked ("no sugar" of "protein bars with no sugar") is a
+    // search the answer has used, not a restriction for an order: never offered as one, never kept for the next basket. An allergy stays.
+    if (routed.done && routed.path === "honest_answer" && stated.some((r) => factsAsked(r).length)) {
+      const facts = stated.filter((r) => factsAsked(r).length);
+      state.orderRestrictions = (state.orderRestrictions ?? []).filter((r) => !facts.includes(r));
+      stated.splice(0, stated.length, ...stated.filter((r) => !facts.includes(r)));
+    }
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? (ctx.support?.opened ? "case" : "answered") : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
     // B1b (SIM1 fix 6): the language to write in, kept for the conversation (Arabizi in Latin letters for an Arabizi customer).
     // PD1 (e): the products the planner returned are names the reply may use as written; (g) the catalogue is offered only when connected.
     notePlanNames(ctx, routed.plan);
+    notePlanAreas(ctx, routed.plan, intent?.address?.village);
     ctx.catalogueReady = await catalogueReady(db);
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE, ...(replyLanguage(state.speech) ? { reply_language: replyLanguage(state.speech) } : {}) };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));

@@ -71,6 +71,39 @@ export function kindOf(words: string): string {
   return s.replace(/[^\p{L}\p{N}' -]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
+/** The fact phrases as the customer said them ("with no sugar", «بلا سكر»), in order. */
+export function factPhrases(said: string): string[] {
+  return FACT_WORDS.flatMap(([, re]) => [...said.matchAll(new RegExp(re.source, "giu"))].map((m) => m[0].trim()));
+}
+
+// B1e: words that are not a kind of product: the request around it, the person, politeness and questions.
+const NOT_A_KIND = new Set(("i i'm im am me my mine you your we us do does did have has got get any is are there can could would will want wanted need " +
+  "looking look find please pls plz thanks thank thx hi hello hey ok okay yes no just only also too the a an it this that in on at to of or " +
+  "diabetic diabetes diet allergic allergy allergies pregnant health healthy order my order everything anything something stuff things " +
+  "bidde bidi baddi badde bade bedde baddak 3andkon 3andak fi fiye shi kel kell ana enta law lau sama7t sama7te please. marhaba hala ahlan yalla tamam " +
+  "je j' voudrais veux cherche voulez avez vous est-ce que qu'est il y a bonjour bonsoir merci svp stp s'il plaît plait suis diabétique régime " +
+  "commande tout quelque chose").split(/\s+/u));
+const NOT_A_KIND_AR = /(?<![\p{L}])(?:بدّي|بدي|عندكن|عندكم|عندك|في|شي|أنا|انا|عندي|سكري|حساسية|لو|سمحت|بليز|مرحبا|أهلا|اهلا|يلا|تمام|من|فضلك|كل|طلبي|الطلب|ممكن|هل)(?![\p{L}])/gu;
+// A fact said of something else ("no sugar in the coffee", «بلا سكر بالقهوة», "sans sucre dans le café"): a modifier of that item, not a kind.
+const INSIDE = /^\s*(?:in|into|inside|on|dans|fi|bel|bil|bi|b|3al|3a)\s+\p{L}|^\s*(?:بال|في\s|عال)/iu;
+
+/**
+ * B1e: the kind of product a message asks for with a fact, in the customer's own words, when the reading gave no line ("protein bars
+ * with no sugar", «سناكس بلا سكر»). Null for a fact alone ("no sugar", «بلا سكر»), a fact said of the person ("I'm diabetic, no sugar
+ * please") or of another item ("no sugar in the coffee"), and for words with no fact. Code only; the reading's own line wins when it has one.
+ */
+export function kindSaid(said: string): string | null {
+  const s = said.trim();
+  if (!s || factsAsked(s).length === 0) return null;
+  for (const [, re] of FACT_WORDS) {
+    for (const m of s.matchAll(new RegExp(re.source, "giu"))) if (INSIDE.test(s.slice(m.index! + m[0].length))) return null;
+  }
+  const words = kindOf(s).replace(NOT_A_KIND_AR, " ").split(/\s+/u)
+    .filter((w) => w && !NOT_A_KIND.has(w.toLowerCase()) && !/^[-']+$/u.test(w));
+  if (!words.length || words.length > 4) return null;
+  return words.join(" ");
+}
+
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await db.rpc(fn, args);
   if (error) throw new Error(`${fn}: ${error.message}`);

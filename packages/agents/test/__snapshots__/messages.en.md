@@ -1578,6 +1578,51 @@ None of our juice fits that, by what their packs say.
 Tell me which one and how many.
 ```
 
+## remember.offer
+
+```text
+I've put “no sugar” on your order; the kitchen must confirm it.
+Shall we remember it for your next orders?
+```
+
+## remember.offer.noOrder
+
+```text
+Noted: “no sugar”; the kitchen must confirm it on each order.
+Shall we remember it for your next orders?
+```
+
+## remember.offer.long
+
+```text
+Noted: “no peanuts, no sesame, no milk in anything”; the kitchen must confirm it on each order.
+Shall we remember it for your next orders?
+```
+
+## remember.yes
+
+```text
+Yes, remember it
+```
+
+## remember.no
+
+```text
+Just this time
+```
+
+## remember.kept
+
+```text
+Done: we'll remember it and put it on every order. Say “forget” any time.
+```
+
+## remember.notKept
+
+```text
+OK, just for this order.
+```
+
 ## built.dish
 
 ```text
