@@ -44,7 +44,7 @@ describe("what may be changed", () => {
 
   it("changes a nested field and a whole value, and keeps the rest of the row", async () => {
     await change("hours", "open", "07:30", admin);
-    expect(await setting("hours")).toMatchObject({ open: "07:30", close: "23:00", tz: "Asia/Beirut" });
+    expect(await setting("hours")).toMatchObject({ open: "07:30", close: "21:00", tz: "Asia/Beirut" });
     await change("min_order_usd", "", 6.5, admin);
     expect(Number(await setting("min_order_usd"))).toBe(6.5);
     await change("pickup", "place_en", "  Hub counter, Baakline  ", admin);

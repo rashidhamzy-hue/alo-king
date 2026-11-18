@@ -191,7 +191,9 @@ describe("parse once, then the database (1.1)", () => {
     expect(second.reply_rule).toBe(REPLY_RULE);
     expect(JSON.stringify(t.seen[0]!)).not.toContain(REPLY_RULE);
     expect(t.rpcCalls.filter((c) => c.fn === "search_catalog")).toHaveLength(0);   // plan_order searched, inside the database
-    expect(outbound).toHaveLength(1);
+    // CX2: the reply asked about the labneh and said nothing of «زنزلخت»: code names it (never dropped in silence).
+    expect(outbound).toHaveLength(2);
+    expect(outbound[1]!.body.text.body).toBe(ar.honest.notFound(["زنزلخت"]));
     const c = await t.customer();
     expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "ask" });
     await db.pg.query(`update products set house_default = true where sku = 'AK-0046'`);

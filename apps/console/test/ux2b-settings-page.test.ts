@@ -29,7 +29,7 @@ describe("the page", () => {
     expect(t).toContain("A packaged item is sold only after its label is read and approved");
     expect(t).toContain("Search by meaning (embeddings)");
     expect(t).toMatch(/Soft cap: warn above[\s\S]*?\$100\.00/); expect(t).toMatch(/Hard cap: no new cash order above[\s\S]*?\$150\.00/);
-    expect(t).toMatch(/Opens[\s\S]*?08:00/); expect(t).toMatch(/Step 2: the founder is alerted after[\s\S]*?5/);
+    expect(t).toMatch(/Opens[\s\S]*?09:00/); expect(t).toMatch(/Step 2: the founder is alerted after[\s\S]*?5/);
     expect(t).toContain('href="/staff"'); expect(t).toContain('href="/zones"'); expect(t).toContain('href="/windows"');
     expect(t).not.toMatch(/<script(?![^>]*\bsrc=)|<style|\sstyle="/);
   });

@@ -1,0 +1,169 @@
+{
+  "about": "CX2 (18 Nov 2026): the founder's own staging chat of 18 November, 07:36 to 09:06 Beirut (orders AK-1062 and AK-1063). (1) A voice note at 07:37, «بدي كرتونة مي تنورين وقهوة نجار على بعقلين، وكمان بدي نص كفة» (Kapso's transcript, outside opening hours): the reading's third line «نص كفة» (half a kilo of kafta; the transcript writes kafta «كفة») was not found (a demand row, unknown_product) and the reply, a location request written by the model, said nothing of it. Nothing the customer asks for is dropped in silence: it goes on the card or the reply names it. «كفة» is kafta's word now (0256), and any line still not found is named by code (pipeline.ts lostText, nameLost). (2) A voice note at 08:39 with «cafe mate» (Coffee-mate creamer, AK-0132, which we carry): the planner found «cafe» in three Najjar coffees, «mate» in none, and code asked «which one?» over the Najjar coffees. 'cafe mate' is Coffee Mate's words now (0256), and a «which one?» never offers products when a word the customer said, which none of them explains, names another product's brand or kind (\"nescafe vanilla\" over vanilla items): that line is a kind we cannot show and gets PD1's honest answer (0256, b4 'other_kind'). Run by test/db/cx2-founder-chat.test.ts; the readings are scripted as the live model gave them on staging.",
+  "run": "staging, 18 Nov 2026 05:37 and 06:39 UTC, wa_messages and demand_signals of the founder's test number",
+  "cases": [
+    {
+      "id": "cx2-kafta-closed",
+      "said": "بدي كرتونة مي تنورين وقهوة نجار على بعقلين، وكمان بدي نص كفة",
+      "hours": "closed",
+      "lines": [
+        {
+          "raw": "كرتونة مي تنورين",
+          "query": "مي تنورين",
+          "qty": 3
+        },
+        {
+          "raw": "قهوة نجار",
+          "query": "قهوة نجار",
+          "qty": 1
+        },
+        {
+          "raw": "نص كفة",
+          "query": "نص كفة",
+          "qty": 1
+        }
+      ],
+      "expect": {
+        "path": "closed_kept",
+        "contains": [
+          "كفتة"
+        ],
+        "not_contains": [
+          "ما لقيت"
+        ]
+      }
+    },
+    {
+      "id": "cx2-unknown-named-closed",
+      "said": "بدي كرتونة مي تنورين وقهوة نجار، وكمان بدي نص كفوف",
+      "hours": "closed",
+      "lines": [
+        {
+          "raw": "كرتونة مي تنورين",
+          "query": "مي تنورين",
+          "qty": 3
+        },
+        {
+          "raw": "قهوة نجار",
+          "query": "قهوة نجار",
+          "qty": 1
+        },
+        {
+          "raw": "نص كفوف",
+          "query": "نص كفوف",
+          "qty": 1
+        }
+      ],
+      "expect": {
+        "path": "closed_kept",
+        "contains": [
+          "ما لقيت «نص كفوف» عنّا."
+        ],
+        "not_contains": []
+      }
+    },
+    {
+      "id": "cx2-unknown-named-open",
+      "said": "bidde kartouneh mayy tannourine w nos kfouf",
+      "hours": "open",
+      "lines": [
+        {
+          "raw": "kartouneh mayy tannourine",
+          "query": "mayy tannourine",
+          "qty": 3
+        },
+        {
+          "raw": "nos kfouf",
+          "query": "nos kfouf",
+          "qty": 1
+        }
+      ],
+      "expect": {
+        "path": "ask",
+        "contains": [
+          "ما لقيت «nos kfouf» عنّا."
+        ],
+        "not_contains": []
+      },
+      "model_reply": "تمام، في شي تاني؟"
+    },
+    {
+      "id": "cx2-cafe-mate",
+      "said": "بدي كرتونة مي تنورين وقهوة نجار ونسكافيه و cafe mate",
+      "hours": "open",
+      "lines": [
+        {
+          "raw": "كرتونة مي تنورين",
+          "query": "مي تنورين",
+          "qty": 3
+        },
+        {
+          "raw": "cafe mate",
+          "query": "cafe mate",
+          "qty": 1
+        }
+      ],
+      "expect": {
+        "path": "card",
+        "contains": [
+          "Coffee Mate"
+        ],
+        "not_contains": [
+          "Najjar",
+          "النجار",
+          "أي واحد بدك"
+        ]
+      }
+    },
+    {
+      "id": "cx2-other-kind",
+      "said": "bidde 3 kartouneh mayy tannourine w nescafe vanilla",
+      "hours": "open",
+      "lines": [
+        {
+          "raw": "mayy tannourine",
+          "query": "mayy tannourine",
+          "qty": 3
+        },
+        {
+          "raw": "nescafe vanilla",
+          "query": "nescafe vanilla",
+          "qty": 1
+        }
+      ],
+      "expect": {
+        "path": "card",
+        "contains": [
+          "لسّا ما عنّا nescafe vanilla، سجّلنا طلبك."
+        ],
+        "not_contains": [
+          "أي واحد بدك",
+          "Vanill"
+        ]
+      }
+    }
+  ],
+  "loop": {
+    "id": "cx2-unknown-loop-guard",
+    "said": "بدي لبنة ونص كفوف",
+    "lines": [
+      {
+        "raw": "لبنة",
+        "query": "لبنة",
+        "qty": 1
+      },
+      {
+        "raw": "نص كفوف",
+        "query": "نص كفوف",
+        "qty": 1
+      }
+    ],
+    "model_reply": "أي لبنة بدك؟",
+    "no_house_default": "AK-0046",
+    "expect": {
+      "contains": [
+        "ما لقيت «نص كفوف» عنّا."
+      ]
+    }
+  }
+}

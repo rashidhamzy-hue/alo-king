@@ -8,7 +8,7 @@ import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@a
 import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, answerWhen, askPinVillage, settlePinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
+import { answerQuick, answerWhen, askPinVillage, nameLost, settlePinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
          routeBasket, waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { parsePickButton, takePick } from "@ak/agents/choice";
@@ -22,7 +22,7 @@ import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/wind
 import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
-import { messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
+import { asLang, messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
 import { keepLanguage, langOfSpeech, replyLanguage, type Speech } from "@ak/agents/language";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { factsAsked } from "@ak/agents/honest";
@@ -500,8 +500,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       // WEB2: "Card AK-xxxx", typed by the order page's button: the card of the sender's own order that still waits, sent again. It never
       // confirms anything; only the card's Confirm button does (invariant 4).
       if (cardAgain) {
-        const again = await call<{ ok: boolean; status?: string; order_id?: string; short_code?: string }>(db, "web_card_again", { p_party: conv.party_id, p_code: cardAgain[1] });
-        if (again.ok && again.order_id && (await resendCard(ctx, again.order_id))) { sent.push(...ctx.sent.texts.splice(0)); claimed = true; continue; }
+        const again = await call<{ ok: boolean; status?: string; order_id?: string; short_code?: string; lang?: string | null; claimed?: boolean }>(
+          db, "web_card_again", { p_party: conv.party_id, p_code: cardAgain[1] });
+        // CX2 (AK-1063): one card, in the page's language; a request the cron had not sent yet is now this one (0255).
+        if (again.ok && again.order_id) {
+          const ok = await resendCard(ctx, again.order_id, again.lang ? asLang(again.lang) : null);
+          if (again.claimed) await call(db, "web_card_done", { p_order: again.order_id, p_outcome: ok ? "sent:card_again" : "refused:card_again" });
+          if (ok) { sent.push(...ctx.sent.texts.splice(0)); claimed = true; continue; }
+        }
         await say(again.status === "not_waiting" ? T().web.cardNotWaiting(again.short_code ?? cardAgain[1]!.toUpperCase()) : T().web.cardUnknown);
         claimed = true; continue;
       }
@@ -744,6 +750,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE, ...(replyLanguage(state.speech) ? { reply_language: replyLanguage(state.speech) } : {}) };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
+    // CX2: a line the planner could not find, which the reply did not name, is said by code. Nothing asked for is dropped in silence.
+    if (res.outcome === "ok") await nameLost(ctx, routed.plan, intent);
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();
     // HO1: the loop's own "handoff" is a case opened (or recalled), a food fact not on record, or the stalled question.

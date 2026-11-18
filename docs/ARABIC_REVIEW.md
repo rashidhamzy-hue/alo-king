@@ -1361,31 +1361,30 @@ The shifts (morning 08:00 to 15:30, evening 15:30 to 23:00) are a draft taken fr
 
 | English | Arabic | Read by |
 |---|---|---|
-<<<<<<< HEAD
-| Applicants | المتقدّمون | |
-| Vehicle | وسيلة النقل | |
-| Licence | رخصة | |
-| Licence: yes | رخصة: نعم | |
-| Licence: no | رخصة: لا | |
-| Days | الأيام | |
-| Shifts | الورديات | |
-| WhatsApp number | رقم واتساب | |
-| Applied | قُدّم | |
-| Its case in the Inbox (resolved) | حالته في الوارد (مُغلقة) | |
-| Open its case in the Inbox | افتح حالته في الوارد | |
-| Accept | قبول | |
-| Why (kept with the decision) | السبب (يُحفظ مع القرار) | |
-| Accepted | مقبول | |
-| People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash. | أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً. | |
-| Waiting (${open.length}) | بالانتظار (${open.length}) | |
-| Nobody is waiting. | لا أحد بالانتظار. | |
-| Decided | تم البتّ فيها | |
-| No application has been decided yet. | لم يُبتّ في أي طلب بعد. | |
-| Someone already decided this application. | بتّ شخص آخر في هذا الطلب. | |
-| This number is already on the ops line, so they are a rider or staff already. Nothing was changed. | هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء. | |
-| This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | |
-| ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | |
-| Declined. The reason is kept. | تم الرفض. السبب محفوظ. | |
+| Applicants | المتقدّمون | RA 18 Nov |
+| Vehicle | وسيلة النقل | RA 18 Nov |
+| Licence | رخصة | RA 18 Nov |
+| Licence: yes | رخصة: نعم | RA 18 Nov |
+| Licence: no | رخصة: لا | RA 18 Nov |
+| Days | الأيام | RA 18 Nov |
+| Shifts | الورديات | RA 18 Nov |
+| WhatsApp number | رقم واتساب | RA 18 Nov |
+| Applied | قُدّم | RA 18 Nov |
+| Its case in the Inbox (resolved) | حالته في الوارد (مُغلقة) | RA 18 Nov |
+| Open its case in the Inbox | افتح حالته في الوارد | RA 18 Nov |
+| Accept | قبول | RA 18 Nov |
+| Why (kept with the decision) | السبب (يُحفظ مع القرار) | RA 18 Nov |
+| Accepted | مقبول | RA 18 Nov |
+| People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash. | أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً. | RA 18 Nov |
+| Waiting (${open.length}) | بالانتظار (${open.length}) | RA 18 Nov |
+| Nobody is waiting. | لا أحد بالانتظار. | RA 18 Nov |
+| Decided | تم البتّ فيها | RA 18 Nov |
+| No application has been decided yet. | لم يُبتّ في أي طلب بعد. | RA 18 Nov |
+| Someone already decided this application. | بتّ شخص آخر في هذا الطلب. | RA 18 Nov |
+| This number is already on the ops line, so they are a rider or staff already. Nothing was changed. | هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء. | RA 18 Nov |
+| This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | RA 18 Nov |
+| ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | RA 18 Nov |
+| Declined. The reason is kept. | تم الرفض. السبب محفوظ. | RA 18 Nov |
 
 ## WH1a, warehouse basics (console, staff-facing, written by a model; 18 November 2026)
 
@@ -1642,31 +1641,6 @@ Suppliers, what we owe them, paying from the drawer, the last receipts. Its refu
 | Type the receipt number. | اكتب رقم الإيصال. | unread |
 | That payment was already recorded. | سُجّلت هذه الدفعة من قبل. | unread |
 | Paid ${usd(amount)} from the drawer. We now owe ${usd(r.owed_usd)}. | دُفع ${usd(amount)} من الصندوق. ندين الآن ${usd(r.owed_usd)}. | unread |
-=======
-| Applicants | المتقدّمون | RA 18 Nov |
-| Vehicle | وسيلة النقل | RA 18 Nov |
-| Licence | رخصة | RA 18 Nov |
-| Licence: yes | رخصة: نعم | RA 18 Nov |
-| Licence: no | رخصة: لا | RA 18 Nov |
-| Days | الأيام | RA 18 Nov |
-| Shifts | الورديات | RA 18 Nov |
-| WhatsApp number | رقم واتساب | RA 18 Nov |
-| Applied | قُدّم | RA 18 Nov |
-| Its case in the Inbox (resolved) | حالته في الوارد (مُغلقة) | RA 18 Nov |
-| Open its case in the Inbox | افتح حالته في الوارد | RA 18 Nov |
-| Accept | قبول | RA 18 Nov |
-| Why (kept with the decision) | السبب (يُحفظ مع القرار) | RA 18 Nov |
-| Accepted | مقبول | RA 18 Nov |
-| People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash. | أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً. | RA 18 Nov |
-| Waiting (${open.length}) | بالانتظار (${open.length}) | RA 18 Nov |
-| Nobody is waiting. | لا أحد بالانتظار. | RA 18 Nov |
-| Decided | تم البتّ فيها | RA 18 Nov |
-| No application has been decided yet. | لم يُبتّ في أي طلب بعد. | RA 18 Nov |
-| Someone already decided this application. | بتّ شخص آخر في هذا الطلب. | RA 18 Nov |
-| This number is already on the ops line, so they are a rider or staff already. Nothing was changed. | هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء. | RA 18 Nov |
-| This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | RA 18 Nov |
-| ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | RA 18 Nov |
-| Declined. The reason is kept. | تم الرفض. السبب محفوظ. | RA 18 Nov |
 
 ## B1e, the offer to remember a restriction, in the customer's language (18 November 2026)
 
@@ -1686,4 +1660,14 @@ the customer's own words.
 | `remember.notKept` | تمام، بس لهالطلب. | OK, just for this order. | D'accord, juste pour cette commande. | |
 
 Still Arabic only, unchanged (not B1e's): the memory answers ("what do you know about me", "forget", "stop remembering"; `MEMORY_TEXT` in `memory.ts`).
->>>>>>> origin/main
+
+
+## CX2, a line we could not find, and the redesigned customer messages (18 November 2026)
+
+Stage 1 adds one customer line in code (`honest.notFound`, said when a line of the order was not found: never dropped in silence). The
+redesigned messages are a proposal in `docs/MESSAGES.md` (Arabic and English, before and after) and on the console's Screens page (session
+cx2); their Arabic is read there before stage 2 puts it in the code.
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `honest.notFound` | ما لقيت «{x}» عنّا. إذا قصدك شي تاني، قلّي ياه بكلمات تانية. | I couldn't find “{x}” in our shop. If you meant something else, tell me in other words. | Je n'ai pas trouvé « {x} » chez nous. Si vous pensiez à autre chose, dites-le autrement. | |

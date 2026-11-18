@@ -323,6 +323,8 @@ export interface Messages {
   honest: {
     /** The kinds the customer asked for that we do not carry, in their own words. */
     notCarried: (kinds: S[]) => S;
+    /** CX2: what the customer said that the planner could not find (misheard, or not ours), in their own words: never dropped in silence. */
+    notFound: (said: S[]) => S;
     /** A fact asked about a kind we carry, which no approved record confirms yet. */
     cannotConfirm: (fact: S, kinds: S[]) => S;
     /** What each fact is called in that sentence. */
