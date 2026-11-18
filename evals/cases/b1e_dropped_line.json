@@ -233,17 +233,12 @@
         ]
       },
       "expect": {
-        "path": "honest_answer",
-        "demand": [
-          [
-            "facts_unconfirmed",
-            "labneh"
-          ]
-        ],
-        "contains": [
+        "not_path": "honest_answer",
+        "demand": [],
+        "not_contains": [
           "I can't confirm the sugar for our labneh yet"
         ],
-        "note": "As before B1e (pinned, not endorsed): with one line, PD1 applies the whole message's facts to that line, so 'no sugar in the coffee' is asked of the labneh. Open for the next ordering session (docs/HANDOFF.md, B1e)."
+        "note": "B1f: a fact said of another item («in the coffee») is never asked of the one line it does not name. The labneh goes the usual ordering path; no facts_unconfirmed row for the labneh (was pinned here by B1e, not endorsed)."
       }
     },
     {
@@ -274,6 +269,93 @@
         "not_path": "honest_answer",
         "demand": [],
         "note": "A plain item beside the fact: the usual ordering path answers the whole message (PD1), as before B1e."
+      }
+    },
+    {
+      "id": "b1f-labneh-no-sugar-in-the-coffee-ar",
+      "said": "بدي لبنة، وبلا سكر بالقهوة",
+      "language": "ar_lb",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "لبنة",
+            "query": "لبنة",
+            "qty": 1,
+            "modifiers": []
+          }
+        ],
+        "restrictions": [
+          "بلا سكر بالقهوة"
+        ]
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand": [],
+        "not_contains": [
+          "ما فينا نأكّد السكر",
+          "السكر"
+        ],
+        "note": "B1f: the Arabic of the case above."
+      }
+    },
+    {
+      "id": "b1f-labneh-sans-sucre-dans-le-cafe-fr",
+      "said": "du labneh, et sans sucre dans le café",
+      "language": "fr",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "labneh",
+            "query": "labneh",
+            "qty": 1,
+            "modifiers": []
+          }
+        ],
+        "restrictions": [
+          "sans sucre dans le café"
+        ]
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand": [],
+        "not_contains": [
+          "sucre"
+        ],
+        "note": "B1f: the French of the case above."
+      }
+    },
+    {
+      "id": "b1f-labneh-no-sugar-in-the-labneh",
+      "said": "labneh, no sugar in the labneh",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "labneh",
+            "query": "labneh",
+            "qty": 1,
+            "modifiers": []
+          }
+        ],
+        "restrictions": [
+          "no sugar in the labneh"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "demand": [
+          [
+            "facts_unconfirmed",
+            "labneh"
+          ]
+        ],
+        "contains": [
+          "I can't confirm the sugar for our labneh yet"
+        ],
+        "note": "B1f: said of the line's own item, the fact is asked of it, as before."
       }
     }
   ]

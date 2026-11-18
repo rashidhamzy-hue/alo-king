@@ -91,7 +91,7 @@ describe("B1e: a fact alone keeps its path; the restriction line is in the custo
   // A restriction inside a real order: the path is the one it had before B1e (the eval file's notes say why each is so).
   const real = cases.unchanged.filter((c) => "demand" in c.expect);
   it.each(real.map((c) => [c.id, c] as const))("%s: the path it had before B1e", async (_id, c) => {
-    const e = c.expect as { path?: string; not_path?: string; demand: string[][]; contains?: string[] };
+    const e = c.expect as { path?: string; not_path?: string; demand: string[][]; contains?: string[]; not_contains?: string[] };
     const t = flow(db, [read(reading(c.reading, c.language))]);
     const cust = await returning(t);
     await t.text(c.said);
@@ -101,8 +101,9 @@ describe("B1e: a fact alone keeps its path; the restriction line is in the custo
     expect((await demand(cust.party_id)).map((r) => [r.kind, r.detail.kind_asked])).toEqual(e.demand);
     const all = outbound.map(bodyOf).join("\n");
     for (const x of e.contains ?? []) expect(all).toContain(x);
+    for (const x of e.not_contains ?? []) expect(all).not.toContain(x);   // B1f
     expect(all).not.toContain("Welcome to Alo King");
-    for (const o of outbound) expect(wrongLanguage("en", bodyOf(o))).toBeNull();
-    expect(all).not.toContain("على طلبك");
+    for (const o of outbound) expect(wrongLanguage(expectedLang(c.language), bodyOf(o))).toBeNull();
+    if (c.language === "en") expect(all).not.toContain("على طلبك");
   });
 });

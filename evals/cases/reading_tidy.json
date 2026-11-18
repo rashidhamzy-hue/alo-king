@@ -1,620 +1,739 @@
 {
- "about": "Session B1b (B1a's reading leftovers, docs/HANDOFF.md B1a): what code corrects in the model's reading before the planner (packages/agents/src/reading.ts tidyReading, applied inside extractOrder). Each case: the customer's words, the reading the model gave (or the shape B1a's runs on main showed), and what the reading must be after code: the lines (query words, qty, change) and the building. «بيضا» (white, of a building) read as eggs outside the address step (sim-113, sim-117, sim-066, sim-006); add versus set («ya3ni 7», «so 3 total», «مش ١ بس», «3 kman»: sim-066, sim-140, sim-110, sim-040; B1a's second run «٣ بيبسي ... مش ١ بس» gave 4); a size-only line (M1's gate run 43675197868, g0752: «l 2annine l z8ire» matched 7Up 330 ml). Pack sizes («32 حبة», sim-147) are checked against the product the planner chose (reading.ts packSizeQty), in test/db/ordering-b1b.test.ts. Judged by evals/test/reading-tidy.test.ts, no model. B1c (sim-test 43756167947): «غيّر الكمية لتلاتة», «خليهن ٣» set the count (sim-121 made 4); «بدي بس ...» sets every count said (sim-052 made 4 of 2); «badal X» takes X off and «khalli bas X w Y» keeps X and Y (sim-065 added a Maggi, then took off the jelly and the fish).",
- "cases": [
-  {
-   "id": "sim-113-bayda",
-   "text": "el binaye bayda, el tabe2 tene",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "bayda",
-      "query": "bayd abyad",
-      "qty": 1
-     }
-    ],
-    "address": {
-     "floor": "el tabe2 tene"
+  "about": "Session B1b (B1a's reading leftovers, docs/HANDOFF.md B1a): what code corrects in the model's reading before the planner (packages/agents/src/reading.ts tidyReading, applied inside extractOrder). Each case: the customer's words, the reading the model gave (or the shape B1a's runs on main showed), and what the reading must be after code: the lines (query words, qty, change) and the building. «بيضا» (white, of a building) read as eggs outside the address step (sim-113, sim-117, sim-066, sim-006); add versus set («ya3ni 7», «so 3 total», «مش ١ بس», «3 kman»: sim-066, sim-140, sim-110, sim-040; B1a's second run «٣ بيبسي ... مش ١ بس» gave 4); a size-only line (M1's gate run 43675197868, g0752: «l 2annine l z8ire» matched 7Up 330 ml). Pack sizes («32 حبة», sim-147) are checked against the product the planner chose (reading.ts packSizeQty), in test/db/ordering-b1b.test.ts. Judged by evals/test/reading-tidy.test.ts, no model. B1c (sim-test 43756167947): «غيّر الكمية لتلاتة», «خليهن ٣» set the count (sim-121 made 4); «بدي بس ...» sets every count said (sim-052 made 4 of 2); «badal X» takes X off and «khalli bas X w Y» keeps X and Y (sim-065 added a Maggi, then took off the jelly and the fish).",
+  "cases": [
+    {
+      "id": "sim-113-bayda",
+      "text": "el binaye bayda, el tabe2 tene",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "bayda",
+            "query": "bayd abyad",
+            "qty": 1
+          }
+        ],
+        "address": {
+          "floor": "el tabe2 tene"
+        }
+      },
+      "expect": {
+        "lines": [],
+        "building": "el binaye bayda"
+      }
+    },
+    {
+      "id": "sim-117-bayda",
+      "text": "el binaye bayda, el tabe2 etteni. merci ktir",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "el binaye bayda",
+            "query": "bayd",
+            "qty": 1
+          }
+        ],
+        "address": {}
+      },
+      "expect": {
+        "lines": [],
+        "building": "el binaye bayda"
+      }
+    },
+    {
+      "id": "ar-albinaye-albayda",
+      "text": "بعقلين، حارة الجامع، البناية البيضا، الطابق التاني",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "البيضا",
+            "query": "بيض",
+            "qty": 1
+          }
+        ],
+        "address": {
+          "village": "بعقلين",
+          "landmark": "حارة الجامع",
+          "floor": "الطابق التاني"
+        }
+      },
+      "expect": {
+        "lines": [],
+        "building": "البناية البيضا"
+      }
+    },
+    {
+      "id": "en-white-building",
+      "text": "The white building, second floor. Name is Sim",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "white",
+            "query": "white eggs",
+            "qty": 1
+          }
+        ],
+        "address": {
+          "floor": "second floor",
+          "recipient_name": "Sim"
+        }
+      },
+      "expect": {
+        "lines": [],
+        "building": "The white building"
+      }
+    },
+    {
+      "id": "eggs-and-a-white-building",
+      "text": "بدي كرتونة بيض، والبناية البيضا حد الفرن",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "كرتونة بيض",
+            "query": "بيض",
+            "qty": 1
+          }
+        ],
+        "address": {
+          "landmark": "حد الفرن"
+        }
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "بيض",
+            "qty": 1
+          }
+        ],
+        "building": "البناية البيضا"
+      }
+    },
+    {
+      "id": "sim-066-yani-7",
+      "text": "ok 7ott 7ade 2annine zyede, ya3ni 7 2anenin",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "7ade 2annine zyede",
+            "query": "Pepsi diet 330ml",
+            "qty": 1,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 7,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-140-3-total",
+      "text": "ok zidlo wa7de kamen, ya3ni 3 total",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "wa7de kamen",
+            "query": "mayy Rim",
+            "qty": 1,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-110-so-total-7",
+      "text": "Add 2 more Kinder then, so total 7",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "2 more Kinder",
+            "query": "Kinder",
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 7,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b1a-mesh-1-bas",
+      "text": "بدي ٣ بيبسي دايت، مش ١ بس",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "٣ بيبسي دايت",
+            "query": "بيبسي دايت",
+            "qty": 3,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mesh-wa7ad-arabizi",
+      "text": "baddi tnein soap, mesh wa7ad",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "tnein soap",
+            "query": "soap",
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 2,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-040-3-kman",
+      "text": "zid 3 Dolsi Cheezy Wizz kman",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "3 Dolsi Cheezy Wizz kman",
+            "query": "Dolsi Cheezy Wizz",
+            "qty": 3,
+            "change": "set"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": "add"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kaman-ar",
+      "text": "بدي ٢ لبنة كمان",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "٢ لبنة كمان",
+            "query": "لبنة",
+            "qty": 2,
+            "change": null
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kaman-is-not-set-total",
+      "text": "zidli kaman 2, ya3ni 5 total",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "kaman 2",
+            "query": "labne",
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 5,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "new-items-untouched",
+      "text": "بدي ٣ بيبسي وربطتين خبز",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "٣ بيبسي",
+            "query": "بيبسي",
+            "qty": 3
+          },
+          {
+            "raw": "ربطتين خبز",
+            "query": "خبز",
+            "qty": 2
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": null
+          },
+          {
+            "qty": 2,
+            "change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "g0752-size-only",
+      "text": "baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "zet Lina",
+            "query": "zet Lina",
+            "qty": 1
+          },
+          {
+            "raw": "3abbed shams",
+            "query": "3abbed shams",
+            "qty": 1
+          },
+          {
+            "raw": "l 2annine l z8ire 0.85",
+            "query": "l 2annine l z8ire",
+            "qty": 1
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "zet Lina",
+            "qty": 1
+          },
+          {
+            "query": "3abbed shams",
+            "raw": "3abbed shams l 2annine l z8ire 0.85",
+            "qty": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "size-only-en",
+      "text": "a Pepsi, the small bottle",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "a Pepsi",
+            "query": "Pepsi",
+            "qty": 1
+          },
+          {
+            "raw": "the small bottle",
+            "query": "small bottle",
+            "qty": 1
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "Pepsi",
+            "raw": "a Pepsi the small bottle",
+            "qty": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "size-only-ar",
+      "text": "بدي بيبسي، القنينة الكبيرة",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "بيبسي",
+            "query": "بيبسي",
+            "qty": 1
+          },
+          {
+            "raw": "القنينة الكبيرة",
+            "query": "القنينة الكبيرة",
+            "qty": 1
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "بيبسي",
+            "raw": "بيبسي القنينة الكبيرة",
+            "qty": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-real-bottle-item",
+      "text": "بدي قنينة مي كبيرة",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "قنينة مي كبيرة",
+            "query": "مي كبيرة",
+            "qty": 1
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "مي كبيرة",
+            "qty": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-121-set-to",
+      "text": "ما بدي زيد شي، بس غيّر كمية الرول أون نيفيا لتلاتة",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "الرول أون نيفيا",
+            "query": "Nivea roll on",
+            "qty": 3,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-121-khallihon",
+      "text": "خليهن ٣ بس",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "خليهن ٣",
+            "query": "Nivea roll on",
+            "qty": 3,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 3,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-052-only-want",
+      "text": "لا غلط، صار عندي 2 لبن وزبدة لبنة 3 علب لبن ليه! بدي بس 1 لبن خوري مشمش و2 مرتديلا. والدفع ويش مش كاش",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "1 لبن خوري مشمش",
+            "query": "لبن خوري مشمش",
+            "qty": 1
+          },
+          {
+            "raw": "2 مرتديلا",
+            "query": "مرتديلا",
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 1,
+            "change": "set"
+          },
+          {
+            "qty": 2,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-065-instead",
+      "text": "3tine badal Maggi cubes, baddi Maxim's Salt Iodised 700g",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "Maggi cubes",
+            "query": "Maggi stock cubes",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "raw": "Maxim's Salt Iodised 700g",
+            "query": "Maxim's Salt Iodised 700g",
+            "qty": 1
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "raw": "Maggi cubes",
+            "change": "remove"
+          },
+          {
+            "raw": "Maxim's Salt Iodised 700g",
+            "change": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "sim-065-keep-only",
+      "text": "la2, ghalat. Maggi baddo yeh2a 0, ma baddi Maggi abadan. Khalli bas l malha w l jelly w l samak",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "Maggi",
+            "query": "Maggi",
+            "qty": 1,
+            "change": "remove"
+          },
+          {
+            "raw": "l malha",
+            "query": "salt",
+            "qty": 1,
+            "change": "remove"
+          },
+          {
+            "raw": "l jelly",
+            "query": "jelly",
+            "qty": 1,
+            "change": "remove"
+          },
+          {
+            "raw": "l samak",
+            "query": "fish",
+            "qty": 1,
+            "change": "remove"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "raw": "Maggi",
+            "change": "remove"
+          }
+        ]
+      }
+    },
+    {
+      "id": "zid-not-set",
+      "text": "zid 3elbten kamen",
+      "reading": {
+        "intent": "add_to_order",
+        "lines": [
+          {
+            "raw": "3elbten",
+            "query": "Candia milk",
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 2,
+            "change": "add"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b1f-yani-total-two-lines",
+      "about": "B1f: b1b-yani-total-arabizi as the live model read it on 18 Nov (B1e's gate run 44237189745): one more bottle, and «ya3ni 7» as a second line of 7. The message says the total: one line, set to 7.",
+      "text": "ok 7ott 7ade 2annine zyede, ya3ni 7 2anenin",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "7ade 2annine zyede",
+            "query": "pepsi diet 330ml",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "raw": "7 2anenin",
+            "query": "pepsi diet 330ml",
+            "qty": 7
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 7,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b1f-yani-total-two-lines-ar",
+      "text": "زيدلي قنينة كمان، يعني ٧ قناني",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "قنينة كمان",
+            "query": "بيبسي دايت",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "raw": "٧ قناني",
+            "query": "بيبسي دايت",
+            "qty": 7
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 7,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b1f-so-total-two-lines-en",
+      "text": "add one more bottle, so 7 bottles in total",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "one more bottle",
+            "query": "pepsi diet",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "raw": "7 bottles",
+            "query": "pepsi diet",
+            "qty": 7
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "qty": 7,
+            "change": "set"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b1f-two-items-not-merged",
+      "about": "Two different items, the second with 7: never merged into one.",
+      "text": "zidli 2annine pepsi, ya3ni 7 kinder",
+      "reading": {
+        "intent": "change_order",
+        "lines": [
+          {
+            "raw": "2annine pepsi",
+            "query": "pepsi",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "raw": "7 kinder",
+            "query": "kinder",
+            "qty": 7
+          }
+        ]
+      },
+      "expect": {
+        "lines": [
+          {
+            "query": "pepsi",
+            "qty": 1,
+            "change": "add"
+          },
+          {
+            "query": "kinder",
+            "qty": 7
+          }
+        ]
+      }
     }
-   },
-   "expect": {
-    "lines": [],
-    "building": "el binaye bayda"
-   }
-  },
-  {
-   "id": "sim-117-bayda",
-   "text": "el binaye bayda, el tabe2 etteni. merci ktir",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "el binaye bayda",
-      "query": "bayd",
-      "qty": 1
-     }
-    ],
-    "address": {}
-   },
-   "expect": {
-    "lines": [],
-    "building": "el binaye bayda"
-   }
-  },
-  {
-   "id": "ar-albinaye-albayda",
-   "text": "بعقلين، حارة الجامع، البناية البيضا، الطابق التاني",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "البيضا",
-      "query": "بيض",
-      "qty": 1
-     }
-    ],
-    "address": {
-     "village": "بعقلين",
-     "landmark": "حارة الجامع",
-     "floor": "الطابق التاني"
-    }
-   },
-   "expect": {
-    "lines": [],
-    "building": "البناية البيضا"
-   }
-  },
-  {
-   "id": "en-white-building",
-   "text": "The white building, second floor. Name is Sim",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "white",
-      "query": "white eggs",
-      "qty": 1
-     }
-    ],
-    "address": {
-     "floor": "second floor",
-     "recipient_name": "Sim"
-    }
-   },
-   "expect": {
-    "lines": [],
-    "building": "The white building"
-   }
-  },
-  {
-   "id": "eggs-and-a-white-building",
-   "text": "بدي كرتونة بيض، والبناية البيضا حد الفرن",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "كرتونة بيض",
-      "query": "بيض",
-      "qty": 1
-     }
-    ],
-    "address": {
-     "landmark": "حد الفرن"
-    }
-   },
-   "expect": {
-    "lines": [
-     {
-      "query": "بيض",
-      "qty": 1
-     }
-    ],
-    "building": "البناية البيضا"
-   }
-  },
-  {
-   "id": "sim-066-yani-7",
-   "text": "ok 7ott 7ade 2annine zyede, ya3ni 7 2anenin",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "7ade 2annine zyede",
-      "query": "Pepsi diet 330ml",
-      "qty": 1,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 7,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-140-3-total",
-   "text": "ok zidlo wa7de kamen, ya3ni 3 total",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "wa7de kamen",
-      "query": "mayy Rim",
-      "qty": 1,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-110-so-total-7",
-   "text": "Add 2 more Kinder then, so total 7",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "2 more Kinder",
-      "query": "Kinder",
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 7,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "b1a-mesh-1-bas",
-   "text": "بدي ٣ بيبسي دايت، مش ١ بس",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "٣ بيبسي دايت",
-      "query": "بيبسي دايت",
-      "qty": 3,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "mesh-wa7ad-arabizi",
-   "text": "baddi tnein soap, mesh wa7ad",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "tnein soap",
-      "query": "soap",
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 2,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-040-3-kman",
-   "text": "zid 3 Dolsi Cheezy Wizz kman",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "3 Dolsi Cheezy Wizz kman",
-      "query": "Dolsi Cheezy Wizz",
-      "qty": 3,
-      "change": "set"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": "add"
-     }
-    ]
-   }
-  },
-  {
-   "id": "kaman-ar",
-   "text": "بدي ٢ لبنة كمان",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "٢ لبنة كمان",
-      "query": "لبنة",
-      "qty": 2,
-      "change": null
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   }
-  },
-  {
-   "id": "kaman-is-not-set-total",
-   "text": "zidli kaman 2, ya3ni 5 total",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "kaman 2",
-      "query": "labne",
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 5,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "new-items-untouched",
-   "text": "بدي ٣ بيبسي وربطتين خبز",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "٣ بيبسي",
-      "query": "بيبسي",
-      "qty": 3
-     },
-     {
-      "raw": "ربطتين خبز",
-      "query": "خبز",
-      "qty": 2
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": null
-     },
-     {
-      "qty": 2,
-      "change": null
-     }
-    ]
-   }
-  },
-  {
-   "id": "g0752-size-only",
-   "text": "baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "zet Lina",
-      "query": "zet Lina",
-      "qty": 1
-     },
-     {
-      "raw": "3abbed shams",
-      "query": "3abbed shams",
-      "qty": 1
-     },
-     {
-      "raw": "l 2annine l z8ire 0.85",
-      "query": "l 2annine l z8ire",
-      "qty": 1
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "query": "zet Lina",
-      "qty": 1
-     },
-     {
-      "query": "3abbed shams",
-      "raw": "3abbed shams l 2annine l z8ire 0.85",
-      "qty": 1
-     }
-    ]
-   }
-  },
-  {
-   "id": "size-only-en",
-   "text": "a Pepsi, the small bottle",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "a Pepsi",
-      "query": "Pepsi",
-      "qty": 1
-     },
-     {
-      "raw": "the small bottle",
-      "query": "small bottle",
-      "qty": 1
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "query": "Pepsi",
-      "raw": "a Pepsi the small bottle",
-      "qty": 1
-     }
-    ]
-   }
-  },
-  {
-   "id": "size-only-ar",
-   "text": "بدي بيبسي، القنينة الكبيرة",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "بيبسي",
-      "query": "بيبسي",
-      "qty": 1
-     },
-     {
-      "raw": "القنينة الكبيرة",
-      "query": "القنينة الكبيرة",
-      "qty": 1
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "query": "بيبسي",
-      "raw": "بيبسي القنينة الكبيرة",
-      "qty": 1
-     }
-    ]
-   }
-  },
-  {
-   "id": "a-real-bottle-item",
-   "text": "بدي قنينة مي كبيرة",
-   "reading": {
-    "intent": "order",
-    "lines": [
-     {
-      "raw": "قنينة مي كبيرة",
-      "query": "مي كبيرة",
-      "qty": 1
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "query": "مي كبيرة",
-      "qty": 1
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-121-set-to",
-   "text": "ما بدي زيد شي، بس غيّر كمية الرول أون نيفيا لتلاتة",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "الرول أون نيفيا",
-      "query": "Nivea roll on",
-      "qty": 3,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-121-khallihon",
-   "text": "خليهن ٣ بس",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "خليهن ٣",
-      "query": "Nivea roll on",
-      "qty": 3,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 3,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-052-only-want",
-   "text": "لا غلط، صار عندي 2 لبن وزبدة لبنة 3 علب لبن ليه! بدي بس 1 لبن خوري مشمش و2 مرتديلا. والدفع ويش مش كاش",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "1 لبن خوري مشمش",
-      "query": "لبن خوري مشمش",
-      "qty": 1
-     },
-     {
-      "raw": "2 مرتديلا",
-      "query": "مرتديلا",
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 1,
-      "change": "set"
-     },
-     {
-      "qty": 2,
-      "change": "set"
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-065-instead",
-   "text": "3tine badal Maggi cubes, baddi Maxim's Salt Iodised 700g",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "Maggi cubes",
-      "query": "Maggi stock cubes",
-      "qty": 1,
-      "change": "add"
-     },
-     {
-      "raw": "Maxim's Salt Iodised 700g",
-      "query": "Maxim's Salt Iodised 700g",
-      "qty": 1
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "raw": "Maggi cubes",
-      "change": "remove"
-     },
-     {
-      "raw": "Maxim's Salt Iodised 700g",
-      "change": null
-     }
-    ]
-   }
-  },
-  {
-   "id": "sim-065-keep-only",
-   "text": "la2, ghalat. Maggi baddo yeh2a 0, ma baddi Maggi abadan. Khalli bas l malha w l jelly w l samak",
-   "reading": {
-    "intent": "change_order",
-    "lines": [
-     {
-      "raw": "Maggi",
-      "query": "Maggi",
-      "qty": 1,
-      "change": "remove"
-     },
-     {
-      "raw": "l malha",
-      "query": "salt",
-      "qty": 1,
-      "change": "remove"
-     },
-     {
-      "raw": "l jelly",
-      "query": "jelly",
-      "qty": 1,
-      "change": "remove"
-     },
-     {
-      "raw": "l samak",
-      "query": "fish",
-      "qty": 1,
-      "change": "remove"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "raw": "Maggi",
-      "change": "remove"
-     }
-    ]
-   }
-  },
-  {
-   "id": "zid-not-set",
-   "text": "zid 3elbten kamen",
-   "reading": {
-    "intent": "add_to_order",
-    "lines": [
-     {
-      "raw": "3elbten",
-      "query": "Candia milk",
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   },
-   "expect": {
-    "lines": [
-     {
-      "qty": 2,
-      "change": "add"
-     }
-    ]
-   }
-  }
- ]
+  ]
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Live check of the deployed website (staging): the pages render from the real database with no JavaScript, the three spellings of labneh
-# find the same products, a page is under 100 KB before pictures, and the role's token works. Prints one line per check.
+# Live check of the deployed website (staging): the pages render from the real database with no JavaScript, every spelling of labneh
+# finds the same products and «لبن» finds laban, a page is under 100 KB before pictures, and the role's token works. Prints one line per check.
 set -euo pipefail
 url="${1:?usage: smoke.sh <site address>}"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
@@ -32,13 +32,16 @@ echo "- $sku: 200, food facts carry a status"
 echo "- unknown category and product: 404"
 
 list() { get -G --data-urlencode "q=$1" "$url/search" | grep -oE 'href="/p/[A-Za-z0-9_-]+"' | sort -u | tr '\n' ' '; }
-a=$(list labne); b=$(list "لبنة"); c=$(list labneh)
+a=$(list labne); b=$(list "لبنة"); c=$(list labneh); d=$(list labni); e=$(list "لبنه"); f=$(list "لبن")
 [ -n "$a" ] || fail "'labne' finds nothing"
 [ "$a" = "$c" ] || fail "labne and labneh find different products: [$a] [$c]"
-# KNOWN FAILURE, tied to B1f (the founder, 18 November 2026): on staging's data «لبنة» also finds laban and yoghurt (their approved Arabic
-# names start with «لبن»). A search fix is B1f's, case first in evals/. Reported here, not failed; remove this branch when B1f lands.
-if [ "$a" = "$b" ]; then echo "- labne, لبنة and labneh find the same products: $a"
-else echo "- KNOWN FAILURE (B1f): لبنة finds [$b], labne and labneh find [$a]"; echo "::warning::KNOWN FAILURE (B1f): لبنة finds different products from labne and labneh"; fi
+# B1f: every spelling of labneh finds the same products (it was a known failure on staging until B1f's 0253), and laban is still laban.
+[ "$a" = "$b" ] || fail "لبنة finds [$b], labne and labneh find [$a]"
+[ "$a" = "$d" ] || fail "labni finds [$d], labne and labneh find [$a]"
+[ "$a" = "$e" ] || fail "لبنه finds [$e], labne and labneh find [$a]"
+[ -n "$f" ] || fail "لبن (laban) finds nothing"
+[ "$f" != "$a" ] || fail "لبن (laban) finds the labneh products: [$f]"
+echo "- labne, labneh, labni, لبنة and لبنه find the same products: $a; لبن finds laban: $f"
 
 # The page, its stylesheet, its scripts and the fonts it loads (DS1: the fonts are this site's own files and count).
 bytes=$(wc -c < "$tmp/cat.html")

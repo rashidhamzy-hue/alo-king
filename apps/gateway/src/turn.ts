@@ -16,7 +16,7 @@ import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
-import { catalogueReady, makeConciergeTools, notePlanAreas, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
+import { catalogueReady, deliveryHours, makeConciergeTools, notePlanAreas, notePlanNames, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
 import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/windows";
 import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
@@ -747,6 +747,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     notePlanNames(ctx, routed.plan);
     notePlanAreas(ctx, routed.plan, intent?.address?.village);
     ctx.catalogueReady = await catalogueReady(db);
+    ctx.hours = await deliveryHours(db);                                // B1f: the time guard never lets a time outside the hours through
     const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE, ...(replyLanguage(state.speech) ? { reply_language: replyLanguage(state.speech) } : {}) };
     const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
