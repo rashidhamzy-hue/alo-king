@@ -1482,6 +1482,18 @@ Ask me here if you want to know where it is.
 We don't carry protein bars yet. I've noted your request.
 ```
 
+## honest.notFound
+
+```text
+I couldn't find “نص كفة” in our shop. If you meant something else, tell me in other words.
+```
+
+## honest.notFound.two
+
+```text
+I couldn't find “نص كفة” or “cafe mate” in our shop. If you meant something else, tell me in other words.
+```
+
 ## honest.notCarried.two
 
 ```text

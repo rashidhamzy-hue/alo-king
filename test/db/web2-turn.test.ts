@@ -203,6 +203,28 @@ describe("the card of a web order: sent by the gateway, confirmed by its button"
     expect(t.seen).toHaveLength(0);
   });
 
+  it("CX2 (AK-1063, 18 November 08:52): 'Card AK-xxxx' before the cron's minute sends one card, in the page's language, and the cron sends none", async () => {
+    // The founder's staging chat: the conversation was in Arabic, the page in English. The typed "Card" sent the Arabic card at 08:52:12 and
+    // the cron sent the English one at 08:52:15. One card, in the language the customer chose on the page.
+    const { t, r } = await placed("en");
+    t.state.lang = "ar";
+    await t.turn(t.text(`Card ${r.short_code}`));
+    expect(await sendWebCards({ db: t.shim.client, send: t.deps.send })).toBe(0);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.body.text).toContain(en.card.heading(r.short_code!));
+    expect(outbound[0]!.body.interactive.action.buttons[0].reply.title).toBe(en.card.confirm);
+    expect((await db.one(`select outcome from web_card_requests where order_id = $1`, [r.order_id])).outcome).toBe("sent:card_again");
+  });
+
+  it("CX2: the cron's card first, then 'Card AK-xxxx': the second is the customer's own ask and goes again, in the page's language", async () => {
+    const { t, r } = await placed("en");
+    t.state.lang = "ar";
+    expect(await sendWebCards({ db: t.shim.client, send: t.deps.send })).toBe(1);
+    await t.turn(t.text(`Card ${r.short_code}`));
+    expect(outbound).toHaveLength(2);
+    for (const o of outbound) expect(o.body.interactive.action.buttons[0].reply.title).toBe(en.card.confirm);
+  });
+
   it("'Card AK-xxxx' for an order already confirmed, or another person's, is said so and sends no card", async () => {
     const { t, r } = await placed("en");
     await t.turn(t.tap(`order:confirm:${r.order_id}`, "Confirm"));

@@ -1482,6 +1482,18 @@ Najjar Classic coffee 180 g: 1 → 3
 لسّا ما عنّا protein bars، سجّلنا طلبك.
 ```
 
+## honest.notFound
+
+```text
+ما لقيت «نص كفة» عنّا. إذا قصدك شي تاني، قلّي ياه بكلمات تانية.
+```
+
+## honest.notFound.two
+
+```text
+ما لقيت «نص كفة» أو «cafe mate» عنّا. إذا قصدك شي تاني، قلّي ياه بكلمات تانية.
+```
+
 ## honest.notCarried.two
 
 ```text

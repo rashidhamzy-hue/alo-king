@@ -273,6 +273,7 @@ export const ar: Messages = {
 
   honest: {
     notCarried: (kinds) => `لسّا ما عنّا ${list(kinds, "و")}، سجّلنا طلبك.`,
+    notFound: (said) => `ما لقيت ${said.map((x) => `«${x}»`).join(" أو ")} عنّا. إذا قصدك شي تاني، قلّي ياه بكلمات تانية.`,
     cannotConfirm: (fact, kinds) => `لسّا ما فينا نأكّد ${fact} بال${list(kinds, "و")} يلي عنّا.`,
     fact: { sugar: "السكر", protein: "البروتين", gluten: "إنّو بلا غلوتين", lactose: "إنّو بلا لاكتوز", fat: "الدهون", salt: "الملح", fragrance: "إنّو بلا ريحة" },
     named: (phrases) => `أغراض باسمها ${phrases.map((p) => `«${p}»`).join(" أو ")}:`,

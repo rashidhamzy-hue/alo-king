@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deliver, issueCard, sendCard, type ToolContext } from "./concierge-tools";
 import { formatWindowChoice, type DeliveryWindow, type Quote } from "./order-card";
-import { messages } from "./messages";
+import { messages, type Lang } from "./messages";
 
 /** Every fixed message in this conversation's language (M1). */
 const T = (ctx: ToolContext) => messages(ctx.state.lang);
@@ -169,10 +169,12 @@ interface StoredCard { order_id: string; short_code: string; status: string; pay
   missing_items?: { product_id: string; name: string; name_ar: string | null; pref: "best_match" | "ask" | "remove" }[] }
 
 /** The card of an order sent again, as stored (no new order, no new price), with the window it now carries. */
-export async function resendCard(ctx: ToolContext, orderId: string): Promise<boolean> {
+export async function resendCard(ctx: ToolContext, orderId: string, lang?: Lang | null): Promise<boolean> {
   const c = await rpc<StoredCard | null>(ctx.db, "order_card", { p_order: orderId, p_party: ctx.partyId });
   if (!c) return false;
-  return (await sendCard(ctx, { orderId, shortCode: c.short_code, quote: c.quote, paymentMethod: c.payment_method, changeForUsd: c.change_for_usd,
+  // CX2: a website order's card goes in the page's language, whoever sends it (AK-1063); a chat order's in the conversation's.
+  const target = lang ? { ...ctx, state: { ...ctx.state, lang } } as ToolContext : ctx;
+  return (await sendCard(target, { orderId, shortCode: c.short_code, quote: c.quote, paymentMethod: c.payment_method, changeForUsd: c.change_for_usd,
                                 prepay: c.prepay, window: c.window, replaces: c.replaces, reopenedFrom: c.reopened_from ?? null,
                                 changeForLbp: c.change_for_lbp ?? null, missingPref: c.missing_pref ?? null, missingItems: c.missing_items ?? null,
                                 keepChange: c.keep_change ?? false })).ok;

@@ -1482,6 +1482,18 @@ Demandez-moi ici si vous voulez savoir où elle en est.
 Nous n'avons pas encore protein bars. J'ai noté votre demande.
 ```
 
+## honest.notFound
+
+```text
+Je n'ai pas trouvé « نص كفة » chez nous. Si vous pensiez à autre chose, dites-le autrement.
+```
+
+## honest.notFound.two
+
+```text
+Je n'ai pas trouvé « نص كفة » ou « cafe mate » chez nous. Si vous pensiez à autre chose, dites-le autrement.
+```
+
 ## honest.notCarried.two
 
 ```text

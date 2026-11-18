@@ -275,6 +275,7 @@ D'ici là, rien ne change sur la page.`,
 
   honest: {
     notCarried: (kinds) => `Nous n'avons pas encore ${list(kinds, "et")}. J'ai noté votre demande.`,
+    notFound: (said) => `Je n'ai pas trouvé ${said.map((x) => `« ${x} »`).join(" ou ")} chez nous. Si vous pensiez à autre chose, dites-le autrement.`,
     cannotConfirm: (fact, kinds) => `Je ne peux pas encore confirmer ${fact} pour nos ${list(kinds, "et")}.`,
     fact: { sugar: "le sucre", protein: "les protéines", gluten: "l'absence de gluten", lactose: "l'absence de lactose", fat: "les matières grasses", salt: "le sel", fragrance: "l'absence de parfum" },
     named: (phrases) => `Articles avec ${phrases.map((p) => `« ${p} »`).join(" ou ")} dans leur nom :`,

@@ -447,7 +447,6 @@ Recorded by session FIX1 (Sonnet 5.5). Items 2 to 6 of the prompt; item 1 (the S
 | 4 | **Capture photos: at most 1600 px on the long side, JPEG quality 0.8** (were 2000 px and 0.85). A photo already within 1600 px and under 900 KB is sent as it is. | `apps/console/src/capture-js.ts` | FIX1 |
 | 5 | **The weekly size check raises a staff alert** at 600 MB of storage or 350 MB of database (the free plan holds 1 GB and 500 MB; the existing 70% failure line is 350 MB of database too, and 717 MB of storage). `usage-check.yml` (Mondays) reads the sizes it already reads and calls `usage_size_check(storage, database)`: one open exception `usage_near_limit` per metric (a repeat is the same alert), closed by the next check when the size falls; it wakes a phone (OPS1's list). The limits are data: `settings.usage_alerts`. It reads the staging project only, as the workflow always has; production gets its own run when it has its own project. | `settings.usage_alerts`, `ops_exceptions` | 0241, `.github/workflows/usage-check.yml` |
 
-<<<<<<< HEAD
 ## WEB4a, the website looks like the reference (stage 1: the frame and the home page), 18 November 2026
 Recorded by session WEB4a (Opus). The method and the conditions were the founder's (the session's prompt; "Founder decisions, 18 November 2026", 2);
 these are the choices they left open. Migration 0243. No simulation, no live model call.
@@ -465,7 +464,6 @@ these are the choices they left open. Migration 0243. No simulation, no live mod
 | 9 | **One primary action per screen (the founder's test).** The checkout, and an order page until the order ends, draw the frame in "focus": no basket button, no WhatsApp order button, no village chip, no phone bottom bar, no footer chat button. While the card waits for its WhatsApp tap, "Open WhatsApp" is the page's one button; "talk to a person" is a plain link until then. | `Base.astro` (`focus`), `checkout.astro`, `o/[code].astro` | WEB4a |
 | 10 | **Headings at 700.** A third font weight (Latin, Arabic, figures; about 26 KB in all) is served by the website only; the console keeps 400 and 600. | `packages/ui/fonts`, `site.css` | WEB4a |
 | 11 | **Weight: reported, not capped.** The 100 KB assertions become: every image of the site's own is WebP, every one below the fold is lazy, and each page's first-visit weight is measured by the browser and written to `web4a-weights*.txt` (and the pull request). Product pictures in the `catalog` bucket stay JPEG (RULES, "Picture files"). | `test/screens/web4a.test.ts`, `test/web/*` | WEB4a |
-=======
 ## FD1, the friends' test food: places and menus, 18 November 2026
 Recorded by session FD1 (Opus 5.5) from its prompt (the coordinator's, after decision 3 of "Founder decisions, 18 November 2026") and what the build had to decide. Migrations 0245 to 0247 (0248 left unused). None adds an agent, a way to send or a write to orders, payments, stock or the ledger, and none changes a rule of `CLAUDE.md`. Ordering food is FD2's.
 
@@ -484,4 +482,3 @@ Recorded by session FD1 (Opus 5.5) from its prompt (the coordinator's, after dec
 | 11 | **`approve_merchant()` for a place**: an ops lead or admin; an approved dish with a price **and** the menu stamp; **no commission and no terms** (the owner has agreed to nothing: commission 0, `terms_accepted_at` empty); it opens the place **for its visibility only**. For a signed merchant it is 0009's, word for word. | 0247 | Places page |
 | 12 | **Food prices for FD2:** the dish's price as above; the delivery fee is the zone's, as for groceries (invariant 10: it belongs to whoever delivers); **a food service fee `settings.food.service_fee_usd` = 0**, company income, editable by an admin on the Settings page (0 to 5, not two-person). FD2 applies both in the quote. | 0247 | Settings |
 | 13 | **The dry run's two menus are invented** (`test/fixtures/menus/`: "Example Grill House" in lira with sizes, a bread choice and an add-on; "Example Bakery" in Arabic only, in dollars). They are the only photos a session sends to a model; they show no real place, number or person. | fixtures | `menu-read` dry run |
->>>>>>> origin/main
