@@ -1,6 +1,7 @@
 // WEB2: the card of an order placed on the website, sent to the customer's WhatsApp by the gateway (invariant 1: the website never sends a
 // message itself). The website asks (web_place_order writes web_card_requests, 0228); the minute cron sends each card through the gateway
 // with a stable key, as the same card a chat order gets (sendCard, the stored card of order_card, 0229), in the language the page was in.
+// CX2 (0255): each request is claimed before it is sent (web_card_claim), so it goes once even when "Card AK-xxxx" comes in the same minute.
 // The card's own Confirm button is the confirmation (invariant 4): nothing here confirms. A card that cannot go (outside the 24-hour window,
 // STOP, no address) is recorded, never retried every minute; the order page then says how to get it ("Card AK-xxxx" on WhatsApp).
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -35,6 +36,9 @@ export async function sendWebCards(deps: { db: SupabaseClient; send: (r: SendReq
   let sent = 0;
   for (const d of (data ?? []) as Due[]) {
     const to = ((await deps.db.rpc("party_address", { p_party: d.customer_id, p_line: "customer" })).data as string | null) ?? null;
+    // CX2: claimed first, so a "Card AK-xxxx" typed in the same minute and this cron never both send it (AK-1063).
+    const claim = (await deps.db.rpc("web_card_claim", { p_order: d.order_id, p_by: "cron" })).data as { claimed: boolean } | null;
+    if (!claim?.claimed) continue;
     let outcome = "refused:no_address";
     if (to) {
       const refusals: string[] = [];

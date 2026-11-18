@@ -160,7 +160,7 @@ function render(m: Messages): Rendered[] {
   add("web.signedOut.one", m.web.signedOut(1)); add("web.signedOut.many", m.web.signedOut(2)); add("web.cardNotWaiting", m.web.cardNotWaiting(CODE));
   // PD1 (g): the honest answer when nothing fits, as code sends it (one message).
   const h = m.honest;
-  add("honest.notCarried", h.notCarried(["protein bars"])); add("honest.notCarried.two", h.notCarried(["protein bars", "dates"]));
+  add("honest.notCarried", h.notCarried(["protein bars"])); add("honest.notFound", h.notFound(["نص كفة"])); add("honest.notFound.two", h.notFound(["نص كفة", "cafe mate"])); add("honest.notCarried.two", h.notCarried(["protein bars", "dates"]));
   add("honest.cannotConfirm", h.cannotConfirm(h.fact.sugar, ["snacks"]));
   for (const f of ["sugar", "protein", "gluten", "lactose", "fat", "salt", "fragrance"] as const) add(`honest.fact.${f}`, h.cannotConfirm(h.fact[f], ["snacks"]));
   add("honest.named", [h.named(["Zero Sugar", "No Sugar"]), m.fixed.priced("Lipton Ice Tea Tropical Zero Sugar 320Ml", 0.69, true), h.closeItems].join("\n"));

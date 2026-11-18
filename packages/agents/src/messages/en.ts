@@ -275,6 +275,7 @@ Until then nothing changes on the page.`,
 
   honest: {
     notCarried: (kinds) => `We don't carry ${list(kinds, "and")} yet. I've noted your request.`,
+    notFound: (said) => `I couldn't find ${said.map((x) => `“${x}”`).join(" or ")} in our shop. If you meant something else, tell me in other words.`,
     cannotConfirm: (fact, kinds) => `I can't confirm ${fact} for our ${list(kinds, "and")} yet.`,
     fact: { sugar: "the sugar", protein: "the protein", gluten: "gluten-free", lactose: "lactose-free", fat: "the fat", salt: "the salt", fragrance: "fragrance-free" },
     named: (phrases) => `Items with ${phrases.map((p) => `“${p}”`).join(" or ")} in their name:`,

@@ -234,7 +234,13 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const r = await answerOutOfArea(ctx, String(away.village_ar ?? away.said ?? intent.address.village ?? ""));
     if (r.done) return r;
   }
-  const unavailable = notAvailableText(plan, ctx.state.lang);
+  // CX2: what could not be found is said first, by code, before any card or question code sends (lostText): a kind we cannot show always
+  // (never a different kind), any other line when we are closed (the basket is kept; 07:37). Open, an unknown line is the loop's question,
+  // and nameLost says it if the reply did not.
+  const closedNow = (plan.quote?.issues ?? plan.issues).some((i) => i.code === "closed");
+  const saidLost = (l: PlanLine) => l.status === "not_found" && ((l as { b4?: string | null }).b4 === "other_kind" || closedNow);
+  const lostLine = lostText({ lines: plan.lines.filter(saidLost) }, intent, ctx.state.lang);
+  const unavailable = [notAvailableText(plan, ctx.state.lang), lostLine].filter(Boolean).join("\n") || null;
   if (plan.next === "not_available") {
     const r = await deliver(ctx, { type: "text", text: { body: unavailable! } }, unavailable!);
     return r.ok ? { done: true, path: "not_available" } : { done: false, plan };
@@ -305,7 +311,11 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   const terms: CardTerms = heldTerms ? { ...heldTerms, notes: directions, ...(plan.change_for_usd != null ? { changeForUsd: plan.change_for_usd } : {}) }
     : { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
-  const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
+  // CX2: a line not found is said (lostText, in `before`) and does not hold the rest of the basket back. The planner leaves the plan's issues
+  // empty when a line is not found; the quote's own (closed, below_minimum, the village) are the basket's.
+  if (lostLine && !held && plan.quote && plan.quote_lines.length && !plan.issues.length) plan.issues = [...plan.quote.issues];
+  const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded" || saidLost(l));
+  if (lostLine && matched && plan.next === "ask" && plan.quote?.ok && plan.issues.length === 0 && !held) plan.next = "card";
   // SELL1 (0226): a packaged item with no label reading yet is coming soon: said here by code, in the customer's language, before any card or
   // question. The basket is kept (the customer takes it off or chooses another); no card is made while it holds one (quote_order).
   if (matched && plan.quote && soonNames(ctx, plan.quote).length) {
@@ -406,7 +416,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // needs words (a line not found, a restriction, a food question, an item out of stock): those go to the loop as before.
   const ASK_BESIDE = (c: string) => WHERE_ISSUES.has(c) || c === "below_minimum" || c === "closed" || c.startsWith("slot_");
   if (!held && !changing && !intent.repeat_last && !ctx.state.replacing && !asks && plan.next === "ask"
-      && plan.lines.some(askableLine) && plan.lines.every((l) => l.status === "matched" || askableLine(l)) && plan.issues.every((i) => ASK_BESIDE(i.code))) {
+      && plan.lines.some(askableLine) && plan.lines.every((l) => l.status === "matched" || askableLine(l) || saidLost(l)) && plan.issues.every((i) => ASK_BESIDE(i.code))) {
     ctx.state.lastQuote = plan.quote && plan.quote_lines.length
       ? { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote } : null;
     ctx.state.basketAt = Date.now();
@@ -744,6 +754,36 @@ export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<
     return r.ok ? { done: true, path: "off_topic" } : { done: false };
   }
   return repeatLast(ctx);
+}
+
+/**
+ * CX2 (the founder's chat, 18 November 07:37: «نص كفة» in a voice note was not found and nothing said so): every line the planner could not
+ * find is said, in the customer's own words. A kind we cannot show (0256, 'other_kind': "cafe mate" asked over Najjar coffees) gets PD1's
+ * honest answer; any other line "I couldn't find «…»". Never dropped in silence, never offered as a different kind.
+ */
+export function lostText(plan: Pick<Plan, "lines">, intent: Pick<OrderIntent, "lines"> | null, lang?: string | null): string | null {
+  const lost = plan.lines.filter((l) => l.status === "not_found");
+  if (!lost.length) return null;
+  const words = (l: PlanLine) => quoted(intent?.lines[l.idx]?.raw || l.raw || l.query);
+  const other = [...new Set(lost.filter((l) => (l as { b4?: string | null }).b4 === "other_kind").map(words))];
+  const unknown = [...new Set(lost.filter((l) => (l as { b4?: string | null }).b4 !== "other_kind").map(words))].filter((w) => !other.includes(w));
+  const M = messages(lang);
+  return [other.length ? M.honest.notCarried(other) : null, unknown.length ? M.honest.notFound(unknown) : null].filter(Boolean).join("\n") || null;
+}
+
+/**
+ * CX2: after the loop, a line not found that no reply named is said by code (the 07:37 location request said nothing of the kafta). A line
+ * is named when one of its words (three letters or more, without «ال», «بال», «و» before it) is in what went out this turn; the only line
+ * of a message is answered by whatever the reply says about it.
+ */
+export async function nameLost(ctx: ToolContext, plan: Partial<Plan> | null | undefined, intent: Pick<OrderIntent, "lines"> | null): Promise<void> {
+  if (!plan?.lines?.length || plan.lines.length < 2 || ctx.sent.texts.some((t) => t.startsWith("[order card"))) return;   // a card shows what was found
+  const said = nameFold(ctx.sent.texts.join(" \n "));
+  const stem = (w: string) => w.replace(/^(?:وبال|بال|وال|لل|ال|و)(?=\p{L}{3})/u, "");
+  const named = (l: PlanLine) => [intent?.lines[l.idx]?.raw, l.raw, l.query].filter((x): x is string => !!x)
+    .flatMap((x) => nameFold(quoted(x)).split(" ")).map(stem).filter((w) => w.length >= 3 && !/^\d+$/.test(w)).some((w) => said.includes(w));
+  const text = lostText({ lines: plan.lines.filter((l) => l.status === "not_found" && !named(l)) }, intent, ctx.state.lang);
+  if (text) await deliver(ctx, { type: "text", text: { body: text } }, text);
 }
 
 /** "X is not available yet", in the customer's own words for the shop. Neutral: no reason, no opinion, no promise. */
