@@ -7,6 +7,7 @@ import { handle, type Deps } from "./app";
 import { supabaseDb } from "./db";
 import { goTrue } from "./auth";
 import { supabaseMedia } from "./media";
+import { screensStore } from "../../../scripts/screens/storage.mjs";
 import { labelReader } from "./label";
 import { registry } from "./pages";
 import { sendDayClose } from "./pages/dayclose";
@@ -55,6 +56,7 @@ export function depsFor(env: Env): Deps {
     db,
     auth: goTrue(opts),
     media: supabaseMedia(opts),
+    screens: screensStore({ url: env.SUPABASE_URL, key: env.SUPABASE_SERVICE_KEY }),
     send: (req) => send(supa, env, req),
     secret: env.CONSOLE_SESSION_SECRET,
     environment: env.ENVIRONMENT || "development",

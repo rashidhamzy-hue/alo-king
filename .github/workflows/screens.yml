@@ -1,0 +1,82 @@
+# Screenshots live in the private Supabase Storage bucket `screens` (staging project), never in the repository (DOC2; docs/DECISIONS.md,
+# "Founder decisions, 18 November 2026", 7). The console's "Screens" page lists them by session and shows each beside the design reference's
+# matching screen. Invented data only; nothing is sent anywhere. By hand only; any branch (a screenshot of a branch is staging data, not a deploy).
+#   action shoot   run one screenshot test of test/screens/ (Chromium on the runner) and upload what it made as <session>/..., deleting the
+#                  older screenshots of the same pages ("the latest set per page"). A session that makes screen changes dispatches this
+#                  on its branch instead of committing images (a check in ci.yml refuses any image under docs/).
+#   action move    the one-time move: every image under docs/screens/ at a git ref, uploaded with the same paths (oldest session first).
+#   action verify  list every object and open it through a signed link; the summary says how many opened.
+# Repository secret used (never printed): SUPABASE_SERVICE_KEY (the same one the label-read and intake workflows use).
+name: screens
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [shoot, move, verify]
+        default: shoot
+      session:
+        description: "shoot: the folder the screenshots go to (the session's lower-case name, e.g. wh1a)"
+        type: string
+        required: false
+      test:
+        description: "shoot: the test file under test/screens/ (e.g. wh1a.test.ts)"
+        type: string
+        required: false
+      from_ref:
+        description: "move: a commit that still has docs/screens/ (a SHA reachable in the repository)"
+        type: string
+        required: false
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: screens
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Check the inputs
+        env: { ACTION: "${{ inputs.action }}", SESSION: "${{ inputs.session }}", TEST: "${{ inputs.test }}", FROM_REF: "${{ inputs.from_ref }}" }
+        run: |
+          case "$ACTION" in
+            shoot) [[ "$SESSION" =~ ^[a-z0-9][a-z0-9_-]{0,40}$ ]] || { echo "::error::session must be lower-case letters, digits, - or _"; exit 1; }
+                   [[ "$TEST" =~ ^[A-Za-z0-9_.-]+\.test\.ts$ ]] && [ -f "test/screens/$TEST" ] || { echo "::error::test must be a file under test/screens/"; exit 1; } ;;
+            move)  [[ "$FROM_REF" =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::from_ref must be a commit SHA"; exit 1; } ;;
+          esac
+      - name: The private bucket
+        env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}" }
+        run: scripts/ci/ensure-screens-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+      - name: Take the screenshots (Chromium)
+        if: inputs.action == 'shoot'
+        env: { TEST: "${{ inputs.test }}" }
+        run: |
+          npm i --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+          mkdir -p out/shots
+          SCREENS=out/shots npx vitest run "test/screens/$TEST"
+          ls out/shots | head -200
+          # The first-visit weights some of these tests write are reported in the run's summary (each pull request reports them).
+          for w in out/shots/*.txt; do [ -f "$w" ] && { echo '```'; cat "$w"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; done || true
+      - name: Upload
+        if: inputs.action == 'shoot'
+        env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}", SESSION: "${{ inputs.session }}" }
+        run: node scripts/screens/run.mjs upload out/shots "$SESSION"
+      - name: Move
+        if: inputs.action == 'move'
+        env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}", FROM_REF: "${{ inputs.from_ref }}" }
+        run: node scripts/screens/run.mjs migrate "$FROM_REF"
+      - name: Verify
+        if: inputs.action == 'verify'
+        env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}" }
+        run: node scripts/screens/run.mjs verify

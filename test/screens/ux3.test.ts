@@ -1,7 +1,9 @@
-// UX3: screenshots of the two join pages and of the Riders page's Applicants tab at 390 px, in Arabic and English (docs/screens/ux3), and the weight of each
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
+// UX3: screenshots of the two join pages and of the Riders page's Applicants tab at 390 px, in Arabic and English (the screens bucket, ux3/), and the weight of each
 // website page on a first visit (page, stylesheet, script and font files, uncompressed, nothing cached), which must be under 100 KB. Skipped unless SCREENS names a
 // folder, because it needs a browser (Playwright's Chromium) that CI does not install:
-//   SCREENS=docs/screens/ux3 npx vitest run test/screens/ux3.test.ts
+//   SCREENS=/tmp/shots/ux3 npx vitest run test/screens/ux3.test.ts
 // The website runs built, in the Worker runtime, over the real migrations; the console runs its real pages (as test/screens/ux2b.test.ts). Invented people only.
 // The number confirmation is run as it runs for real: the page issues a code, and the customer-line function (claim_link_code) reads it as the turn would.
 import { afterAll, describe, expect, it } from "vitest";

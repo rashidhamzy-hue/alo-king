@@ -171,6 +171,9 @@
   tr.late td { background: var(--ak-danger-bg); }
   main table.ak-table { display: table; margin: 0; }
   img.proof { max-inline-size: 100%; max-block-size: 420px; border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); }
+  /* DOC2: the Screens page, a screenshot beside the reference's screen: the whole image, as wide as its column, as tall as it is. */
+  .shot { display: block; }
+  .shot img { display: block; max-inline-size: 100%; block-size: auto; border: 1px solid var(--ak-line); border-radius: var(--ak-radius); background: var(--ak-surface-2); }
   kbd { border: 1px solid var(--ak-line-strong); border-block-end-width: 2px; border-radius: 4px; padding: 0 0.4em; background: var(--ak-surface); font: inherit; font-size: 0.85em; }
   dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--ak-space-1) var(--ak-space-4); margin: 0; }
   dl.facts dt { color: var(--ak-muted); }

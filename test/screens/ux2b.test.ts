@@ -1,4 +1,6 @@
-// UX2b: screenshots of the five pages (Approve, Intake, Money, Settings, Riders) at 390 and 1280 px, Arabic and English, for docs/screens/ux2b beside the
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
+// UX2b: screenshots of the five pages (Approve, Intake, Money, Settings, Riders) at 390 and 1280 px, Arabic and English, for the screens bucket (ux2b/) beside the
 // design reference's matching screens. Skipped unless SCREENS names a folder, because it needs a browser (Playwright's Chromium) that CI does not install:
 //   SCREENS=/tmp/shots npx vitest run test/screens/ux2b.test.ts
 // The console runs its real pages over the real migrations (as test/screens/ux2a.test.ts). Invented data only; nothing is sent anywhere. Pictures are

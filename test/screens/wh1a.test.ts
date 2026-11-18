@@ -1,7 +1,9 @@
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
 // WH1a: screenshots of the warehouse pages (purchase orders, receiving against one, the printed order, bins, the temperature log, Stock's
-// use-soon lots, the picker's runner with bins and lots) at 390 and 1280 px, Arabic and English, for docs/screens/wh1a. Skipped unless SCREENS
+// use-soon lots, the picker's runner with bins and lots) at 390 and 1280 px, Arabic and English, for the screens bucket (wh1a/). Skipped unless SCREENS
 // names a folder, because it needs Playwright's Chromium, which CI does not install:
-//   SCREENS=docs/screens/wh1a npx vitest run test/screens/wh1a.test.ts
+//   SCREENS=/tmp/shots/wh1a npx vitest run test/screens/wh1a.test.ts
 // The console runs its real pages over the real migrations (as test/screens/ux2b.test.ts). Invented data only; nothing is sent anywhere.
 import { afterAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";

@@ -157,6 +157,8 @@ jobs:
         run: |
           node scripts/ci/no-personal-data.mjs --self-test
           node scripts/ci/no-personal-data.mjs
+      - name: Repository size and images (no file over 300 KB, no image under docs/; screenshots live in the private screens bucket)
+        run: node scripts/ci/repo-hygiene.mjs
       - name: osv-scanner (known vulnerabilities in the lockfile)
         run: osv-scanner scan --lockfile package-lock.json
 
