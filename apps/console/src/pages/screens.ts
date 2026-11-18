@@ -72,7 +72,7 @@ ${p.shots.length > 1 ? html`<p class="muted">${words("Also", "وأيضاً")}: $
 }
 
 export const screensSection: Section = {
-  // No group of its own: it lands under "Other" (More on a phone). Every staff role may look; nothing here changes anything.
+  // Listed last in the Settings group (nav.ts), so More has it on a phone. Every staff role may look; nothing here changes anything.
   nav: { href: "/screens", label: "Screens", roles: ALL },
   routes: [{ method: "GET", path: "/screens", roles: ALL, handler: page }],
 };

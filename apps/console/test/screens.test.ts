@@ -83,7 +83,7 @@ describe("Screens", () => {
     expect(down.text).not.toContain("storage_503");
   });
 
-  it("is in the menu under Other, in Arabic as «الشاشات», and has no inline style or script", async () => {
+  it("is in the menu (the Settings group, and More), in Arabic as «الشاشات», and has no inline style or script", async () => {
     withScreens(async () => PATHS);
     const b = r.browser(); await b.signIn(await r.staff("picker"));
     const res = await b.get("/more");
