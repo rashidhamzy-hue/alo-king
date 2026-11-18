@@ -211,5 +211,5 @@
   .cap-list a { display: inline-flex; align-items: center; min-block-size: var(--tap); font-weight: var(--ak-weight-strong); }
   .cap-list li[data-state="done"] a { color: var(--ak-muted); }
   .cap-find { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: end; }
-  @media print { .bottom-nav, .sidebar, header.top, .env { display: none; } body { background: #fff; } }
+  @media print { .bottom-nav, .sidebar, header.top, .env, .no-print { display: none; } body { background: #fff; } }
 }

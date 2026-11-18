@@ -64,6 +64,12 @@ export function render(c: Ctx, title: string, body: Raw | Raw[], opts: { transla
     theme: c.theme, bell: LEADS.includes(c.staff.role) ? c.bell : null, canSearchOrders: LEADS.includes(c.staff.role) }), c.deps);
 }
 
+/** WH1a: a page with no menu, in a language chosen for it (a purchase order printed in Arabic or English, whatever the staff member reads). */
+export function renderBare(c: Ctx, lang: Lang, title: string, body: Raw | Raw[]): Response {
+  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav: null, lang, translated: true, flash: null,
+    environment: c.deps.environment, body, theme: "light" }), c.deps);
+}
+
 export function redirect(to: string, cookies: string[] = []): Response {
   const h = new Headers({ location: to });
   for (const ck of cookies) h.append("set-cookie", ck);

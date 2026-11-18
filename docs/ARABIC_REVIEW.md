@@ -1385,3 +1385,218 @@ The shifts (morning 08:00 to 15:30, evening 15:30 to 23:00) are a draft taken fr
 | This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | |
 | ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | |
 | Declined. The reason is kept. | تم الرفض. السبب محفوظ. | |
+
+## WH1a, warehouse basics (console, staff-facing, written by a model; 18 November 2026)
+
+Source: the `pick(L, "English", "Arabic")` pairs of `apps/console/src/pages/{purchaseorders,bins,temperature,warehouse}.ts` and the lines WH1a added to `stock.ts` and `pick.ts`, plus the zone, status, slot and reason words. Staff read these, never a customer; the printed purchase order (`/purchase-orders/<id>/print?lang=ar`) goes to a supplier. Words with `${…}` stand for a number, a code or a name the page fills in. The hub is «المستودع». Unlike older pages, the warehouse pages say the database's refusals in Arabic too (`plain()` in `warehouse.ts`). **Not read by a person yet.**
+
+| English | Arabic | Read by |
+|---|---|---|
+| Add the supplier first, on the Receiving page. | أضف المورّد أولاً من صفحة الاستلام. | unread |
+| Receiving | الاستلام | unread |
+| New purchase order | طلب شراء جديد | unread |
+| Supplier | المورّد | unread |
+| Expected on | متوقّع في | unread |
+| Item: type its name or SKU and pick it from the list (a barcode works too). The cost is optional: the invoice's cost is typed at receiving otherwise. | الصنف: اكتب اسمه أو رمزه واختره من القائمة (الباركود يعمل أيضاً). السعر اختياري: يُكتب سعر الفاتورة عند الاستلام. | unread |
+| Item ${i + 1} | الصنف ${i + 1} | unread |
+| Quantity | الكمية | unread |
+| Unit cost USD (optional) | سعر الوحدة بالدولار (اختياري) | unread |
+| Note for the supplier (optional) | ملاحظة للمورّد (اختيارية) | unread |
+| Write the purchase order | اكتب طلب الشراء | unread |
+| Expected ${x.expected_date} · ${x.lines} item(s) | متوقّع ${x.expected_date} · ${x.lines} صنف | unread |
+| Purchase orders | طلبات الشراء | unread |
+| Open | مفتوحة | unread |
+| Received and cancelled | مُستلمة وملغاة | unread |
+| No purchase order is open. | لا طلب شراء مفتوح. | unread |
+| None in the last 30 days. | لا شيء في آخر 30 يوماً. | unread |
+| Goods come in only by receiving a purchase order. A delivery with no order: the ops lead writes one here first, then it is received. | تدخل البضاعة فقط باستلام طلب شراء. تسليم بلا طلب: يكتب مسؤول العمليات طلباً هنا أولاً ثم يُستلم. | unread |
+| Choose the supplier. | اختر المورّد. | unread |
+| Choose the day you expect the goods. | اختر اليوم الذي تتوقّع فيه البضاعة. | unread |
+| Item ${i + 1}: type a quantity above zero. | الصنف ${i + 1}: اكتب كمية أكبر من صفر. | unread |
+| Item ${i + 1}: the cost is not a number. | الصنف ${i + 1}: السعر ليس رقماً. | unread |
+| Add at least one item. | أضف صنفاً واحداً على الأقل. | unread |
+| No item with SKU or barcode ${l.code}. | لا صنف بالرمز أو الباركود ${l.code}. | unread |
+| ${r.number} was already written. | ${r.number} مكتوب بالفعل. | unread |
+| Purchase order ${r.number} written for ${name}. | كُتب طلب الشراء ${r.number} لـ ${name}. | unread |
+| That record is not valid. | هذا السجل غير صالح. | unread |
+| Purchase order | طلب شراء | unread |
+| No such purchase order. | لا يوجد طلب شراء كهذا. | unread |
+| Status | الحالة | unread |
+| Written by | كتبه | unread |
+| Note | ملاحظة | unread |
+| Cancelled because | أُلغي لأن | unread |
+| Received by | استلمه | unread |
+| Print in English | اطبع بالإنجليزية | unread |
+| Print in Arabic | اطبع بالعربية | unread |
+| ordered ${qty(l.qty)} ${unitWord(L, l.unit)} | المطلوب ${qty(l.qty)} ${unitWord(L, l.unit)} | unread |
+| Came (count) | وصل (العدد) | unread |
+| Of those, damaged | منها تالف | unread |
+| Lot (on the pack) | رقم الدفعة (على العبوة) | unread |
+| Expiry (if the pack has one) | انتهاء الصلاحية (إن وُجد على العبوة) | unread |
+| Expiry (needed) | انتهاء الصلاحية (مطلوب) | unread |
+| Unit cost USD (invoice) | سعر الوحدة بالدولار (الفاتورة) | unread |
+| Note (short or damaged) | ملاحظة (ناقص أو تالف) | unread |
+| Receive | استلام | unread |
+| Count every line, even if none came (type 0). Damaged units do not go on the shelf. Chilled, frozen and fresh goods need their expiry date. | عُدّ كل سطر، حتى لو لم يصل شيء (اكتب 0). الوحدات التالفة لا تدخل الرف. المبرّد والمجمّد والطازج يحتاج تاريخ انتهاء الصلاحية. | unread |
+| Invoice or delivery-note number | رقم الفاتورة أو إشعار التسليم | unread |
+| Paid | الدفع | unread |
+| on credit (we owe the supplier) | بالدَّين (ندين للمورّد) | unread |
+| from the drawer, now | من الصندوق، الآن | unread |
+| Receive these goods | استلم هذه البضاعة | unread |
+| Cancel this purchase order | ألغِ طلب الشراء هذا | unread |
+| Why (required) | السبب (مطلوب) | unread |
+| Cancel the order | ألغِ الطلب | unread |
+| ordered ${qty(l.qty)} | المطلوب ${qty(l.qty)} | unread |
+| came ${qty(x.counted)}, damaged ${qty(x.damaged)}, on the shelf ${qty(x.received)} | وصل ${qty(x.counted)}، تالف ${qty(x.damaged)}، على الرف ${qty(x.received)} | unread |
+| short ${qty(x.short)} | ناقص ${qty(x.short)} | unread |
+| Lot ${x.lot} | الدفعة ${x.lot} | unread |
+| use by ${x.expiry_date} | يُستهلك قبل ${x.expiry_date} | unread |
+| What came | ما وصل | unread |
+| Items | الأصناف | unread |
+| Short | ناقص | unread |
+| ${qty(s.short)} of ${qty(s.ordered)} did not come | ${qty(s.short)} من ${qty(s.ordered)} لم يصل | unread |
+| Damaged | تالف | unread |
+| For short and damaged goods, agree a credit note with the supplier (Receiving page, the supplier's balance). | للناقص والتالف: اتّفق مع المورّد على إشعار دائن (صفحة الاستلام، رصيد المورّد). | unread |
+| Label day | يوم الملصقات | unread |
+| ${capture.length} item(s) from this delivery are packaged and not label-ready. Those not yet photographed are first on the label day's list. | ${capture.length} صنف من هذا التسليم معبّأ وغير جاهز الملصق. غير المصوَّر منها في أول قائمة تصوير الملصقات. | unread |
+| photographed, waiting to be read or approved | مصوَّر، بانتظار القراءة أو الموافقة | unread |
+| to photograph | للتصوير | unread |
+| Start photographing | ابدأ التصوير | unread |
+| Every item from this delivery is loose or label-ready. | كل أصناف هذا التسليم سائبة أو جاهزة الملصق. | unread |
+| Purchase order ${d.number} | طلب شراء ${d.number} | unread |
+| All purchase orders | كل طلبات الشراء | unread |
+| Use the browser's Print (or Share, then Print) to print this page or save it as a PDF. | استعمل «طباعة» في المتصفح (أو «مشاركة» ثم «طباعة») لطباعة هذه الصفحة أو حفظها PDF. | unread |
+| Back | رجوع | unread |
+| From | من | unread |
+| Written on | تاريخ الطلب | unread |
+| Expected on | التسليم المتوقّع | unread |
+| Item and code | الصنف والرمز | unread |
+| Unit cost | سعر الوحدة | unread |
+| Please write this order's number on the invoice or the delivery note. | الرجاء كتابة رقم هذا الطلب على الفاتورة أو إشعار التسليم. | unread |
+| Received by: ____________________   Date: ____________ | استلمه: ____________________   التاريخ: ____________ | unread |
+| Line ${i}: ${what} is not a number. | السطر ${i}: ${what} ليس رقماً. | unread |
+| Line ${l.n}: the expiry date is not a date. | السطر ${l.n}: تاريخ انتهاء الصلاحية ليس تاريخاً. | unread |
+| the count | العدد | unread |
+| damaged | التالف | unread |
+| the cost | السعر | unread |
+| ${d.number} was already received; nothing changed. | استُلم ${d.number} من قبل؛ لم يتغيّر شيء. | unread |
+| Received ${d.number}: ${qty(units)} unit(s) on the shelf, ${usd(r.total_usd)} at cost. | استُلم ${d.number}: ${qty(units)} وحدة على الرف، بكلفة ${usd(r.total_usd)}. | unread |
+| ${r.short.length} line(s) short. | ${r.short.length} سطر ناقص. | unread |
+| ${r.damaged.length} line(s) with damaged units. | ${r.damaged.length} سطر فيه تالف. | unread |
+| ${r.label_capture.length} item(s) go to the label day's list. | ${r.label_capture.length} صنف إلى قائمة تصوير الملصقات. | unread |
+| ${number} cancelled. | أُلغي ${number}. | unread |
+| walk ${b.walk_order} | الترتيب ${b.walk_order} | unread |
+| Empty. | فارغ. | unread |
+| Bins | الرفوف | unread |
+| Each item has one shelf place, in its own zone. The pick list walks ambient, fresh, chilled, then frozen, and in each zone the bins in their walk order. | لكل صنف مكان واحد على الرف في منطقته. قائمة التجهيز تمشي: عادي، طازج، مبرّد، ثم مجمّد، وفي كل منطقة الرفوف بترتيب المشي. | unread |
+| Put an item in a bin | ضع صنفاً في رف | unread |
+| Item SKU or barcode | رمز الصنف أو الباركود | unread |
+| Bin | الرف | unread |
+| Save the place | احفظ المكان | unread |
+| ${x.unplaced} item(s) of this zone have no bin yet: they come at the end of the zone on the pick list. | ${x.unplaced} صنف من هذه المنطقة بلا رف بعد: تأتي في آخر المنطقة في قائمة التجهيز. | unread |
+| No bins yet. | لا رفوف بعد. | unread |
+| Make the first one below. | أنشئ الأول أدناه. | unread |
+| An ops lead makes them. | ينشئها مسؤول العمليات. | unread |
+| New bin | رف جديد | unread |
+| Code on the shelf (A1, C-02) | الرمز على الرف (A1، C-02) | unread |
+| Zone | المنطقة | unread |
+| Place in the walk (optional: after the last) | ترتيبه في المشي (اختياري: بعد الأخير) | unread |
+| Make the bin | أنشئ الرف | unread |
+| Choose the zone. | اختر المنطقة. | unread |
+| The place in the walk is a whole number from 1. | الترتيب رقم صحيح من 1. | unread |
+| Bin ${code} made (${zoneWord("en", zone).toLowerCase()}). | أُنشئ الرف ${code} (${zoneWord("ar", zone)}). | unread |
+| Type the item's SKU or barcode. | اكتب رمز الصنف أو الباركود. | unread |
+| Choose the bin. | اختر الرف. | unread |
+| No item with SKU or barcode ${code}. | لا صنف بالرمز أو الباركود ${code}. | unread |
+| ${p.name_en} is now in bin ${binCode}. | ${p.name_ar // p.name_en} الآن في الرف ${binCode}. | unread |
+| from ${s.from}, by ${s.by} | من ${s.from} حتى ${s.by} | unread |
+| out of range | خارج المدى | unread |
+| Temperature log | سجل الحرارة | unread |
+| ${zoneWord(L, z)}: ${range(today.zones[z])}. | ${zoneWord(L, z)}: ${rangeAr(today.zones[z])}. | unread |
+| Twice a day: photograph the thermometer and type what it shows. | مرّتان في اليوم: صوّر ميزان الحرارة واكتب ما يظهره. | unread |
+| Today, ${today.day} | اليوم، ${today.day} | unread |
+| Take a reading | سجّل قراءة | unread |
+| The thermometer shows (°C) | ميزان الحرارة يظهر (°م) | unread |
+| Photo of the thermometer | صورة ميزان الحرارة | unread |
+| Note (what you did, if out of range) | ملاحظة (ما فعلت إن كانت خارج المدى) | unread |
+| Save the reading | احفظ القراءة | unread |
+| Today's readings | قراءات اليوم | unread |
+| in range | ضمن المدى | unread |
+| the photo | الصورة | unread |
+| The last 14 days | آخر 14 يوماً | unread |
+| Day | اليوم | unread |
+| Type the number the thermometer shows. | اكتب الرقم الذي يظهره ميزان الحرارة. | unread |
+| Take the photo of the thermometer first. | التقط صورة ميزان الحرارة أولاً. | unread |
+| That reading was already saved. | حُفظت هذه القراءة بالفعل. | unread |
+| Saved: ${deg(reading)}, in range. | حُفظت: ${deg(reading)}، ضمن المدى. | unread |
+| Saved: ${deg(reading)}, OUT OF RANGE (${range(rg)}). The staff alert was raised: move the chilled goods to a working fridge, or hold them. | حُفظت: ${deg(reading)}، خارج المدى (${rangeAr(rg)}). أُطلق تنبيه الفريق: انقل المبرّدات إلى برّاد يعمل، أو أوقف بيعها. | unread |
+| Not done: the action log could not be written. Try again in a minute. | لم يتم: تعذّر تسجيل الإجراء. حاول بعد دقيقة. | unread |
+| There is no hub (dark store) in the database. | لا يوجد مستودع في قاعدة البيانات. | unread |
+| Your role cannot do this. | دورك لا يسمح بهذا. | unread |
+| Type a quantity above zero (and not more than the lot holds). | اكتب كمية أكبر من صفر (ولا تتجاوز ما في الدفعة). | unread |
+| ${name(/^DUPLICATE_ITEM (.*)$/)} is on the order twice: put it on one line. | ${name(/^DUPLICATE_ITEM (.*)$/)} مكرّر في الطلب: اجعله في سطر واحد. | unread |
+| The expected day is in the past. | اليوم المتوقّع مضى. | unread |
+| That supplier is not active. | هذا المورّد غير فعّال. | unread |
+| A restaurant's dish is never on a purchase order. | طبق المطعم لا يدخل في طلب شراء. | unread |
+| Write the reason (at least 3 characters). | اكتب السبب (3 أحرف على الأقل). | unread |
+| This purchase order was cancelled. | أُلغي طلب الشراء هذا. | unread |
+| This purchase order is no longer open. | طلب الشراء هذا لم يعد مفتوحاً. | unread |
+| Count every line, even if none came (type 0): ${name(/^LINE_NOT_COUNTED (.*)$/)}. | عُدّ كل سطر، حتى لو لم يصل شيء (اكتب 0): ${name(/^LINE_NOT_COUNTED (.*)$/)}. | unread |
+| Type a count of zero or more. | اكتب عدداً صفراً أو أكثر. | unread |
+| Damaged cannot be more than came: ${name(/^BAD_DAMAGED (.*)$/)}. | التالف لا يمكن أن يزيد عمّا وصل: ${name(/^BAD_DAMAGED (.*)$/)}. | unread |
+| Type the unit cost from the invoice: ${name(/^COST_REQUIRED (.*)$/)}. | اكتب سعر الوحدة من الفاتورة: ${name(/^COST_REQUIRED (.*)$/)}. | unread |
+| Chilled, frozen and fresh goods need their expiry date: ${name(/^EXPIRY_REQUIRED (.*) is/)}. | المبرّد والمجمّد والطازج يحتاج تاريخ انتهاء الصلاحية: ${name(/^EXPIRY_REQUIRED (.*) is/)}. | unread |
+| That date has passed: expired goods are not received. Count them as damaged. | هذا التاريخ مضى: لا تُستلم بضاعة منتهية الصلاحية. سجّلها تالفة. | unread |
+| That invoice number was already used for another delivery from this supplier. | رقم الفاتورة هذا استُعمل لتسليم آخر من هذا المورّد. | unread |
+| Only the ops lead pays from the drawer. Receive it on credit. | مسؤول العمليات وحده يدفع من الصندوق. استلمها بالدَّين. | unread |
+| Above the picker limit: an ops lead must make this change. | فوق حدّ المجهّز: يجب أن يقوم مسؤول العمليات بهذا التغيير. | unread |
+| The drawer does not hold that much by the books. Count it, and check what came in today. | الصندوق لا يحوي هذا المبلغ حسب الدفاتر. عُدّه وراجع ما دخل اليوم. | unread |
+| That would leave less on the shelf than is reserved for open orders. | هذا يترك على الرف أقل ممّا هو محجوز لطلبات مفتوحة. | unread |
+| That lot was not found. | لم يُعثر على هذه الدفعة. | unread |
+| Choose a reason from the list. | اختر سبباً من القائمة. | unread |
+| A bin code is letters, digits and a dash, up to 12 (A1, C-02). | رمز الرف أحرف وأرقام وشرطة، حتى 12 (A1، C-02). | unread |
+| A bin with that code already exists. | يوجد رف بهذا الرمز. | unread |
+| The item is ${zoneWord("en", a!).toLowerCase()} and the bin is ${zoneWord("en", b!).toLowerCase()}: choose a bin in the item's own zone. | الصنف ${zoneWord("ar", a!)} والرف ${zoneWord("ar", b!)}: اختر رفاً في منطقة الصنف نفسها. | unread |
+| That bin was not found. | لم يُعثر على هذا الرف. | unread |
+| That zone has no log. | لا سجلّ لهذه المنطقة. | unread |
+| Type the number the thermometer shows (between −40 and 60). | اكتب الرقم الذي يظهره ميزان الحرارة (بين −40 و60). | unread |
+| Only an expired lot is left: mark the line missing, and write the lot off on the Stock page. | لم يبقَ إلا دفعة منتهية الصلاحية: سجّل البند ناقصاً، وأتلف الدفعة من صفحة المخزون. | unread |
+| ${fmtQty(t.qty)} with no lot: check the date on the pack | ${fmtQty(t.qty)} بلا دفعة: تحقّق من التاريخ على العبوة | unread |
+| Bin ${x.bin} | الرف ${x.bin} | unread |
+| Only an expired lot is left for this line: do not pick it. Mark the line missing, and write the lot off on the Stock page. | لم يبقَ لهذا البند إلا دفعة منتهية الصلاحية: لا تأخذها. سجّل البند ناقصاً، وأتلف الدفعة من صفحة المخزون. | unread |
+| Bin ${binOf.get(p.id)} | الرف ${binOf.get(p.id)} | unread |
+| expired: take it off the shelf | منتهي الصلاحية: أنزله عن الرف | unread |
+| Lot ${x.lot ?? "(no code)"} · use by ${x.expiry_date} · ${num_(n(x.qty_left))} left | الدفعة ${x.lot ?? "(بلا رقم)"} · يُستهلك قبل ${x.expiry_date} · بقي ${num_(n(x.qty_left))} | unread |
+|  · bin ${binOf.get(p.id)} |  · الرف ${binOf.get(p.id)} | unread |
+| Write this lot off | أتلف هذه الدفعة | unread |
+| How many | كم وحدة | unread |
+| Reason (required) | السبب (مطلوب) | unread |
+| Choose a reason | اختر سبباً | unread |
+| Write off | أتلف | unread |
+| Use within ${USE_SOON_DAYS} days | يُستهلك خلال ${USE_SOON_DAYS} أيام | unread |
+| Nothing expires soon. | لا شيء تنتهي صلاحيته قريباً. | unread |
+| Needs a look | يحتاج نظرة | unread |
+| Every item | كل الأصناف | unread |
+| (no code) | (بلا رقم) | unread |
+| That write-off was already saved. | حُفظ هذا الإتلاف بالفعل. | unread |
+| Written off: ${num_(qty)} from lot ${code}. ${num_(n(r?.qty_left ?? 0))} left in it. | أُتلف ${num_(qty)} من الدفعة ${code}. بقي فيها ${num_(n(r?.qty_left ?? 0))}. | unread |
+| Ambient | عادي | unread |
+| Fresh | طازج | unread |
+| Chilled | مبرّد | unread |
+| Frozen | مجمّد | unread |
+| Open | مفتوح | unread |
+| Received | مُستلم | unread |
+| Cancelled | ملغى | unread |
+| done | تمّ | unread |
+| late | متأخّر | unread |
+| missed | فات | unread |
+| to do | مطلوب | unread |
+| log not started | السجل لم يبدأ | unread |
+| Morning | الصباح | unread |
+| Evening | المساء | unread |
+| Expired | منتهي الصلاحية | unread |
+| Spoiled | فاسد | unread |
+| Recalled | مسحوب من السوق | unread |
+| Purchase orders (menu) | طلبات الشراء | unread |
+| Bins (menu) | الرفوف | unread |
+| Temperature log (menu) | سجل الحرارة | unread |

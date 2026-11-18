@@ -88,6 +88,9 @@ const handler = {
     if (event.cron === PUSH_CRON) {
       // D5: a phone alert for each new high-priority exception, once. An extra: the WhatsApp ops alert is not touched.
       ctx.waitUntil((async () => {
+        // WH1a: a temperature reading time that passed with no reading becomes an alert first, so this run pushes it (0240).
+        try { await depsFor(env).db.rpc("temperature_log_check", {}); }
+        catch (e) { Sentry.captureException(e, { tags: { where: "temperature_log_check" } }); console.error(JSON.stringify({ level: "error", event: "temperature_check_failed", err: String(e).slice(0, 300) })); }
         try {
           const run = await pushNewExceptions(depsFor(env).db, env, new Date());
           if (run.claimed || run.failed || run.skipped === undefined) console.log(JSON.stringify({ level: "info", event: "push_run", ...run }));

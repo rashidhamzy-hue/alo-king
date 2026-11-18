@@ -19,7 +19,10 @@ import { messages } from "@ak/agents/messages";
 type Board = { order_id: string; short_code: string; status: string; is_pickup: boolean; confirmed_at: string | null; promise_at: string | null; promise_min: number | null;
   window: { starts: string; ends: string; day_offset: number } | null; village_ar: string | null; village_en: string | null; items: number; chilled: number; has_note: boolean;
   picker_id: string | null; picker: string | null; started_at: string | null; finished_at: string | null };
-type Line = { n: number; item_id: string; name: string; qty: number | string; unit: string | null; storage: string; on_hold: boolean; note: string | null };
+type Take = { lot: string | null; expiry_date: string | null; qty: number | string; no_lot: boolean };
+/** WH1a (0239): the bin, the lots to take in first-to-expire order, "check the date" for stock with no lot, "only an expired lot is left". */
+type Line = { n: number; item_id: string; name: string; qty: number | string; unit: string | null; storage: string; on_hold: boolean; note: string | null;
+  bin?: string | null; take?: Take[]; check_date?: boolean; expired_only?: boolean };
 type Missing = { item_id: string; name: string; qty: number | string; status: string; reason: string | null; line_total_usd: number | string };
 type PickList = { order_id: string; short_code: string; status: string; notes: string | null; picker_id: string | null; started_at: string | null; finished_at: string | null;
   total_usd: number | string; payment_method: string; lines: Line[]; missing: Missing[] };
@@ -32,6 +35,14 @@ const STORAGE: Record<string, [string, string, Tone]> = { chilled: ["Chilled", "
 const fmtQty = (q: number | string) => String(Number(q));
 const lineWord = (L: Lang, n: number) => (L === "ar" ? `${n} ${n === 1 ? "بند" : "بنود"}` : `${n} ${n === 1 ? "line" : "lines"}`);
 const local = (n: string) => n.replace(/[^0-9]/g, "").slice(0, 3);
+
+/** Where to take a line from: its bin, then each lot to take (earliest expiry first), or why it cannot be picked. */
+function whereFrom(L: Lang, x: Line) {
+  const lots = (x.take ?? []).map((t) => t.no_lot ? pick(L, `${fmtQty(t.qty)} with no lot: check the date on the pack`, `${fmtQty(t.qty)} بلا دفعة: تحقّق من التاريخ على العبوة`)
+    : pick(L, `Lot ${t.lot ?? "(no code)"}: take ${fmtQty(t.qty)}${t.expiry_date ? `, use by ${t.expiry_date}` : ""}`, `الدفعة ${t.lot ?? "(بلا رقم)"}: خذ ${fmtQty(t.qty)}${t.expiry_date ? `، قبل ${t.expiry_date}` : ""}`));
+  const take = x.bin || lots.length ? html`<p class="muted">${x.bin ? html`<strong>${pick(L, `Bin ${x.bin}`, `الرف ${x.bin}`)}</strong>${lots.length ? " · " : ""}` : ""}${lots.join(" · ")}</p>` : "";
+  return x.expired_only ? html`${take}<p class="note">${pick(L, "Only an expired lot is left for this line: do not pick it. Mark the line missing, and write the lot off on the Stock page.", "لم يبقَ لهذا البند إلا دفعة منتهية الصلاحية: لا تأخذها. سجّل البند ناقصاً، وأتلف الدفعة من صفحة المخزون.")}</p>` : take;
+}
 
 /** Plain words for the refusals this page meets, in the staff member's language. The database decided; this only explains. */
 function plain(L: Lang, e: unknown): unknown {
@@ -46,6 +57,7 @@ function plain(L: Lang, e: unknown): unknown {
   if (/^BAD_FOUND_QTY/.test(m)) return say("Type how many you found: zero up to less than the quantity ordered.", "اكتب كم وجدت: من صفر إلى أقل من الكمية المطلوبة.");
   if (/^LINE_NOT_MISSING/.test(m)) return say("That line is not waiting for a decision.", "هذا البند لا ينتظر قراراً.");
   if (/^ITEM_NOT_FOUND/.test(m)) return say("That line is no longer on the order.", "هذا البند لم يعد في الطلب.");
+  if (/^LOT_EXPIRED/.test(m)) return say("Only an expired lot is left: mark the line missing, and write the lot off on the Stock page.", "لم يبقَ إلا دفعة منتهية الصلاحية: سجّل البند ناقصاً، وأتلف الدفعة من صفحة المخزون.");
   return e;
 }
 
@@ -174,6 +186,7 @@ async function list(c: Ctx) {
     return html`<li id="l${x.n}" data-state="${done ? "done" : ""}"><div class="head"><strong><bdi class="n">${x.n}</bdi><bdi class="qty">${fmtQty(x.qty)} ×</bdi> <bdi>${x.name}</bdi></strong>
 <span class="tags">${x.unit && x.unit.toLowerCase() !== "each" ? badge(x.unit) : ""}${st ? badge(pick(L, st[0], st[1]), st[2]) : ""}${x.on_hold ? badge(pick(L, "on hold", "موقوف"), "danger", "alert") : ""}${done ? badge(pick(L, "picked", "أُخذ"), "ok", "check") : ""}</span></div>
 ${x.note ? html`<p class="muted">${pick(L, "Note", "ملاحظة")}: ${x.note}</p>` : ""}
+${whereFrom(L, x)}
 ${mineOrLead ? html`<div class="ak-pickrow">
 ${form(c.f, `/pick/${order}/mark/${x.item_id}`, html`<input type="hidden" name="n" value="${x.n}"><input type="hidden" name="picked" value="${done ? "0" : "1"}">${done
   ? button({ label: pick(L, "Put back", "أعِده"), variant: "ghost", icon: "undo" })
