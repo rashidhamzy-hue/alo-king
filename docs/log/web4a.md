@@ -1,10 +1,10 @@
-# WEB4a: the website looks like the reference, stage 1 (the frame and the home page)
+# WEB4a: the website looks like the reference (stage 1: the frame and the home page; stage 2: aisles, an aisle, product, search)
 
 Session WEB4a (Opus, high), 18 November 2026. Branch `claude/pensive-hopper-2hw0pg`. Migration 0243. No simulation, no live model call.
 The decisions this session took are in `docs/DECISIONS.md`, "WEB4a, the website looks like the reference (stage 1)", 1 to 11.
 
-**State: stage 1 merged (PR #129, approved by the founder: "it looks like the reference"). Stage 2 built on the branch, its screens on the
-console's Screens page; WEB4a stage 2 waiting for the founder's "go" before merging.** Stage 2 is below, after stage 1.
+**State: done. Stage 1 merged (PR #129, approved by the founder: "it looks like the reference"). Stage 2 merged (PR #130) on the founder's
+"go", 18 November.** Stage 2 is below, after stage 1.
 
 ## Built
 
@@ -231,4 +231,4 @@ checked at 390 and 1440 px in Arabic and English. Screens on the console's Scree
 
 1. Look at the stage 2 screens: console, **More**, **Screens**, chip **WEB4A**: `web4a-aisles`, `web4a-aisle`, `web4a-product` (no weight on
    file), `web4a-product-pack` (500 g), `web4a-product-kg`, `web4a-search`, `web4a-search-none`, `web4a-cart`, at 390 and 1440 px, Arabic
-   and English, each beside the reference's screen. Reply **"go"** in the WEB4a chat to merge, or what to change.
+   and English, each beside the reference's screen. Done: the founder replied "go" and stage 2 was merged.
