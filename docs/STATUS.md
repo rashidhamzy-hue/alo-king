@@ -1,0 +1,103 @@
+# Status (read in full by every session; under 400 lines)
+
+Written 18 November 2026 by session DOC2 (docs only) from the session reports in `docs/log/`, `docs/DECISIONS.md` ("Founder decisions, 18 November 2026"),
+GitHub's run history and staging read through its workflows. Update it **only where your facts changed**: a step's state, what is live, a founder
+action, the session table, the migration numbers. Every rule and setting value is in `docs/RULES.md`; the 21 invariants are in `CLAUDE.md`.
+**Code no longer blocks gate A. What blocks it is approvals, the label day and stock.** Owners: **Rashid** (the founder), **Bassem** (label day and shelf work),
+**Hussein** (the second approver on two-person changes), **a session** (a build session, dispatched by the coordinator). "State" is the last recorded
+fact; where nothing has been recorded since the report named, it says so.
+
+Addresses (staging only; nothing here has run with real customers, real money or the two +961 numbers):
+console `https://alo-king-console-staging.rashid-hamzy.workers.dev` (sign in with your own account), website `https://alo-king-web-staging.rashid-hamzy.workers.dev`.
+
+## 1. The critical path to the friends' test (gate A)
+In this order. A step is done when its "done when" holds; a later step may start early where it says so.
+
+| # | Step | Owner | State | Exact clicks (details: the log named) |
+|---|---|---|---|---|
+| 1 | **Picture approvals** | Rashid | Pictures are proposed by the `images` workflow's from-list mode (`data/pictures/candidates.csv`); **none recorded as approved** (the catalogue feed lists only approved pictures). PIX3 (PR #124) is open and adds candidates and a label-day route. | Console, sign in, tap **Approve**, then **Pictures**. Fastest sellers come first, 20 a page. Open each picture: approve only if it shows exactly this item (same brand, product and size, one pack, plain background, no price tag, shop logo or text); otherwise **Reject**. Done when: every stocked item has an approved picture (items with none go to the label day's photographs). `docs/log/pix2.md` |
+| 2 | **The label day, part 1: the first purchase order and receiving** (it makes the capture list) | Bassem (Rashid writes the order) | Built and on staging (0236 to 0240, deployed 18 November 06:22 UTC); **not yet used with a real van**. The 12 steps are below, section 3. | Console, **Stock**, **Receiving**: add the supplier once. **Stock**, **Purchase orders**, **New purchase order**: supplier, day, items (type a name, pick it), quantities, **Write the purchase order**, **Print in Arabic**, send it. When the van comes: open the order, under **Receive** count each line (came, damaged, lot, expiry), invoice number, **Receive these goods**. `docs/log/wh1a.md` ("Founder actions (WH1a)") |
+| 3 | **The label day, part 2: the capture page** (three photos of every packaged item) | Bassem | Built (LB1, 0210 and 0211); **no photo recorded yet**. | Console on a phone, **Stock**, **Label day photos**. The page shows the next item: find the pack, **Scan** the barcode (or type it, or **Pick from the list** for produce and meat), take **Front**, **Back** and, if the pack has a nutrition table or directions on a side, **Side**. It moves to the next item by itself; aim for under 30 seconds an item. If the signal drops do nothing: do not clear the browser's data or sign out until the yellow note is gone. `docs/log/lb1.md` ("Founder actions (LB1)") |
+| 4 | **The reading run** (needed before step 5) | Rashid, once photos are in | Built; never run live. Cap 5 USD, recorded in `model_costs`. | GitHub, the repository, **Actions**, **label-read**, **Run workflow**, branch **main**, leave `max_usd` at 5, **Run workflow**. Open the run when it ends: the summary lists items read and items not yet fact-complete. If it says a batch is still processing, run it again with `batch_ids` set to the id it printed; if items were left for the cap, run it again. |
+| 5 | **Label approvals** | Rashid (Hussein second approver where asked) | Built (LB1's queue, UX2b's Approve cards); **nothing to approve until step 4**. | Console, **Approve**, **Label readings**; open each item's photos beside the row. Order (the page already lists it so, 60 rows at a time): (1) **allergens**, each from the back photo (contains, may contain, free); (2) **halal, diet labels and certificates**, only where the pack says it; (3) **hazard and printed warnings**, exactly as printed; (4) **disagreements between sources** (the label wins; check the photo); (5) **the rest**. Do **not** approve the 466 web-based proposals by hand. Also **Names**: Arabic names (an Arabic reader), "Approve all shown". |
+| 6 | **Stock bought and received** | Rashid, Bassem | Not started. Stock enters **only** by receiving a purchase order. | As step 2, one purchase order per delivery. Every unit already on staging's shelf is "no lot: check the date on the pack" until goods come in this way (honest, not a fault). Done when: the stocked items, their lots and expiries are on the shelf and every packaged one has its photos (step 3). |
+| 7 | **The menus photographed and approved (FD1)** | Rashid photographs; a session builds FD1; Rashid approves | **FD1 not started** (decision 18 November): Safa Chicken and up to 10 Baqaata places, real menus photographed by the founder, visible and orderable by testers only; Alo King buys for the customer (the rider orders and pays at the counter); a place is public only after its owner agrees; `approve_merchant()` for each (invariant 11). | Photograph each menu flat and sharp, one place at a time, with the place's name and village; the upload page and the approve clicks are FD1's (it writes them here when built). Nothing is orderable by anyone but testers until FD1 and a per-place `approve_merchant()`. |
+| 8 | **`sell_requires_label` on** | Rashid asks, Hussein approves | Off. Turn it on only when every packaged item in stock is label-ready. | Console, **Intake**: the Progress board shows how many packaged items are label-ready. **Settings**, find "A packaged item is sold only after its label is read and approved", set it on, give the reason. It says "Waiting for a second person". Hussein: **Approve**, **Second approvals**, approve it (the person who asked cannot). |
+| 9 | **The WhatsApp catalogue** | Rashid | Not done. The link (`settings.catalog.product_link`) is set on staging (QA1). Set up **once product pictures are approved** (decision 18 November). | `docs/RUNBOOK.md`, "WhatsApp catalog": **A** the feed password (Cloudflare, Workers and Pages, `alo-king-gateway-staging`, Settings, Variables and Secrets, add secret `CATALOG_FEED_PASSWORD`; also a GitHub repository secret of the same name) and the check at `/catalog/feed.csv`; **B** Commerce Manager (`business.facebook.com/commerce`, Add catalog, E-commerce, data feed, hourly, USD), then the catalog id into `settings.catalog`, then one set per category; **C** connect it to the WhatsApp number with the cart on. |
+| 10 | **T1, the friends' test set-up** | a session (Opus, medium) | Waits for 1 to 9. | A session checks gate A item by item, sets up four tester customers and one rider phone on staging, the nightly report and the tester guide. Then the friends' test runs (Rashid and three friends on the US number). |
+
+Also on the gate: **every active item at least "sellable"** (an Arabic name, a price, a picture: console **Readiness**, filter "not sellable", lists what each lacks) and the two failed requests ("snacks with no sugar for 5 kids", "protein bars with no sugar") answered correctly on staging
+(the first gets the honest answer today; "protein bars with no sugar" was B1e's, built 18 November, not yet re-run on staging).
+
+## 2. Live on staging (last recorded)
+- **Database at migration 0240** (deploy-staging run 44250709337, 18 November 06:22 UTC, green; the console Worker redeployed in the same minute). 0235 is B1e's, 0236 to 0240 are WH1a's.
+- **WhatsApp ordering** (the US test number): text and voice orders, cards, the customer's own Confirm tap, cash, three order paths end to end (QA1, 17 November: AK-1056 text, AK-1057 website, AK-1058 voice), STOP, the honest answer for a kind or fact with no line (B1e). Two test riders accept and deliver every staging order within minutes and "pay" cash.
+- **Website** (18 pages, Arabic and English; today under 100 KB each on a first visit): home, aisles, search (words; meaning is off), product pages with facts by template and JSON-LD, basket, checkout (number confirmed by a WhatsApp code; the card is sent to WhatsApp and the Confirm tap there places the order), order page, account, How it works, privacy and terms shells, the Food page of 460 Chouf places listed before they sign (never orderable), `/join/rider`, `/for-vendors`. **Still the DS2 look, not yet the reference's.**
+- **Console** (about 45 pages, Arabic and English): Today, Inbox, Orders, Pick, Dispatch, Stock, Approve (one card at a time), Intake, Money (ledger, to confirm, cash drops, refunds), Settings (admin, second person for the listed fields), Riders (roster, Applicants tab), Label day photos, Label approvals, Purchase orders, Receiving, Bins, Temperature log, Listings, **Screens** (new, 18 November), and the older pages. Alerts that wake a phone (web push) built; phone proof not recorded.
+- **Staging settings read from a database built from every migration** are in `docs/RULES.md`: cash cap soft 100 / hard 150, minimum order 5 USD, no small-order fee, refund limit 10 USD, `sell_requires_label` off, pickup off, marketing off and locked, embeddings off.
+- **Ledger** reconciled to 0.00 after every QA1 order. The hourly probe orders and closes by itself. Nightly backup and restore-check workflows exist (BK0).
+- **Staging data left by QA1:** test orders AK-1056 to AK-1060. The QA console account is blocked.
+
+**Not proven on staging, only in tests:** the warehouse pages on a phone (camera input, printing); a real label reading; a real picture approval; the WhatsApp catalogue end to end; real Meta templates; web push to a phone; money paths with real Whish or OMT; the ops line with a real picker; the hub's backup power.
+
+## 3. Open founder actions, with the exact clicks
+The first five are on the critical path (section 1). The rest are open and can wait for the step named.
+
+**Purchase order and receiving, in full (Bassem; Rashid for step 1 and 2).** Signed in to the console, on a phone or laptop.
+1. **The supplier, once.** **Stock**, **Receiving**; under "Add a supplier" type the name, phone and terms (for example "30 days"), **Add**.
+2. **Write the order.** **Stock**, **Purchase orders**, **New purchase order**. Choose the supplier and the day you expect the van.
+3. For each item start typing its name in **Item 1**, pick it from the list (the field fills with its code), type the **Quantity**. **Unit cost** is optional (otherwise the invoice's price is typed on arrival). Up to 10 items an order. A note for the supplier if you want.
+4. **Write the purchase order**: its page opens with its number (PO-0001).
+5. **Send it.** **Print in Arabic** (or English). Laptop: Ctrl+P. Phone: Share, Print, "Save as PDF", then send the file to the supplier on WhatsApp, or print it.
+6. **When the van comes**, open **Stock**, **Purchase orders**, the order. Under **Receive**, for every line type **Came** (counted; 0 if none), **Of those, damaged**, the **Lot** on the pack and the **Expiry** (needed for fridge, freezer and fresh; for the rest only if the pack has one). If the order had no price for a line, type the invoice's **Unit cost**. Note short or damaged lines.
+7. Type the **invoice number**, choose **Paid** (on credit, or from the drawer now, ops lead only), **Receive these goods**.
+8. The page shows what came, what is **short** and **damaged** (agree a credit note with the supplier) and **Label day**: press **Start photographing**.
+9. **Bins, once.** **Stock**, **Bins**, **New bin**: the code written on the shelf (A1, A2 for ambient, C1 for the fridge), its zone, **Make the bin**; then "Put an item in a bin".
+10. **The fridge, twice a day** (from 08:30 and from 16:00). **Stock**, **Temperature log**: type what the thermometer shows, take its photo, **Save the reading**. The first reading starts the log; after that a missed reading alerts the team.
+
+**Other open actions**
+| # | Action | Owner | Exact clicks / where |
+|---|---|---|---|
+| a | **Let the Cloudflare token call Workers AI** (search by meaning stays off until then) | Rashid | dash.cloudflare.com, your avatar, **My Profile**, **API Tokens**; on the token the repository uses as `CLOUDFLARE_API_TOKEN`, **⋯**, **Edit**; under **Permissions** **+ Add more**: **Account**, **Workers AI**, **Edit**; **Continue to summary**, **Update token**. Then tell the planning chat "Workers AI token fixed": a session runs `search-eval` with `embed` (cap 1 USD) and switches a model on only if it beats words alone. |
+| b | **The founder's own test** (20 minutes, on your phone) | Rashid | `docs/log/qa1.md`, "Founder test (QA1)": order on WhatsApp with a voice note; order on the website; see both in the console; watch one delivered; check the Food page. Send back, per step, "as written" or what differed, with a screenshot and the order code. |
+| c | **Set the launch hours and rider shifts** to the decision (09:00 to 21:00); staging still has 08:00 to 23:00 | Rashid | Console, **Settings**, the hours (admin only; and the rider shifts, one row of `settings.join`). Both are marked in `docs/RULES.md`. |
+| d | **Read the Arabic** of the new pages (WH1a, UX3, LV1, CX1's privacy line first) | an Arabic reader | `docs/ARABIC_REVIEW.md`, one table per session. |
+| e | **Look at the new Screens page** and at the design reference beside each page | Rashid | Console, **More**, **Screens**. Chips choose the session, the width and the language; each page sits beside the reference's matching screen. |
+| f | **Pickup**: stays off until the hub's place is named | Rashid | When named: Supabase, SQL editor on staging, `update settings set value = '{"enabled": true, "place_ar": "…", "place_en": "…"}' where key = 'pickup';` (a place a customer can find, never a private address). |
+| g | **Meta**: 0.9 ownership and verification (BLOCKED on the Meta Business Portfolio admin), 0.12 billing guard (BLOCKED on the billing owner) | Rashid | `docs/log/inventory-2026-11-13.md`, sections E (steps 1 to 5 of 0.9, and 0.12). Real traffic does not start before these. |
+| h | **Rotate the three Kapso webhook signing secrets** once before the pilot | Rashid | Actions, **deploy-staging**, **Run workflow**, branch `main`, tick "Make new Kapso webhook signing secrets" (it also redeploys from `main`: pick a quiet hour). |
+| i | **Cloudflare spend alert**: add Account, Billing, Edit to the `CLOUDFLARE_API_TOKEN`; set repository variable `CLOUDFLARE_BILLING_EMAIL`; rerun `cloudflare-spend-limit` | Rashid | As written. Until then there is no hard stop or alert on Cloudflare. |
+| j | **Backups**: the repository secret `BACKUP_PASSPHRASE` and a first restore check | Rashid | `docs/log/bk0.md`, "Founder actions (backups)". |
+| k | **The old Supabase project**: export what is needed and delete it before the grace period ends (24 November) | Rashid | Supabase dashboard, the old project: export what is needed, then delete it (Project Settings). |
+| l | **Lawyer and accountant answers** (rider shortfall policy, pound-price display, Open Food Facts share-alike; the SARL; the capital figure) | Rashid | `docs/log/open-requests-2026-11-14.md`, "Lawyer / accountant". Needed before the paid pilot, not before the friends' test. |
+| m | **Menus and the Baqaata places' consent**: each place agrees before it is public | Rashid | With FD1 (step 7). |
+
+The long list of older open requests (infra, ordering, hub, console, founder, live proof) is kept whole in `docs/log/open-requests-2026-11-14.md`; items that a later session finished are not struck out there: check this file and the log of the session named before acting on one.
+
+## 4. Sessions
+Models and "done when" for the sessions still to run: `docs/NEXT_SESSIONS.md`. Reports: `docs/log/<session>.md`. Sessions of 13 and 14 November (A1 to S1, and the early SP1, F1, D4, W1, R1 to R4, I1, C4, K1, P1, P2): `docs/history/HANDOFF_sessions_2026-11-13_14.md` and the log files `a5`, `h1`, `m1`, `web1`, `d5`.
+
+| State | Session | What it did | Report |
+|---|---|---|---|
+| Done | PUB1, BK0, COST1, OPS1, SIM1, SP2, HO1 (14 to 15 November) | repo hygiene; backups and restore check; model cost recorded and capped; alerts that wake a phone; simulated customers; no-reply turns; the never-stranded hand-off | `pub1`, `bk0`, `cost1`, `ops1`, `sim1`, `sp2`, `ho1` |
+| Done | B1a, B1b, B1c, B1d, B1e (15 to 18 November) | ordering fixes from the simulated customers; counts and edits; dropped and invented lines | `b1a`, `b1b`, `b1c`, `b1d`, `b1e` |
+| Done | CX1, D4b, PIX, PIX2, DS1 (15 to 16 November) | customer pack; pick queue and rider jobs; pictures; the design system | `cx1`, `d4b`, `pix`, `pix2`, `ds1` |
+| Done | PD1, SR1, LB1, LD1, AR1 (16 November) | the product data standard; search by meaning and facts; label day tooling and test budget; product page data; Arabic read applied | `pd1`, `sr1`, `lb1`, `ld1`, `ar1` |
+| Done | DS2, CFG1, SELL1, LV1, UX2a, UX2b, UX3, WEB2, QA1 (17 November) | the design reference applied; settings and small rules; nothing packaged sells before its label; Chouf places listed before they sign; every console page; the join pages; the website's ordering; the whole system on staging | `ds2`, `cfg1`, `sell1`, `lv1`, `ux2a`, `ux2b`, `ux3`, `web2`, `qa1` |
+| Done | WH1a (18 November) | purchase orders, receiving, lots, bins, temperature log | `wh1a` |
+| Done | DOC2 (18 November, this change) | STATUS and RULES; session logs out of HANDOFF; screenshots to the private bucket and the Screens page; a CI check for size and images | `doc2` |
+| **Running** | FIX1 | Runs beside DOC2; its scope is in its own prompt and is not in the repository yet. Merge `main` before merging either. | its report when it lands |
+| **Running** | PIX3 | Pull request open: a picture for every item (candidates, run report, label-day route) | its pull request |
+| Next | **FD1** | the friends' test food (step 7) | `NEXT_SESSIONS.md` |
+| Next | **DS3** (name proposed) | the website to the reference, every page, phone and desktop | `NEXT_SESSIONS.md`, rule 10 |
+| Next | **T1** | the friends' test set-up (step 10) | `NEXT_SESSIONS.md` |
+| After gate A | L1, N2, RD1, AN1, BK1 | event log and measured times; nightly checks; rider pack; reports; list photo to basket | `NEXT_SESSIONS.md` |
+| After gate B | PAY1, RCPT1, AUD1, SH1, OPS2, A3, G2, V1, AN1b, WH1b, RET1, WEB3, LOY1, E1 to E3, PRIV | payments to production, audits, send home, runbooks, the assistant on the website, vendors, then the repository goes private | `NEXT_SESSIONS.md`, `BUILD_PLAN.md` |
+
+**Gates.** A (the friends' test): section 1. B (the shadow run): WH1a (built), RD1, OPS1, OPS2, AUD1, A3; a nightly backup and a passed restore; the hub with backup power and a temperature log; real costs; blended margin at least 15%. C (the paid pilot): the SARL; Meta verification; the lawyer's and accountant's answers; RCPT1; PAY1 or cash only by decision; G2's blockers fixed; Supabase Pro; the numbers. Detail: `docs/NEXT_SESSIONS.md`.
+
+## 5. Migration numbers
+Used: 0001 to 0240 (0235 B1e; 0236 to 0240 WH1a). **Next free: 0241.** Reserved and unused: 0219 and 0220 (WEB3), 0134 (T1), 0149 to 0152 (L1), 0160 to 0163 (RD1), 0164 to 0166 (AN1), 0167 to 0171 (PAY1), 0172 and 0173 (RCPT1), 0174 and 0175 (SH1), 0176 and 0177 (AUD1), 0181 (RET1), 0182 (AN1b), 0183 to 0185 (WH1b), 0186 (N2), 0195 to 0197 (BK1). Left unused on purpose: 0153, 0156, 0157, 0188, 0189, 0178 to 0180, 0138's neighbours. A session with no reservation takes the next free number and records it here. FD1 and DS3 take the next free numbers if they need any (DS3 needs none).
+
+## 6. Where things are
+`CLAUDE.md` (21 invariants, working agreement) · `docs/RULES.md` (every rule and setting) · `docs/DECISIONS.md` (the decisions, newest last) · `docs/NEXT_SESSIONS.md` (session rules, gates, prompts) · `docs/BUILD_PLAN.md` (the roadmap by phase and task number) · `docs/RUNBOOK.md` (accounts, deploys, the catalogue steps) · `docs/log/` (one report per session; open one only when you need it) · `docs/strategy/` (the strategy bundle) · `docs/history/` (superseded: never build from it) · screenshots: the console's **Screens** page (bucket `screens`), never the repository.

@@ -3,7 +3,7 @@
 The founder's document of 16 November 2026, "Alo King: product data, search and 2026-27 practices", converted by session PD1
 (step 0). Where this document and a session prompt differ on a field list, this document wins; on scope, the prompt wins. Decisions that
 follow from it are in `docs/DECISIONS.md` ("Founder decisions, 16 November 2026"); the sessions that build it (PD1, SR1, LD1, B1d, DS2,
-WEB3) are in `docs/NEXT_SESSIONS.md`. What PD1 built from it is in `docs/HANDOFF.md`, "PD1".
+WEB3) are in `docs/NEXT_SESSIONS.md`. What PD1 built from it is in `docs/log/pd1.md`.
 
 ---
 

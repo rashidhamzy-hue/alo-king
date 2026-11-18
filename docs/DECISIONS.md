@@ -1,4 +1,6 @@
-# Decisions (12 November 2026)
+# Decisions (12 November 2026, with every later section below)
+
+Sections are in date order and the latest wins; `docs/RULES.md` lists every current rule and setting value with the decision that set it. Where a row of an older section is superseded, it says so in the row (added 18 November by session DOC2).
 
 ## Confirmed by the founder
 | Decision | Where it lives |
@@ -6,10 +8,10 @@
 | Riders keep 100% of delivery fees and tips. No hourly wage. | Rule 10; migration 0009 |
 | Only signed, approved restaurants are orderable. Commission 5 to 10% in Chouf. | Rule 11; `approve_merchant()` |
 | No tobacco, no alcohol, nothing branded Tawfeer; Joud and Super Value excluded from the catalog. 291 items. | `supabase/seed/catalog.csv` |
-| Cash on delivery in USD or LBP at the daily rate; Whish and OMT confirmed by a person. Rider cash cap 150 soft, 200 hard. | Settings; migrations 0002, 0006 |
+| Cash on delivery in USD or LBP at the daily rate; Whish and OMT confirmed by a person. Rider cash cap 150 soft, 200 hard (**superseded 17 November: soft 100, hard 150**, CFG 5). | Settings; migrations 0002, 0006, 0222 |
 | No AI voice notes out. No promotional broadcasts from the customer number. Marketing locked off for the pilot. | Rules 17, 20; migration 0012 |
 | Neutral and factual; food facts only from approved records; unknown is never safe. | Rules 14 to 16 |
-| WhatsApp first. Website and diaspora orders are Phase 9. | Build plan Phase 9 |
+| WhatsApp first. Website and diaspora orders are Phase 9. (**Superseded 14 November, C4: a cash-only website at launch; only card payment and diaspora orders stay Phase 9.**) | Build plan Phase 9 |
 | One Concierge agent, narrow AI functions, deterministic services. | Rule 21 |
 | Hub near Baakline or Baqaata; not a confirmed property. Zones and fees are data. | Rule 13 |
 | Restaurant outreach starts during the pilot, in person. | Task 5.16 |
@@ -312,7 +314,7 @@ Astro components for the website). Each line supersedes any earlier line that di
 | 2 | **Statuses keep the database's ids.** One label table (staff words and customer words, Arabic and English) maps them; no id is renamed to match the reference. `awaiting_confirmation`: "Waiting for your Confirm" (customer), "Awaiting confirm" (staff). `confirmed`: "Confirmed", "To pick". `preparing`: "Packing at the hub", "Picking". `ready`: "Packed" (or "Ready for pickup" for a pickup). `out_for_delivery`: "On the way". Then arrived, delivered, failed delivery, returned, closed, and cancelled with its reason. | DS2 (`packages/ui/src/status.ts`) |
 | 3 | **Restaurants are not shown at launch.** The reference's Food door, vendor pages and menus wait for Phase 8 (invariant 11: a restaurant is orderable only through `approve_merchant()`). | DS2 (nothing built), Phase 8 |
 | 4 | **The reference's rules for staff screens are part of `packages/ui`:** every tap target at least 44 px; no swipe decides anything; a reversible action shows a toast with Undo instead of "are you sure"; a timer always carries words and an icon, never colour alone. | DS2 (`packages/ui`, its tests) |
-| 5 | **DS2 is a restyle.** The same data, the same functions, the same tests: tokens, fonts and components change, behaviour does not. The reference's screens that do not exist yet are built by WEB2, UX2a, UX2b, UX3 and later sessions, in the review's build order (`docs/HANDOFF.md`, DS2). | DS2 |
+| 5 | **DS2 is a restyle.** The same data, the same functions, the same tests: tokens, fonts and components change, behaviour does not. The reference's screens that do not exist yet are built by WEB2, UX2a, UX2b, UX3 and later sessions, in the review's build order (`docs/log/ds2.md`). | DS2 |
 
 ## Design reference, 17 November 2026, settings
 Recorded by session CFG1 (Sonnet 5.5) from the design review's small rules. Each is a setting or a small rule; none adds a model, an agent or a

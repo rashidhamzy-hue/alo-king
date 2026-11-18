@@ -28,7 +28,7 @@ WhatsApp green only on a WhatsApp action. The reference is a pattern: none of it
 - Logical properties only (`inline`, `block`, `start`, `end`): Arabic mirrors with no second sheet.
 - The rules for staff screens (from the reference; `test/ui/ds2.test.ts`): no tap target under 44 px (`--ak-tap`; a button or input is 48, `--ak-control`); nothing is decided by a swipe; a reversible action shows a toast with Undo instead of asking "are you sure"; a timer or a status always carries words and an icon, never colour alone.
 - Gold text (`--ak-accent`, gold-deep) sits on paper, on a card or on `--ak-accent-soft`. It is 4.29:1 on `--ak-surface-2` and 4.32:1 on `--ak-tint`, so no text is gold there.
-- A shop page must stay under 100 KB with its fonts: a component only some pages show goes in `components.more.css`, imported by those pages.
+- A shop page's first-visit weight is reported per page in each pull request (the 100 KB budget was lifted on 18 November 2026, `docs/DECISIONS.md`); free savings stay: a component only some pages show goes in `components.more.css`, imported by those pages. The website's tests still assert 100 KB until the session that restyles it to the reference turns them into a report.
 - Every colour pair a page uses is in `CONTRAST_PAIRS` (`src/gallery.ts`) and must pass AA in both themes; add a pair when you use a new one.
 - A component takes words and numbers already decided. It never reads data, formats money for a business rule, or knows a village, fee or hub.
 - Screenshots for a pull request: `SCREENS=<folder> npx vitest run test/screens` (390 and 1440 px, Arabic and English, light and dark). DS2's set (390 and 1280 px, beside the reference): `test/screens/ds2.test.ts`.

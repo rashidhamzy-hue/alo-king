@@ -1,6 +1,6 @@
 # Alo King: rules for every build session
 
-Read `docs/HANDOFF.md` (status and business rules), then `docs/BUILD_PLAN.md` (the one current roadmap; pick the next task by its number). `docs/history/` is superseded: never build from it. These rules hold in every session.
+Read `docs/STATUS.md` (the critical path to the friends' test, what is live, open founder actions, the session table) and `docs/RULES.md` (every current rule and setting value) **in full**, then `docs/BUILD_PLAN.md` (the one current roadmap; pick the next task by its number). Open a file in `docs/log/` (one report per finished session) only when you need what it says; `docs/HANDOFF.md` is a pointer. `docs/history/` is superseded: never build from it. These rules hold in every session.
 
 ## Invariants (a change that breaks one is wrong, whatever the task says)
 1. **One door out.** Only `packages/wa/src/gateway.ts` calls `kapsoSend`. Every outbound message passes `preflight()` and the SQL function `can_send()`.
@@ -30,10 +30,12 @@ Read `docs/HANDOFF.md` (status and business rules), then `docs/BUILD_PLAN.md` (t
 ## Working agreement
 - Work one session bundle at a time, as listed under "Build sessions" in `docs/BUILD_PLAN.md`: its model, its tasks, its files, its migration numbers. Touch nothing outside the bundle.
 - Escalate one model level after two failed attempts at a task.
-- Say plainly what is built, what is tested, and what only a live account can prove. Keep section "Status" of `docs/HANDOFF.md` current.
+- Say plainly what is built, what is tested, and what only a live account can prove. Write your report to `docs/log/<session>.md`; update `docs/STATUS.md` (kept under 400 lines) **only where its facts changed**, and `docs/RULES.md` if a rule or a setting value changed.
 - `npm run typecheck && npm test` must pass before a session ends.
 - Every bug in language understanding becomes a case in `evals/` before it is fixed.
 - Keep `packages/core/src/order-machine.ts` identical to the `order_transitions` seed rows.
 - Secrets live in `wrangler secret` and Supabase. Never in the repo. CI runs gitleaks.
+- No image under `docs/` and no file over 300 KB (CI refuses both). Screenshots go to the private `screens` bucket through the `screens` workflow and are read on the console's Screens page; never commit them.
+- No git history rewrite until the repository goes private.
 - The prospect list (private `media` bucket, `research/prospects/`; never in the repository, which is public) is research. It is shown only as a listing under LV1's rules (`docs/DECISIONS.md`, "Listings before they sign, 17 November 2026": name, kind, village, distance, a map link; never a phone, rating, review count, menu, hours or photo), never imported as merchants, never messaged.
 - Voice notes and receipts are personal data: store in the private `media` bucket, never log their contents.

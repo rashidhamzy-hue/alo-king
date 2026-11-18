@@ -121,7 +121,7 @@ Production will rotate the same way from its own workflow (4.2); there is no pro
 ## Backups and Restore (session BK0, 15 November 2026)
 **What is copied.** Every night at 01:30 UTC the `backup` workflow dumps the `public` schema and the migration record of the staging database (through the session
 pooler, from one snapshot), encrypts it with gpg (symmetric AES-256) and stores it in the private Cloudflare R2 bucket `ak-backups`, folder `staging/`. If the Cloudflare
-token has no R2 rights the copy goes to the private Supabase bucket `media`, folder `backups/`, and the run's summary says so (`docs/HANDOFF.md`, Founder actions).
+token has no R2 rights the copy goes to the private Supabase bucket `media`, folder `backups/`, and the run's summary says so (`docs/history/HANDOFF_sessions_2026-11-13_14.md` (or `docs/log/`), Founder actions).
 14 nightly copies and 8 weekly copies (the first copy of each ISO week) are kept; older ones are deleted after the new one has been read back and its checksum matched.
 Each copy holds the dump and a manifest: row counts per table, the number of migrations recorded, the ledger total. **Not in it:** the files in Supabase Storage (voice
 notes, receipts: personal data, left where they are) and Supabase's own `auth` schema (unused: staff and customers are rows in `parties`). Free plans only: R2's free
@@ -186,7 +186,7 @@ Turn on marketing. Send from the ops number to a customer. Edit a ledger row. Ma
 Give a rider's cash figure from memory. Each has a database rule that will refuse it; do not work around the rule.
 
 ## WhatsApp catalog (build plan 1.21, written by session K1, 14 Nov 2026)
-Rasheed's steps, once per environment (staging first). Code side is built and tested (`docs/HANDOFF.md`, K1); nothing below has
+Rasheed's steps, once per environment (staging first). Code side is built and tested (`docs/history/HANDOFF_sessions_2026-11-13_14.md` (or `docs/log/`), K1); nothing below has
 been done yet. Meta moves its labels now and then: if a button is named differently, the purpose of each step is written after it.
 
 **A. The feed's password and link (before Meta can read the feed).**
@@ -195,7 +195,7 @@ been done yet. Meta moves its labels now and then: if a button is named differen
    Variable name `CATALOG_FEED_PASSWORD` → Value: the password → Deploy. *(Purpose: the Worker answers `GET /catalog/feed.csv` only with
    user `meta` and this password; without the secret the route answers 404.)* Also add it as a GitHub repository secret of the same
    name (Settings → Secrets and variables → Actions → New repository secret), so lane A can put it in `deploy-staging` (request in
-   `docs/HANDOFF.md`). Until then a `wrangler rollback` to a version older than the secret drops it: set it again here after a rollback.
+   `docs/history/HANDOFF_sessions_2026-11-13_14.md` (or `docs/log/`)). Until then a `wrangler rollback` to a version older than the secret drops it: set it again here after a rollback.
 3. Supabase dashboard → project `alo-king-staging` → SQL Editor → New query → paste, with the customer line's number in international
    form without `+` (for example `96170000000`; the real one is in the Kapso dashboard, not in this repository) → Run:
    ```sql
@@ -248,7 +248,7 @@ Runs are on the repository's Actions page. "Not yet" means written and tested lo
 | Deploy: Worker job (queues, deploy, secrets, webhooks, smoke test) | **Yes**, first deploy and a repeat deploy | the same two runs |
 | Roll back the Worker | **Yes**, 13 Nov 2026: rolled back one version, the Worker still answered, then redeployed | `staging-drill` run 43394402493 |
 | Rotate one secret (webhook signing secrets) | **Yes**: new secrets in the Worker and in Kapso, a signed test event accepted on both lines | `staging-drill` run 43394402493 |
-| Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8. Since A4 (14 Nov) the deploy proves Sentry with a check-in to the monitors `deploy-smoke-staging` and `deploy-ingest-check-staging`, not an error, so it no longer opens issues | `deploy-staging` run 43396822066 |
+| Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/history/HANDOFF_sessions_2026-11-13_14.md` (or `docs/log/`) 0.8. Since A4 (14 Nov) the deploy proves Sentry with a check-in to the monitors `deploy-smoke-staging` and `deploy-ingest-check-staging`, not an error, so it no longer opens issues | `deploy-staging` run 43396822066 |
 | Nightly encrypted backup (to R2) and the restore check from it (BK0) | **Yes**, 15 Nov 2026, staging: a copy in R2, restored into a Postgres 17 container, 107 migrations, 127 tables, ledger 0.00. The alerts and the Supabase fallback are not yet exercised live | `backup` run 43703456354, `restore-check` run 43708874550 |
 | Recovery drill: restore from point-in-time recovery | Not yet. Needs production and a paid Supabase plan (4.8) | |
 

@@ -138,7 +138,7 @@ is not listed here.
 ## CX1, the customer pack (16 November 2026)
 
 Source: `messages(...).cx` and the six new lines of `messages(...).ops` in `packages/agents/src/messages/ar.ts`. When each is sent:
-`packages/agents/src/customer-pack.ts` and `docs/HANDOFF.md`, CX1. Model-written; read by the founder on 16 November ("RA 16 Nov"), who changed the privacy line: the new wording is kept per customer from now on in `customer_welcomes`, and earlier rows keep the words they were shown. The privacy line
+`packages/agents/src/customer-pack.ts` and `docs/log/cx1.md`. Model-written; read by the founder on 16 November ("RA 16 Nov"), who changed the privacy line: the new wording is kept per customer from now on in `customer_welcomes`, and earlier rows keep the words they were shown. The privacy line
 (`cx.privacy`) is also the wording kept with each customer's consent (`customer_welcomes`, 0143): a change to it is a change of wording
 that later customers agree to. List rows are cut by WhatsApp at 24 characters and buttons at 20.
 
@@ -236,7 +236,7 @@ Written by a model, read by the founder on 16 November, "approved as written" (A
 ## CFG1, the reminder, reopening a lapsed order, and the pickup code (17 November 2026)
 
 Source: `messages(...).notice.confirmReminder`, `.card.reopenedFrom`, `.cx.reopenButton`, `.cx.handoverCodePickup` in `packages/agents/src/messages/ar.ts`
-(and the changed `cx.pickupReady` above). When each is sent: `docs/HANDOFF.md`, CFG1. Written by a model; read by the coordinator on 17 November 2026 ("RA 17 Nov"), who changed `notice.confirmReminder` (since AR1 «الورقة» means the banknote) and `card.reopenedFrom`. The coordinator wrote `card.reopenedFrom` with a leading 🔁; the line is stored without it, as in `en.ts` and `fr.ts`, because the message rules allow only a fixed set of emoji (rule 4, `messages.rules.test.ts`) and 🔁 is not in it.
+(and the changed `cx.pickupReady` above). When each is sent: `docs/log/cfg1.md`. Written by a model; read by the coordinator on 17 November 2026 ("RA 17 Nov"), who changed `notice.confirmReminder` (since AR1 «الورقة» means the banknote) and `card.reopenedFrom`. The coordinator wrote `card.reopenedFrom` with a leading 🔁; the line is stored without it, as in `en.ts` and `fr.ts`, because the message rules allow only a fixed set of emoji (rule 4, `messages.rules.test.ts`) and 🔁 is not in it.
 The English and French lines are in `en.ts` and `fr.ts`; they are listed here so the reader can see what the Arabic is meant to say.
 
 | Key | Arabic | English | French | Read by |
@@ -265,7 +265,7 @@ Source: `apps/console/src/pages/capture.ts` and `apps/console/src/pages/labelque
 ## SELL1, "coming soon" for a packaged item with no label reading yet (17 November 2026)
 
 Source: `messages(...).basket.comingSoon` in `packages/agents/src/messages/ar.ts` (English and French in `en.ts` and `fr.ts`), and the website word `coming_soon` in `apps/web/src/lib/i18n.ts`.
-Said by code, never by the model, only while the setting `sell_requires_label` is on and only for a packaged item whose label has not been read and approved by a person; `docs/HANDOFF.md`, SELL1.
+Said by code, never by the model, only while the setting `sell_requires_label` is on and only for a packaged item whose label has not been read and approved by a person; `docs/log/sell1.md`.
 It promises no date and gives no reason about the product (invariants 14 and 15). Written by a model; read by the coordinator on 17 November ("RA 17 Nov"; the changes are applied) (the same rule as every other new line).
 
 | Key | Arabic | English | French | Read by |

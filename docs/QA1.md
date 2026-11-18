@@ -122,7 +122,7 @@ No migration was needed (0235 stays free).
 
 ## 9. Open, and proposed sessions (each more than a fix here)
 
-1. **Done by B1e, 18 November** (`docs/HANDOFF.md`, B1e). **B1e, a line the reading drops** (Opus, high; `packages/agents/src/` reading and planner, `evals/`): "protein bars with no sugar" read as
+1. **Done by B1e, 18 November** (`docs/log/b1e.md`). **B1e, a line the reading drops** (Opus, high; `packages/agents/src/` reading and planner, `evals/`): "protein bars with no sugar" read as
    no line and one restriction (`evals/cases/qa1_dropped_line.json`). A tidy rule cannot be added safely without the turn's context
    ("I'm diabetic, no sugar please" also has no line); the turn should ask, or search the words left, when an order message has a restriction
    and no line, and never answer it with the returning-customer welcome. Same session: the restriction line («سجّلنا … على طلبك») in the
