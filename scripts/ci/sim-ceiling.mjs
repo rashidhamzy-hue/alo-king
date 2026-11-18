@@ -3,7 +3,7 @@
 // would pass the setting sim_monthly_cap_usd, and it says why in the run summary.
 //
 // The setting (settings row `sim_monthly_cap_usd`, seeded by migration 0211): {"default_usd": 20, "months": {"2026-11": 60}}.
-// A month in "months" has its own ceiling (60 for November 2026); any other month has default_usd (20).
+// A month in "months" has its own ceiling (55 for November 2026, FIX1); any other month has default_usd (10).
 // The run's budget is the workflow's budget_usd input; empty means the hard limit the run would have (33), as sim-test.yml says.
 // Fail closed: a setting that is missing or not a number, a spend that cannot be read, a budget that is not a positive number: refused.
 // Reads staging with GET only (PostgREST, the service key of product-data.yml); writes nothing; prints no key.

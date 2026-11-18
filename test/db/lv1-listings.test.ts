@@ -52,7 +52,7 @@ describe("the file and the table", () => {
 
   it("holds every row of the file, once, with nothing hidden", async () => {
     const got = await db.all<any>(`select listing_id, name, kind, village, km_from_hub::text as km, maps_url, hidden_at from listings order by listing_id`);
-    expect(got.length).toBe(460);
+    expect(got.length).toBe(rows.length + 1);   // the file, and Safa Chicken (0241, FIX1)
     const byId = new Map(got.map((g) => [g.listing_id, g]));
     for (const r of rows) {
       const g = byId.get(r[0]!)!;
@@ -100,7 +100,7 @@ describe("the Food page's read", () => {
   it("lists by distance, then name, with the village in Arabic where the village list knows it", async () => {
     const r = await asWeb<any>("web_food_list", {});
     expect(r.ok).toBe(true);
-    expect(r.total).toBe(460);
+    expect(r.total).toBe(rows.length + 1);
     expect(r.rows.length).toBe(24);
     const km = r.rows.map((x: any) => Number(x.km_from_hub));
     expect([...km].sort((a, b) => a - b)).toEqual(km);
@@ -121,8 +121,8 @@ describe("the Food page's read", () => {
     expect(nothing.total).toBe(0);
     expect(nothing.rows).toEqual([]);
     // The kinds and the villages to choose from, with how many each holds.
-    expect(r.kinds.find((k: any) => k.kind === "restaurant").count).toBe(194);
-    expect(r.villages.find((v: any) => v.village === "Boqaata").count).toBe(54);
+    expect(r.kinds.find((k: any) => k.kind === "restaurant").count).toBe(195);
+    expect(r.villages.find((v: any) => v.village === "Boqaata").count).toBe(55);
   });
 
   it("sorts by name only when asked, and by distance for anything else (nothing else is a sort)", async () => {

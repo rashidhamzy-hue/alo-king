@@ -41,6 +41,8 @@ export const KIND: Record<string, Info> = {
   temperature_out_of_range: { en: "A fridge reading is out of range", ar: "قراءة برّاد خارج المدى", href: () => "/temperature", cta: { en: "Open the temperature log", ar: "افتح سجل الحرارة" } },
   temperature_missed: { en: "A fridge reading was missed", ar: "فاتت قراءة حرارة البرّاد", href: () => "/temperature", cta: { en: "Take the reading", ar: "سجّل القراءة" } },
   expired_lot_picked: { en: "An expired lot left the shelf in an order", ar: "خرجت دفعة منتهية الصلاحية في طلب", href: orderRef, cta: { en: "Open the order", ar: "افتح الطلب" } },
+  // FIX1: the weekly size check (usage_size_check, 0241): storage at 600 MB or the database at 350 MB (the free plan holds 1 GB and 500 MB).
+  usage_near_limit: { en: "The database or file storage is getting full", ar: "قاعدة البيانات أو مخزن الملفات يقترب من الامتلاء", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   probe_handoff_released: { en: "A test chat was handed back", ar: "أُعيدت محادثة اختبار", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
 };
 

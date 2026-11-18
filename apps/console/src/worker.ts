@@ -11,6 +11,7 @@ import { screensStore } from "../../../scripts/screens/storage.mjs";
 import { labelReader } from "./label";
 import { registry } from "./pages";
 import { sendDayClose } from "./pages/dayclose";
+import { runTemperatureCheck } from "./temperature-check";
 import { pushConfigured, pushNewExceptions, pushTestAlert } from "./push";
 
 /** The cron that checks for new high-priority exceptions to push (wrangler.jsonc); the other cron is the day-close report. */
@@ -91,7 +92,7 @@ const handler = {
       // D5: a phone alert for each new high-priority exception, once. An extra: the WhatsApp ops alert is not touched.
       ctx.waitUntil((async () => {
         // WH1a: a temperature reading time that passed with no reading becomes an alert first, so this run pushes it (0240).
-        try { await depsFor(env).db.rpc("temperature_log_check", {}); }
+        try { await runTemperatureCheck(depsFor(env).db); }
         catch (e) { Sentry.captureException(e, { tags: { where: "temperature_log_check" } }); console.error(JSON.stringify({ level: "error", event: "temperature_check_failed", err: String(e).slice(0, 300) })); }
         try {
           const run = await pushNewExceptions(depsFor(env).db, env, new Date());

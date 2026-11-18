@@ -118,7 +118,9 @@ UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"*
 | Rule or setting | Value | Set by |
 |---|---|---|
 | Testing | Every pull request: free tests only (USD 0). Live language gate once per session, only if reading, planner or prompt code changed. Simulated customers: at most one run per session, limit 50, only for ordering-code sessions; limit 150 only at a gate check (T1 for gate A, then gate B). Data and intake sessions run no simulation. **Model credits are for live testing: no simulation beyond these rules and the monthly cap** | C16 1; F18 5 |
-| Monthly simulation ceiling (`sim_monthly_cap_usd`) | **60 USD for November 2026, 20 a month after**; `sim-test` refuses to start above it | C16 1; *setting* |
+| Monthly simulation ceiling (`sim_monthly_cap_usd`) | **55 USD for November 2026, 10 a month after** (FIX1, 0241); `sim-test` refuses to start above it | C16 1; *setting* |
+| Storage and database size alert (`usage_alerts`) | A staff alert (`usage_near_limit`) when the weekly `usage-check` reads 600 MB of file storage or 350 MB of database (the free plan holds 1 GB and 500 MB); it closes when the size falls | FIX1; *setting* |
+| Capture page photos | Shrunk on the phone to at most 1600 px on the long side, JPEG quality 0.8 | FIX1 |
 | Workflow caps (all recorded in `model_costs`, COST1) | `label-read` 5 USD (batch, MODEL_FAST); `enrich` 15 (of which Open Food Facts 4, research 0.5); `intake` 15, `intake` search 0.75; `images` 2; `product-data` 3; `language-pack` 5; `search-eval` 1; a model is called only through a workflow with a cap | F15 12; the workflows |
 | Models | `MODEL_FAST` claude-haiku-5-5, `MODEL_SMART` claude-sonnet-5-5 (`wrangler.jsonc`) | `wrangler.jsonc` |
 | Accounts | No paid plans before the paid pilot (Supabase Pro, a second Cloudflare account and the numbers are bought at gate C); about USD 83 a month at launch; the 100 USD Claude plan, at most three sessions at once | F15 2, 10; R4 7; BUILD_PLAN |
