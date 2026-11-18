@@ -20,7 +20,7 @@ export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null
   { id: "today", key: "nav_today", icon: "home", hub: null, hrefs: ["/"], also: ["/exceptions"] },
   { id: "inbox", key: "nav_inbox", icon: "inbox", hub: null, hrefs: ["/inbox"], also: ["/cases"] },
   { id: "orders", key: "nav_orders", icon: "orders", hub: null, hrefs: ["/orders"] },
-  { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approve", "/approvals", "/names", "/pictures", "/food-facts", "/intake", "/label-queue", "/search-words", "/auto-approvals", "/listings", "/places", "/menus"] },
+  { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approve", "/approvals", "/names", "/photos", "/pictures", "/food-facts", "/intake", "/label-queue", "/search-words", "/auto-approvals", "/listings", "/places", "/menus"] },
   { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/purchase-orders", "/bins", "/temperature", "/capture", "/catalog", "/readiness", "/receiving", "/returns"] },
   { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/money", "/payments", "/refunds", "/day-open", "/day-close", "/fx"], also: ["/money/drops"] },
   { id: "riders", key: "g_riders", icon: "bike", hub: "/more", hrefs: ["/riders", "/rider-jobs"], also: ["/rider-incidents"] },

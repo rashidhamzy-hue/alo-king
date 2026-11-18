@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { makeStore } from "./lib/store.mjs";
 import { salesBySku, rankItems } from "./fetch-images.mjs";
 
-const USABLE = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page"]);
+const USABLE = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page", "founder_supplied"]);
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return null; } };
 
 /** The reason an item has no candidate, in words a person can act on. `attempt` is the item's latest attempt row, or undefined. */

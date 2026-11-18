@@ -189,6 +189,11 @@
   .ak-photos figure { margin: 0; min-inline-size: 0; }
   .ak-photos figcaption { font-size: var(--ak-text-xs); color: var(--ak-muted); }
   .ak-photos img.proof { inline-size: 100%; max-block-size: 260px; object-fit: contain; background: var(--ak-surface-2); }
+  /* ---------- PIX4: Photos (a big picture, three big buttons) ---------- */
+  .ak-photo-card img.proof { inline-size: 100%; max-inline-size: 640px; max-block-size: none; aspect-ratio: 1; object-fit: contain; background: #fff; display: block; margin-inline: auto; }
+  .ak-photo-card .ak-photo-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ak-space-2); }
+  .ak-photo-card .ak-photo-actions .ak-btn { inline-size: 100%; min-block-size: 3.25rem; justify-content: center; }
+  .ak-photo-card ul { margin-block: var(--ak-space-1); padding-inline-start: var(--ak-space-4); }
   .ak-what { font-size: var(--ak-text-lg); margin: 0; }
   .ak-two { display: grid; gap: var(--ak-space-1); background: var(--ak-surface-2); border: 1px solid var(--ak-line); border-radius: var(--ak-radius-lg); padding: var(--ak-space-3) var(--ak-space-4); }
   .ak-two p { display: flex; align-items: center; gap: var(--ak-space-2); margin: 0; }

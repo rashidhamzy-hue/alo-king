@@ -13,8 +13,8 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), { status
 
 describe("licence rules (5.17 step 4)", () => {
   it("the source decides the licence; a hit with no page address (unknown) never reaches customers, a public page may (founder decision, 14 Nov)", () => {
-    expect(LICENCE_FOR).toEqual({ open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" });
-    expect(["cc_by_sa", "brand_own", "own_photo", "public_page"].every(customerUsable)).toBe(true);
+    expect(LICENCE_FOR).toEqual({ open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page", founder_upload: "founder_supplied" });
+    expect(["cc_by_sa", "brand_own", "own_photo", "public_page", "founder_supplied"].every(customerUsable)).toBe(true);
     expect(customerUsable("unknown")).toBe(false);
     expect(customerUsable(undefined)).toBe(false);
   });

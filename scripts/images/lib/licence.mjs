@@ -3,9 +3,10 @@
 //   brand's own site -> brand_own  (page AND picture on the brand's listed host)
 //   a search result  -> public_page when it comes with the https page it was found on (founder decision of 14 Nov 2026, "any
 //                       public page"; session PIX applies it to search hits), else unknown (a guide for the intake photo only)
+//   the founder's own upload (PIX4; no address recorded) -> founder_supplied, shown only after a person approves it (migration 0242)
 //   a research file's picture, with its page -> public_page (founder decision of 14 Nov 2026; migration 0070; research-pictures.mjs)
-export const LICENCE_FOR = { open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" };
-export const CUSTOMER_LICENCES = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page"]);
+export const LICENCE_FOR = { open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page", founder_upload: "founder_supplied" };
+export const CUSTOMER_LICENCES = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page", "founder_supplied"]);
 export const customerUsable = (licence) => CUSTOMER_LICENCES.has(licence);
 
 export const brandKey = (brand) => String(brand ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");

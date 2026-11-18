@@ -36,6 +36,14 @@ on:
         description: Dollar cap for the run's model calls (the picture check). The run stops starting new items when it passes it. Use 3 for a from-list run.
         type: string
         default: "2"
+      import_release:
+        description: "Import (PIX4): the tag of a pre-release holding the founder's pictures (for example pictures-1). Downloads its .zip files and image_fetch_report*.csv into a new folder outside the repository, checks every picture by script (no model, no cost), stores 1000 px WebP files and queues them for approval (Console, Photos). The other inputs are ignored."
+        type: string
+        default: ""
+      import_dry_run:
+        description: "Import only: check and convert everything but upload and write nothing (no database needed)."
+        type: boolean
+        default: false
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -46,6 +54,7 @@ env:
   SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
 jobs:
   fetch:
+    if: ${{ inputs.import_release == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -102,3 +111,51 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: pictures-report, path: "pictures-report.*\npictures-run.json", retention-days: 30, if-no-files-found: ignore }
+
+  # PIX4. The founder's pictures from a release into the approval queue. Free: no model call. The release's files are untrusted data: they are
+  # downloaded into a new empty folder under the runner's temp directory (never the repository), unzipped there, and only read by the script.
+  import:
+    if: ${{ inputs.import_release != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      RUN_ID: ${{ github.run_id }}
+      TAG: ${{ inputs.import_release }}
+      DRY: ${{ inputs.import_dry_run }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Install the picture tools (sharp lives in scripts/images only)
+        run: npm ci --prefix scripts/images
+      - name: Tests (the checks on small pictures; the queue against the real migrations)
+        run: npx vitest run scripts/images/test/import.test.mjs test/db/pix4-queue.test.ts
+      - name: Download the release into a new empty folder, and unzip it there
+        run: |
+          [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,60}$ ]] || { echo "bad tag"; exit 2; }
+          root="$RUNNER_TEMP/release-$GITHUB_RUN_ID"
+          mkdir "$root"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$root" --pattern '*.zip' --pattern 'image_fetch_report*.csv'
+          n=0
+          for z in "$root"/*.zip; do
+            [ -e "$z" ] || continue
+            n=$((n+1))
+            total=$(unzip -l "$z" | tail -1 | awk '{print $1}')
+            [ "${total:-0}" -lt 600000000 ] || { echo "zip too large"; exit 2; }
+            mkdir "$root/unzipped-$n"
+            unzip -q "$z" -d "$root/unzipped-$n"
+          done
+          echo "RELEASE_DIR=$root" >> "$GITHUB_ENV"
+          echo "zips unzipped: $n; csv: $(ls "$root"/image_fetch_report*.csv 2>/dev/null | wc -l)"
+      - name: Check, convert, store and queue (Console, Photos)
+        run: |
+          args=(--dir "$RELEASE_DIR" --release "$TAG" --out "$RUNNER_TEMP/pictures-import")
+          [ "$DRY" = "true" ] && args+=(--dry-run)
+          export SUPABASE_URL
+          node scripts/images/import-release.mjs "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: pictures-import, path: "${{ runner.temp }}/pictures-import", retention-days: 30, if-no-files-found: ignore }

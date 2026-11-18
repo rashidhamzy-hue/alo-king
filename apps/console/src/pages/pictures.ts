@@ -9,9 +9,11 @@ import { LEADS } from "../roles";
 export type Img = { image_id: string; product_id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null;
   sell_unit: string; status: string; media_path: string; source_kind: string; source_url: string | null; page_url: string | null; licence: string;
   attribution: string | null; width_px: number | null; height_px: number | null; bytes: number | null; vision: Record<string, unknown> | null;
-  customer_visible: boolean; fetched_at: string; reviewed_at: string | null; review_note: string | null };
+  customer_visible: boolean; fetched_at: string; reviewed_at: string | null; review_note: string | null;
+  /** PIX4 (0242): where an upload came from when it has no address, why it needs a second look, and whether it was put aside ("Later"). */
+  source_note?: string | null; needs_review?: boolean; check_notes?: string[] | null; deferred_at?: string | null };
 const STATUSES = ["proposed", "approved", "rejected"] as const;
-export const LICENCE: Record<string, string> = { cc_by_sa: "CC BY-SA (Open Food Facts): attribution must be shown", brand_own: "the brand's own site", own_photo: "our own photo", unknown: "unknown licence" };
+export const LICENCE: Record<string, string> = { cc_by_sa: "CC BY-SA (Open Food Facts): attribution must be shown", brand_own: "the brand's own site", own_photo: "our own photo", public_page: "a public page", founder_supplied: "the founder's own upload (a person approves it)", unknown: "unknown licence" };
 // Links are only ever drawn to http(s) addresses; anything else is shown as text.
 export const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
 
@@ -41,7 +43,7 @@ ${rows.length === 0 ? html`<p class="muted">Nothing ${status}.</p>` : rows.map((
 <p class="muted">${r.width_px ?? "?"} × ${r.height_px ?? "?"} px${r.bytes ? `, ${Math.round(r.bytes / 1024)} KB` : ""}</p></div>
 <div><p>${r.vision?.rank ? html`#${String(r.vision.rank)} · ` : ""}<strong>${r.name_en}</strong>${r.name_ar ? html` · ${r.name_ar}` : ""}</p>
 <p>${r.sku ?? ""} · ${r.brand ?? "no brand"} · ${r.sell_unit}${r.barcode ? html` · barcode ${r.barcode}` : ""}</p>
-<p>Source: ${r.source_kind}${safeHref(r.page_url) ? html` · <a href="${safeHref(r.page_url)}" target="_blank" rel="noopener noreferrer">page</a>` : ""}
+<p>Source: ${r.source_kind}${r.source_note ? html` · ${r.source_note}` : ""}${safeHref(r.page_url) ? html` · <a href="${safeHref(r.page_url)}" target="_blank" rel="noopener noreferrer">page</a>` : ""}
 ${safeHref(r.source_url) ? html` · <a href="${safeHref(r.source_url)}" target="_blank" rel="noopener noreferrer">original</a>` : ""}</p>
 <p>Licence: <strong>${LICENCE[r.licence] ?? r.licence}</strong>${r.attribution ? html` · ${r.attribution}` : ""}</p>
 ${r.customer_visible ? "" : html`<p class="warn"><strong>Never shown to customers</strong> (licence unknown): approving keeps it only as a guide for the intake photo.</p>`}
