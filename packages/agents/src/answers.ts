@@ -1,7 +1,7 @@
 // Answers without the model (build plan 1.3). Each one reads a SQL function and words the result with fixed text.
 // Statuses, hours, fees, villages and prices all come from the database; nothing here is a number written by a model.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buttons } from "@ak/wa/kapso";
+import { askLocation, buttons } from "@ak/wa/kapso";
 import { deliver, issueCard, type ToolContext } from "./concierge-tools";
 import { buttonReplyText, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName, windowLabel, type Lang } from "./messages";
@@ -40,14 +40,14 @@ export function statusText(s: OrderStatus, lang: Lang = "ar"): string {
     case "awaiting_payment": return a.awaitingPayment(code, null, Number(s.total_usd));
     case "confirmed": case "preparing": return a.preparing(code, s.eta_remaining_minutes);
     case "ready": return a.ready(code, s.is_pickup);
-    case "out_for_delivery": return a.onTheWay(code, s.eta_remaining_minutes);
+    // CX2: the same words as the "on its way" notice, with the cash to have ready (cash on delivery).
+    case "out_for_delivery": return a.onTheWay(code, s.eta_remaining_minutes, s.payment_method === "cod" && Number(s.total_usd) > 0 ? Number(s.total_usd) : null);
     case "arrived": return a.arrived(code);
     case "delivered": return a.delivered(code);
     case "failed_delivery": return a.failed(code);
     default: return a.other(code);
   }
 }
-const servedNames = (i: ServiceInfo, lang: Lang) => i.served.map((v) => villageName(lang, v.name_ar, v.name_en));
 /** The repeat offer's items: at most five named, then how many more. */
 export const repeatOfferText = (items: string[], lang: Lang = "ar") => messages(lang).answer.repeatOffer(items.slice(0, 5), Math.max(0, items.length - 5));
 
@@ -97,10 +97,12 @@ export async function answerArea(ctx: ToolContext, said: string): Promise<Done> 
   return answerOutOfArea(ctx, name);
 }
 
-/** An order to a village we do not serve: one fixed answer, whatever else the message held. */
+/** An order to a village we do not serve: one fixed answer, whatever else the message held. CX2 (the founder's chat, 07:38: all 25
+ *  villages listed): never a list of villages; WhatsApp's location button, so another place can be sent, or the village typed. */
 export async function answerOutOfArea(ctx: ToolContext, said: string): Promise<Done> {
-  const i = await rpc<ServiceInfo>(ctx.db, "service_info", {});
-  return say(ctx, T(ctx).answer.outOfArea(said, servedNames(i, ctx.state.lang ?? "ar")), "out_of_area");
+  const text = T(ctx).answer.outOfArea(said);
+  const r = await deliver(ctx, askLocation(text), `[location request] ${text}`);
+  return r.ok ? { done: true, path: "out_of_area" } : { done: false };
 }
 
 /**

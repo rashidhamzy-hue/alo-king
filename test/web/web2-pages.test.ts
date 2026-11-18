@@ -19,6 +19,7 @@ import { openHub, deliverToDoor, collect, expectBooksBalanced, type Hub } from "
 import { supabaseOver } from "../db/supabase-shim";
 import { asSupabase, type TestDb } from "../db/harness";
 import { channelCommerce, WEB_CHANNEL_FUNCTIONS } from "@ak/commerce/index";
+import { plainWords } from "../../apps/web/src/lib/order";
 import { runTurn, type Pending, type TurnDeps } from "../../apps/gateway/src/turn";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { sendWebCards } from "@ak/agents/web-orders";
@@ -266,7 +267,9 @@ describe("3 and 4. checkout: place, when, missing items, payment; the card goes 
     const stored = await db.rpc("order_card", { p_order: order.id, p_party: order.customer_id });
     const wa = formatOrderCard({ orderId: order.id, shortCode: order.short_code, quote: stored.quote, paymentMethod: "cod", changeForUsd: 50, missingPref: "ask",
       missingItems: stored.missing_items, lang: "en", address: null }).map((x: any) => (x.interactive?.body?.text ?? x.text?.body) as string).join("\n");
-    for (const line of wa.split("\n").map((l) => l.replace(/\*/g, "").trim()).filter((l) => l && !l.startsWith("🛒"))) expect(text(o.html), line).toContain(line.replace(/\s+/g, " "));
+    // CX2: a chat line's marks are not printed (bold, italic), and a line with an amount is two cells on the page: its words, then the amount.
+    for (const line of wa.split("\n").map((l) => plainWords(l).trim()).filter((l) => l && !l.startsWith("🛒")))
+      for (const part of / · (?:-?\$|\d)/.test(line) ? line.split(" · ") : [line]) expect(text(o.html), part).toContain(part.replace(/\s+/g, " "));
     // nothing on the site confirms; the gateway sends the card; the tap there confirms
     expect(fake.calls.some((c) => c.fn === "web_confirm_order")).toBe(false);
     outbound.length = 0;

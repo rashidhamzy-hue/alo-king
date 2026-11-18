@@ -15,7 +15,7 @@ import "../../styles/order.css";
 import { orderTimeline } from "@ak/ui/components";
 import { Raw } from "@ak/ui/h";
 import { nameIn, t, usd } from "../../lib/i18n";
-import { cardWords, chatWith, dateWords, journey, lbp, ordering, splitAmount, statusWords, windowWords } from "../../lib/order";
+import { cardWords, plainWords, chatWith, dateWords, journey, lbp, ordering, splitAmount, statusWords, windowWords } from "../../lib/order";
 const { lang, env } = Astro.locals;
 Astro.response.headers.set("Cache-Control", "no-store");
 Astro.response.headers.set("X-Robots-Tag", "noindex");
@@ -61,7 +61,7 @@ const lapse = Number(facts?.confirm_lapse_min ?? 60);
         <h3>{words.head.replace(/[*🛒]/gu, "").trim()}</h3>
         <ul>{words.items.map((x, i) => i % 2 === 0 ? <li><span>{x}</span><bdi>{words.items[i + 1]}</bdi></li> : null)}</ul>
         <ul>{words.sums.map((s) => { const [a, b] = splitAmount(s); return b ? <li class={/\*/.test(s) ? "total" : ""}><span>{a}</span><bdi>{b}</bdi></li> : <li><span>{a}</span></li>; })}</ul>
-        <ul class="terms">{words.terms.filter((x) => x.trim()).map((x) => <li>{x.replace(/\*/g, "")}</li>)}</ul>
+        <ul class="terms">{words.terms.filter((x) => x.trim()).map((x) => <li>{plainWords(x)}</li>)}</ul>
       </div>}
     </>}
     {p.status === "cancelled" && <p class="w2-note warn">{t(lang, "w2_order_cancelled")}</p>}

@@ -60,7 +60,7 @@ describe("PD1 (g): the two voice notes get the honest answer and a demand row", 
     const party = (await t.customer()).party_id;
     await t.text("snacks with no sugar");
     const body = outbound.map(bodyOf).join("\n");
-    expect(body).toContain("I can't confirm the sugar for our snacks yet.");
+    expect(body).toContain("I can't confirm the sugar for our snacks yet");
     expect(body).not.toContain("Kinder");
     expect(await db.all(`select 1 from demand_signals where party_id = $1 and origin = 'honest_answer'`, [party])).toHaveLength(1);
     await db.pg.query(`update product_facts set superseded_at = now() where product_id = $1`, [kinder]);

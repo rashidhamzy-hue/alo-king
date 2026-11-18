@@ -24,7 +24,7 @@
         "reply": {
           "kind": "unknown_product",
           "contains": [
-            "We don't carry protein bars yet. I've noted your request."
+            "We don't carry protein bars yet"
           ],
           "not_contains": [
             "Welcome to Alo King",

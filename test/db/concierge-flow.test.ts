@@ -397,7 +397,7 @@ describe("answers without the model (1.3)", () => {
     await t.conv.alarm();
     expect(t.seen).toHaveLength(0);
     // M1: asked in English, answered in English.
-    expect(outbound.at(-1)!.body.text.body).toMatch(new RegExp(`^📦 Order ${c.shortCode}: we're preparing it\\.\\nExpected arrival in about (19|20) minutes\\.$`));
+    expect(outbound.at(-1)!.body.text.body).toMatch(new RegExp(`^📦 \\*Order ${c.shortCode}: we're preparing it\\*\\n⏱️ It arrives in about (19|20) minutes\\.$`));
   });
 
   it("with no open order, says so", async () => {
@@ -405,7 +405,7 @@ describe("answers without the model (1.3)", () => {
     await t.conv.fetch(t.text("wen el talab"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(0);
-    expect(outbound[0]!.body.text.body).toBe("ما عندك طلب مفتوح هلّق. شو بتحب تطلب؟");
+    expect(outbound[0]!.body.text.body).toBe(ar.answer.noOpenOrder);
   });
 
   it("opening hours come from settings, typed or read from a voice note", async () => {
@@ -418,7 +418,7 @@ describe("answers without the model (1.3)", () => {
       transcript: { text: "مرحبا لأيمتى بتضلكن فاتحين اليوم" } } }));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);                                     // the reading only
-    expect(outbound.at(-1)!.body.text.body).toContain("منستقبل الطلبات كل يوم");
+    expect(outbound.at(-1)!.body.text.body).toContain("🕘 *فاتحين كل يوم من");
   });
 
   it("'do you deliver to X' is answered from the zones", async () => {
@@ -427,18 +427,19 @@ describe("answers without the model (1.3)", () => {
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);
     expect(outbound[0]!.body.text.body).toBe(ar.answer.inArea("بيت الدين", 1.5, 30));
-    expect(outbound[0]!.body.text.body).toContain("التوصيل: $1.50");
+    expect(outbound[0]!.body.text.body).toContain("🛵 التوصيل · $1.50");
   });
 
-  it("an order to a village we do not serve gets one answer listing where we do deliver, and no card", async () => {
+  it("an order to a village we do not serve gets one answer and the location button, never a list of villages (CX2), and no card", async () => {
     await db.pg.exec(`insert into villages(name_en, name_ar, is_served) values ('Test Outside', 'قرية بعيدة', false) on conflict do nothing`);
     const t = setup([read({ ...ORDER_READING, address: { village: "قرية بعيدة" } })]);
     await t.conv.fetch(t.text("بدي علبتين لبنة وربطتين خبز على قرية بعيدة"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);
-    const body: string = outbound[0]!.body.text.body;
-    expect(body.startsWith("لهلّق ما منوصّل على قرية بعيدة.\n📍 منوصّل على: ")).toBe(true);
-    expect(body).toContain("بعقلين"); expect(body).toContain("بيت الدين");          // from the villages table
+    expect(outbound[0]!.body.interactive.type).toBe("location_request_message");
+    const body: string = outbound[0]!.body.interactive.body.text;
+    expect(body).toBe(ar.answer.outOfArea("قرية بعيدة"));
+    expect(body).not.toContain("بيت الدين");                                      // CX2 (the founder's chat, 07:38): no list of villages
     const c = await t.customer();
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
   });
@@ -476,7 +477,7 @@ describe("answers without the model (1.3)", () => {
     await t.conv.fetch(t.text("نفس المرة الماضية"));
     await t.conv.alarm();
     expect(outbound).toHaveLength(1);
-    expect(outbound[0]!.body.text.body).toBe("ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
+    expect(outbound[0]!.body.text.body).toBe("🛒 ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
   });
 
   it("'same as last time, and add bread' puts the new line on top of the old basket", async () => {
@@ -508,7 +509,7 @@ describe("same as last time, as one button (1.20)", () => {
     expect(outbound).toHaveLength(1);
     expect(outbound[0]!.body.interactive.body.text).toContain("Liban Lait Labneh Baladieh 900G");
     expect(outbound[0]!.body.interactive.body.text).not.toMatch(/\$/);             // no price in the offer: the tap prices it
-    expect(buttonsOf(outbound[0]!)).toEqual([{ id: repeatButtonId(last.orderId), title: "متل المرة الماضية" }]);
+    expect(buttonsOf(outbound[0]!)).toEqual([{ id: repeatButtonId(last.orderId), title: ar.answer.repeatButton }]);
 
     await db.pg.query(`update offers set price_usd = 5.25 where product_id = $1`, [LABNEH]);       // today's price, not last time's
     await t.conv.fetch(t.tap(repeatButtonId(last.orderId), "متل المرة الماضية"));
@@ -541,7 +542,7 @@ describe("same as last time, as one button (1.20)", () => {
     await t.conv.fetch(t.tap(repeatButtonId(theirs.orderId)));
     await t.conv.alarm();
     expect(outbound).toHaveLength(1);
-    expect(outbound[0]!.body.text.body).toBe("ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
+    expect(outbound[0]!.body.text.body).toBe("🛒 ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
     const c = await t.customer();
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
   });
@@ -726,7 +727,7 @@ describe("order card", () => {
     const card = parts[1]!;
     const body = (card as any).interactive.body.text as string;
     expect(body.length).toBeLessThanOrEqual(1024);
-    expect(body).toContain(`*${ar.card.total}: $8.50*`); expect(body).toContain(CONSENT_LINE);
+    expect(body).toContain(`*${ar.card.total} · $8.50*`); expect(body).toContain(CONSENT_LINE);
     for (const m of parts) expect(preflight({ line: "customer", partyId: ORDER, to: "x", category: "service", msg: m, dedupeKey: "t:0" })).toBeNull();
   });
   it("round-trips button ids", () => {

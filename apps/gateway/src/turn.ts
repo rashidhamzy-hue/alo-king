@@ -27,7 +27,7 @@ import { keepLanguage, langOfSpeech, replyLanguage, type Speech } from "@ak/agen
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { factsAsked } from "@ak/agents/honest";
 import { decideVoice } from "@ak/agents/voice";
-import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
+import { parseFeedbackButton } from "@ak/agents/feedback";
 import { takeCart, type CartOrder } from "@ak/agents/cart";
 import { personSignal } from "@ak/agents/person-request";
 import type { ClaimListingResult } from "@ak/commerce/index";
@@ -372,8 +372,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           // HO1: a case of kind order_problem (its ops exception alerts staff); the bot stays in the chat.
           const c = await openCase(ctx, "order_problem", `delivery_problem: ${r.short_code ?? ""}`, { orderId: fb.orderId, source: "button" });
           if (c.after_hours) { await tellOpened(ctx, c, fb.orderId); sent.push(...ctx.sent.texts.splice(0)); }
-          else await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
-        } else if (r.ok && r.changed) await say(FEEDBACK_TEXT.fine, fb.orderId);
+          else await say(T().feedback.problem(r.short_code ?? ""), fb.orderId);
+        } else if (r.ok && r.changed) await say(T().feedback.fine, fb.orderId);
         continue;
       }
       // Keep or remove a substitute the picker offered (C2, 2.2): the hub's code answers; never the model.

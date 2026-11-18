@@ -71,6 +71,11 @@ export function cardWords(card: StoredCard, l: Lang, address: StoredCard["addres
     changeForUsd: card.change_for_usd, changeForLbp: card.change_for_lbp, missingPref: card.missing_pref, missingItems: card.missing_items,
     keepChange: card.keep_change, window: card.window as any, replaces: card.replaces, prepay: card.prepay, lang: l, address: address ?? null });
 }
+/** CX2: a chat line without WhatsApp's marks, for a page: no *bold* asterisks, no _italic_ underscores around a whole line. */
+export const plainWords = (line: string): string => {
+  const t = line.replace(/\*/g, "");
+  return t.startsWith("_") && t.endsWith("_") && t.length > 2 ? t.slice(1, -1) : t;
+};
 /** Splits "Label: $1.00" (one amount on its own at the end, the chat's rule) into the label, as written, and the amount, for a table row. */
 export const splitAmount = (line: string): [string, string | null] => {
   const clean = line.replace(/\*/g, "").trim();
@@ -79,7 +84,9 @@ export const splitAmount = (line: string): [string, string | null] => {
   // "…: 1,472,000 LBP" (or ل.ل.): the last two words; "…: $1.00": the last word. Read word by word, with no pattern that can backtrack.
   const n = (last === "LBP" || last.startsWith("ل.ل")) && /^[\d,]+$/.test(words[words.length - 2] ?? "") ? 2 : /^-?\$\d[\d,]*\.\d\d$/.test(last) ? 1 : 0;
   if (n === 0 || words.length <= n) return [clean, null];
-  return [words.slice(0, -n).join(" "), words.slice(-n).join(" ")];
+  // CX2: the chat writes "Label · $1.00": the « · » before the amount is the chat's, not the label's.
+  const label = words.slice(0, -n).filter((w, i, all) => !(i === all.length - 1 && w === "·")).join(" ");
+  return [label, words.slice(-n).join(" ")];
 };
 
 /** The customer's words for a status, from the one label table (packages/ui/src/status.ts); French reads its own words for the same ids. */

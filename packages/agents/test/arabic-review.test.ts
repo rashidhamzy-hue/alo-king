@@ -45,7 +45,7 @@ describe("docs/ARABIC_REVIEW.md lists every CX1 Arabic line", () => {
 
 describe("docs/ARABIC_REVIEW.md lists every B1c Arabic line", () => {
   const b = ar.basket;
-  const lines = [b.which("ربطة خبز", ["Wooden Bakery Pita White Medium 400G: $0.62", "Al Forno Pita White Bread Big 800G: $1.01"]),
+  const lines = [b.which("ربطة خبز", 2), b.whichButton,
     b.houseDefault("ربطة خبز", "Wooden Bakery Pita White Medium 400G"), ar.answer.noOpenRepeat(["لبنة", "خبز"], 0),
     b.minimum(5, 0.69, 4.31, ["1 × لبنة"]), ar.fixed.closedKept("08:00", ["1 × لبنة"])];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });

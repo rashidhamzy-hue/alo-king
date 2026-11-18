@@ -27,7 +27,9 @@ const address = (a: Record<string, string | null> = {}) => ({ village: null, lan
 const order = (lines: unknown[], a: Record<string, string | null> = {}, intent = "order") => ({ intent, fulfilment: "delivery", lines, address: address(a) });
 
 const bodyOf = (s: Sent): string => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
-const buttonsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
+// CX2: a "which one?" is a list message: its rows are the choices, as a button message's buttons are.
+const buttonsOf = (s: Sent): { id: string; title: string }[] => [...(s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply),
+  ...(s.body.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => ({ id: r.id, title: r.title })))];
 const isCard = (s: Sent) => buttonsOf(s).some((b) => b.id.startsWith("order:confirm:"));
 const isPinRequest = (s: Sent) => s.body.interactive?.type === "location_request_message";
 const pin = (t: ReturnType<typeof flow>, lat: number, lng: number) => t.say({ type: "location", location: { latitude: lat, longitude: lng } });

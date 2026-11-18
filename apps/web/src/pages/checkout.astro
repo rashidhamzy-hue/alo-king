@@ -20,7 +20,7 @@ import type { MissingPref, PaymentMethod } from "@ak/commerce/index";
 import { orderCardParts } from "@ak/agents/order-card-text";
 import { nameIn, t, usd } from "../lib/i18n";
 import { sameOrigin } from "../lib/session";
-import { chatWith, commerce, lbp, ordering, parsePin, seeOther, splitAmount, visitorOf, windowWords } from "../lib/order";
+import { chatWith, commerce, lbp, ordering, parsePin, plainWords, seeOther, splitAmount, visitorOf, windowWords } from "../lib/order";
 const { lang, env } = Astro.locals;
 Astro.response.headers.set("Cache-Control", "no-store");
 const cookie = Astro.request.headers.get("cookie");
@@ -222,7 +222,7 @@ const lineItems: { sku: string; name: string }[] = (q?.lines ?? []).map((l: any)
           {parts && <div class="w2-card">
             <ul>{parts.items.map((x, i) => i % 2 === 0 ? <li><span>{x}</span><bdi>{parts.items[i + 1]}</bdi></li> : null)}</ul>
             <ul>{parts.sums.map((s) => { const [a, b] = splitAmount(s); return b ? <li class={/\*/.test(s) ? "total" : ""}><span>{a}</span><bdi>{b}</bdi></li> : <li><span>{a}</span></li>; })}</ul>
-            <ul class="terms">{parts.terms.filter((x) => x.trim()).map((x) => <li>{x.replace(/\*/g, "")}</li>)}</ul>
+            <ul class="terms">{parts.terms.filter((x) => x.trim()).map((x) => <li>{plainWords(x)}</li>)}</ul>
           </div>}
           <p class="w2-big">{t(lang, "w2_confirm_on_wa")}</p>
           <Button label={t(lang, "w2_send_card")} name="do" value="place" variant="gold" size="lg" icon="chat" block disabled={!placeId || !!below} />

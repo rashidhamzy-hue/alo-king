@@ -269,10 +269,10 @@ interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "pay
   template_status?: string | null; template_category?: string | null }
 
 /** The same notice as free text, for inside the 24-hour window until Meta approves the template. M1: the words are in messages/. */
-const NOTICE_TEXT = (lang: "ar" | "en" | "fr"): Record<Notice["kind"], (p: string[]) => string> => {
+const NOTICE_TEXT = (lang: "ar" | "en" | "fr", reopenable = false): Record<Notice["kind"], (p: string[]) => string> => {
   const m = messages(lang).notice;
   return {
-    order_cancelled: (p) => m.orderCancelled(p[0] ?? "", p[1] ?? ""),
+    order_cancelled: (p) => m.orderCancelled(p[0] ?? "", p[1] ?? "", reopenable),
     rider_at_door: (p) => m.riderAtDoor(p[0] ?? ""),
     payment_received: (p) => m.paymentReceived(p[0] ?? "", p[1] ?? ""),
     pickup_ready: (p) => messages(lang).cx.pickupReady(p[0] ?? "", p[1] ?? ""),
@@ -294,13 +294,15 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
     const template: Outbound | null = n.template && n.template_approved
       ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
       : null;
-    // QA1 (staging, 17 Nov): a lapsed card's notice carries the Reopen button, which only the free message can carry. With the cancel
-    // template approved it went as the template, so the button reached nobody. The free message first; outside the window, the template.
+    // QA1 (staging, 17 Nov): a lapsed card's notice carries the Reopen button, which only the free message can carry. CX2 (the founder's
+    // chat, 08:45: the payment template went in Arabic inside the window): every notice goes as the free message first, in the customer's
+    // language and the new layout; the approved template only when the 24-hour window has closed.
+    const body = NOTICE_TEXT(lang, !!n.reopenable)[n.kind](n.params);
     let msg: Outbound = n.reopenable
-      ? buttons(NOTICE_TEXT(lang)[n.kind](n.params), [{ id: orderButtonId("reopen", n.order_id), title: messages(lang).cx.reopenButton }])
-      : template ?? { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
-    let r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
-    if (!r.ok && r.refused === "window_closed_use_template" && n.reopenable && template) {
+      ? buttons(body, [{ id: orderButtonId("reopen", n.order_id), title: messages(lang).cx.reopenButton }])
+      : { type: "text", text: { body } };
+    let r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: "service", orderId: n.order_id, dedupeKey: n.key });
+    if (!r.ok && r.refused === "window_closed_use_template" && template) {
       msg = template;
       r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: "utility", orderId: n.order_id, dedupeKey: `${n.key}:template` });
     }
@@ -479,13 +481,15 @@ export async function projectEvent(deps: TurnDeps, event: string, body: Record<s
 }
 
 async function notifyCustomer(deps: TurnDeps, id: string, what: "on_the_way" | "rider_waiting"): Promise<void> {
-  const q = deps.db.from("delivery_stops").select("order_id, orders(short_code, customer_id)").eq("kind", "dropoff");
+  const q = deps.db.from("delivery_stops").select("order_id, orders(short_code, customer_id, total_usd, payment_method)").eq("kind", "dropoff");
   const { data } = what === "on_the_way" ? await q.eq("delivery_id", id) : await q.eq("order_id", id);
-  for (const s of (data as unknown as { order_id: string; orders: { short_code: string; customer_id: string } }[] | null) ?? []) {
+  for (const s of (data as unknown as { order_id: string; orders: { short_code: string; customer_id: string; total_usd?: number | string | null; payment_method?: string | null } }[] | null) ?? []) {
     // M1 (G1-23): in the customer's language; past 24 hours (a scheduled order confirmed days before), the event's utility template.
+    // CX2: cash on delivery says the amount the rider collects (orders.total_usd, as rider_job).
     const code = s.orders.short_code;
+    const cash = s.orders.payment_method === "cod" && Number(s.orders.total_usd) > 0 ? Number(s.orders.total_usd) : null;
     await sendCodeStarted({ db: deps.db, send: deps.send }, s.orders.customer_id, what === "on_the_way" ? "on_the_way" : "rider_at_door",
-      (m) => ({ msg: { type: "text", text: { body: what === "on_the_way" ? m.notice.onTheWay(code) : m.notice.riderWaiting(code) } }, params: [code] }),
+      (m) => ({ msg: { type: "text", text: { body: what === "on_the_way" ? m.notice.onTheWay(code, cash) : m.notice.riderWaiting(code) } }, params: [code] }),
       `${what}:${s.order_id}`, s.order_id);
   }
 }

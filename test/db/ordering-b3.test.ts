@@ -243,7 +243,7 @@ describe("one tap after delivery (2.9)", () => {
     const t = flow(db, []);
     const c = await delivered(t);
     await t.tap(`fb:problem:${c.orderId}`, "في مشكلة");
-    expect(outbound.map((o) => o.body.text?.body)).toContain(`آسفين عالإزعاج. حدا من الفريق رح يحكيك عن الطلب ${c.code} بأقرب وقت. فيك تكتبلنا شو صار هون.`);
+    expect(outbound.map((o) => o.body.text?.body)).toContain(ar.feedback.problem(c.code));
     expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(false);
     expect(await db.all(`select kind, order_id from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual([{ kind: "order_problem", order_id: c.orderId }]);
     expect(await db.all(`select 1 from ops_exceptions where kind = 'delivery_problem' and ref = $1`, [c.orderId])).toHaveLength(1);
@@ -255,7 +255,7 @@ describe("one tap after delivery (2.9)", () => {
     const u = flow(db, []);
     const d = await delivered(u);
     await u.tap(`fb:fine:${d.orderId}`, "وصل تمام");
-    expect(outbound.map((o) => o.body.text?.body)).toEqual(["تمام، شكراً 🙏"]);
+    expect(outbound.map((o) => o.body.text?.body)).toEqual([ar.feedback.fine]);
     expect((await db.one(`select verdict from order_feedback where order_id = $1`, [d.orderId])).verdict).toBe("fine");
   });
 

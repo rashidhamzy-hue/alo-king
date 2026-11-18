@@ -1,11 +1,14 @@
 // M1: the shape every language file fills. A key missing in one language is a type error, so ar, en and fr always hold the same
 // messages. Code builds every fixed message from these; the model writes none of them (SYSTEM_BRIEF "Message design").
 //
-// Writing rules (checked on every template, in every language, by packages/agents/test/messages.rules.test.ts):
-//  1. One message, one job; no line longer than about three phone lines.
-//  2. Only these emojis, as signposts: 📍 🛒 🛵 ✅ 💵 🌙 ⚠️ 📦 🏠 🔢 (and 👑 in the greeting only); at most three per message.
-//  3. WhatsApp bold (*text*) only for a heading (the first line) and the total.
-//  4. Each amount of money on its own line (a short label before it is allowed), Western digits, `$` for dollars.
+// Writing rules (CX2, approved by the founder 18 November 2026, docs/MESSAGES.md; checked on every template, in every language, by
+// packages/agents/test/messages.rules.test.ts):
+//  1. One message, one job; no line longer than about three phone lines. A message of more than one line opens with a bold heading line.
+//  2. Only these 22 emojis: 📍 🛒 🛵 ✅ 💵 🌙 ⚠️ 📦 🏠 🔢 ⏱️ 🔁 🕘 👋 🙏 🔎 ✏️ ❌ 💬 ☀️ 👇 📝; one at the start of a line, never inside
+//     or at the end of one; at most six in an order card, three elsewhere. 👑 is retired.
+//  3. WhatsApp bold (*text*): headings, the order number (always bold), the total, the gap to the minimum, a button's name to tap.
+//     Italic (_text_) only for the consent and privacy lines.
+//  4. At most one amount a line, at its end after « · » (or alone); Western digits, `$` for dollars. Choices are list messages.
 // Amounts are formatted here (usd, lbp) and only from numbers code got from the database.
 
 export type Lang = "ar" | "en" | "fr";
@@ -54,6 +57,8 @@ export interface Messages {
     heading: (code: S) => S;
     item: (qty: S, name: S, extras: S[]) => S;
     more: (n: number) => S;
+    /** CX2: the items' sum, the first line of the totals block, and the note on a card whose items went in the message before. */
+    items: S; itemsAbove: S;
     delivery: (village: S | null) => S;
     smallOrder: S;
     dues: S;
@@ -144,17 +149,19 @@ export interface Messages {
     preparingFor: (code: S, when: S) => S;
     preparing: (code: S, eta: number | null) => S;
     ready: (code: S, pickup: boolean) => S;
-    onTheWay: (code: S, eta: number | null) => S;
+    /** CX2: `cash`, for cash on delivery, the amount the rider collects (orders.total_usd, as rider_job). */
+    onTheWay: (code: S, eta: number | null, cash?: number | null) => S;
     arrived: (code: S) => S;
     delivered: (code: S) => S;
     failed: (code: S) => S;
     other: (code: S) => S;
     hours: (open: S, close: S, openNow: boolean) => S;
-    outOfArea: (said: S, served: S[]) => S;
+    /** CX2: never a list of villages (the founder's chat, 07:38): it asks for the village or the location (a location request). */
+    outOfArea: (said: S) => S;
     inArea: (village: S, fee: number, eta: number) => S;
     noPrevious: S;
     allMissing: (names: S[]) => S;
-    /** The greeting with the repeat button: the one place 👑 may appear. */
+    /** The greeting with the repeat button (👋; CX2 retired 👑). */
     repeatOffer: (items: S[], more: number) => S;
     repeatButton: S;
     stale: S;
@@ -171,8 +178,10 @@ export interface Messages {
   basket: {
     /** The minimum order, the basket now and what is missing, each on its own line; buttons follow. */
     minimum: (min: number, now: number, gap: number, items?: S[]) => S;
-    /** B1c: the customer named only the kind or the brand («ربطة خبز», "Pepsi"): which one, the rows ("name: $price") built by code. */
-    which: (said: S, rows: S[]) => S;
+    /** B1c, CX2: the customer named only the kind or the brand («ربطة خبز», "Pepsi"): which one, as a list message of `count` rows
+     *  (each a product's short name, its full name and price under it, built by code, choice.ts). */
+    which: (said: S, count: number) => S;
+    whichButton: S;
     /** B1c: the shop's house default was given for a generic word: which product it is, and that the customer may change it. */
     houseDefault: (said: S, name: S) => S;
     /** "What is the minimum?" with no basket yet. */
@@ -256,14 +265,19 @@ export interface Messages {
     pickupReady: (code: S, place: S) => S;
   };
 
-  /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours. */
+  /** CX2: the question after delivery (feedback.ts), in the customer's language; its buttons and the two answers. */
+  feedback: { ask: (code: S) => S; fineButton: S; problemButton: S; fine: S; problem: (code: S) => S };
+
+  /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours.
+   *  CX2: inside the 24-hour window the free message goes; the template only outside it. */
   notice: {
-    orderCancelled: (code: S, reason: S) => S;
+    /** `reopenable`: the card lapsed on its timer and the message carries the Reopen button (CFG1). */
+    orderCancelled: (code: S, reason: S, reopenable?: boolean) => S;
     riderAtDoor: (code: S) => S;
     /** CFG1: one reminder, at settings.timers.confirm_reminder_min, for a card still waiting on the customer's tap. */
     confirmReminder: (code: S) => S;
     paymentReceived: (code: S, summary: S) => S;
-    onTheWay: (code: S) => S;
+    onTheWay: (code: S, cash?: number | null) => S;
     riderWaiting: (code: S) => S;
     delayed: (code: S) => S;
     calledOff: (code: S, credit: number) => S;
