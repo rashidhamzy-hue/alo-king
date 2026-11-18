@@ -35,7 +35,8 @@ describe("tokens", () => {
     expect(UI_TOKENS).toEqual({ ink: LIGHT.ink, paper: LIGHT.paper, gold: LIGHT.gold });
     const greenish = (hex: string) => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return g > r + 24 && g > b + 16; };
     // DS2: WhatsApp green is the one other green, and only for a WhatsApp action (docs/DECISIONS.md, "Design reference, 17 November 2026")
-    for (const T of [LIGHT, DARK]) for (const [k, v] of Object.entries(T)) if (greenish(v)) expect(k, `${k} ${v} is green`).toMatch(/^(ok|whatsapp$)/);
+    // WEB4a: the example WhatsApp chat on the home page is a picture of WhatsApp, drawn in its own colours (whatsapp-chat-*)
+    for (const T of [LIGHT, DARK]) for (const [k, v] of Object.entries(T)) if (greenish(v)) expect(k, `${k} ${v} is green`).toMatch(/^(ok|whatsapp$|whatsapp-chat-)/);
     expect(LIGHT).toMatchObject({ "gold-deep": "#8A6A12", whatsapp: "#25D366" });
   });
   it("the dark theme is written twice (the system's choice and the console's switch) with the same values, and defines every role it changes", () => {

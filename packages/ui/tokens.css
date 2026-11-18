@@ -51,6 +51,37 @@
   --ak-whatsapp: #25D366;      /* WhatsApp actions only */
   --ak-on-whatsapp: #001D0E;
   --ak-scrim: rgb(14 15 18 / 0.5);
+  --ak-primary-deep: #030304;  /* WEB4a: a primary button under the pointer (the reference's primary-deep) */
+  --ak-white: #FFFFFF;         /* WEB4a: the reference's veils and rings (white/10 on ink, black/70 under a photo's name) */
+  --ak-black: #000000;
+
+  /* ---- WEB4a: the reference's category tones, a soft field and its ink, behind a product with no picture yet (no green field:
+     green is only "available" and "done") ---- */
+  --ak-tone-clay: #FFD2BE;
+  --ak-tone-clay-ink: #A33F1E;
+  --ak-tone-sky: #C7EBFD;
+  --ak-tone-sky-ink: #005B8B;
+  --ak-tone-wheat: #FAE2B0;
+  --ak-tone-wheat-ink: #915C08;
+  --ak-tone-rose: #FFD3D9;
+  --ak-tone-rose-ink: #A73447;
+  --ak-tone-ice: #CAF0F7;
+  --ak-tone-ice-ink: #006781;
+  --ak-tone-saffron: #FFDFA8;
+  --ak-tone-saffron-ink: #974D00;
+  --ak-tone-olive: #DFE7B9;
+  --ak-tone-olive-ink: #4E5D0E;
+
+  /* ---- WEB4a: the WhatsApp chat drawn on the home page (an example conversation, a picture of WhatsApp: its own colours) ---- */
+  --ak-whatsapp-chat-bg: #EFEAE2;
+  --ak-whatsapp-chat-bar: #008069;
+  --ak-whatsapp-chat-mine: #D9FDD3;
+  --ak-whatsapp-chat-theirs: #FFFFFF;
+  --ak-whatsapp-chat-text: #111B21;
+  --ak-whatsapp-chat-muted: #667781;
+  --ak-whatsapp-chat-tick: #53BDEB;
+  --ak-whatsapp-chat-link: #027EB5;
+  --ak-whatsapp-chat-wave: #8696A0;
 
   /* ---- type: one family for both scripts; prices keep Western digits and $ in every language ---- */
   --ak-font: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
@@ -67,7 +98,8 @@
   --ak-leading: 1.5;
   --ak-leading-ar: 1.7;         /* Arabic needs more room between lines */
   --ak-weight: 400;
-  --ak-weight-strong: 600;      /* the reference draws headings at 700; two weights are served, to keep a page under 100 KB */
+  --ak-weight-strong: 600;      /* labels, buttons, the console's headings */
+  --ak-weight-bold: 700;        /* WEB4a: the website's headings, as the reference draws them (the 100 KB budget was lifted, F18 2) */
   --ak-tracking: -0.02em;       /* headings */
 
   /* ---- space, shape, depth, motion ---- */
@@ -85,6 +117,7 @@
   --ak-radius-full: 999px;
   --ak-shadow-1: 0 1px 0 #E0DED8, 0 10px 28px -20px rgb(14 15 18 / 0.4);     /* a card */
   --ak-shadow-2: 0 20px 44px -18px rgb(14 15 18 / 0.55);                      /* something floating: a drawer, a toast, the cart bar */
+  --ak-shadow-lift: 0 2px 0 #E0DED8, 0 18px 36px -22px rgb(14 15 18 / 0.5);  /* WEB4a: a tile that stands off the page (the reference's shadow-lift) */
   --ak-shadow-press: inset 0 -3px 0 rgb(0 0 0 / 0.2);                          /* the lower edge of a filled button */
   --ak-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ak-fast: 120ms;
@@ -129,6 +162,8 @@
     --ak-scrim: rgb(0 0 0 / 0.6);
     --ak-shadow-1: 0 1px 0 #2A2D34, 0 10px 28px -20px rgb(0 0 0 / 0.7);
     --ak-shadow-2: 0 20px 44px -18px rgb(0 0 0 / 0.8);
+    --ak-shadow-lift: 0 2px 0 #2A2D34, 0 18px 36px -22px rgb(0 0 0 / 0.75);
+    --ak-primary-deep: #B08D1E;
     color-scheme: dark;
   }
 }
@@ -163,5 +198,7 @@
   --ak-scrim: rgb(0 0 0 / 0.6);
   --ak-shadow-1: 0 1px 0 #2A2D34, 0 10px 28px -20px rgb(0 0 0 / 0.7);
   --ak-shadow-2: 0 20px 44px -18px rgb(0 0 0 / 0.8);
+  --ak-shadow-lift: 0 2px 0 #2A2D34, 0 18px 36px -22px rgb(0 0 0 / 0.75);
+  --ak-primary-deep: #B08D1E;
   color-scheme: dark;
 }

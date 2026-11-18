@@ -127,7 +127,7 @@ const parts = quote && placeId ? orderCardParts({ orderId: "", shortCode: "", la
 const chatLocation = chatWith(facts?.whatsapp, "📍");
 const lineItems: { sku: string; name: string }[] = (q?.lines ?? []).map((l: any) => ({ sku: l.sku, name: nameIn(lang, l.name, l.name_ar) }));
 ---
-<Base title={t(lang, "w2_checkout_title")} lang={lang} path="/checkout" whatsapp={facts?.whatsapp ?? null} noindex>
+<Base title={t(lang, "w2_checkout_title")} lang={lang} path="/checkout" whatsapp={facts?.whatsapp ?? null} noindex focus>
   {failed || !v ? <Unavailable lang={lang} /> : <div class="w2">
     <h1>{t(lang, "w2_checkout_title")}</h1>
     {empty ? <Empty title={t(lang, "w2_basket_empty")} text={t(lang, "w2_basket_empty_text")} icon="cart" action={undefined} />

@@ -811,6 +811,117 @@ from the database. The order card itself is the WhatsApp card's own words (read 
 | `cx.missingItemLine("Labneh 500 g", ask)` | Labneh 500 g: منسألك | Labneh 500 g: we ask you | Labneh 500 g : nous vous demandons | RA 17 Nov |
 | `cx.missingItemLine("Labneh 500 g", remove)` | Labneh 500 g: منشيلو من الطلب | Labneh 500 g: we take it off | Labneh 500 g : nous le retirons | RA 17 Nov |
 
+## WEB4a, the website's frame and home page in the reference's design (18 November 2026)
+
+Written by a model (session WEB4a); **not yet read by an Arabic reader**. The website's words for the reference's header, village picker, footer, phone bottom bar
+and home page: the `w4_` keys of `apps/web/src/lib/i18n-web4a.ts`, merged into the site's dictionary (`test/ci/web4a-words.test.ts` checks this table lists every
+one, word for word). The site's register (formal Arabic); the WhatsApp messages a link types for the visitor (`w4_msg_*`) are Lebanese, as the chat is.
+Neutral wording only: no rating, praise, health, diet or "popular" word (invariants 14 and 15). `{n}`, `{total}`, `{gap}`, `{min}`, `{village}`, `{time}`, `{items}`,
+`{hours}` and `{name}` are filled by code from the database.
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `web.w4_nav` | الأقسام | Sections | Rubriques | not yet |
+| `web.w4_nav_main` | التنقل | Main | Navigation | not yet |
+| `web.w4_home` | الرئيسية | Home | Accueil | not yet |
+| `web.w4_food` | الطعام | Food | Restauration | not yet |
+| `web.w4_groceries` | البقالة | Groceries | Épicerie | not yet |
+| `web.w4_search` | بحث | Search | Rechercher | not yet |
+| `web.w4_you` | حسابي | You | Vous | not yet |
+| `web.w4_account_label` | طلباتك وحسابك | Your orders and account | Vos commandes et votre compte | not yet |
+| `web.w4_basket` | السلة | Basket | Panier | not yet |
+| `web.w4_basket_label` | السلة، {n} منتج، {total} | Basket, {n} items, {total} | Panier, {n} articles, {total} | not yet |
+| `web.w4_view_basket` | عرض السلة | View basket | Voir le panier | not yet |
+| `web.w4_min_more` | أضف {gap} لتبلغ الحد الأدنى {min} | Add {gap} more to reach the {min} minimum | Ajoutez {gap} pour atteindre le minimum de {min} | not yet |
+| `web.w4_delivering_to` | التوصيل إلى | Delivering to | Livraison à | not yet |
+| `web.w4_choose_village` | اختر قريتك | Choose your village | Choisissez votre village | not yet |
+| `web.w4_change_village` | التوصيل إلى {village}. تغيير | Deliver to {village}. Change | Livraison à {village}. Changer | not yet |
+| `web.w4_eta` | حوالي {n} دقيقة | about {n} min | environ {n} min | not yet |
+| `web.w4_closed_opens` | مغلق، نفتح الساعة {time} | Closed, opens {time} | Fermé, ouvre à {time} | not yet |
+| `web.w4_picker_title` | التوصيل إلى | Deliver to | Livraison à | not yet |
+| `web.w4_use_location` | استخدم موقعي | Use my location | Utiliser ma position | not yet |
+| `web.w4_use_location_note` | يحدّد قريتك والوقت ورسم التوصيل. نحفظ القرية فقط، لا موقعك. | Sets your village, the time and the fee. Only the village is kept, not your position. | Fixe votre village, le délai et les frais. Seul le village est gardé, pas votre position. | not yet |
+| `web.w4_picker_search` | ابحث عن قريتك | Search your village | Cherchez votre village | not yet |
+| `web.w4_picker_none` | لا نوصّل إلى هذه القرية بعد. أخبرنا أين أنت: نفتح القرى التي يطلبها الناس. | We don't reach this village yet. Tell us where you are: we open villages where people ask. | Nous ne livrons pas encore ce village. Dites-nous où vous êtes : nous ouvrons les villages qui le demandent. | not yet |
+| `web.w4_ask_wa` | اسألنا عبر واتساب | Ask on WhatsApp | Demander sur WhatsApp | not yet |
+| `web.w4_picker_pin` | الموقع الذي ترسله عند إتمام الطلب يحدّد رسم التوصيل بدقة. | The pin you send at checkout sets the exact fee. | La position envoyée au moment de commander fixe les frais exacts. | not yet |
+| `web.w4_picker_close` | إغلاق | Close | Fermer | not yet |
+| `web.w4_unsure` | أيّ هذه القرى قريتك؟ | Which of these is your village? | Lequel de ces villages est le vôtre ? | not yet |
+| `web.w4_outside` | لا نوصّل إلى هناك بعد | We don't deliver there yet | Nous ne livrons pas encore là | not yet |
+| `web.w4_outside_text` | نفتح القرى التي يطلبها الناس. أخبرنا أين أنت عبر واتساب. | We open villages where people ask. Tell us where you are on WhatsApp. | Nous ouvrons les villages qui le demandent. Dites-nous où vous êtes sur WhatsApp. | not yet |
+| `web.w4_locating` | نبحث عن قريتك… | Finding your village… | Recherche de votre village… | not yet |
+| `web.w4_locate_failed` | تعذّرت قراءة موقعك. اختر قريتك من القائمة. | We could not read your location. Choose your village from the list. | Nous n'avons pas pu lire votre position. Choisissez votre village dans la liste. | not yet |
+| `web.w4_village_set` | سنعرض الوقت ورسم التوصيل إلى {village}. | We will show the time and fee for {village}. | Nous afficherons le délai et les frais pour {village}. | not yet |
+| `web.w4_hero_a` | الشوف، | The Chouf, | Le Chouf, | not yet |
+| `web.w4_hero_b` | إلى بابك | delivered | livré | not yet |
+| `web.w4_hero_c` | . | . | . | not yet |
+| `web.w4_hero_text` | بقالة من متجرنا، يوصلها سائقونا. اطلب هنا أو عبر واتساب، وادفع نقدًا عند الباب. | Groceries from our own store, brought by our riders. Order here or on WhatsApp, and pay cash at the door. | Les courses de notre propre magasin, apportées par nos livreurs. Commandez ici ou sur WhatsApp, et payez en espèces à la porte. | not yet |
+| `web.w4_search_placeholder` | لبنة، خبز، قهوة… | Labneh, bread, coffee… | Labneh, pain, café… | not yet |
+| `web.w4_search_label` | ابحث في البقالة | Search groceries | Rechercher dans l'épicerie | not yet |
+| `web.w4_doors` | ماذا تريد؟ | What would you like? | Que voulez-vous ? | not yet |
+| `web.w4_door_groceries` | تسوّق البقالة | Shop groceries | Faire les courses | not yet |
+| `web.w4_door_groceries_sub` | {n} منتج من متجرنا | {n} items from our own store | {n} articles de notre propre magasin | not yet |
+| `web.w4_door_food` | أماكن الطعام | Food places | Restaurants | not yet |
+| `web.w4_door_food_sub` | قريبة منك، ليست على ألو كينغ بعد | Near you, not on Alo King yet | Près de chez vous, pas encore sur Alo King | not yet |
+| `web.w4_or_whatsapp` | أو اطلب عبر واتساب | Or order on WhatsApp | Ou commandez sur WhatsApp | not yet |
+| `web.w4_type_it` | اكتبها | Type it | Écrivez-la | not yet |
+| `web.w4_voice_note` | رسالة صوتية | Voice note | Note vocale | not yet |
+| `web.w4_msg_type_v` | مرحبا ألو كينغ، بدي اطلب. ضيعتي: {village}. | Hi Alo King, I'd like to order. My village: {village}. | Bonjour Alo King, je voudrais commander. Mon village : {village}. | not yet |
+| `web.w4_msg_voice` | مرحبا ألو كينغ، رح ابعت طلبي برسالة صوتية. | Hi Alo King, I'll send my list as a voice note. | Bonjour Alo King, j'envoie ma liste en note vocale. | not yet |
+| `web.w4_msg_voice_v` | مرحبا ألو كينغ، رح ابعت طلبي برسالة صوتية. ضيعتي: {village}. | Hi Alo King, I'll send my list as a voice note. My village: {village}. | Bonjour Alo King, j'envoie ma liste en note vocale. Mon village : {village}. | not yet |
+| `web.w4_opens_whatsapp` | (يفتح واتساب) | (opens WhatsApp) | (ouvre WhatsApp) | not yet |
+| `web.w4_mock_label` | مثال على محادثة واتساب مع ألو كينغ | An example WhatsApp conversation with Alo King | Un exemple de conversation WhatsApp avec Alo King | not yet |
+| `web.w4_mock_sub` | حساب تجاري | Business account | Compte professionnel | not yet |
+| `web.w4_mock_got` | وصلنا: {items}. بدك شي تاني؟ | Got it: {items}. Anything else? | C'est noté : {items}. Autre chose ? | not yet |
+| `web.w4_mock_basket` | سلتك | Your basket | Votre panier | not yet |
+| `web.w4_mock_items` | {n} منتج | {n} items | {n} articles | not yet |
+| `web.w4_mock_fee` | التوصيل (كله للسائق) | Delivery (all to the rider) | Livraison (tout pour le livreur) | not yet |
+| `web.w4_mock_total` | المجموع | Total | Total | not yet |
+| `web.w4_mock_cash` | الدفع نقدًا عند الباب؟ | Pay cash at the door? | Paiement en espèces à la porte ? | not yet |
+| `web.w4_mock_confirm` | تأكيد | Confirm | Confirmer | not yet |
+| `web.w4_mock_change` | تعديل | Change something | Modifier | not yet |
+| `web.w4_mock_to` | إلى {village} | to {village} | vers {village} | not yet |
+| `web.w4_browse` | تصفّح الأقسام | Browse the aisles | Parcourir les rayons | not yet |
+| `web.w4_fresh` | طازج كل يوم | Fresh every day | Frais chaque jour | not yet |
+| `web.w4_pantry` | المؤونة والمشروبات والبيت | Pantry, drinks and home | Épicerie, boissons et maison | not yet |
+| `web.w4_see_all` | عرض الكل | See all | Tout voir | not yet |
+| `web.w4_all_aisles` | كل الأقسام | All aisles | Tous les rayons | not yet |
+| `web.w4_most_ordered` | الأكثر طلبًا في آخر 30 يومًا | Most ordered in the last 30 days | Les plus commandés sur 30 jours | not yet |
+| `web.w4_most_ordered_sub` | بعدد الطلبات، لا بتقييم منّا | Counted from orders, not ranked by us | Comptés d'après les commandes, sans classement de notre part | not yet |
+| `web.w4_rail_sub` | بترتيب القسم | In the aisle's order | Dans l'ordre du rayon | not yet |
+| `web.w4_add` | أضف {name} إلى السلة | Add {name} to the basket | Ajouter {name} au panier | not yet |
+| `web.w4_sold_out` | نفد | Sold out | Épuisé | not yet |
+| `web.w4_wa_kicker` | الطلب عبر واتساب | WhatsApp ordering | Commander sur WhatsApp | not yet |
+| `web.w4_wa_title` | بلا تطبيق. راسلنا فقط. | No app needed. Just message us. | Pas d'application. Écrivez-nous. | not yet |
+| `web.w4_wa_text` | نردّ عليك بسلتك ومجموعها. تؤكّد أنت، ونوصّل نحن. وتصلك أخبار الطلب في المحادثة نفسها. | We reply with your basket and total. You confirm, we deliver. Updates come to the same chat. | Nous répondons avec votre panier et le total. Vous confirmez, nous livrons. Le suivi arrive dans la même conversation. | not yet |
+| `web.w4_way_type_b` | «2 لبنة، خبز، 1 كيلو بندورة». بأي لغة وبأي كتابة. | "2 labneh, bread, 1 kg tomatoes". Any language, any spelling. | « 2 labneh, du pain, 1 kg de tomates ». Toute langue, toute orthographe. | not yet |
+| `web.w4_way_voice` | قلها | Say it | Dites-la | not yet |
+| `web.w4_way_voice_b` | أرسل رسالة صوتية. نكتبها لك وأنت تؤكّد. | Send a voice note. We write it up and you confirm. | Envoyez une note vocale. Nous l'écrivons et vous confirmez. | not yet |
+| `web.w4_no_promos` | لا نرسل إعلانات أبدًا. اكتب STOP في أي وقت فنتوقف عن مراسلتك. | We never send promotions. Write STOP any time and we stop messaging you. | Nous n'envoyons jamais de promotions. Écrivez STOP à tout moment et nous arrêtons de vous écrire. | not yet |
+| `web.w4_ask_title` | اسأل ألو كينغ | Ask Alo King | Demandez à Alo King | not yet |
+| `web.w4_ask_text` | اكتب قائمة أو سؤالًا. يصلك الجواب عبر واتساب. لا يُطلب شيء قبل أن تؤكّد. | Type a list or a question. The answer comes on WhatsApp. Nothing is ordered until you confirm. | Écrivez une liste ou une question. La réponse arrive sur WhatsApp. Rien n'est commandé avant votre confirmation. | not yet |
+| `web.w4_ask_try` | جرّب | Try | Essayez | not yet |
+| `web.w4_ask_p1` | 2 لبنة، خبز و1 كيلو بندورة | 2 labneh, bread and 1 kg tomatoes | 2 labneh, du pain et 1 kg de tomates | not yet |
+| `web.w4_ask_p2` | فطور لأربعة | Breakfast for 4 | Petit-déjeuner pour 4 | not yet |
+| `web.w4_ask_p3` | ما المتوفر اليوم؟ | What is in stock today? | Qu'y a-t-il en stock aujourd'hui ? | not yet |
+| `web.w4_good` | معلومات مفيدة | Good to know | Bon à savoir | not yet |
+| `web.w4_vendor_title` | عندك مطعم أو مخبز أو مقهى في الشوف؟ | Own a restaurant, bakery or café in the Chouf? | Vous avez un restaurant, une boulangerie ou un café dans le Chouf ? | not yet |
+| `web.w4_vendor_text` | استقبل طلبات التوصيل وأدِر كل شيء من واتساب. بلا جهاز لوحي وبلا تطبيق. | Take delivery orders and run everything from WhatsApp. No tablet, no app. | Recevez des commandes à livrer et gérez tout depuis WhatsApp. Sans tablette, sans application. | not yet |
+| `web.w4_how` | كيف نعمل | How it works | Comment ça marche | not yet |
+| `web.w4_footer_text` | البقالة في الشوف إلى بابك. نجهّزها في مستودعنا ويوصلها سائقونا. | Groceries in the Chouf, at your door. Packed at our own hub, delivered by our riders. | Les courses dans le Chouf, à votre porte. Préparées dans notre propre dépôt, livrées par nos livreurs. | not yet |
+| `web.w4_chat` | راسلنا | Chat with us | Écrivez-nous | not yet |
+| `web.w4_shop` | تسوّق | Shop | Courses | not yet |
+| `web.w4_more` | المزيد | More | Plus | not yet |
+| `web.w4_food_places` | أماكن الطعام | Food places | Restaurants | not yet |
+| `web.w4_sell` | بِع على ألو كينغ | Sell on Alo King | Vendre sur Alo King | not yet |
+| `web.w4_ride` | اعمل سائقًا مع ألو كينغ | Ride with Alo King | Livrer avec Alo King | not yet |
+| `web.w4_signin` | سجّل الدخول عبر واتساب | Sign in with WhatsApp | Se connecter avec WhatsApp | not yet |
+| `web.w4_open_daily` | مفتوح يوميًا {hours} | Open daily {hours} | Ouvert tous les jours {hours} | not yet |
+| `web.w4_pay_ways` | نقدًا بالدولار أو بالليرة، أو تحويل عبر Whish أو OMT | Cash in $ or LL, or a Whish or OMT transfer | Espèces en $ ou en LL, ou virement Whish ou OMT | not yet |
+| `web.w4_not_sold` | لا تبغ ولا كحول ولا أدوية | No tobacco, alcohol or pharmacy items | Pas de tabac, d'alcool ni de pharmacie | not yet |
+| `web.w4_photos` | الصور | Photos | Photos | not yet |
+| `web.w4_photos_text` | صور الأقسام من Unsplash (unsplash.com)، مجانية بموجب رخصة Unsplash. كل صورة محفوظة على هذا الموقع، لا تُحمَّل من موقعهم: | The category photos are from Unsplash (unsplash.com), free to use under the Unsplash License. Each one is kept on this site, not loaded from theirs: | Les photos des rayons viennent d'Unsplash (unsplash.com), libres d'utilisation sous la licence Unsplash. Chacune est gardée sur ce site, pas chargée depuis le leur : | not yet |
+
 ## UX2b, Approve, Intake, Money, Settings and Riders (console, staff-facing, written by a model; 17 November 2026)
 
 Source: the `pick(L, "English", "Arabic")` pairs and the `{ en, ar }` entries added to `apps/console/src/pages/{approve,intakeframe,intake,readiness,moneyframe,payments,money,refunds,riders,settings,settingmeta}.ts`, and one line of `labelqueue.ts`. Staff read these, never a customer. Words with `${…}` stand for a number or a name the page fills in. The hub is «المستودع» everywhere (never «المركز»). Lines already in an earlier table of this file (UX2a, LB1, SELL1) are not repeated. The database's refusals (`explain()` in `app.ts`) stay English, as for every older page. A test (`test/ci/ux2b-arabic.test.ts`) holds this table equal to the pages.

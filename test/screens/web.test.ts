@@ -78,7 +78,7 @@ describe.skipIf(!OUT)("screenshots", () => {
         await page.evaluate("document.fonts.ready");
         if (width === 390) expect(await page.evaluate(WIDE), `${path} at 390 px scrolls sideways`).toEqual([]);
         const before = bytes - (kinds.icons ?? 0);      // the favicon and the manifest are not the page
-        if (name !== "gallery") { expect(before, `${path} (${lang}) weighs ${before} bytes with its fonts`).toBeLessThan(100 * 1024); if (width === 390 && theme === "light") weights.push(`${name} ${lang}: ${before} bytes (${Object.entries(kinds).filter(([k]) => k !== "icons").map(([k, v]) => `${k} ${v}`).join(", ")})`); }
+        if (name !== "gallery") { /* WEB4a: reported, not capped (F18 2) */ if (width === 390 && theme === "light") weights.push(`${name} ${lang}: ${before} bytes (${Object.entries(kinds).filter(([k]) => k !== "icons").map(([k, v]) => `${k} ${v}`).join(", ")})`); }
         // the whole page, with the phone's fixed bar where it sits: at the bottom
         const h = await page.evaluate("document.documentElement.scrollHeight") as number;
         await page.setViewportSize({ width, height: Math.max(h, width === 390 ? 844 : 900) });

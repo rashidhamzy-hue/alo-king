@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
-    "strict": true, "noUncheckedIndexedAccess": true, "skipLibCheck": true, "noEmit": true,
+    "strict": true, "jsx": "react-jsx", "noUncheckedIndexedAccess": true, "skipLibCheck": true, "noEmit": true,
     "types": ["@cloudflare/workers-types"],
     "paths": { "@ak/core/*": ["./packages/core/src/*"], "@ak/wa/*": ["./packages/wa/src/*"], "@ak/agents/*": ["./packages/agents/src/*"], "@ak/ui/*": ["./packages/ui/src/*"], "@ak/search/*": ["./packages/search/src/*"], "@ak/commerce": ["./packages/commerce/src/index.ts"], "@ak/commerce/*": ["./packages/commerce/src/*"] }
   },

@@ -1,0 +1,84 @@
+/* WEB4a: the founder's design reference's Tailwind theme (its src/styles.css), mapped onto tokens.css. The website's reference components
+   (apps/web/src/components/ref) are written in the reference's own class names (bg-ink, text-muted-foreground, rounded-3xl, shadow-card);
+   every one of them resolves here to an --ak- token, so a colour, a radius or a shadow changes in tokens.css, for both apps, and nowhere
+   else. No value is written in this file. The console does not load it (no React, no reference classes in the console). */
+@theme inline {
+  --color-*: initial;
+  --color-background: var(--ak-bg);
+  --color-foreground: var(--ak-text);
+  --color-card: var(--ak-surface);
+  --color-card-foreground: var(--ak-text);
+  --color-primary: var(--ak-primary);
+  --color-primary-foreground: var(--ak-on-primary);
+  --color-primary-deep: var(--ak-primary-deep);
+  --color-secondary: var(--ak-tint);
+  --color-secondary-foreground: var(--ak-text);
+  --color-muted: var(--ak-surface-2);
+  --color-muted-foreground: var(--ak-muted);
+  --color-accent: var(--ak-crown);
+  --color-accent-foreground: var(--ak-ink);
+  --color-accent-soft: var(--ak-accent-soft);
+  --color-destructive: var(--ak-danger);
+  --color-success: var(--ak-ok);
+  --color-warn: var(--ak-warn);
+  --color-border: var(--ak-line);
+  --color-input: var(--ak-line-strong);
+  --color-ring: var(--ak-crown);
+  --color-gold: var(--ak-gold);
+  --color-gold-deep: var(--ak-accent);
+  --color-ink: var(--ak-ink);
+  --color-ink-soft: var(--ak-ink-soft);
+  --color-paper: var(--ak-paper);
+  --color-whatsapp: var(--ak-whatsapp);
+  --color-whatsapp-ink: var(--ak-on-whatsapp);
+  --color-white: var(--ak-white);
+  --color-black: var(--ak-black);
+  --color-transparent: transparent;
+  --color-tone-clay: var(--ak-tone-clay);
+  --color-tone-clay-ink: var(--ak-tone-clay-ink);
+  --color-tone-sky: var(--ak-tone-sky);
+  --color-tone-sky-ink: var(--ak-tone-sky-ink);
+  --color-tone-wheat: var(--ak-tone-wheat);
+  --color-tone-wheat-ink: var(--ak-tone-wheat-ink);
+  --color-tone-rose: var(--ak-tone-rose);
+  --color-tone-rose-ink: var(--ak-tone-rose-ink);
+  --color-tone-ice: var(--ak-tone-ice);
+  --color-tone-ice-ink: var(--ak-tone-ice-ink);
+  --color-tone-saffron: var(--ak-tone-saffron);
+  --color-tone-saffron-ink: var(--ak-tone-saffron-ink);
+  --color-tone-olive: var(--ak-tone-olive);
+  --color-tone-olive-ink: var(--ak-tone-olive-ink);
+  --color-wa-bg: var(--ak-whatsapp-chat-bg);
+  --color-wa-bar: var(--ak-whatsapp-chat-bar);
+  --color-wa-mine: var(--ak-whatsapp-chat-mine);
+  --color-wa-theirs: var(--ak-whatsapp-chat-theirs);
+  --color-wa-text: var(--ak-whatsapp-chat-text);
+  --color-wa-muted: var(--ak-whatsapp-chat-muted);
+  --color-wa-tick: var(--ak-whatsapp-chat-tick);
+  --color-wa-link: var(--ak-whatsapp-chat-link);
+  --color-wa-wave: var(--ak-whatsapp-chat-wave);
+
+  --font-*: initial;
+  --font-sans: var(--ak-font);
+  --font-display: var(--ak-font);
+  --font-weight-bold: var(--ak-weight-bold);
+  --font-weight-semibold: var(--ak-weight-strong);
+
+  /* the reference's radius scale (its --radius is 1rem), from the tokens */
+  --radius-*: initial;
+  --radius-sm: calc(var(--ak-radius) - 4px);
+  --radius-md: calc(var(--ak-radius) - 2px);
+  --radius-lg: var(--ak-radius);
+  --radius-xl: calc(var(--ak-radius) + 4px);
+  --radius-2xl: var(--ak-radius-lg);
+  --radius-3xl: var(--ak-radius-xl);
+  --radius-4xl: calc(var(--ak-radius-xl) + 4px);
+  --radius-5xl: calc(var(--ak-radius-xl) + 16px);
+  --radius-full: var(--ak-radius-full);
+
+  --shadow-*: initial;
+  --shadow-card: var(--ak-shadow-1);
+  --shadow-lift: var(--ak-shadow-lift);
+  --shadow-float: var(--ak-shadow-2);
+  --shadow-press: var(--ak-shadow-press);
+}

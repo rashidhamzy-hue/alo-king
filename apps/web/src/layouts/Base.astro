@@ -1,27 +1,31 @@
 ---
-// The frame of every page (redesigned in DS1; docs/strategy/05, section B; the look is the design reference, DS2): the crown and the name, search, language, and Order on
-// WhatsApp on every page: in the header on a laptop, in the bottom bar on a phone. The cart button joins it in session WEB2; until
-// the cart exists no cart is shown. `whatsapp` is the chat's address from the database (settings.catalog.product_link, set by a
-// person); when it is not set, no WhatsApp button is shown anywhere.
+// The frame of every page. WEB4a: the founder's design reference's header, footer and phone bottom bar (components/ref/Frame.tsx, React
+// rendered here on the server: no React reaches the browser), from the database: the served villages, the visitor's village, the basket's
+// count and items total, the hours, the chat's address (lib/frame.ts). `whatsapp` is the chat's address a page already read; with none
+// anywhere, no WhatsApp button is shown. `focus` (the checkout; an order waiting for its WhatsApp tap): one primary action per screen, so
+// the basket, the WhatsApp order button, the village chip and the bottom bar are not drawn. `bare`: the page draws its own width (home).
+// `frame`: the page already read the frame (home, for its hero). `jsonld`: schema.org objects (LD1), data blocks, not scripts.
+// `basket` is the basket's count on a page that knows it; `noindex` keeps a person's pages out of search engines; `refresh` (seconds) makes
+// a page that waits for WhatsApp follow it with no script.
 import "../styles/site.css";
-import Crown from "@ak/ui-astro/Crown.astro";
-import Button from "@ak/ui-astro/Button.astro";
+import "../styles/ref.css";
 import Icon from "@ak/ui-astro/Icon.astro";
+import { Header, Footer, BottomNav, type FrameData } from "../components/ref/Frame";
 import arabic400 from "../../../../packages/ui/fonts/plex-arabic-400.woff2?url";
 import latin400 from "../../../../packages/ui/fonts/plex-latin-400.woff2?url";
-import { LANGS, LANG_NAMES, dirOf, t, withGreeting, type Lang } from "../lib/i18n";
+import { dirOf, t, type Lang } from "../lib/i18n";
 import { jsonLdScript } from "../lib/jsonld";
-// `jsonld`: schema.org objects for this page (LD1). Each becomes a data block, not a script that runs: the content security policy has no inline script.
-// WEB2: `basket` is the basket's count on a page that is never cached (the basket, checkout, account); a cached catalogue page leaves it out and
-// the one small script fills it from the `ak_b` cookie. `noindex` keeps a person's pages out of search engines. `refresh` (seconds) makes a
-// page that waits for WhatsApp follow it with no script.
+import { frameOf } from "../lib/frame";
 interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string; whatsapp?: string | null; live?: boolean; jsonld?: unknown[];
-  basket?: number | null; noindex?: boolean; refresh?: number | null }
-const { title, lang, description, q = "", path = "/", whatsapp = null, live = false, jsonld = [], basket = null, noindex = false, refresh = null } = Astro.props;
+  basket?: number | null; noindex?: boolean; refresh?: number | null; focus?: boolean; bare?: boolean; frame?: FrameData }
+const { title, lang, description, q = "", path = "/", whatsapp = null, live = false, jsonld = [], basket = null, noindex = false, refresh = null,
+  focus = false, bare = false } = Astro.props;
 // WEB2: "Added to your basket", after an add from a card with no script (/cart/line sends the visitor back with ?added=<sku>).
 const added = /^AK-\d{1,8}$/.test(Astro.url.searchParams.get("added") ?? "");
 const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}`;
-const chat = withGreeting(whatsapp, lang);
+const f: FrameData = Astro.props.frame ?? await frameOf(Astro.locals.env, Astro.request.headers.get("cookie"), { lang, path, q, live, focus, basketCount: basket });
+if (!f.chat && whatsapp) f.chat = whatsapp.replace(/\?.*$/, "") || null;
+f.focus = focus;
 ---
 <!doctype html>
 <html lang={lang} dir={dirOf(lang)}>
@@ -39,42 +43,16 @@ const chat = withGreeting(whatsapp, lang);
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   {jsonld.map((j) => <script type="application/ld+json" set:html={jsonLdScript(j)} />)}
 </head>
-<body>
+<body class="ref">
   <a class="skip" href="#main">{t(lang, "skip")}</a>
-  <header class="top">
-    <div class="wrap">
-      <a class="ak-logo" href="/"><Crown /><span>{t(lang, "site")}</span></a>
-      <form class="search" action="/search" method="get" role="search">
-        <input class="ak-input" type="search" name="q" value={q} placeholder={t(lang, "search_placeholder")} aria-label={t(lang, "search_label")} maxlength="80" autocomplete="off" enterkeyhint="search" data-live-search={live ? "" : undefined}>
-        <Button label={t(lang, "search")} icon="search" iconOnly />
-      </form>
-      <nav class="langs" aria-label={t(lang, "language")}>
-        {LANGS.map((l) => l === lang
-          ? <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l} aria-current="true">{LANG_NAMES[l]}</a>
-          : <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l}>{LANG_NAMES[l]}</a>)}
-      </nav>
-      <a class="ak-btn ak-btn--ghost ak-btn--icon me" href="/account"><Icon name="user" /><span class="ak-sr">{t(lang, "w2_account")}</span></a>
-      <a class="ak-btn ak-btn--soft basket" href="/cart"><Icon name="cart" /><span class="ak-sr">{t(lang, "w2_basket")}</span><span class="n" data-basket-n>{basket ? String(basket) : ""}</span></a>
-      {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" external cls="wa" />}
-    </div>
-  </header>
-  <main id="main" class="wrap">
+  <Header f={f} />
+  <main id="main" class={bare ? "bare" : "wrap"}>
     {added && <p class="added" role="status"><Icon name="check" /><span>{t(lang, "w2_added")}</span> <a href="/cart">{t(lang, "w2_view_basket")}</a></p>}
+    {Astro.url.searchParams.get("v") === "set" && f.village && <p class="added" role="status"><Icon name="pin" /><span>{t(lang, "w4_village_set", { village: f.village.name })}</span></p>}
     <slot />
   </main>
-  <footer class="site">
-    <div class="wrap">
-      <a class="ak-logo" href="/"><Crown /><span>{t(lang, "site")}</span></a>
-      <span>{t(lang, "footer_note")}</span>
-      <a href="/how">{t(lang, "w2_how")}</a>
-      <a href="/orders">{t(lang, "w2_orders")}</a>
-      <a href="/privacy">{t(lang, "privacy")}</a>
-      <a href="/terms">{t(lang, "terms")}</a>
-      <a href="/join/rider">{t(lang, "join_footer_rider")}</a>
-      <a href="/for-vendors">{t(lang, "join_footer_vendor")}</a>
-    </div>
-  </footer>
-  {chat && <div class="bottom"><Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" external /></div>}
+  <Footer f={f} />
+  <BottomNav f={f} />
   <script src="/sw-register.js" defer></script>
   <script src="/site.js" defer></script>
 </body>

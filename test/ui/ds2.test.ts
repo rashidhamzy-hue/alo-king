@@ -26,7 +26,8 @@ describe("the brand, from the reference", () => {
     for (const f of ["packages/ui/styles/console.css", "apps/web/src/styles/site.css"]) {
       const css = read(f);
       // WEB2: the website adds the small figures font its Arabic pages use for digits and codes (two weights)
-      expect(css.match(/@font-face/g)?.length, f).toBe(f.startsWith("apps/web") ? 6 : 4);
+      // WEB4a: and a third weight, 700, for the reference's bold headings (Latin, Arabic, figures): 9 faces on the website
+      expect(css.match(/@font-face/g)?.length, f).toBe(f.startsWith("apps/web") ? 9 : 4);
       expect(css, f).toContain('font-family: "IBM Plex Sans Arabic"'); expect(css, f).not.toMatch(/fonts\.googleapis|fonts\.gstatic|https?:\/\//);
     }
     expect(read("packages/ui/tokens.css")).toContain('--ak-font: "IBM Plex Sans", "IBM Plex Sans Arabic"');

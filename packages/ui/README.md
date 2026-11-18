@@ -8,6 +8,7 @@ WhatsApp green only on a WhatsApp action. The reference is a pattern: none of it
 | Path | What it is |
 |---|---|
 | `tokens.css` | **The one file** with every colour, font, size, radius, shadow and the logo reference, light and dark. Change the brand here |
+| `styles/theme.ref.css` | WEB4a: the founder's reference's Tailwind theme (its class names: `bg-ink`, `text-muted-foreground`, `rounded-3xl`, `shadow-card`) mapped onto the tokens, for the website's reference components (`apps/web/src/components/ref`). No value in it; the console does not load it |
 | `styles/` | `base.css` (page defaults), `components.css` (shared by every page), `components.more.css` (tabs, toast, loading, error, timeline, dialog, stepper, cart bar: loaded only by a page that shows one), `components.ops.css` (console), `components.shop.css` (website), `gallery.css`, `theme.css` (Tailwind's theme, pointing at the tokens), `console.css` (the console's entry) |
 | `src/components.ts` | The components as HTML functions: button, field, input, select, chip, badge, status pill, card, KPI tile, timer chip, limit bar, data table, drawer, dialog, toast (with Undo), tabs, command bar, bell, empty, loading, error, the "not confirmed yet" fact row, price with unit price, stepper, preview notice, product card, cart bar, order timeline, case row |
 | `src/status.ts` | The one label table for order statuses: the database's ids, staff words and customer words, Arabic and English; `statusPill()` |
@@ -21,14 +22,14 @@ WhatsApp green only on a WhatsApp action. The reference is a pattern: none of it
 | `scripts/subset-fonts.py` | Remakes the font files (needs `fonttools` and `brotli`; run by hand) |
 
 ## Rules
-- No React, no runtime styling: Tailwind v4 compiles at build time. The console's sheet is committed as `apps/console/src/ui.generated.ts`; the website's is built by Astro.
+- No React in packages/ui or the console, no runtime styling: Tailwind v4 compiles at build time. (WEB4a: the website renders the reference's React components on the server only, from `apps/web/src/components/ref`; no React reaches a browser.) The console's sheet is committed as `apps/console/src/ui.generated.ts`; the website's is built by Astro.
 - After a change to `tokens.css`, `styles/*`, the icon list, or a class name used in `apps/console/src`, run `node packages/ui/scripts/build.mjs` and commit what it writes. `test/ui/design-system.test.ts` fails when a generated file is stale.
 - Tailwind utilities carry the prefix `tw:` (`tw:flex`), so no ordinary word in a page becomes a class.
 - No inline style and no inline script, ever: both apps' content policy forbids them. Sizes that depend on data are SVG attributes.
 - Logical properties only (`inline`, `block`, `start`, `end`): Arabic mirrors with no second sheet.
 - The rules for staff screens (from the reference; `test/ui/ds2.test.ts`): no tap target under 44 px (`--ak-tap`; a button or input is 48, `--ak-control`); nothing is decided by a swipe; a reversible action shows a toast with Undo instead of asking "are you sure"; a timer or a status always carries words and an icon, never colour alone.
 - Gold text (`--ak-accent`, gold-deep) sits on paper, on a card or on `--ak-accent-soft`. It is 4.29:1 on `--ak-surface-2` and 4.32:1 on `--ak-tint`, so no text is gold there.
-- A shop page's first-visit weight is reported per page in each pull request (the 100 KB budget was lifted on 18 November 2026, `docs/DECISIONS.md`); free savings stay: a component only some pages show goes in `components.more.css`, imported by those pages. The website's tests still assert 100 KB until the session that restyles it to the reference turns them into a report.
+- A shop page's first-visit weight is reported per page in each pull request (the 100 KB budget was lifted on 18 November 2026, `docs/DECISIONS.md`); free savings stay: a component only some pages show goes in `components.more.css`, imported by those pages. The website's tests (WEB4a) report each page's weight and check that the site's own pictures are WebP and lazy below the fold.
 - Every colour pair a page uses is in `CONTRAST_PAIRS` (`src/gallery.ts`) and must pass AA in both themes; add a pair when you use a new one.
 - A component takes words and numbers already decided. It never reads data, formats money for a business rule, or knows a village, fee or hub.
 - Screenshots for a pull request: `SCREENS=<folder> npx vitest run test/screens` (390 and 1440 px, Arabic and English, light and dark). DS2's set (390 and 1280 px, beside the reference): `test/screens/ds2.test.ts`.

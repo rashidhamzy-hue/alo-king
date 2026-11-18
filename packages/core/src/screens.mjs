@@ -26,7 +26,7 @@ export function parseShot(path) {
   const keep = [];
   for (const tok of base.split("-")) {
     if (WIDTHS.includes(tok)) width = tok;
-    else if (tok === "ar" || tok === "en") lang = tok;
+    else if (tok === "ar" || tok === "en" || tok === "fr") lang = tok;
     else if (tok === "light" || tok === "dark") theme = tok;
     else keep.push(tok);
   }
@@ -45,11 +45,11 @@ export function planPrune(existing, incoming) {
 }
 
 const ALIAS = { rider: "join-rider", vendor: "for-vendors" };
-const PREFIXES = ["console", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
+const PREFIXES = ["console", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
 /**
  * The reference screen for a page: `ref-ops-<page>` or `ref-web-<page>` for the same width class (390 beside 390; 1280 and 1440 beside 1280).
  * The page's name is read without its session prefix and shortened from the end until a reference of that name exists
- * (dispatch-lead -> dispatch; riders-applicants -> riders). A `console-` page looks only at the console's references, a `web-` or `web2-`
+ * (dispatch-lead -> dispatch; riders-applicants -> riders). A `console-` page looks only at the console's references, a `web-`, `web2-` or `web4a-`
  * page only at the website's; the others try the console's first. Null when the reference has no such screen.
  * @param {string} key a page key (see parseShot)  @param {string|null} width  @param {string[]} paths every path in the bucket
  */
@@ -61,7 +61,7 @@ export function referenceFor(key, width, paths) {
   const first = parts[0];
   const prefix = PREFIXES.includes(first) ? first : null;
   const rest = prefix ? parts.slice(1) : parts;
-  const kinds = prefix === "console" ? ["ops"] : prefix === "web" || prefix === "web2" ? ["web"] : ["ops", "web"];
+  const kinds = prefix === "console" ? ["ops"] : prefix === "web" || prefix === "web2" || prefix === "web4a" ? ["web"] : ["ops", "web"];
   for (let n = rest.length; n >= 1; n--) {
     const slug = rest.slice(0, n).join("-");
     for (const k of kinds) for (const name of [slug, ALIAS[slug]].filter(Boolean)) {
