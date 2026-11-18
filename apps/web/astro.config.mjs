@@ -2,11 +2,15 @@ import { defineConfig } from "astro/config";
 import cloudflare from "@astrojs/cloudflare";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@astrojs/react";
 
 // docs/WEBSITE.md "Shape": Astro, the Cloudflare adapter, every page rendered on the server (HTML first; nothing needs JavaScript).
 // Styles are files, not inline, so the content security policy can name its own origin. Pictures come from the public `catalog`
 // bucket, so the adapter's image service is not used.
+// WEB4a: the reference's React components are rendered on the server (@astrojs/react). No page uses a client directive, so no React and no
+// inline island script reaches the browser (the content security policy has no inline script); what must react is public/site.js.
 export default defineConfig({
+  integrations: [react()],
   output: "server",
   adapter: cloudflare({ imageService: "passthrough" }),
   build: { inlineStylesheets: "never", format: "file" },
@@ -19,7 +23,7 @@ export default defineConfig({
   // DS1: the design system is the monorepo's packages/ui (tokens, components). Tailwind v4 compiles the one stylesheet at build time.
   // WEB2: a font is always its own file, never inlined into the stylesheet (Vite inlines files under 4 KB, which would put the small Arabic
   // pages' figures font into every page's CSS): a page downloads a font only when its text needs it.
-  vite: { build: { assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined) }, plugins: [tailwindcss()], resolve: { alias: {
+  vite: { build: { assetsInlineLimit: (file) => (file.endsWith(".woff2") || file.endsWith(".webp") || file.endsWith(".js") ? false : undefined) }, plugins: [tailwindcss()], resolve: { alias: {
     "@ak/commerce": fileURLToPath(new URL("../../packages/commerce/src", import.meta.url)),
     // SR1: the search box is read by the chat's own reading step (pure code, no dependency): one search, one set of filters (invariant 19)
     "@ak/search": fileURLToPath(new URL("../../packages/search/src", import.meta.url)),

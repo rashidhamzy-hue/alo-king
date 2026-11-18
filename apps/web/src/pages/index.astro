@@ -1,92 +1,47 @@
 ---
-// Home (redesigned in DS1; docs/strategy/05, section B): one promise and two buttons; "Do we deliver to you?" by village, with the
-// fee, the time and whether we are open, all from the database; the categories; the trust strip. Every statement is read from a
-// setting or is a rule of the business. Not here because nothing gives it to this page yet (docs/HANDOFF.md, DS1): the check by
-// shared location, the next round's time, category pictures, "order again", and the second door (vendors: hidden until one is live).
+// Home. WEB4a: the founder's design reference's home page (components/ref/Home.tsx), rendered on the server from the database: the hours,
+// the served villages with fee and time, the visitor's village (frame), the categories with their counts (web_catalog_home), the product
+// rails, "most ordered" once there are 30 days of orders, and the Ask strip's switch (web_home_extras, 0243). Works with no script.
 import Base from "../layouts/Base.astro";
 import Unavailable from "../components/Unavailable.astro";
-import Button from "@ak/ui-astro/Button.astro";
-import Crown from "@ak/ui-astro/Crown.astro";
-import Icon from "@ak/ui-astro/Icon.astro";
-import Badge from "@ak/ui-astro/Badge.astro";
-import { nameIn, t, usd, withGreeting } from "../lib/i18n";
-const { lang, catalog } = Astro.locals;
-let home; let failed = false;
-try { home = await catalog().home(); } catch { failed = true; Astro.response.status = 503; }
-const s = home?.service;
-const chat = withGreeting(home?.whatsapp.home, lang);
-const hours = s?.open && s?.close ? `${s.open.slice(0, 5)}–${s.close.slice(0, 5)}` : null;
-// The village picked in the form (works with no script): its place in the list the database returned.
-const picked = Number(Astro.url.searchParams.get("village") ?? "");
-// An amount inside an Arabic sentence keeps its own order ($ first) between these two marks.
-const ltr = (x: string) => `\u2066${x}\u2069`;
-const village = s && Number.isInteger(picked) && picked >= 1 ? s.served[picked - 1] ?? null : null;
+import { Home, type CardData, type HomeData } from "../components/ref/Home";
+import { nameIn, t, unitLabel } from "../lib/i18n";
+import { pictureUrl } from "../lib/db";
+import { frameOf } from "../lib/frame";
+import { CATEGORY_PHOTOS, toneOf } from "../lib/category-photos";
+import type { CatalogCard } from "@ak/commerce/index";
+const { lang, catalog, env } = Astro.locals;
+let d: HomeData | null = null; let failed = false; let whatsapp: string | null = null;
+// The rails drawn, in this order, when the category has items (a look choice, as the reference's: the rest are one tap away in the aisles).
+const RAILS = ["dairy_eggs", "bakery", "fruits_vegetables", "pantry_staples"];
+try {
+  const [home, extras, f] = await Promise.all([catalog().home(), catalog().homeExtras(12), frameOf(env, Astro.request.headers.get("cookie"), { lang, path: "/" })]);
+  whatsapp = home.whatsapp.home;
+  if (!f.chat && whatsapp) f.chat = whatsapp.replace(/\?.*$/, "") || null;
+  const card = (code: string) => (c: CatalogCard): CardData => ({
+    sku: c.sku, name: nameIn(lang, c.name_en, c.name_ar), unit: unitLabel(lang, c.sell_unit), price: Number(c.price_usd), inStock: !!c.in_stock,
+    comingSoon: !!c.coming_soon, img: c.picture ? pictureUrl(env, c.picture.path, 400) : null, imgAlt: nameIn(lang, c.name_en, c.name_ar), tone: toneOf(code),
+  });
+  const rails = RAILS.map((code) => extras.rails.find((r) => r.code === code)).filter((r): r is NonNullable<typeof r> => !!r)
+    .map((r) => ({ code: r.code, name: nameIn(lang, r.name_en, r.name_ar), items: r.items.map(card(r.code)) }));
+  d = {
+    f,
+    categories: home.categories.map((c) => ({ code: c.code, name: nameIn(lang, c.name_en, c.name_ar), count: c.count, tone: toneOf(c.code), fresh: !!CATEGORY_PHOTOS[c.code]?.fresh })),
+    rails,
+    most: extras.most_ordered ? extras.most_ordered.map(card("")) : null,
+    ask: !!extras.ask,
+    itemsTotal: home.categories.reduce((a, c) => a + c.count, 0),
+  };
+} catch { failed = true; Astro.response.status = 503; }
 ---
-<Base title={t(lang, "site")} lang={lang} description={t(lang, "tagline")} path="/" whatsapp={home?.whatsapp.home}>
-  {failed || !home ? <Unavailable lang={lang} /> : <div itemscope itemtype="https://schema.org/GroceryStore">
+<Base title={t(lang, "site")} lang={lang} description={t(lang, "w4_hero_text")} path="/" whatsapp={whatsapp} frame={d?.f} bare={!!d}>
+  {failed || !d ? <Unavailable lang={lang} /> : <div itemscope itemtype="https://schema.org/GroceryStore">
     <meta itemprop="url" content={Astro.url.origin}>
-    <section class="hero">
-      <div>
-        <h1>{t(lang, "hero_title")}</h1>
-        <p itemprop="description">{t(lang, "hero_text")}</p>
-        <div class="cta">
-          {chat && <Button label={t(lang, "order_whatsapp")} href={chat} icon="chat" variant="whatsapp" size="lg" external />}
-          <Button label={t(lang, "shop_here")} href="#categories" variant="primary" size="lg" />
-        </div>
-        <p class="state">
-          {s?.open_now === true && <span class="status open">{t(lang, "open_now")}</span>}
-          {s?.open_now === false && <span class="status closed">{t(lang, "closed_now")}</span>}
-          {hours && <span>{t(lang, "hours")}: <bdi dir="ltr">{hours}</bdi></span>}
-        </p>
-      </div>
-      <Crown tone="on-gold" label={t(lang, "site")} />
-      <meta itemprop="name" content={t(lang, "site")}>
-      {s?.open && s?.close && <meta itemprop="openingHours" content={`Mo-Su ${s.open.slice(0, 5)}-${s.close.slice(0, 5)}`}>}
-      <meta itemprop="paymentAccepted" content="Cash">
-    </section>
-
-    <section class="ak-card check" id="deliver" aria-labelledby="deliver-h">
-      <h2 id="deliver-h">{t(lang, "check_title")}</h2>
-      {s && s.served.length > 0
-        ? <>
-            <form method="get" action="/#deliver" data-check>
-              <label class="ak-field"><span>{t(lang, "check_label")}</span>
-                <select class="ak-select" name="village" required>
-                  <option value="">{t(lang, "check_choose")}</option>
-                  {s.served.map((v, i) => <option value={i + 1} selected={village === v} data-name={nameIn(lang, v.name_en, v.name_ar)} data-fee={ltr(usd(v.fee_usd))} data-min={v.eta_minutes} itemprop="areaServed">{nameIn(lang, v.name_en, v.name_ar)}</option>)}
-                </select>
-              </label>
-              <Button label={t(lang, "check_go")} variant="gold" icon="search" />
-            </form>
-            <div class="answer" role="status" hidden={!village} data-answer data-yes={t(lang, "check_yes", { village: "{village}" })} data-fee={t(lang, "check_fee", { fee: "{fee}" })} data-time={t(lang, "check_time", { n: "{n}" })}>
-              <strong data-line>{village && t(lang, "check_yes", { village: nameIn(lang, village.name_en, village.name_ar) })}</strong>
-              <span class="facts">
-                <span class="ak-badge" data-fee-out>{village && t(lang, "check_fee", { fee: ltr(usd(village.fee_usd)) })}</span>
-                <span class="ak-badge" data-time-out>{village && t(lang, "check_time", { n: village.eta_minutes })}</span>
-                {s.open_now === true && <Badge label={t(lang, "open_now")} tone="ok" icon="check" />}
-                {s.open_now === false && <Badge label={t(lang, "closed_now")} tone="warn" />}
-                {hours && <span class="ak-badge">{t(lang, "hours")}: <bdi dir="ltr">{hours}</bdi></span>}
-              </span>
-            </div>
-            {chat && <p class="muted small"><a href={chat} rel="noopener">{t(lang, "check_other")}</a></p>}
-          </>
-        : <p class="muted">{t(lang, "villages_none")}</p>}
-    </section>
-
-    <h2 id="categories">{t(lang, "categories")}</h2>
-    <ul class="cats">
-      {home.categories.map((c) => (
-        <li><a href={`/c/${c.code}`}><span>{nameIn(lang, c.name_en, c.name_ar)}</span><span class="n"><bdi>{t(lang, "items", { n: c.count })}</bdi><Icon name="chevron" flip /></span></a></li>
-      ))}
-      <li><a href="/food"><span>{t(lang, "food")}</span><span class="n"><bdi>{t(lang, "food_tile_note")}</bdi><Icon name="chevron" flip /></span></a></li>
-    </ul>
-
-    <ul class="trust">
-      <li><Icon name="wallet" /><strong>{t(lang, "trust_cash")}</strong><span>{t(lang, "trust_cash_text")}</span></li>
-      <li><Icon name="bike" /><strong>{t(lang, "trust_rider")}</strong><span>{t(lang, "trust_rider_text")}</span></li>
-      {hours && <li><Icon name="clock" /><strong>{t(lang, "trust_hours")}</strong><span><bdi dir="ltr">{hours}</bdi></span></li>}
-      {chat && <li><Icon name="chat" /><strong>{t(lang, "trust_person")}</strong><span>{t(lang, "trust_person_text")}</span></li>}
-    </ul>
-    {Astro.locals.env.ENVIRONMENT !== "production" && <p class="small"><a href="/gallery">{t(lang, "gallery")}</a></p>}
+    <meta itemprop="name" content={t(lang, "site")}>
+    {d.f.hours && <meta itemprop="openingHours" content={`Mo-Su ${d.f.hours.replace("–", "-")}`}>}
+    <meta itemprop="paymentAccepted" content="Cash">
+    {d.f.villages.map((v) => <meta itemprop="areaServed" content={v.name}>)}
+    <Home d={d} />
+    {env.ENVIRONMENT !== "production" && <p class="small wrap"><a href="/gallery">{t(lang, "gallery")}</a></p>}
   </div>}
 </Base>

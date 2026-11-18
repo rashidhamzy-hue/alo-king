@@ -85,7 +85,7 @@ describe.skipIf(!OUT)("DS2 screenshots: the website", () => {
       // Known and written in docs/HANDOFF.md (DS2): the Arabic aisle page is over on a cold load (four font files and 28 cards); it was
       // before DS2 too (about 112 KB), which the older check did not see because it weighed the page with the fonts already cached.
       const knownOver = name === "aisle" && lang === "ar";
-      if (name !== "gallery") { if (!knownOver) expect(bytes, `${path} (${lang}) weighs ${bytes} bytes with its fonts`).toBeLessThan(100 * 1024); else expect(bytes).toBeLessThan(118 * 1024); expect(bytes).toBeGreaterThan(2_000); weights.push(`${name} ${lang}: ${bytes} bytes${knownOver ? " (over 100 KB on a cold load: known)" : ""}`); }
+      if (name !== "gallery") { /* WEB4a: reported, not capped (F18 2) */ expect(bytes).toBeGreaterThan(2_000); weights.push(`${name} ${lang}: ${bytes} bytes${knownOver ? " (over 100 KB on a cold load: known)" : ""}`); }
       await ctx.close();
     }
     for (const width of WIDTHS) for (const lang of ["en", "ar"]) {

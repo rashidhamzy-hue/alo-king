@@ -257,6 +257,11 @@ describe("3 and 4. checkout: place, when, missing items, payment; the card goes 
     let o = await b.get(sent.location!);
     expect(text(o.html)).toContain("Your order card is on WhatsApp. Tap Confirm there to place the order.");
     expect(o.html).toMatch(/<meta http-equiv="refresh"/);
+    // WEB4a (the founder's test): one primary action while the card waits. No basket, no WhatsApp order button, no phone bar; "Open WhatsApp" is
+    // the page's one WhatsApp button, and the checkout before it showed no basket either.
+    expect(o.html).not.toContain("data-basket"); expect(o.html).not.toContain("data-bottom");
+    expect((o.html.match(/class="[^"]*ak-btn--whatsapp/g) ?? []).length).toBe(1);
+    expect(c.html).not.toContain("data-basket"); expect(c.html).not.toContain("data-bottom");
     // the same card as WhatsApp's, word for word
     const stored = await db.rpc("order_card", { p_order: order.id, p_party: order.customer_id });
     const wa = formatOrderCard({ orderId: order.id, shortCode: order.short_code, quote: stored.quote, paymentMethod: "cod", changeForUsd: 50, missingPref: "ask",
@@ -455,7 +460,8 @@ async function coldWeight(path: string, lang: "ar" | "en") {
   return { bytes, fonts: fonts.size, parts };
 }
 
-describe("8. every page under 100 KB on a first visit, with its fonts, Arabic included", () => {
+// WEB4a: the 100 KB budget was lifted (F18 2): each page's first-visit weight is reported (written beside the build), not capped.
+describe("8. every page's first-visit weight is reported, with its fonts, Arabic included", () => {
   it("weighs every page cold, in Arabic and English", async () => {
     const { b } = await signedIn();
     const v = await db.one(`select lat, lng from villages where name_en = 'Baakline'`);
@@ -472,7 +478,8 @@ describe("8. every page under 100 KB on a first visit, with its fonts, Arabic in
       sizes.push([`${path} (${lang})`, w.bytes]);
     }
     console.log(rows.join("\n"));
-    for (const [what, n] of sizes) expect(n, `${what} weighs ${n} bytes with its fonts`).toBeLessThan(100 * 1024);
+    for (const [what, n] of sizes) expect(n, `${what} was weighed`).toBeGreaterThan(0);
+    writeFileSync(OUT + "web2-weights.txt", rows.join("\n") + "\n");
   });
 });
 

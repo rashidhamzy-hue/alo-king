@@ -10,6 +10,7 @@ import Icon from "@ak/ui-astro/Icon.astro";
 import "../styles/order.css";
 import { nameIn, t, usd } from "../lib/i18n";
 import { lbp, ordering } from "../lib/order";
+import { CATEGORY_PHOTOS, FOOD_PHOTO, unsplashPage } from "../lib/category-photos";
 const { lang, env } = Astro.locals;
 let f: any = null; let failed = false;
 try { f = await ordering(env).serviceFacts(); } catch { failed = true; Astro.response.status = 503; }
@@ -52,6 +53,9 @@ const cap = f ? Number(f.first_order_max_cod_usd ?? 0) : 0;
     <section><h2>{t(lang, "w2_how_confirm")}</h2><p>{t(lang, "w2_how_confirm_text", { r: f.confirm_reminder_min, l: f.confirm_lapse_min })}</p></section>
     <section><h2>{t(lang, "w2_how_code")}</h2><p>{t(lang, "w2_how_code_text")}</p></section>
     <section><h2>{t(lang, "w2_how_account")}</h2><p>{t(lang, "w2_how_account_text")}</p></section>
-    <div class="w2-actions"><Button label={t(lang, "w2_how_cta")} href="/#categories" variant="gold" size="lg" /></div>
+    <section id="photos"><h2>{t(lang, "w4_photos")}</h2><p class="muted small">{t(lang, "w4_photos_text")}</p>
+      <ul class="credits small">{[...Object.values(CATEGORY_PHOTOS), FOOD_PHOTO].map((p) => <li lang="en"><a href={unsplashPage(p.id)} rel="noopener" target="_blank">{p.subject}</a></li>)}</ul>
+    </section>
+    <div class="w2-actions"><Button label={t(lang, "w2_how_cta")} href="/#aisles" variant="gold" size="lg" /></div>
   </div>}
 </Base>

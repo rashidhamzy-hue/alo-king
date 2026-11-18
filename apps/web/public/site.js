@@ -1,26 +1,56 @@
-// The website's one small script (DS1). Every page works without it; it only makes two things quicker:
-//   1. "Do we deliver to you?": the answer appears as soon as a village is picked (the form still works with no script).
+// The website's one small script (DS1). Every page works without it; it only makes these things quicker:
+//   1. WEB4a: the village picker (the header's chip, the home page, /village): the search box filters the villages as you type, and
+//      "Use my location" asks the phone for its position ONLY when the visitor taps it (never on page load), sends it once to /village/locate,
+//      which keeps the village only. Escape or a tap outside closes an open picker.
 //   2. Search: results follow the typing. After a pause it asks this site's own /search page and swaps the results in.
-//   3. WEB2: the header's basket count, from the `ak_b` cookie the basket sets (a catalogue page is cached for everyone, so it cannot print it).
-//   4. WEB2: the checkout's "Use my location": the phone's own position fills the form, once, when the visitor taps it.
+//   3. WEB2: the checkout's "Use my location": the phone's own position fills the form, once, when the visitor taps it.
 // It talks to this site only, keeps nothing, and sets no cookie.
 (function () {
   "use strict";
-  var form = document.querySelector("[data-check]"), out = document.querySelector("[data-answer]");
-  if (form && out) {
-    var sel = form.querySelector("select");
-    var fill = function (tpl, key, value) { return (tpl || "").replace("{" + key + "}", value); };
-    var show = function () {
-      var o = sel.options[sel.selectedIndex];
-      if (!o || !o.value) { out.hidden = true; return; }
-      out.querySelector("[data-line]").textContent = fill(out.getAttribute("data-yes"), "village", o.getAttribute("data-name"));
-      out.querySelector("[data-fee-out]").textContent = fill(out.getAttribute("data-fee"), "fee", o.getAttribute("data-fee"));
-      out.querySelector("[data-time-out]").textContent = fill(out.getAttribute("data-time"), "n", o.getAttribute("data-min"));
-      out.hidden = false;
-    };
-    sel.addEventListener("change", show);
-    form.addEventListener("submit", function (e) { e.preventDefault(); show(); });
-  }
+  var fold = function (x) { return (x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f\u064b-\u0652]/g, "").replace(/[-'\s]+/g, " ").trim(); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-picker]"), function (p) {
+    var row = p.querySelector("[data-picker-search-row]"), box = p.querySelector("[data-picker-search]"), none = p.querySelector("[data-picker-none]");
+    if (row && box) {
+      row.hidden = false;
+      box.addEventListener("input", function () {
+        var q = fold(box.value), any = false;
+        Array.prototype.forEach.call(p.querySelectorAll("[data-picker-group]"), function (g) {
+          var shown = 0;
+          Array.prototype.forEach.call(g.querySelectorAll("[data-picker-item]"), function (li) {
+            var ok = !q || fold(li.getAttribute("data-name")).indexOf(q) !== -1 || fold(li.textContent).indexOf(q) !== -1;
+            li.hidden = !ok; if (ok) shown++;
+          });
+          g.hidden = shown === 0; if (shown) any = true;
+        });
+        if (none) none.hidden = any;
+      });
+    }
+    var form = p.querySelector("[data-locate-form]");
+    if (form && navigator.geolocation) {
+      form.hidden = false;
+      var label = form.querySelector("[data-locate-label]"), err = form.querySelector("[data-locate-error]"), btn = form.querySelector("[data-locate]");
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (btn.disabled) return;
+        btn.disabled = true; if (err) err.hidden = true;
+        var was = label ? label.textContent : ""; if (label) label.textContent = label.getAttribute("data-busy");
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          form.elements.lat.value = String(pos.coords.latitude); form.elements.lng.value = String(pos.coords.longitude);
+          HTMLFormElement.prototype.submit.call(form);
+        }, function () {
+          btn.disabled = false; if (label) label.textContent = was; if (err) err.hidden = false;
+        }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+      });
+    }
+  });
+  var roots = document.querySelectorAll("details[data-picker-root], header details");
+  Array.prototype.forEach.call(roots, function (d) {
+    var close = d.querySelector("[data-picker-close]");
+    if (close) { close.hidden = false; close.addEventListener("click", function () { d.open = false; }); }
+    d.addEventListener("toggle", function () { if (d.open) { var b = d.querySelector("[data-picker-search]"); if (b && window.matchMedia("(min-width: 640px)").matches) b.focus(); } });
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") Array.prototype.forEach.call(roots, function (d) { d.open = false; }); });
+  document.addEventListener("click", function (e) { Array.prototype.forEach.call(roots, function (d) { if (d.open && !d.contains(e.target)) d.open = false; }); });
 
   var box = document.querySelector("[data-live-search]"), live = document.querySelector("[data-live]");
   if (box && live && window.fetch && window.DOMParser) {
@@ -45,9 +75,6 @@
       }, 600);
     });
   }
-
-  var badge = document.querySelector("[data-basket-n]"), m = /(?:^|;\s*)ak_b=(\d+)/.exec(document.cookie);
-  if (badge && !badge.textContent && m && m[1] !== "0") badge.textContent = m[1];
 
   var geo = document.querySelector("[data-geo]");
   if (geo && navigator.geolocation) {

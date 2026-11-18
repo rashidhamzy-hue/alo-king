@@ -6,6 +6,7 @@ import { catalogFor, joinFor, listingsFor, type WebEnv } from "./lib/db";
 import { negotiate } from "./lib/i18n";
 import { makeLimiter } from "./lib/rate";
 import { guarded, reportCheckIn } from "./lib/sentry";
+import { personal } from "./lib/frame";
 
 const searchLimit = makeLimiter(30, 60_000);
 // UX3: the two join pages' posts count here too. LV1: the Food pages' two form posts ("I want to order from here", "Remove this listing"). Per address, in one isolate's memory like the search limit; the database also caps what they write.
@@ -57,14 +58,15 @@ async function handle(ctx: any, next: () => Promise<Response>, env: WebEnv): Pro
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 
-  if (req.method === "POST" && /^\/(?:cart(?:\/\w+)?|checkout|signin|account|orders)$/.test(url.pathname) && !(orderPostLimit ??= makeLimiter(Number(env.WEB_POST_LIMIT) || 60, 60_000))(req.headers.get("cf-connecting-ip") ?? "unknown")) {
+  if (req.method === "POST" && /^\/(?:cart(?:\/\w+)?|checkout|signin|account|orders|village(?:\/locate)?)$/.test(url.pathname) && !(orderPostLimit ??= makeLimiter(Number(env.WEB_POST_LIMIT) || 60, 60_000))(req.headers.get("cf-connecting-ip") ?? "unknown")) {
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 
   const cache: Cache | null = typeof caches !== "undefined" ? ((caches as unknown as { default?: Cache }).default ?? null) : null;
   // PAGE_CACHE=off is for the tests, which change the database between two requests. (On a workers.dev address the Cache API stores nothing; on the
   // site's own domain it does.)
-  const cacheable = req.method === "GET" && CACHEABLE.test(url.pathname) && !url.search && cache !== null && env.PAGE_CACHE !== "off";
+  // WEB4a: a page that shows the visitor's own village or basket (the frame reads both) is never the cached copy everyone gets.
+  const cacheable = req.method === "GET" && CACHEABLE.test(url.pathname) && !url.search && cache !== null && env.PAGE_CACHE !== "off" && !personal(req.headers.get("cookie"));
   const key = new Request(`${url.origin}/__edge/${lang}${url.pathname}`);
   if (cacheable) {
     const hit = await cache!.match(key);

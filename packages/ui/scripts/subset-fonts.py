@@ -11,7 +11,7 @@ Arabic: the letters, marks and digits of Arabic as written in Lebanon (not the P
 Figures (WEB2): what an Arabic page writes in Latin script and must not cost the whole Latin font: digits, prices, punctuation, codes
         in capitals (AK-1042, ALO-7K3Q9P), the multiplication sign and dashes. An Arabic page's lower-case Latin (a brand name) uses
         the phone's own font. About 2 KB a weight instead of 12.
-Two weights, 400 and 600. The output is committed (packages/ui/fonts); re-run only when the character list or the weights change.
+Three weights, 400, 600 and 700 (WEB4a: the reference draws headings at 700; the website only, the console keeps 400 and 600). The output is committed (packages/ui/fonts); re-run only when the character list or the weights change.
 """
 import os, sys
 from fontTools import subset
@@ -35,7 +35,7 @@ JOBS = [
     ("ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-{w}-normal.woff2", "plex-arabic-{w}.woff2", ARABIC, ["*"]),
 ]
 for src, out, unicodes, features in JOBS:
-    for w in (400, 600):
+    for w in (400, 600, 700):
         opts = subset.Options()
         opts.flavor = "woff2"; opts.layout_features = features; opts.name_IDs = [1, 2, 4, 6, 13, 14]; opts.notdef_outline = True
         opts.hinting = False; opts.desubroutinize = True; opts.drop_tables += ["DSIG", "FFTM"]

@@ -45,7 +45,7 @@ const timeline = ok && !["cancelled", "failed_delivery", "returned"].includes(p.
 const words = waiting && p.card ? cardWords(p.card, lang) : null;
 const lapse = Number(facts?.confirm_lapse_min ?? 60);
 ---
-<Base title={ok ? t(lang, "w2_order_title", { code: p.short_code }) : t(lang, "not_found")} lang={lang} path={ok ? Astro.url.pathname + Astro.url.search : "/"} whatsapp={wa} noindex refresh={ok && !ended ? (waiting ? 10 : 60) : null}>
+<Base title={ok ? t(lang, "w2_order_title", { code: p.short_code }) : t(lang, "not_found")} lang={lang} path={ok ? Astro.url.pathname + Astro.url.search : "/"} whatsapp={wa} noindex refresh={ok && !ended ? (waiting ? 10 : 60) : null} focus={!!ok && !ended}>
   {failed ? <Unavailable lang={lang} /> : !ok ? <Unavailable lang={lang} notFound /> : <div class="w2">
     <h1>{t(lang, "w2_order_title", { code: p.short_code })}</h1>
     <p><StatusPill id={p.status} audience="customer" lang={sl} pickup={p.pickup} />{lang === "fr" && <span class="muted"> {statusWords(p.status, lang, p.pickup)}</span>}</p>
@@ -84,6 +84,9 @@ const lapse = Number(facts?.confirm_lapse_min ?? 60);
         </dl>
       </section>
     </>}
-    {chatPerson && <p><Button label={t(lang, "w2_order_person")} href={chatPerson} variant="whatsapp" icon="chat" external attrs={{ target: "_blank" }} /></p>}
+    {/* WEB4a: one primary action per screen. While the card waits for its tap, "Open WhatsApp" is the one button; a person is a plain link. */}
+    {chatPerson && (waiting
+      ? <p class="small"><a href={chatPerson} rel="noopener" target="_blank">{t(lang, "w2_order_person")}</a></p>
+      : <p><Button label={t(lang, "w2_order_person")} href={chatPerson} variant="whatsapp" icon="chat" external attrs={{ target: "_blank" }} /></p>)}
   </div>}
 </Base>

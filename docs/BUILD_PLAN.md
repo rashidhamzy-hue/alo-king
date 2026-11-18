@@ -488,7 +488,7 @@ Finished sessions (SP1 to WH1a, B1e, QA1, DOC2) are in `docs/STATUS.md`, "Sessio
 | 4 | FD1 friends' test food: places and menus | DS2 | 0245 to 0247 | **Done** 18 November (`docs/log/FD1.md`); 0248 unused |
 | 4 | FD2 friends' test food: ordering for testers (quote, card, the rider buys at the counter, ledger) | FD1 | Next free number | Not started |
 | 4 | T1 friends' test set-up | The critical path in `docs/STATUS.md` | 0134 | Waits for gate A's approvals, label day and stock |
-| 4 | DS3 the website to the reference (name proposed) | Nothing | None | Not started |
+| 4 | WEB4a (was DS3) the website to the reference: stage 1 the frame and home, stage 2 aisles, an aisle, product, search | Stage 2 waits for the founder's reply on stage 1 | 0243 | Stage 1 merged, waiting for the founder (`docs/log/web4a.md`) |
 | 5 | L1 event log, timeline, measured times, places | Gate A open | 0149 to 0152 | Not started |
 | 5 | N2 nightly checks and learning | COST1 (merged) | 0186 | Not started |
 | 6 | RD1 rider pack | L1 | 0160 to 0163 | Not started |

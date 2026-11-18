@@ -1,0 +1,31 @@
+/* WEB4a: the stylesheet of the reference's components (src/components/ref), compiled by Tailwind v4 at build time like site.css. The
+   reference's class names, unprefixed (site.css's own utilities carry tw:), with no second reset: site.css's is the page's. The theme is
+   packages/ui/styles/theme.ref.css, where every colour, radius and shadow is a token of packages/ui/tokens.css (one palette for both apps).
+   The reference's own utilities (press, no-scrollbar, tabular, paper-grain, animate-rise) are copied below as it wrote them. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "../../../../packages/ui/styles/theme.ref.css";
+@source "../components/ref";
+
+@utility no-scrollbar { scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+@utility tabular { font-variant-numeric: tabular-nums; }
+@utility paper-grain {
+  background-image: radial-gradient(color-mix(in oklab, currentColor 9%, transparent) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+}
+@utility press {
+  transition: transform 120ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  &:active { transform: translateY(1px) scale(0.98); }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@utility animate-rise { animation: rise 360ms var(--ak-ease) both; }
+
+@layer base {
+  /* the reference's headings: bold (700), tight, balanced; Arabic keeps its letters apart */
+  .ref h1, .ref h2, .ref h3 { letter-spacing: -0.02em; text-wrap: balance; font-weight: var(--ak-weight-bold); }
+  :lang(ar) .ref :is(h1, h2, h3) { letter-spacing: 0; }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  @media (prefers-reduced-motion: reduce) { .ref *, .ref *::before, .ref *::after { animation: none !important; transition: none !important; } }
+}

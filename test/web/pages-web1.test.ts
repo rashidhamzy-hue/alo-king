@@ -14,7 +14,7 @@ import { makeFactComplete } from "../db/fact-kit";
 import { productJsonLd } from "../../apps/web/src/lib/jsonld";
 import { DICTS } from "../../apps/web/src/lib/i18n";
 import { pictureUrl } from "../../apps/web/src/lib/db";
-import { WEB_CATALOG_FUNCTIONS, WEB_CHANNEL_FUNCTIONS } from "@ak/commerce/index";
+import { WEB_CATALOG_FUNCTIONS, WEB_CHANNEL_FUNCTIONS, WEB_HOME_FUNCTIONS } from "@ak/commerce/index";
 import { FAKE_ANON, FAKE_JWT, startFakePostgrest, type Fake } from "./postgrest-fake";
 
 const root = fileURLToPath(new URL("../../apps/web/", import.meta.url));
@@ -42,6 +42,14 @@ const ld = (html: string): any => lds(html)[0];
 const skus = (html: string) => [...new Set([...html.matchAll(/href="\/p\/(AK-\d+)"/g)].map((m) => m[1]!))];
 /** The page without its data blocks (LD1: the head carries JSON-LD, whose addresses are not cards). */
 const body = (html: string) => html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "");
+/** WEB4a: the site's own pictures (not the catalogue bucket's): every one WebP; lazy unless it is one of the home hero's two doors (above the fold). */
+function ownImages(html: string, path: string) {
+  const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]).filter((t) => /\ssrc="\/[^/]/.test(t));
+  for (const i of imgs) expect(i, `${path}: the site's own pictures are WebP`).toMatch(/src="[^"]+\.webp"/);
+  const eager = imgs.filter((i) => !/loading="lazy"/.test(i));
+  expect(eager.length, `${path}: only the hero's two doors load before they are seen`).toBeLessThanOrEqual(path === "/" ? 2 : 0);
+  return imgs.length;
+}
 const text = (html: string) => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ");
 
 async function propose(sku: string, kind: "intake_photo" | "open_food_facts" | "web_search") {
@@ -86,7 +94,7 @@ describe("pages render from the database, with JavaScript off", () => {
   it("home shows the closed state from the database, and a WhatsApp link only when a person has set one", async () => {
     await db.pg.exec(`update settings set value = '{"open":"10:00","close":"10:00","tz":"Asia/Beirut"}' where key = 'hours'`);   // open = close: closed at every hour
     const closed = await page("/");
-    expect(text(closed.html)).toContain("Closed now");
+    expect(text(closed.html)).toContain("Closed, opens 10:00");                    // WEB4a: the reference's words, the database's time
     await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
     expect(closed.html).not.toContain("wa.me");
     await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
@@ -341,14 +349,19 @@ describe("search: the chat's matcher", () => {
 });
 
 describe("weight and the installable shell", () => {
-  it("a page weighs under 100 KB before pictures (HTML, stylesheet and script, uncompressed)", async () => {
+  // WEB4a: the 100 KB budget was lifted (F18 2). A page's weight is reported; its own pictures are WebP and lazy below the fold.
+  it("a page's weight before pictures is reported (HTML, stylesheet and script, uncompressed); the site's own pictures are WebP and lazy", async () => {
+    const out: string[] = [];
     for (const path of ["/", "/c/water_drinks", "/c/dairy_eggs", "/p/AK-0044", "/search?q=labneh", "/privacy"]) {
       const { html } = await page(path);
       let bytes = Buffer.byteLength(html);
       for (const href of [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(href)).arrayBuffer()).byteLength;
       for (const src of [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((m) => m[1]!)) bytes += (await (await get(src)).arrayBuffer()).byteLength;
-      expect(bytes, `${path}: ${bytes} bytes`).toBeLessThan(100 * 1024);
+      const n = ownImages(html, path);
+      for (const src of [...html.matchAll(/<img\b[^>]*\ssrc="(\/[^"]+\.webp)"/g)].map((m) => m[1]!)) expect((await get(src)).headers.get("content-type"), src).toMatch(/image\/webp/);
+      out.push(`${path}: ${bytes} bytes before pictures, ${n} pictures of the site's own`);
     }
+    writeFileSync(root + "dist/web-weights.txt", out.join("\n") + "\n");
   });
 
   it("the manifest, the icons, the service worker and the offline page are served", async () => {
@@ -398,7 +411,8 @@ describe("the Worker's connection", () => {
   it("sends its anon key and its web_channel token, and calls only the catalog functions", async () => {
     const used = new Set(fake.calls.map((c) => c.fn));
     expect(used.size).toBeGreaterThan(0);
-    for (const fn of used) expect([...WEB_CATALOG_FUNCTIONS] as string[]).toContain(fn);
+    // WEB4a: the frame reads the served villages and the hours (web_service_facts); the home page its rails (web_home_extras)
+    for (const fn of used) expect([...WEB_CATALOG_FUNCTIONS, ...WEB_HOME_FUNCTIONS, "web_service_facts"] as string[]).toContain(fn);
     // the fake answers 401 to any request without both, so every page above rendering is the proof they were sent
     const bad = await fetch(`${fake.url}/rest/v1/rpc/web_catalog_home`, { method: "POST", headers: { apikey: "x", authorization: "Bearer y" }, body: "{}" });
     expect(bad.status).toBe(401);
@@ -430,30 +444,63 @@ describe("DS1: the redesigned pages", () => {
   it("every page carries the crown, the fonts as this site's own files, and Order on WhatsApp with a greeting, in the header and the phone's bar", async () => {
     for (const path of ["/", "/c/dairy_eggs", "/p/AK-0042", "/search?q=labneh"]) {
       const { html } = await page(path);
-      expect(html, path).toContain('class="ak-crown"');
+      expect(html, path).toContain('d="M5 22.5 6.5 9.5l5.5 5.5L16 7l4 8 5.5-5.5L27 22.5Z"');   // WEB4a: the reference's logo, the same crown
       expect(html.match(/href="https:\/\/wa\.me\/96100000000\?text=Hello%2C%20I%20would%20like%20to%20order"/g)!.length, path).toBeGreaterThanOrEqual(2);
       expect(html, path).toMatch(/<link rel="preload" href="\/_astro\/plex-latin-400\.[\w-]+\.woff2" as="font" type="font\/woff2" crossorigin>/);
       expect(html, path).not.toMatch(/fonts\.googleapis|fonts\.gstatic|cdn\./);
       expect(html, path).toContain('href="/cart"');                                       // WEB2: the basket is in every page's header
     }
     const css = await (await get(/href="(\/_astro\/[^"]+\.css)"/.exec((await page("/")).html)![1]!)).text();
-    expect([...css.matchAll(/url\(([^)]+)\)/g)].every((m) => /^\/_astro\/plex-(latin|arabic|figures)-(400|600)\.[\w-]+\.woff2$/.test(m[1]!.replace(/["']/g, "")))).toBe(true);
+    expect([...css.matchAll(/url\(([^)]+)\)/g)].every((m) => /^\/_astro\/plex-(latin|arabic|figures)-(400|600|700)\.[\w-]+\.woff2$/.test(m[1]!.replace(/["']/g, "")))).toBe(true);
     expect(css).toContain("--ak-gold:#c9a227"); expect(css).toContain("prefers-color-scheme:dark");
     expect((await page("/", { "accept-language": "ar" })).html).toContain(encodeURIComponent("مرحبا، بدي اطلب"));
   });
 
-  it("'Do we deliver to you?' answers from the database with no script: the village's fee and time, and whether we are open", async () => {
-    const served = await db.all<any>(`select vi.name_en, z.delivery_fee_usd, z.base_eta_minutes from villages vi join zones z on z.id = vi.zone_id where vi.is_served and z.is_active`);
+  // WEB4a: the reference's village picker replaces the dropdown: grouped by zone (its time and fee), a form with no script, the village's id kept.
+  it("'Do we deliver to you?' answers from the database with no script: the picker by zone, the chosen village's fee and time, and whether we are open", async () => {
+    const served = await db.all<any>(`select vi.id, vi.name_en, z.delivery_fee_usd, z.base_eta_minutes from villages vi join zones z on z.id = vi.zone_id where vi.is_served and z.is_active`);
     const home = await page("/");
-    const options = [...home.html.matchAll(/<option value="(\d+)"[^>]*data-name="([^"]+)"/g)].map((m) => ({ n: m[1]!, name: m[2]! }));
-    expect(options.length).toBe(served.length);
-    expect(home.html).toMatch(/<div class="answer" role="status" hidden/);            // nothing is claimed before a village is picked
-    const pick = options[1]!; const row = served.find((v) => v.name_en === pick.name)!;
-    const t = text((await page(`/?village=${pick.n}`)).html);
-    expect(t).toContain(`We deliver to ${pick.name}.`); expect(t).toContain(`$${Number(row.delivery_fee_usd).toFixed(2)}`); expect(t).toContain(`About ${row.base_eta_minutes} minutes`);
-    expect(t).toContain("Open now");
-    for (const bad of ["0", "999", "abc", "-1", "1.5"]) { const r = await page(`/?village=${bad}`); expect(r.status, bad).toBe(200); expect(text(r.html), bad).not.toContain("We deliver to "); }
+    const ids = [...new Set([...home.html.matchAll(/<button type="submit" value="([0-9a-f-]{36})"[^>]*name="village"/g)].map((m) => m[1]!))];
+    expect(ids.sort()).toEqual(served.map((v) => v.id).sort());
+    for (const v of served) expect(text(home.html)).toContain(`about ${v.base_eta_minutes} min`);
+    expect(text(home.html)).not.toContain("We deliver to ");                         // nothing is claimed before a village is picked
+    expect(text(home.html)).toContain("Open now");
+    const row = served[1]!;
+    const post = (village: string, back: string) => fetch(base + "/village", { method: "POST", redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", origin: base }, body: new URLSearchParams({ village, back }) });
+    const r = await post(row.id, "/#deliver");
+    expect(r.status).toBe(303);
+    expect(r.headers.get("location")).toBe("/?v=set#deliver");
+    const cookie = /ak_village=([^;]*)/.exec(r.headers.get("set-cookie") ?? "")![1]!;
+    expect(cookie).toBe(row.id);                                                       // the village's id, nothing else
+    const t = text((await page("/", { cookie: `ak_village=${cookie}` })).html);
+    expect(t).toContain(`We deliver to ${row.name_en}.`); expect(t).toContain(`$${Number(row.delivery_fee_usd).toFixed(2)}`); expect(t).toContain(`About ${row.base_eta_minutes} minutes`);
+    for (const bad of ["0", "abc", "00000000-0000-0000-0000-000000000000"]) {
+      const x = await post(bad, "/");
+      expect(x.headers.get("set-cookie"), bad).toMatch(/ak_village=;/);
+    }
+    expect(text((await page("/", { cookie: "ak_village=00000000-0000-0000-0000-000000000000" })).html)).not.toContain("We deliver to ");
     expect(text(home.html)).not.toMatch(/next round/i);                                 // no source for it yet: not said
+  });
+
+  it("'Use my location' keeps the village only: a served village's position sets its id; far away says so; no position says it failed", async () => {
+    const v = await db.one<any>(`select vi.id, vi.lat, vi.lng from villages vi join zones z on z.id = vi.zone_id where vi.is_served and z.is_active and vi.lat is not null order by vi.name_en limit 1`);
+    const locate = (body: Record<string, string>, origin = base) => fetch(base + "/village/locate", { method: "POST", redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", origin }, body: new URLSearchParams(body) });
+    const places = (await db.one<any>(`select count(*)::int as n from customer_places`)).n;
+    const r = await locate({ lat: String(v.lat), lng: String(v.lng), back: "/#deliver" });
+    expect(r.status).toBe(303);
+    const to = r.headers.get("location")!;
+    if (to.startsWith("/village?near=")) expect(to).toContain(v.id);                   // two centres too close to tell: the visitor taps one
+    else { expect(to).toBe("/?v=set#deliver"); expect(r.headers.get("set-cookie")).toMatch(new RegExp(`^ak_village=${v.id};`)); }
+    expect(r.headers.get("set-cookie") ?? "").not.toMatch(/lat|lng|\d+\.\d{3,}/);   // never the position
+    expect((await db.one<any>(`select count(*)::int as n from customer_places`)).n).toBe(places);
+    expect((await locate({ lat: "48.85", lng: "2.35", back: "/" })).headers.get("location")).toBe("/village?outside=1&back=%2F");
+    expect((await locate({ lat: "", lng: "", back: "/" })).headers.get("location")).toBe("/village?failed=1&back=%2F");
+    expect((await locate({ lat: "33.6", lng: "35.5", back: "https://evil.example/" })).headers.get("location")).not.toContain("evil");
+    expect((await locate({ lat: "33.6", lng: "35.5", back: "/" }, "https://evil.example")).status).toBe(403);
+    const page2 = await page("/village?outside=1");
+    expect(page2.status).toBe(200); expect(text(page2.html).replace(/&#39;/g, "'")).toContain("We don't deliver there yet");
   });
 
   it("a category filters by brand, how it is sold and stock, and sorts by price only; the filtered address is not cached", async () => {
@@ -781,7 +828,8 @@ describe("LV1: Chouf places listed before they sign", () => {
     expect((await post(`${href(near.listing_id)}/want`, {}, { "cf-connecting-ip": "203.0.113.92" })).status).toBe(303);
   });
 
-  it("every Food page is under 100 KB on a first visit, in Arabic too: the page, its stylesheet, its script and the fonts it asks for", async () => {
+  it("every Food page's first-visit weight is reported, in Arabic too (the page, its stylesheet, its script and the fonts it asks for); its pictures are WebP and lazy", async () => {
+    const lv1Weights: string[] = [];
     for (const lang of ["en", "ar"]) {
       for (const path of ["/food", "/food?kind=restaurant&sort=name&page=3", href(baak.listing_id), `${href(baak.listing_id)}/remove`, "/"]) {
         const { bytes, html } = await weigh(path, { "accept-language": lang });
@@ -798,9 +846,11 @@ describe("LV1: Chouf places listed before they sign", () => {
           if ((arabic && !needsArabic) || (!arabic && !needsLatin) || (figures && lang !== "ar") || (f.includes("plex-latin") && lang === "ar")) continue;
           fonts += (await (await get(f)).arrayBuffer()).byteLength;
         }
-        expect(bytes + fonts, `${lang} ${path}: ${bytes + fonts} bytes`).toBeLessThan(100 * 1024);
+        lv1Weights.push(`${lang} ${path}: ${bytes + fonts} bytes`);   // WEB4a: reported, not capped (F18 2)
+        ownImages(html, path);
       }
     }
+    writeFileSync(root + "dist/lv1-weights.txt", lv1Weights.join("\n") + "\n");
   });
 
   it("the home page has a door to the Food page", async () => {
@@ -1155,12 +1205,12 @@ describe("UX3: /join/rider and /for-vendors", () => {
     }
   });
 
-  it("each page weighs under 100 KB on a first visit, Arabic included (the page, its stylesheet, its script and its fonts)", async () => {
+  it("each page's first-visit weight is reported, Arabic included (the page, its stylesheet, its script and its fonts); its pictures are WebP and lazy", async () => {
     const out: string[] = [];
     for (const path of ["/join/rider", "/for-vendors", `/for-vendors?place=${encodeURIComponent(aListing.listing_id)}`, "/"]) for (const l of ["en", "ar", "fr"]) {
       const w = await weigh(path, { "accept-language": l });
       out.push(`${path} ${l} ${(w.bytes / 1024).toFixed(1)} KB`);
-      expect(w.bytes, `${path} ${l}: ${(w.bytes / 1024).toFixed(1)} KB`).toBeLessThan(100 * 1024);
+      ownImages(w.html, path);                                                     // WEB4a: reported, not capped (F18 2)
     }
     writeFileSync(root + "dist/ux3-weights.txt", out.join("\n") + "\n");
   });

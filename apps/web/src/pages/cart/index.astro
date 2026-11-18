@@ -15,6 +15,8 @@ import "../../styles/order.css";
 import type { CartView, CheckoutQuote, ServiceFacts } from "@ak/commerce/index";
 import { nameIn, t, usd } from "../../lib/i18n";
 import { lbp, ordering, commerce, visitorOf } from "../../lib/order";
+import { PickerBody } from "../../components/ref/Frame";
+import { frameOf } from "../../lib/frame";
 const { lang, env, catalog } = Astro.locals;
 Astro.response.headers.set("Cache-Control", "no-store");
 const cookie = Astro.request.headers.get("cookie");
@@ -30,6 +32,8 @@ try {
   const skus = (Astro.url.searchParams.get("missing") ?? "").split(",").filter((s) => /^AK-\d{1,8}$/.test(s)).slice(0, 8);
   for (const sku of skus) { const p = await catalog().product(sku); if (p.ok) missing.push(nameIn(lang, p.product.name_en, p.product.name_ar)); else missing.push(sku); }
 } catch { failed = true; Astro.response.status = 503; }
+// WEB4a: the reference's village picker replaces the dropdown (the same list as the header's chip, grouped by zone with fee and time).
+const pickerFrame = failed ? null : await frameOf(env, cookie, { lang, path: "/cart" });
 const village = facts && villageId ? facts.served.find((x: any) => x.village_id === villageId) ?? null : null;
 const quote = q?.quote ?? null;
 const removed = q?.removed ?? [];
@@ -76,18 +80,16 @@ const ltr = (x: string) => (lang === "ar" ? "\u2066" + x + "\u2069" : x);
           <div class="total"><dt>{t(lang, "w2_total")}</dt><dd><bdi>{usd(quote.total_usd)}</bdi></dd></div>
           {quote.total_lbp && <div class="lira"><dt>{t(lang, "w2_in_lira")}</dt><dd><bdi>{lbp(lang, quote.total_lbp)}</bdi></dd></div>}
         </dl>}
-        {lines.length > 0 && !village && facts && facts.served.length > 0 && <form method="post" action="/cart/village" class="w2-village">
+        {lines.length > 0 && !village && pickerFrame && pickerFrame.villages.length > 0 && <section class="w2-village">
           <p class="muted">{t(lang, "w2_fee_pick")}</p>
-          <label class="ak-field"><span>{t(lang, "w2_village")}</span><select class="ak-select" name="village" required>
-            {facts.served.map((x: any) => <option value={x.village_id}>{nameIn(lang, x.name_en, x.name_ar)} · {ltr(usd(x.fee_usd))}</option>)}</select></label>
-          <Button label={t(lang, "w2_village_show")} variant="soft" /></form>}
-        {village && <form method="post" action="/cart/village" class="w2-village inline"><input type="hidden" name="village" value=""><Button label={t(lang, "w2_village")} variant="ghost" size="sm" icon="pin" /></form>}
+          <div class="ak-card picker-page"><PickerBody f={pickerFrame} idp="cart" back="/cart" /></div></section>}
+        {village && <p class="w2-village inline"><a class="ak-btn ak-btn--ghost ak-btn--sm" href="/village?back=/cart"><Icon name="pin" /><span>{t(lang, "w4_change_village", { village: nameIn(lang, village.name_en, village.name_ar) })}</span></a></p>}
         {lines.length > 0 && (below
           ? <p class="w2-note warn" role="status">{t(lang, "w2_min_missing", { min: ltr(usd(below.minimum_usd)), gap: ltr(usd(Math.max(0, Number(below.minimum_usd) - Number(below.subtotal_usd)))) })}</p>
           : facts && Number(facts.min_order_usd) > 0 && <p class="muted small">{t(lang, "w2_min_ok")}</p>)}
         <div class="w2-actions">
           {minOk && <Button label={t(lang, "w2_checkout")} href="/checkout" variant="gold" size="lg" icon="check" />}
-          <Button label={t(lang, "w2_browse")} href="/#categories" variant="ghost" />
+          <Button label={t(lang, "w2_browse")} href="/#aisles" variant="ghost" />
         </div>
         <p class="muted small">{t(lang, "w2_prices_note")} {t(lang, "w2_rider_fee_note")}</p>
       </>}

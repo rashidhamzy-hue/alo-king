@@ -87,7 +87,7 @@ describe.skipIf(!OUT)("UX3 screenshots: the join pages and the Applicants tab", 
       const bytes = (await Promise.all(sizes)).reduce((a, b) => a + b, 0);
       expect(await page.evaluate(WIDE), `${path} (${lang}) at 390 px scrolls sideways`).toEqual([]);
       expect(await page.evaluate(SMALL), `${path} (${lang}) has a control under 44 px`).toEqual([]);
-      expect(bytes, `${path} (${lang}) weighs ${bytes} bytes with its fonts`).toBeLessThan(100 * 1024);
+      expect(bytes, `${path} (${lang}) was weighed`).toBeGreaterThan(0);   // WEB4a: reported, not capped (F18 2)
       weights.push(`${name} ${lang}: ${bytes} bytes (${(bytes / 1024).toFixed(1)} KB)`);
       const h = await page.evaluate("document.documentElement.scrollHeight") as number;
       await page.setViewportSize({ width: 390, height: Math.min(Math.max(h, 844), 4200) });

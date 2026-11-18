@@ -7,10 +7,12 @@ import Gallery from "@ak/ui-astro/Gallery.astro";
 import "../styles/gallery.css";
 import { t } from "../lib/i18n";
 const { lang, env } = Astro.locals;
+// WEB4a: the frame drawn with nothing read (no villages, no basket): the gallery reads nothing from the database.
+const frame = { lang, path: "/gallery", chat: null, villages: [], village: null, open: null, opens: null, hours: null, basket: null, min: null, focus: false };
 const off = env.ENVIRONMENT === "production";
 if (off) Astro.response.status = 404;
 Astro.response.headers.set("Cache-Control", "no-store");
 ---
-<Base title={off ? t(lang, "not_found") : t(lang, "gallery")} lang={lang} path="/gallery">
+<Base title={off ? t(lang, "not_found") : t(lang, "gallery")} lang={lang} path="/gallery" frame={frame}>
   {off ? <Unavailable lang={lang} notFound /> : <><h1>{t(lang, "gallery")}</h1><Gallery lang={lang} /></>}
 </Base>

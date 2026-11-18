@@ -82,6 +82,8 @@ export const WEB_SESSION_FUNCTIONS = [
 ] as const;
 /** The catalog read functions (migrations 0154 and 0155, session WEB1): public, no token, no party. */
 export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category", "web_catalog_product", "web_catalog_search"] as const;
+/** The home page's rails and the village picker's "Use my location" (migration 0243, session WEB4a): read only, nothing stored. */
+export const WEB_HOME_FUNCTIONS = ["web_home_extras", "web_locate_village"] as const;
 /** The Food pages' functions (migration 0224, session LV1): the places listed before they sign. Never orderable; no price, stock or menu. */
 export const WEB_LISTING_FUNCTIONS = ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"] as const;
 /** The join pages' functions (migration 0233, session UX3): an application to ride or to sell. An application is a case for staff, never a rider or a merchant. */
@@ -93,7 +95,7 @@ export const WEB_ORDER_FUNCTIONS = [
   "web_sign_out_everywhere", "web_save_pin", "web_pin_village", "web_place_details", "web_windows", "web_service_facts", "web_cart_count",
 ] as const;
 /** Everything the database role web_channel may execute. A test keeps this equal to the grants and to scripts/check_permissions.sh. */
-export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_ORDER_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
+export const WEB_CHANNEL_FUNCTIONS = [...WEB_SESSION_FUNCTIONS, ...WEB_CATALOG_FUNCTIONS, ...WEB_HOME_FUNCTIONS, ...WEB_LISTING_FUNCTIONS, ...WEB_ORDER_FUNCTIONS, ...WEB_JOIN_FUNCTIONS] as const;
 
 // ---------- the catalog pages' shapes ----------
 export interface CatalogPicture {
@@ -113,6 +115,12 @@ export interface CatalogHome {
   categories: { code: string; name_en: string; name_ar: string; count: number }[];
   whatsapp: { home: string | null; product: string | null };
 }
+/** WEB4a (0243): the home page's rails. `most_ordered` is null until the shop has 30 days of orders. `ask` is the "Ask Alo King" switch (off). */
+export interface HomeExtras { rails: { code: string; name_en: string; name_ar: string; items: CatalogCard[] }[]; most_ordered: CatalogCard[] | null; ask: boolean }
+export interface LocatedVillage { village_id: string; name_en: string; name_ar: string | null; fee_usd: number; eta_minutes: number }
+export type VillageLocate =
+  | { ok: false; error: "bad_position" }
+  | { ok: true; status: "located" | "unsure" | "outside"; village: (LocatedVillage & { served: boolean | null }) | null; choices: LocatedVillage[] };
 export type CatalogCategory =
   | { ok: false; error: "unknown_category" }
   | { ok: true; category: { code: string; name_en: string; name_ar: string };
@@ -207,6 +215,8 @@ export type WebCommerce = ReturnType<typeof webCommerce>;
 export function webCatalog(db: RpcSource) {
   return {
     home: () => call<CatalogHome>(db, "web_catalog_home", {}),
+    homeExtras: (per = 12) => call<HomeExtras>(db, "web_home_extras", { p_per: per }),
+    locateVillage: (lat: number, lng: number) => call<VillageLocate>(db, "web_locate_village", { p_lat: lat, p_lng: lng }),
     category: (code: string) => call<CatalogCategory>(db, "web_catalog_category", { p_code: code }),
     product: (sku: string) => call<CatalogProduct>(db, "web_catalog_product", { p_sku: sku }),
     /** The chat's search (find_products, 0214, through web_catalog_search, 0216) with the filters read from the box by the chat's reading

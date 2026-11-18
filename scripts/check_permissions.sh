@@ -107,6 +107,7 @@ end $$;
 do $$ declare web_allowed text[] := array['web_session_start', 'web_session_state', 'web_session_end', 'web_link_code',
                                            'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order',
                                            'web_catalog_home', 'web_catalog_category', 'web_catalog_product', 'web_catalog_search',
+                                           'web_home_extras', 'web_locate_village',
                                            'web_food_list', 'web_food_place', 'web_listing_want', 'web_listing_remove',
                                            'web_place_order', 'web_order_page', 'web_orders', 'web_order_again', 'web_account', 'web_memory_forget',
                                            'web_memory_pref', 'web_sign_out_everywhere', 'web_save_pin', 'web_pin_village', 'web_place_details',
