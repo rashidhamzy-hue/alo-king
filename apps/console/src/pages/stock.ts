@@ -4,16 +4,25 @@
 // "other" needs a note, and a count that differs from the books needs a note saying what you know. The picker's limit and "never below what is reserved" are the database's
 // (NEEDS_OPS_LEAD, BELOW_RESERVED), shown in words. Nothing is undoable here: a movement is a record, so the way back from a mistake is a new, named one.
 // The other stock pages (catalog, receiving, returns, the pick queue, label day photos) stay one tap away at the foot, as the old hub listed them.
+// WH1a: "Use within 2 days" lists lots (0239), not receipts: each lot still on the shelf with its code, its date and how many are left, an
+// expired one flagged, and a form to write that lot off (write_off_lot: adjust_stock's reasons, limits and ledger, on that lot). Each item says
+// its bin and its lots.
 import { act, html, id, num, render, text, UserError, type Ctx, type Section } from "../app";
 import { form } from "../html";
 import { pick, t } from "../i18n";
 import { buildNav } from "../nav";
+import { doAct } from "./warehouse";
 import { ALL } from "../roles";
 import { badge, button, chips, empty, icon, input, select, tabs } from "@ak/ui/components";
 
 type Product = { id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; storage: string; sell_unit: string; is_active: boolean };
 type Level = { product_id: string; on_hand: number | string; reserved: number | string; reorder_point: number | string };
-type Soon = { product_id: string; expiry_date: string; lot: string | null; on_hand: number | string };
+type Soon = { lot_id: string; product_id: string; expiry_date: string; lot: string | null; on_hand: number | string; qty_left: number | string; expired: boolean; days_left: number };
+type Lot = { id: string; product_id: string; lot: string | null; expiry_date: string | null; qty_left: number | string };
+/** The reasons a lot is written off for (adjust_stock's waste reasons, 0023). */
+const WRITE_OFF: { id: string; en: string; ar: string }[] = [
+  { id: "expired", en: "Expired", ar: "منتهي الصلاحية" }, { id: "damaged", en: "Damaged", ar: "تالف" }, { id: "spoiled", en: "Spoiled", ar: "فاسد" }, { id: "recall", en: "Recalled", ar: "مسحوب من السوق" },
+];
 /** The reasons the database accepts for an adjustment (0023). The database checks them again, and which way each may go. */
 const REASONS: { id: string; en: string; ar: string }[] = [
   { id: "found", en: "Found more", ar: "وُجدت زيادة" }, { id: "damaged", en: "Damaged", ar: "تالف" }, { id: "expired", en: "Expired", ar: "منتهي الصلاحية" },
@@ -48,11 +57,17 @@ export async function stockPage(c: Ctx) {
   const src = await hub(c);
   const view = c.url.searchParams.get("view") === "all" ? "all" : "needs";
   const q = (c.url.searchParams.get("q") ?? "").trim().toLowerCase().slice(0, 80);
-  const [products, levels, soonRows] = await Promise.all([
+  const [products, levels, soonRows, lots, bins] = await Promise.all([
     db.rows<Product>("products", { select: "id,sku,name_en,name_ar,brand,storage,sell_unit,is_active", where: { owner_source_id: null }, order: [{ col: "sku" }], limit: 5000 }),
     db.rows<Level>("stock_levels", { select: "product_id,on_hand,reserved,reorder_point", where: { source_id: src }, limit: 5000 }),
     db.rpc<Soon[] | null>("expiring_stock", { p_source: src, p_days: USE_SOON_DAYS }).catch(() => null),
+    db.rows<Lot>("stock_lots", { select: "id,product_id,lot,expiry_date,qty_left", where: { source_id: src, qty_left: { gte: 0.001 } }, order: [{ col: "expiry_date" }], limit: 5000 }).catch(() => [] as Lot[]),
+    db.rpc<{ bins: { code: string; items: { product_id: string }[] }[] } | null>("bins_overview", { p_source: src }).catch(() => null),
   ]);
+  const lotsOf = new Map<string, Lot[]>();
+  for (const l of lots) lotsOf.set(l.product_id, [...(lotsOf.get(l.product_id) ?? []), l]);
+  const binOf = new Map<string, string>();
+  for (const b of bins?.bins ?? []) for (const i of b.items) binOf.set(i.product_id, b.code);
   const level = new Map(levels.map((l) => [l.product_id, l]));
   const byId = new Map(products.map((p) => [p.id, p]));
   const avail = (p: Product) => { const l = level.get(p.id); return l ? n(l.on_hand) - n(l.reserved) : 0; };
@@ -60,6 +75,7 @@ export async function stockPage(c: Ctx) {
   const low = products.filter((p) => p.is_active && level.has(p.id) && avail(p) > 0 && n(level.get(p.id)!.reorder_point) > 0 && avail(p) <= n(level.get(p.id)!.reorder_point));
   const soon = new Map<string, Soon>();
   for (const s of soonRows ?? []) if (byId.has(s.product_id) && !soon.has(s.product_id)) soon.set(s.product_id, s);
+  const soonLots = (soonRows ?? []).filter((s) => byId.has(s.product_id));
   const matches = (p: Product) => !q || [p.sku, p.name_en, p.name_ar, p.brand].some((v) => (v ?? "").toLowerCase().includes(q));
   const name = (p: Product) => (L === "ar" ? p.name_ar || p.name_en : p.name_en);
   const back = html`<input type="hidden" name="view" value="${view}"><input type="hidden" name="q" value="${q}">`;
@@ -70,6 +86,7 @@ export async function stockPage(c: Ctx) {
     const s = soon.get(p.id);
     return html`<li><div class="head"><strong><bdi>${name(p)}</bdi></strong><span class="tags">${badge(pick(L, `${num_(free)} available`, `المتاح ${num_(free)}`), free <= 0 ? "danger" : "neutral", free <= 0 ? "alert" : "stock")}
 ${l && n(l.reorder_point) > 0 && free > 0 && free <= n(l.reorder_point) ? badge(pick(L, "running low", "ينفد قريباً"), "warn", "alert") : ""}${s ? badge(pick(L, `use by ${s.expiry_date}`, `يُستهلك قبل ${s.expiry_date}`), "warn", "clock") : ""}</span></div>
+${binOf.has(p.id) || lotsOf.has(p.id) ? html`<p class="muted">${binOf.has(p.id) ? pick(L, `Bin ${binOf.get(p.id)}`, `الرف ${binOf.get(p.id)}`) : ""}${binOf.has(p.id) && lotsOf.has(p.id) ? " · " : ""}${(lotsOf.get(p.id) ?? []).map((l) => pick(L, `lot ${l.lot ?? "(no code)"}${l.expiry_date ? `, use by ${l.expiry_date}` : ""}: ${num_(n(l.qty_left))}`, `دفعة ${l.lot ?? "(بلا رقم)"}${l.expiry_date ? `، قبل ${l.expiry_date}` : ""}: ${num_(n(l.qty_left))}`)).join(" · ")}</p>` : ""}
 <p class="muted"><bdi>${p.sku ?? ""}</bdi> · ${pick(L, `on hand ${num_(onHand)}, reserved for open orders ${num_(reserved)}`, `في المخزن ${num_(onHand)}، محجوز لطلبات مفتوحة ${num_(reserved)}`)}${l && n(l.reorder_point) > 0 ? pick(L, `, reorder at ${num_(n(l.reorder_point))}`, `، يُعاد الطلب عند ${num_(n(l.reorder_point))}`) : ""}</p>
 <details class="ak-more"><summary>${icon("pick")} ${pick(L, "Count or adjust", "جرد أو تعديل")}</summary>
 ${form(c.f, `/stock/${p.id}/count`, html`${back}<p><strong>${pick(L, "Count the shelf", "جرد الرف")}</strong></p>
@@ -84,16 +101,26 @@ ${input({ name: "note", label: pick(L, "Note", "ملاحظة"), maxlength: 200 }
   };
   const section = (title: string, list: Product[], none: string) => html`<h2>${title} (${list.length})</h2>${list.length ? html`<ul class="ak-rows">${list.slice(0, LIMIT).map(item)}</ul>${list.length > LIMIT ? html`<p class="muted">${pick(L, `The first ${LIMIT} are shown: search to find the rest.`, `المعروض أول ${LIMIT}: ابحث لتجد البقية.`)}</p>` : ""}` : html`<p class="muted">${none}</p>`}`;
 
+  // Lots, earliest first: what to sell or use first, and what has expired and must come off the shelf.
+  const lotRow = (x: Soon) => { const p = byId.get(x.product_id)!; return html`<li${x.expired ? html` data-state="late"` : ""}><div class="head"><strong><bdi>${name(p)}</bdi></strong><span class="tags">${x.expired ? badge(pick(L, "expired: take it off the shelf", "منتهي الصلاحية: أنزله عن الرف"), "danger", "alert") : badge(pick(L, `use by ${x.expiry_date}`, `يُستهلك قبل ${x.expiry_date}`), "warn", "clock")}</span></div>
+<p class="muted">${pick(L, `Lot ${x.lot ?? "(no code)"} · use by ${x.expiry_date} · ${num_(n(x.qty_left))} left`, `الدفعة ${x.lot ?? "(بلا رقم)"} · يُستهلك قبل ${x.expiry_date} · بقي ${num_(n(x.qty_left))}`)}${binOf.has(p.id) ? pick(L, ` · bin ${binOf.get(p.id)}`, ` · الرف ${binOf.get(p.id)}`) : ""}</p>
+<details class="ak-more"><summary>${icon("undo")} ${pick(L, "Write this lot off", "أتلف هذه الدفعة")}</summary>
+${form(c.f, `/stock/lots/${x.lot_id}/write-off`, html`${back}<div class="ak-money-fields">${input({ name: "qty", label: pick(L, "How many", "كم وحدة"), type: "number", required: true, value: num_(n(x.qty_left)), attrs: { min: "0", step: "any", inputmode: "decimal" } })}
+${select({ name: "reason", label: pick(L, "Reason (required)", "السبب (مطلوب)"), options: [{ value: "", label: pick(L, "Choose a reason", "اختر سبباً") }, ...WRITE_OFF.map((r) => ({ value: r.id, label: pick(L, r.en, r.ar) }))], value: x.expired ? "expired" : "", attrs: { required: true } })}
+${input({ name: "note", label: pick(L, "Note", "ملاحظة"), maxlength: 200 })}</div>
+<div class="actions-row">${button({ label: pick(L, "Write off", "أتلف"), icon: "check", variant: "danger" })}</div>`)}</details></li>`; };
+  const useSoon = (list: Soon[]) => html`<h2>${pick(L, `Use within ${USE_SOON_DAYS} days`, `يُستهلك خلال ${USE_SOON_DAYS} أيام`)} (${list.length})</h2>${list.length ? html`<ul class="ak-rows">${list.slice(0, LIMIT).map(lotRow)}</ul>` : html`<p class="muted">${pick(L, "Nothing expires soon.", "لا شيء تنتهي صلاحيته قريباً.")}</p>`}`;
+
   const hits = products.filter((p) => p.is_active && matches(p)).slice(0, LIMIT);
   const nav = buildNav(c.sections, c.staff.role, L, c.url.pathname, c.badges).groups.find((g) => g.id === "stock");
   const body = view === "all"
     ? html`<p class="muted">${hits.length ? pick(L, `${hits.length} shown${q ? ` for “${q}”` : ""}.`, `المعروض ${hits.length}${q ? ` لـ «${q}»` : ""}.`) : ""}</p>${hits.length ? html`<ul class="ak-rows">${hits.map(item)}</ul>` : empty({ title: pick(L, "No item matches.", "لا صنف مطابق."), icon: "search" })}`
     : html`${section(pick(L, "Out", "نفد"), out.filter(matches), pick(L, "Nothing is out.", "لا شيء نافد."))}
 ${section(pick(L, "Running low", "ينفد قريباً"), low.filter(matches), pick(L, "Nothing is below its reorder point.", "لا شيء تحت حدّ إعادة الطلب."))}
-${section(pick(L, `Use within ${USE_SOON_DAYS} days`, `يُستهلك خلال ${USE_SOON_DAYS} أيام`), [...soon.keys()].map((i) => byId.get(i)!).filter(matches), pick(L, "Nothing expires soon.", "لا شيء تنتهي صلاحيته قريباً."))}`;
+${useSoon(soonLots.filter((x) => matches(byId.get(x.product_id)!)))}`;
 
   return render(c, t(L, "nav_stock"), html`
-${tabs([{ label: pick(L, "Needs a look", "يحتاج نظرة"), href: "/stock", current: view === "needs", count: out.length + low.length + soon.size }, { label: pick(L, "Every item", "كل الأصناف"), href: "/stock?view=all", current: view === "all" }], t(L, "nav_stock"))}
+${tabs([{ label: pick(L, "Needs a look", "يحتاج نظرة"), href: "/stock", current: view === "needs", count: out.length + low.length + soonLots.length }, { label: pick(L, "Every item", "كل الأصناف"), href: "/stock?view=all", current: view === "all" }], t(L, "nav_stock"))}
 <form method="get" action="/stock" class="ak-filters"><input type="hidden" name="view" value="${view}">
 <label class="ak-field ak-field--grow"><span>${pick(L, "Find an item", "ابحث عن صنف")}</span><input class="ak-input" name="q" value="${q}" placeholder="${pick(L, "name, brand or SKU", "الاسم أو العلامة أو الرمز")}" maxlength="80" enterkeyhint="search"></label>
 <button>${pick(L, "Search", "بحث")}</button></form>
@@ -134,6 +161,20 @@ async function adjust(c: Ctx) {
   }, backTo(c));
 }
 
+async function writeOff(c: Ctx) {
+  const lot = id(c, "lot");
+  const L = c.lang;
+  const reason = c.form.reason ?? "";
+  if (!WRITE_OFF.some((r) => r.id === reason)) throw new UserError(pick(L, "Choose a reason from the list.", "اختر سبباً من القائمة."));
+  const qty = num(c, "qty", { min: 0.001, max: 100000 })!;
+  const note = text(c, "note", 200) || null;
+  const code = (await c.deps.db.rows<{ lot: string | null }>("stock_lots", { select: "lot", where: { id: lot }, limit: 1 }))[0]?.lot ?? pick(L, "(no code)", "(بلا رقم)");
+  return doAct(c, "stock_lot_write_off", { lot, qty, reason, note }, backTo(c), async () => {
+    const r = await c.deps.db.rpc<{ duplicate?: boolean; qty_left?: number | string }>("write_off_lot", { p_lot: lot, p_qty: qty, p_reason: reason, p_by: c.staff.partyId, p_note: note, p_key: formKey(c) });
+    return { msg: r?.duplicate ? pick(L, "That write-off was already saved.", "حُفظ هذا الإتلاف بالفعل.") : pick(L, `Written off: ${num_(qty)} from lot ${code}. ${num_(n(r?.qty_left ?? 0))} left in it.`, `أُتلف ${num_(qty)} من الدفعة ${code}. بقي فيها ${num_(n(r?.qty_left ?? 0))}.`) };
+  });
+}
+
 export const stockSection: Section = {
   // No menu entry of its own: the phone bar and the Stock group link to it.
   nav: { href: "/stock", label: "Stock", roles: [] },
@@ -141,5 +182,6 @@ export const stockSection: Section = {
     { method: "GET", path: "/stock", roles: ALL, handler: stockPage },
     { method: "POST", path: "/stock/:product/count", roles: ALL, handler: count },
     { method: "POST", path: "/stock/:product/adjust", roles: ALL, handler: adjust },
+    { method: "POST", path: "/stock/lots/:lot/write-off", roles: ALL, handler: writeOff },
   ],
 };

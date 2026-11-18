@@ -37,6 +37,10 @@ export const KIND: Record<string, Info> = {
   technical: { en: "A technical failure on the customer line", ar: "عطل تقني على خط الزبائن", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   // LV1: a Chouf food place listed before it signs was asked to be removed (its page is already hidden, or a limit left it up for a person to decide).
   listing_removal: { en: "A food place asked to be removed", ar: "مكان طعام طلب إزالة صفحته", href: () => "/listings?tab=hidden", cta: { en: "Open food places", ar: "افتح أماكن الطعام" } },
+  // WH1a: the chilled zone's temperature log (0240) and an expired lot booked by a pick (0239).
+  temperature_out_of_range: { en: "A fridge reading is out of range", ar: "قراءة برّاد خارج المدى", href: () => "/temperature", cta: { en: "Open the temperature log", ar: "افتح سجل الحرارة" } },
+  temperature_missed: { en: "A fridge reading was missed", ar: "فاتت قراءة حرارة البرّاد", href: () => "/temperature", cta: { en: "Take the reading", ar: "سجّل القراءة" } },
+  expired_lot_picked: { en: "An expired lot left the shelf in an order", ar: "خرجت دفعة منتهية الصلاحية في طلب", href: orderRef, cta: { en: "Open the order", ar: "افتح الطلب" } },
   probe_handoff_released: { en: "A test chat was handed back", ar: "أُعيدت محادثة اختبار", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
 };
 
