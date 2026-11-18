@@ -2610,14 +2610,14 @@ Non, merci
 
 ```text
 🕘 *Alo King test kitchen est fermé pour l'instant*
-Ouverture à 11:00. Votre commande est gardée ici.
+Ouverture à 11:00. Rien ne part tout seul : écrivez-nous quand il est ouvert et nous prendrons la commande.
 ```
 
 ## food.closed.noTime
 
 ```text
 🕘 *Alo King test kitchen est fermé pour l'instant*
-Votre commande est gardée ici.
+Rien ne part tout seul : écrivez-nous quand il est ouvert et nous prendrons la commande.
 ```
 
 ## food.askPlace

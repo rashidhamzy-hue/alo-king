@@ -333,7 +333,7 @@ export const ar: Messages = {
     choose: (dish, group, required) => required ? `📝 *${dish}*\nاختار ${group}:` : `📝 *${dish}*\nبتحب تزيد ${group}؟`,
     chooseButton: "اختار",
     noThanks: "لا، شكراً",
-    closed: (place, opens) => `🕘 *${place} مسكّر هلّق*\n${opens ? `بيفتح الساعة ${opens}. ` : ""}طلبك محفوظ هون.`,
+    closed: (place, opens) => `🕘 *${place} مسكّر هلّق*\n${opens ? `بيفتح الساعة ${opens}. ` : ""}ما منبعت شي لحالنا: اكتبلنا وقت يفتح ومنكمّل الطلب.`,
     askPlace: (dish, place) => `💬 ما عنّا معلومات مؤكّدة عن مكوّنات ${dish} أو إذا فيه شي بيعمل حساسية.\nمنسأل ${place} لما نتّصل فيهن، وما منقول إنّو آمن قبل ما نعرف.`,
     arrives: (place, minutes) => `⏱️ طلبات ${place ?? "المطاعم"} ما إلها وقت محدّد: بتوصل لما تجهز${minutes ? `، خلال حوالي ${minutes} دقيقة` : ""}.`,
     accepted: (code, place, minutes) => `✅ *طلبك ${code}*\n${place} قبل الطلب وعم يحضّرو.\n⏱️ بيوصلك خلال حوالي ${minutes} دقيقة.`,

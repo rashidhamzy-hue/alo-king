@@ -2610,14 +2610,14 @@ No, thanks
 
 ```text
 🕘 *Alo King test kitchen is closed now*
-It opens at 11:00. Your order is kept here.
+It opens at 11:00. Nothing is sent by itself: write to us when it is open and we take the order then.
 ```
 
 ## food.closed.noTime
 
 ```text
 🕘 *Alo King test kitchen is closed now*
-Your order is kept here.
+Nothing is sent by itself: write to us when it is open and we take the order then.
 ```
 
 ## food.askPlace
