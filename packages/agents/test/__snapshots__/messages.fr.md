@@ -1614,7 +1614,7 @@ Juste cette fois
 ## remember.kept
 
 ```text
-C'est fait : on le retient et on le met sur chaque commande. Dites « oublier » quand vous voulez.
+C'est fait : on le retient et on le met sur chaque commande. Dites « oubliez-moi » quand vous voulez.
 ```
 
 ## remember.notKept

@@ -1614,7 +1614,7 @@ Just this time
 ## remember.kept
 
 ```text
-Done: we'll remember it and put it on every order. Say “forget” any time.
+Done: we'll remember it and put it on every order. Say “forget me” any time.
 ```
 
 ## remember.notKept

@@ -288,7 +288,7 @@ Until then nothing changes on the page.`,
     offer: (rs, onOrder) => onOrder ? `I've put “${rs.join(", ")}” on your order; the kitchen must confirm it.\nShall we remember it for your next orders?`
                                     : `Noted: “${rs.join(", ")}”; the kitchen must confirm it on each order.\nShall we remember it for your next orders?`,
     yes: "Yes, remember it", no: "Just this time",
-    kept: "Done: we'll remember it and put it on every order. Say “forget” any time.",
+    kept: "Done: we'll remember it and put it on every order. Say “forget me” any time.",
     notKept: "OK, just for this order.",
   },
   built: {

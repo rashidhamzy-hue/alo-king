@@ -46,6 +46,31 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 
 ## Status
 
+### B1e: dropped and invented lines, 18 November 2026 (Opus 5.5); migration 0235
+Branch `claude/serene-shannon-ar181m`, one pull request. QA1's open items (`docs/QA1.md` section 9, 1) and UX3's Arabic as the coordinator read it.
+Every fix has its failing case first: `evals/cases/b1e_dropped_line.json` (flows `test/db/dropped-line-b1e.test.ts`, code `evals/test/b1e-kind.test.ts`;
+QA1's `evals/cases/qa1_dropped_line.json` is now run by the same flow file) and `evals/cases/b1e_area_claims.json` (`packages/agents/test/area-claim-b1e.test.ts`,
+`test/db/area-claim-b1e.test.ts`). All failed on `main` before the fix.
+
+| What | Built | Held by |
+| --- | --- | --- |
+| A kind and a fact with no product name, read with no line ("protein bars with no sugar", «بدي سناكس بلا سكر للولاد», "bidde protein bars bala sekkar", "des barres protéinées sans sucre", "do you have protein bars with no sugar?") | `kindSaid` (`packages/agents/src/honest.ts`) finds the kind in the customer's own words when the reading gave no line and the words ask a fact; `planReading` gives it that line, so PD1's honest answer answers it and logs the demand row (if the honest answer does not answer, e.g. an item whose own name holds the words, the usual path plans the line). No longer the returning-customer welcome. A fact alone ("no sugar", «بلا سكر», "I'm diabetic, no sugar please") or a fact said of another item ("no sugar in the coffee", «بلا سكر بالقهوة») is no kind: those keep their path. One prompt line asks the reading for the line too; the code holds without it | 5 flows (four languages and a question), QA1's case as written, 28 code cases |
+| The restriction line («سجّلنا … على طلبك») | The offer to remember a restriction (1.14) is in the conversation's language (`remember` in the three message packs; it was Arabic only) and says "on your order" only when a basket, a card or an order is in hand (`orderInHand`, `memory.ts`). After the honest answer, the fact that only describes the kind asked ("no sugar" of the protein bars) is neither offered nor kept for the next basket; an allergy still is (`turn.ts`) | 3 flows ("no sugar", "I'm diabetic…", «بلا سكر»), the message-rules snapshot |
+| A restriction inside a real order (pinned, unchanged) | "labneh, no sugar in the coffee" read with its labneh line keeps PD1's path: **with one line PD1 applies the whole message's facts to that line**, so it answers "I can't confirm the sugar for our labneh yet" and logs `facts_unconfirmed` labneh. That was so before B1e and the brief said to keep it; it is pinned by a case, not endorsed. Read with two lines (labneh, coffee "no sugar") it is the usual card path | 2 flows. **For the next ordering session:** a fact said of another item ("in the coffee") should not be asked of the one line |
+| The model never says where we deliver (sim-021) | Output guard `area_claim` (`output-guard.ts`): a sentence that says we do, or do not, deliver to a place (English, Arabic, Arabizi, French: "we don't deliver to", «ما في توصيل», "ma fi tawseel", "ma 3ando tawseel", "outside our area", «منوصّل على», "on ne livre pas") is refused unless a tool or the planner returned that place this turn with that answer (`areas`: `resolve_place`'s village with `served`; the plan's priced village; its `village_not_served`). `no_delivery_village` (no village known yet) and `village_not_recognised` say nothing about delivery, which is how sim-021 went wrong. The hint tells the model to ask for the village or a pin. The gateway checks it again (A2's second lock) | 12 refused, 13 allowed, the gateway's preflight, 3 flows through the turn |
+| A reply in another language (sim-021's English to an Arabizi customer) | Output guard `wrong_language`: the model's own words (returned product names taken out) must be in the conversation's language (`state.speech`); a reply in Arabic script to an Arabizi customer passes, as the sim's check allows. Only clear evidence refuses ("ok merci" never does) | the same files |
+| UX3's Arabic, read by the coordinator | `web.join_cash_h` «سقف النقد»; the consent a rider or a vendor gives by sending their code (migration **0235**, `claim_link_code` copied from 0233 with the two lines: «لمّا تبعت الرمز، بتأكّد رقمك وبتوافق إنّو نردّ عليك بهالمحادثة على طلب انضمامك كدليفري.», «… على طلب انضمام محلّك.»); every other UX3 row in `docs/ARABIC_REVIEW.md` marked "RA 18 Nov" | `test/ci/ux3-arabic.test.ts` (reads 0235 now), `test/db/ux3-join.test.ts` |
+
+**Changed expectations in older tests, and why.** `test/db/ordering-b2.test.ts`, "just this once": an English-speaking customer now gets "OK, just for this
+order." (it held the Arabic line, which was the wrong-language bug). `test/db/ux3-join.test.ts`: the rider's consent says «كدليفري» (the coordinator's
+words), not «مندوب». `test/ci/ux3-arabic.test.ts` reads the consent from 0235.
+
+**New words wait for a reader:** the offer to remember in English and French, and its Arabic form with no order (`docs/ARABIC_REVIEW.md`, B1e).
+The memory answers ("what do you know about me", "forget") are still Arabic only.
+
+**Tested here (no key):** `npm run typecheck` clean; `npm test`: every file passes except the seven `test/pg` files, which need pgvector and run in CI only (QA1, 9.5).
+RUNS_PLACEHOLDER
+
 ### QA1: the whole system on staging, 17 November 2026 (Opus 5.5); no migration (0235 stays free)
 Branch `claude/pensive-archimedes-8q67nh`, one pull request. Every check, with its evidence: **`docs/QA1.md`**. In short:
 - **Works on staging, seen today:** staging at 0234; the minute cron and the scheduled workflows green; all 18 website pages and 41 console pages at

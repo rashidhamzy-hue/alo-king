@@ -1385,3 +1385,22 @@ The shifts (morning 08:00 to 15:30, evening 15:30 to 23:00) are a draft taken fr
 | This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | RA 18 Nov |
 | ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | RA 18 Nov |
 | Declined. The reason is kept. | تم الرفض. السبب محفوظ. | RA 18 Nov |
+
+## B1e, the offer to remember a restriction, in the customer's language (18 November 2026)
+
+Written by a model; **waits for a reader** (the last column is empty). The offer (build plan 1.14) was Arabic only and always said «على طلبك», even with no
+order (QA1: «سجّلنا «no sugar» على طلبك» in Arabic to an English customer who had no order). It now has the customer's language (`remember` in
+`packages/agents/src/messages/{ar,en,fr}.ts`) and a second form for when no basket, card or order is in hand. The Arabic with an order and the
+Arabic buttons and answers are the lines read before (moved from `memory.ts`, one line break added so no line passes 120 characters). `{r}` is
+the customer's own words.
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `remember.offer` (an order in hand) | سجّلنا «{r}» على طلبك، ولازم المطبخ يأكّد.<br>بتحب نتذكّرها لطلباتك الجاية؟ | I've put “{r}” on your order; the kitchen must confirm it.<br>Shall we remember it for your next orders? | J'ai mis « {r} » sur votre commande ; la cuisine doit le confirmer.<br>On le retient pour vos prochaines commandes ? | |
+| `remember.offer` (no order yet) | سجّلنا «{r}»، ولازم المطبخ يأكّدها بكل طلب.<br>بتحب نتذكّرها لطلباتك الجاية؟ | Noted: “{r}”; the kitchen must confirm it on each order.<br>Shall we remember it for your next orders? | C'est noté : « {r} » ; la cuisine doit le confirmer à chaque commande.<br>On le retient pour vos prochaines commandes ? | |
+| `remember.yes` | إيه، تذكّرها | Yes, remember it | Oui, retenez-le | |
+| `remember.no` | بس هالمرة | Just this time | Juste cette fois | |
+| `remember.kept` | تم، رح نتذكّرها ونحطّها على كل طلب. فيك تقلّي «إنسى» بأي وقت. | Done: we'll remember it and put it on every order. Say “forget me” any time. | C'est fait : on le retient et on le met sur chaque commande. Dites « oubliez-moi » quand vous voulez. | |
+| `remember.notKept` | تمام، بس لهالطلب. | OK, just for this order. | D'accord, juste pour cette commande. | |
+
+Still Arabic only, unchanged (not B1e's): the memory answers ("what do you know about me", "forget", "stop remembering"; `MEMORY_TEXT` in `memory.ts`).
