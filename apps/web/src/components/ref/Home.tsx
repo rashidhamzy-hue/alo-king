@@ -9,11 +9,9 @@ import { t, type Lang } from "../../lib/i18n";
 import { chatWith } from "../../lib/order";
 import { photoFile, type Tone } from "../../lib/category-photos";
 import { DeliveryLine, PickerBody, type FrameData } from "./Frame";
+import { ProductRail, TONE_BG, type CardData } from "./Product";
 import { Forward, Price, SectionHead, SeeAll, WaIcon, Crown, cx } from "./ui";
 
-export interface CardData {
-  sku: string; name: string; unit: string; price: number; inStock: boolean; comingSoon: boolean; img: string | null; imgAlt: string; tone: Tone;
-}
 export interface HomeData {
   f: FrameData;
   categories: { code: string; name: string; count: number; tone: Tone; fresh: boolean }[];
@@ -23,62 +21,13 @@ export interface HomeData {
   itemsTotal: number;
 }
 
-const TONE_BG: Record<Tone, string> = {
-  clay: "bg-tone-clay text-tone-clay-ink", sky: "bg-tone-sky text-tone-sky-ink", wheat: "bg-tone-wheat text-tone-wheat-ink", rose: "bg-tone-rose text-tone-rose-ink",
-  ice: "bg-tone-ice text-tone-ice-ink", saffron: "bg-tone-saffron text-tone-saffron-ink", olive: "bg-tone-olive text-tone-olive-ink",
-};
-
 /** A category's photo (this site's own WebP file), or its tone field when it has none. Lazy unless it is above the fold. */
-function CategoryVisual({ code, tone, className = "", small = false, eager = false }: { code: string; tone: Tone; className?: string; small?: boolean; eager?: boolean }) {
+export function CategoryVisual({ code, tone, className = "", small = false, eager = false }: { code: string; tone: Tone; className?: string; small?: boolean; eager?: boolean }) {
   const src = photoFile(code, small);
   return (
     <div className={cx("relative overflow-hidden", TONE_BG[tone], className)} aria-hidden="true">
       {src ? <img src={src} alt="" width={small ? 160 : 480} height={small ? 160 : 480} loading={eager ? "eager" : "lazy"} decoding="async" className="absolute inset-0 size-full object-cover" />
            : <div className="paper-grain absolute inset-0 opacity-60" />}
-    </div>
-  );
-}
-
-/** A product card (the reference's ProductCard): picture or the type-led field, Add (a form: works with no script), price, name, unit. */
-export function ProductCard({ p, lang, back }: { p: CardData; lang: Lang; back: string }) {
-  const out = !p.inStock;
-  return (
-    <article className="group relative flex flex-col">
-      <div className="relative">
-        <a href={`/p/${encodeURIComponent(p.sku)}`} tabIndex={-1} aria-hidden="true" className="block rounded-xl no-underline transition group-hover:-translate-y-0.5">
-          <span className={cx("block", out && "opacity-55 grayscale")}>
-            {p.img
-              ? <span className="relative block aspect-square overflow-hidden rounded-xl bg-white"><img src={p.img} alt={p.imgAlt} loading="lazy" decoding="async" className="size-full object-contain p-3" /></span>
-              : <span className={cx("relative flex aspect-square flex-col overflow-hidden rounded-xl p-3", TONE_BG[p.tone])}>
-                  <span className="paper-grain absolute inset-0 opacity-50" />
-                  <span className="absolute -end-5 -top-5 size-[62%] rounded-full bg-card/50" />
-                  <span className="relative mt-auto line-clamp-3 break-words pe-12 text-base font-bold uppercase leading-[0.95] tracking-tight text-ink/85 rtl:normal-case rtl:tracking-normal">{p.name}</span>
-                  {p.unit && <span className="relative mt-1 line-clamp-1 pe-12 text-xs font-bold">{p.unit}</span>}
-                </span>}
-          </span>
-        </a>
-        {(out || p.comingSoon) && (
-          <span className="absolute start-2 top-2 rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-paper">{t(lang, p.comingSoon ? "coming_soon" : "w4_sold_out")}</span>
-        )}
-        {!out && !p.comingSoon && (
-          <form method="post" action="/cart/line" className="absolute bottom-2 end-2 m-0">
-            <input type="hidden" name="sku" value={`${p.sku}:${p.price}`} /><input type="hidden" name="add" value="1" /><input type="hidden" name="back" value={back} />
-            <button type="submit" aria-label={t(lang, "w4_add", { name: p.name })} className="press grid size-11 place-items-center rounded-full bg-ink text-2xl font-bold leading-none text-gold shadow-lift">+</button>
-          </form>
-        )}
-      </div>
-      <a href={`/p/${encodeURIComponent(p.sku)}`} className="flex flex-1 flex-col rounded-xl px-0.5 pb-1 pt-1.5 text-foreground no-underline hover:[&_.nm]:underline">
-        <Price value={p.price} className="text-[17px] font-bold" />
-        <span className="nm line-clamp-2 text-[13.5px] font-medium leading-snug">{p.name}</span>
-        {p.unit && <span className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{p.unit}</span>}
-      </a>
-    </article>
-  );
-}
-export function ProductRail({ items, lang, back }: { items: CardData[]; lang: Lang; back: string }) {
-  return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0">
-      {items.map((p) => <div key={p.sku} className="w-[42vw] max-w-44 shrink-0 snap-start sm:w-44"><ProductCard p={p} lang={lang} back={back} /></div>)}
     </div>
   );
 }
@@ -152,7 +101,7 @@ function Hero({ d }: { d: HomeData }) {
             </label>
           </form>
           <nav className="mt-4 grid max-w-xl grid-cols-2 gap-2.5" aria-label={t(l, "w4_doors")}>
-            {[["/#aisles", t(l, "w4_door_groceries"), t(l, "w4_door_groceries_sub", { n: d.itemsTotal }), "fruits_vegetables", ShoppingBasket] as const,
+            {[["/aisles", t(l, "w4_door_groceries"), t(l, "w4_door_groceries_sub", { n: d.itemsTotal }), "fruits_vegetables", ShoppingBasket] as const,
               ["/food", t(l, "w4_door_food"), t(l, "w4_door_food_sub"), "food", UtensilsCrossed] as const].map(([href, title, sub, photo, I]) => (
               <a key={href} href={href} className="press group relative isolate flex min-h-36 flex-col justify-end overflow-hidden rounded-3xl bg-ink p-3.5 text-paper no-underline shadow-lift sm:min-h-40">
                 <img src={photoFile(photo)!} alt="" width={480} height={480} loading="eager" decoding="async" className="absolute inset-0 -z-10 size-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
@@ -320,13 +269,13 @@ export function Home({ d }: { d: HomeData }) {
       {d.most && d.most.length > 0 && (
         <section className="px-4 pt-8 lg:px-8">
           <SectionHead title={t(l, "w4_most_ordered")} sub={t(l, "w4_most_ordered_sub")} />
-          <ProductRail items={d.most} lang={l} back="/" />
+          <ProductRail items={d.most} lang={l} />
         </section>
       )}
 
       {fresh.length > 0 && (
         <section className="px-4 pt-8 lg:px-8" aria-labelledby="fresh-h">
-          <SectionHead id="fresh-h" title={t(l, "w4_fresh")} action={<SeeAll href="#aisles" label={t(l, "w4_all_aisles")} />} />
+          <SectionHead id="fresh-h" title={t(l, "w4_fresh")} action={<SeeAll href="/aisles" label={t(l, "w4_all_aisles")} />} />
           <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:px-0">
             {fresh.map((c) => (
               <a key={c.code} href={`/c/${c.code}`} className="press group relative w-[44vw] max-w-52 shrink-0 snap-start overflow-hidden rounded-xl text-white no-underline shadow-card lg:w-auto lg:max-w-none">
@@ -341,7 +290,7 @@ export function Home({ d }: { d: HomeData }) {
       {firstRail && (
         <section className="px-4 pt-10 lg:px-8">
           <SectionHead title={firstRail.name} sub={t(l, "w4_rail_sub")} action={<SeeAll href={`/c/${firstRail.code}`} label={t(l, "w4_see_all")} />} />
-          <ProductRail items={firstRail.items} lang={l} back="/" />
+          <ProductRail items={firstRail.items} lang={l} />
         </section>
       )}
 
@@ -350,7 +299,7 @@ export function Home({ d }: { d: HomeData }) {
       {moreRails.map((r, i) => (
         <section key={r.code} className={i === 0 ? "mx-4 mt-10 overflow-hidden rounded-3xl bg-secondary p-4 lg:mx-8 lg:p-6" : "px-4 pt-10 lg:px-8"}>
           <SectionHead title={r.name} sub={t(l, "w4_rail_sub")} action={<SeeAll href={`/c/${r.code}`} label={t(l, "w4_see_all")} />} />
-          <ProductRail items={r.items} lang={l} back="/" />
+          <ProductRail items={r.items} lang={l} />
         </section>
       ))}
 

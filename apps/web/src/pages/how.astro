@@ -56,6 +56,6 @@ const cap = f ? Number(f.first_order_max_cod_usd ?? 0) : 0;
     <section id="photos"><h2>{t(lang, "w4_photos")}</h2><p class="muted small">{t(lang, "w4_photos_text")}</p>
       <ul class="credits small">{[...Object.values(CATEGORY_PHOTOS), FOOD_PHOTO].map((p) => <li lang="en"><a href={unsplashPage(p.id)} rel="noopener" target="_blank">{p.subject}</a></li>)}</ul>
     </section>
-    <div class="w2-actions"><Button label={t(lang, "w2_how_cta")} href="/#aisles" variant="gold" size="lg" /></div>
+    <div class="w2-actions"><Button label={t(lang, "w2_how_cta")} href="/aisles" variant="gold" size="lg" /></div>
   </div>}
 </Base>

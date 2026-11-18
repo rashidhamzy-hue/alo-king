@@ -125,6 +125,21 @@ export function VillageChip({ f, className = "" }: { f: FrameData; className?: s
   );
 }
 
+/** A product page's delivery note: the chosen village with its time and fee, or a link to choose one (no second picker on the page). */
+export function DeliveryNote({ f }: { f: FrameData }) {
+  const l = f.lang;
+  return (
+    <p className="m-0 mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
+      <MapPin className="size-4 shrink-0 text-gold-deep" aria-hidden="true" />
+      {f.village
+        ? <><span className="font-semibold text-foreground">{f.village.name}</span><span aria-hidden="true">·</span><span>{t(l, "w4_eta", { n: f.village.eta })}</span>
+            <span aria-hidden="true">·</span><Price value={f.village.fee} />
+            <a href={`/village?back=${encodeURIComponent(f.path)}`} className="font-semibold text-gold-deep underline underline-offset-4">{t(l, "w4_change")}</a></>
+        : <a href={`/village?back=${encodeURIComponent(f.path)}`} className="font-semibold text-gold-deep underline underline-offset-4">{t(l, "w2_fee_pick")}</a>}
+    </p>
+  );
+}
+
 /** "Delivering to <village> · time · fee": the hero's chip line. With no village chosen, the chip asks for one. */
 export function DeliveryLine({ f }: { f: FrameData }) {
   const l = f.lang;
@@ -170,7 +185,7 @@ export function Header({ f }: { f: FrameData }) {
         <a href="/" className="shrink-0 no-underline" aria-label={t(l, "home")}><Logo name={t(l, "site")} /></a>
         <nav aria-label={t(l, "w4_nav")} className="hidden items-center gap-1 lg:flex">
           <a href="/food" className="whitespace-nowrap rounded-xl px-3 py-2 text-[15px] font-semibold text-muted-foreground no-underline hover:text-foreground" aria-current={f.path.startsWith("/food") ? "page" : undefined}>{t(l, "w4_food")}</a>
-          <a href="/#aisles" className="whitespace-nowrap rounded-xl px-3 py-2 text-[15px] font-semibold text-muted-foreground no-underline hover:text-foreground">{t(l, "w4_groceries")}</a>
+          <a href="/aisles" aria-current={/^\/(aisles|c\/|p\/)/.test(f.path) ? "page" : undefined} className="whitespace-nowrap rounded-xl px-3 py-2 text-[15px] font-semibold text-muted-foreground no-underline hover:text-foreground aria-[current]:text-foreground aria-[current]:underline aria-[current]:decoration-accent aria-[current]:decoration-[3px] aria-[current]:underline-offset-8">{t(l, "w4_groceries")}</a>
         </nav>
         <form action="/search" method="get" role="search" className="m-0 hidden min-w-[200px] flex-1 xl:block">
           <label className="flex min-h-11 items-center gap-2 rounded-2xl bg-muted ps-4 pe-1.5 focus-within:ring-2 focus-within:ring-ring">
@@ -234,7 +249,7 @@ export function Footer({ f }: { f: FrameData }) {
             <WaIcon /> {t(l, "w4_chat")}</a>}
           <p className="m-0 mt-3 text-xs text-paper/60">{t(l, "footer_note")}</p>
         </div>
-        {col(t(l, "w4_shop"), [["/#aisles", t(l, "w4_all_aisles")], ["/search", t(l, "search")], ["/cart", t(l, "w4_basket")], ["/orders", t(l, "w2_orders")]])}
+        {col(t(l, "w4_shop"), [["/aisles", t(l, "w4_all_aisles")], ["/search", t(l, "search")], ["/cart", t(l, "w4_basket")], ["/orders", t(l, "w2_orders")]])}
         {col(t(l, "w4_more"), [["/food", t(l, "w4_food_places")], ["/how", t(l, "w2_how")], ["/for-vendors", t(l, "w4_sell")], ["/join/rider", t(l, "w4_ride")],
           ["/signin", t(l, "w4_signin")], ["/privacy", t(l, "privacy")], ["/terms", t(l, "terms")]])}
         <div>
@@ -260,11 +275,12 @@ export function BottomNav({ f }: { f: FrameData }) {
   const nav: [string, string, typeof House, boolean][] = [
     ["/", t(l, "w4_home"), House, p === "/"],
     ["/food", t(l, "w4_food"), UtensilsCrossed, p.startsWith("/food")],
-    ["/#aisles", t(l, "w4_groceries"), LayoutGrid, p.startsWith("/c/") || p.startsWith("/p/")],
+    ["/aisles", t(l, "w4_groceries"), LayoutGrid, p.startsWith("/aisles") || p.startsWith("/c/") || p.startsWith("/p/")],
     ["/search", t(l, "w4_search"), Search, p.startsWith("/search")],
     ["/account", t(l, "w4_you"), User, p.startsWith("/account") || p.startsWith("/orders")],
   ];
-  const showBar = !!b && b.count > 0 && !["/cart", "/checkout"].some((x) => p.startsWith(x)) && !p.startsWith("/o/");
+  // one primary action: no basket bar where the page has its own (the basket, checkout, an order, a product with its Add)
+  const showBar = !!b && b.count > 0 && !["/cart", "/checkout", "/o/", "/p/"].some((x) => p.startsWith(x));
   const gap = b && b.total !== null && f.min !== null && b.total < f.min ? f.min - b.total : 0;
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden" data-bottom>

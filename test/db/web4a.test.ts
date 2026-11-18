@@ -109,3 +109,39 @@ describe("web_locate_village: 'Use my location' keeps the village only", () => {
     expect(await cat.locateVillage(200, 0)).toEqual({ ok: false, error: "bad_position" });
   });
 });
+
+// Stage 2 (0244): what a price is for. The founder's test: an item sold by weight says "per pack of about X g" or "per kg", never nothing.
+describe("catalog_price_for: what a price is for, on the card, the product page and the basket", () => {
+  const card = async (sku: string) => {
+    const r = await cat.homeExtras(20);
+    for (const rail of r.rails) { const c = rail.items.find((i) => i.sku === sku); if (c) return c; }
+    const s = await cat.search(sku, 30); return s.matches.find((i) => i.sku === sku) ?? null;
+  };
+  it("a piece has none; a '500 g pack' is a pack of about 500 g; a name that says /Kg is per kg; a pack with no weight on file says so (null)", async () => {
+    const p = await cat.product("AK-0046"); if (!p.ok) throw new Error("AK-0046");
+    expect(p.product.price_for).toBeNull();                                                // Liban Lait Labneh 450G: one item
+    const kafta = await cat.product("AK-0028"); if (!kafta.ok) throw new Error("AK-0028");
+    expect(kafta.product.price_for).toEqual({ per: "pack", about_g: 500 });                // "500 g pack"
+    const halloum = await cat.product("AK-0044"); if (!halloum.ok) throw new Error("AK-0044");
+    expect(halloum.product.price_for).toEqual({ per: "kg", about_g: null });               // "Halloum /Kg"
+    const labneh = await cat.product("AK-0042"); if (!labneh.ok) throw new Error("AK-0042");
+    expect(labneh.product.price_for).toEqual({ per: "pack", about_g: null });              // by weight, no weight on file: never a guess
+  });
+  it("an approved pack weight is used; a proposed one is not", async () => {
+    const id = (await db.one(`select id from products where sku = 'AK-0042'`)).id;
+    // a packaged food's template has a size field (not a weight per pack): "350 g" printed on the pack
+    await db.pg.query(`insert into product_field_values(product_id, field_key, value, source, status) values ($1, 'size', '"350 g"', 'label_photo', 'proposed')`, [id]);
+    let p = await cat.product("AK-0042"); if (!p.ok) throw new Error("AK-0042");
+    expect(p.product.price_for).toEqual({ per: "pack", about_g: null });
+    await db.pg.query(`update product_field_values set status = 'approved', approved_at = now() where product_id = $1 and field_key = 'size'`, [id]);
+    p = await cat.product("AK-0042"); if (!p.ok) throw new Error("AK-0042");
+    expect(p.product.price_for).toEqual({ per: "pack", about_g: 350 });
+    await db.pg.query(`delete from product_field_values where product_id = $1 and field_key = 'size'`, [id]);
+  });
+  it("cards carry it with their aisle; the basket's read gives it by sku, only for items the site shows, as web_channel", async () => {
+    const c = await card("AK-0042");
+    expect(c?.price_for).toEqual({ per: "pack", about_g: null });
+    expect(c?.category_code).toBe("dairy_eggs");
+    expect(await cat.priceFor(["AK-0042", "AK-0046", "AK-0044", "NOPE"])).toEqual({ "AK-0042": { per: "pack", about_g: null }, "AK-0044": { per: "kg", about_g: null } });
+  });
+});

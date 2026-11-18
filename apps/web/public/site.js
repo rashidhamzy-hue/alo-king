@@ -3,7 +3,8 @@
 //      "Use my location" asks the phone for its position ONLY when the visitor taps it (never on page load), sends it once to /village/locate,
 //      which keeps the village only. Escape or a tap outside closes an open picker.
 //   2. Search: results follow the typing. After a pause it asks this site's own /search page and swaps the results in.
-//   3. WEB2: the checkout's "Use my location": the phone's own position fills the form, once, when the visitor taps it.
+//   3. WEB4a: an aisle's filters apply when one changes.
+//   4. WEB2: the checkout's "Use my location": the phone's own position fills the form, once, when the visitor taps it.
 // It talks to this site only, keeps nothing, and sets no cookie.
 (function () {
   "use strict";
@@ -42,6 +43,11 @@
         }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
       });
     }
+  });
+  // WEB4a stage 2: an aisle's filters apply as soon as one changes (the Show button stays for no script).
+  Array.prototype.forEach.call(document.querySelectorAll("form[data-autosubmit]"), function (f) {
+    var b = f.querySelector("[data-autosubmit-button]"); if (b) b.hidden = true;
+    f.addEventListener("change", function () { HTMLFormElement.prototype.submit.call(f); });
   });
   var roots = document.querySelectorAll("details[data-picker-root], header details");
   Array.prototype.forEach.call(roots, function (d) {
