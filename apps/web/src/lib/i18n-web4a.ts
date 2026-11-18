@@ -41,7 +41,7 @@ const en: Dict = {
   w4_browse: "Browse the aisles", w4_fresh: "Fresh every day", w4_pantry: "Pantry, drinks and home", w4_see_all: "See all",
   w4_all_aisles: "All aisles", w4_most_ordered: "Most ordered in the last 30 days", w4_most_ordered_sub: "Counted from orders, not ranked by us",
   w4_rail_sub: "In the aisle's order",
-  w4_add: "Add {name} to the basket", w4_sold_out: "Sold out",
+  w4_add: "Add {name} to the basket",
   w4_wa_kicker: "WhatsApp ordering", w4_wa_title: "No app needed. Just message us.",
   w4_wa_text: "We reply with your basket and total. You confirm, we deliver. Updates come to the same chat.",
   w4_way_type_b: "\"2 labneh, bread, 1 kg tomatoes\". Any language, any spelling.",
@@ -58,6 +58,12 @@ const en: Dict = {
   w4_signin: "Sign in with WhatsApp", w4_open_daily: "Open daily {hours}", w4_pay_ways: "Cash in $ or LL, or a Whish or OMT transfer",
   w4_not_sold: "No tobacco, alcohol or pharmacy items",
   w4_photos: "Photos", w4_photos_text: "The category photos are from Unsplash (unsplash.com), free to use under the Unsplash License. Each one is kept on this site, not loaded from theirs:",
+  w4_per_kg: "per kg", w4_per_pack_about: "per pack of about {g} g", w4_per_pack: "per pack, weight not confirmed yet",
+  w4_aisles_kicker: "Groceries", w4_aisles_title: "Our own store, packed to order.",
+  w4_aisles_text: "{n} everyday items, picked, checked and packed by our team at our own hub.", w4_aisles_out: "Out of stock is shown, never hidden",
+  w4_jump: "Jump to an aisle", w4_back_aisles: "Aisles", w4_filter: "Filter", w4_all: "All", w4_all_brands: "All brands",
+  w4_more_in: "More in {aisle}", w4_ask_item: "Ask about this item on WhatsApp", w4_results: "{n} results for “{q}”",
+  w4_browse_or: "Or browse an aisle", w4_clear: "Clear search", w4_by_aisle: "Filter by aisle", w4_change: "Change",
 };
 
 const ar: Dict = {
@@ -95,7 +101,7 @@ const ar: Dict = {
   w4_browse: "تصفّح الأقسام", w4_fresh: "طازج كل يوم", w4_pantry: "المؤونة والمشروبات والبيت", w4_see_all: "عرض الكل",
   w4_all_aisles: "كل الأقسام", w4_most_ordered: "الأكثر طلبًا في آخر 30 يومًا", w4_most_ordered_sub: "بعدد الطلبات، لا بتقييم منّا",
   w4_rail_sub: "بترتيب القسم",
-  w4_add: "أضف {name} إلى السلة", w4_sold_out: "نفد",
+  w4_add: "أضف {name} إلى السلة",
   w4_wa_kicker: "الطلب عبر واتساب", w4_wa_title: "بلا تطبيق. راسلنا فقط.",
   w4_wa_text: "نردّ عليك بسلتك ومجموعها. تؤكّد أنت، ونوصّل نحن. وتصلك أخبار الطلب في المحادثة نفسها.",
   w4_way_type_b: "«2 لبنة، خبز، 1 كيلو بندورة». بأي لغة وبأي كتابة.",
@@ -112,6 +118,12 @@ const ar: Dict = {
   w4_signin: "سجّل الدخول عبر واتساب", w4_open_daily: "مفتوح يوميًا {hours}", w4_pay_ways: "نقدًا بالدولار أو بالليرة، أو تحويل عبر Whish أو OMT",
   w4_not_sold: "لا تبغ ولا كحول ولا أدوية",
   w4_photos: "الصور", w4_photos_text: "صور الأقسام من Unsplash (unsplash.com)، مجانية بموجب رخصة Unsplash. كل صورة محفوظة على هذا الموقع، لا تُحمَّل من موقعهم:",
+  w4_per_kg: "للكيلو", w4_per_pack_about: "للعبوة، حوالي {g} غ", w4_per_pack: "للعبوة، الوزن لم يتأكد بعد",
+  w4_aisles_kicker: "البقالة", w4_aisles_title: "متجرنا، نجهّز طلبك عند الطلب.",
+  w4_aisles_text: "{n} منتج يومي، يختارها فريقنا ويتحقق منها ويجهّزها في مستودعنا.", w4_aisles_out: "نعرض ما نفد، ولا نخفيه",
+  w4_jump: "انتقل إلى قسم", w4_back_aisles: "الأقسام", w4_filter: "تصفية", w4_all: "الكل", w4_all_brands: "كل الماركات",
+  w4_more_in: "المزيد في {aisle}", w4_ask_item: "اسألنا عن هذا المنتج عبر واتساب", w4_results: "{n} نتيجة لـ«{q}»",
+  w4_browse_or: "أو تصفّح قسمًا", w4_clear: "امسح البحث", w4_by_aisle: "تصفية حسب القسم", w4_change: "تغيير",
 };
 
 const fr: Dict = {
@@ -149,7 +161,7 @@ const fr: Dict = {
   w4_browse: "Parcourir les rayons", w4_fresh: "Frais chaque jour", w4_pantry: "Épicerie, boissons et maison", w4_see_all: "Tout voir",
   w4_all_aisles: "Tous les rayons", w4_most_ordered: "Les plus commandés sur 30 jours", w4_most_ordered_sub: "Comptés d'après les commandes, sans classement de notre part",
   w4_rail_sub: "Dans l'ordre du rayon",
-  w4_add: "Ajouter {name} au panier", w4_sold_out: "Épuisé",
+  w4_add: "Ajouter {name} au panier",
   w4_wa_kicker: "Commander sur WhatsApp", w4_wa_title: "Pas d'application. Écrivez-nous.",
   w4_wa_text: "Nous répondons avec votre panier et le total. Vous confirmez, nous livrons. Le suivi arrive dans la même conversation.",
   w4_way_type_b: "« 2 labneh, du pain, 1 kg de tomates ». Toute langue, toute orthographe.",
@@ -166,6 +178,12 @@ const fr: Dict = {
   w4_signin: "Se connecter avec WhatsApp", w4_open_daily: "Ouvert tous les jours {hours}", w4_pay_ways: "Espèces en $ ou en LL, ou virement Whish ou OMT",
   w4_not_sold: "Pas de tabac, d'alcool ni de pharmacie",
   w4_photos: "Photos", w4_photos_text: "Les photos des rayons viennent d'Unsplash (unsplash.com), libres d'utilisation sous la licence Unsplash. Chacune est gardée sur ce site, pas chargée depuis le leur :",
+  w4_per_kg: "le kg", w4_per_pack_about: "la barquette d'environ {g} g", w4_per_pack: "la barquette, poids pas encore confirmé",
+  w4_aisles_kicker: "Épicerie", w4_aisles_title: "Notre propre magasin, préparé à la commande.",
+  w4_aisles_text: "{n} articles du quotidien, choisis, vérifiés et préparés par notre équipe dans notre dépôt.", w4_aisles_out: "Les ruptures sont affichées, jamais cachées",
+  w4_jump: "Aller à un rayon", w4_back_aisles: "Rayons", w4_filter: "Filtrer", w4_all: "Tout", w4_all_brands: "Toutes les marques",
+  w4_more_in: "Plus dans {aisle}", w4_ask_item: "Poser une question sur WhatsApp à propos de cet article", w4_results: "{n} résultats pour « {q} »",
+  w4_browse_or: "Ou parcourez un rayon", w4_clear: "Effacer la recherche", w4_by_aisle: "Filtrer par rayon", w4_change: "Changer",
 };
 
 export const W4: Record<"en" | "ar" | "fr", Dict> = { en, ar, fr };

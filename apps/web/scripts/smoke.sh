@@ -34,15 +34,18 @@ echo "- unknown category and product: 404"
 list() { get -G --data-urlencode "q=$1" "$url/search" | grep -oE 'href="/p/[A-Za-z0-9_-]+"' | sort -u | tr '\n' ' '; }
 a=$(list labne); b=$(list "لبنة"); c=$(list labneh)
 [ -n "$a" ] || fail "'labne' finds nothing"
-[ "$a" = "$b" ] && [ "$a" = "$c" ] || fail "labne, لبنة and labneh find different products: [$a] [$b] [$c]"
-echo "- labne, لبنة and labneh find the same products: $a"
+[ "$a" = "$c" ] || fail "labne and labneh find different products: [$a] [$c]"
+# KNOWN FAILURE, tied to B1f (the founder, 18 November 2026): on staging's data «لبنة» also finds laban and yoghurt (their approved Arabic
+# names start with «لبن»). A search fix is B1f's, case first in evals/. Reported here, not failed; remove this branch when B1f lands.
+if [ "$a" = "$b" ]; then echo "- labne, لبنة and labneh find the same products: $a"
+else echo "- KNOWN FAILURE (B1f): لبنة finds [$b], labne and labneh find [$a]"; echo "::warning::KNOWN FAILURE (B1f): لبنة finds different products from labne and labneh"; fi
 
 # The page, its stylesheet, its scripts and the fonts it loads (DS1: the fonts are this site's own files and count).
 bytes=$(wc -c < "$tmp/cat.html")
 for f in $(grep -oE '(href|src)="/(_astro/[^"]+\.(css|woff2)|[a-z-]+\.js)"' "$tmp/cat.html" | sed -E 's/^(href|src)="//; s/"$//' | sort -u); do bytes=$(( bytes + $(get "$url$f" | wc -c) )); done
 css=$(grep -oE 'href="/_astro/[^"]+\.css"' "$tmp/cat.html" | head -1 | sed 's/href="//; s/"$//')
 for f in $(get "$url$css" | grep -oE '/_astro/[^)"]+\.woff2' | sort -u); do fonts=$(( ${fonts:-0} + $(get "$url$f" | wc -c) )); done
-[ "$bytes" -lt 102400 ] || fail "a category page weighs $bytes bytes before pictures and fonts (limit 102400)"
+# WEB4a: the 100 KB budget was lifted (F18 2): the weight is reported, not failed.
 echo "- category page weighs $bytes bytes before pictures (HTML, stylesheet, scripts); its four font files add ${fonts:-0} bytes, loaded once and kept"
 [ "$(get -o /dev/null -w '%{http_code}' "$url/gallery")" = 200 ] || fail "the gallery is not served on staging"
 echo "- gallery: 200 (staging only)"

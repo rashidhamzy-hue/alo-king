@@ -129,8 +129,9 @@ describe("1. the basket", () => {
     const b = new Browser();
     for (const [page, sku] of [["/c/dairy_eggs", "AK-0042"], ["/p/AK-0103", "AK-0103"], ["/search?q=labne", "AK-0042"]] as const) {
       const html = (await b.get(page)).html;
-      expect(html, page).toMatch(page.startsWith("/p/") ? new RegExp(`<form method="post" action="/cart/line"><input type="hidden" name="sku" value="${sku}">`)
-        : new RegExp(`form="ak-add" name="sku" value="${sku}:[\\d.]+"`));
+      // WEB4a: React writes the attributes in its own order; what matters is the form, the field and the value
+      expect(html, page).toMatch(page.startsWith("/p/") ? new RegExp(`<form(?=[^>]*method="post")[^>]*action="/cart/line"[^>]*><input(?=[^>]*type="hidden")(?=[^>]*name="sku")[^>]*value="${sku}"`)
+        : new RegExp(`<button(?=[^>]*form="ak-add")(?=[^>]*name="sku")[^>]*value="${sku}:[\\d.]+"`));
       if (!page.startsWith("/p/")) expect(html).toContain('<form id="ak-add" method="post" action="/cart/line" hidden>');
     }
     const added = await b.post("/cart/line", { sku: "AK-0103", add: "1", back: "/p/AK-0103" });

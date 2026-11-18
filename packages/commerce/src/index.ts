@@ -82,8 +82,9 @@ export const WEB_SESSION_FUNCTIONS = [
 ] as const;
 /** The catalog read functions (migrations 0154 and 0155, session WEB1): public, no token, no party. */
 export const WEB_CATALOG_FUNCTIONS = ["web_catalog_home", "web_catalog_category", "web_catalog_product", "web_catalog_search"] as const;
-/** The home page's rails and the village picker's "Use my location" (migration 0243, session WEB4a): read only, nothing stored. */
-export const WEB_HOME_FUNCTIONS = ["web_home_extras", "web_locate_village"] as const;
+/** The home page's rails and the village picker's "Use my location" (migration 0243, session WEB4a), and what a basket line's price is for
+ *  (0244, WEB4a stage 2): read only, nothing stored. */
+export const WEB_HOME_FUNCTIONS = ["web_home_extras", "web_locate_village", "web_price_for"] as const;
 /** The Food pages' functions (migration 0224, session LV1): the places listed before they sign. Never orderable; no price, stock or menu. */
 export const WEB_LISTING_FUNCTIONS = ["web_food_list", "web_food_place", "web_listing_want", "web_listing_remove"] as const;
 /** The join pages' functions (migration 0233, session UX3): an application to ride or to sell. An application is a case for staff, never a rider or a merchant. */
@@ -103,7 +104,11 @@ export interface CatalogPicture {
   path: string; licence: "cc_by_sa" | "brand_own" | "own_photo"; source_kind: string; attribution: string | null; source_url: string | null;
   width_px: number | null; height_px: number | null;
 }
+/** WEB4a (0244): what a price is for. 'kg': a kilo. 'pack': one pack, of about `about_g` grams (null: the weight is not confirmed yet). */
+export interface PriceFor { per: "kg" | "pack"; about_g: number | null }
 export interface CatalogCard {
+  /** WEB4a (0244): null for an item sold as a piece; the aisle the card belongs to. Absent on an older database. */
+  price_for?: PriceFor | null; category_code?: string;
   sku: string; name_en: string; name_ar: string | null; brand: string | null; sell_unit: string; price_usd: number; in_stock: boolean;
   /** SELL1 (0226): a packaged item with no label reading yet, while sell_requires_label is on. in_stock is false then; the site says "Coming soon". Absent on an older database. */
   coming_soon?: boolean; orderable?: boolean;
@@ -152,7 +157,7 @@ export interface CatalogTemplate {
 /** What the product page and its JSON-LD are both built from (web_catalog_product, 0218): one read, so they cannot disagree. */
 export type CatalogProduct =
   | { ok: false; error: "unknown_product" }
-  | { ok: true; product: Omit<CatalogCard, "picture"> & { name_fr: string | null; gtin: string | null; size: string | null };
+  | { ok: true; product: Omit<CatalogCard, "picture" | "category_code"> & { name_fr: string | null; gtin: string | null; size: string | null };
       category: { code: string; name_en: string; name_ar: string }; template: CatalogTemplate;
       picture: CatalogPicture | null; facts: CatalogFact[]; nutrition: CatalogNutrition | null; claims: CatalogClaim[]; fields: CatalogField[];
       certificates: { kind: string; valid_until: string | null }[]; credit_open_food_facts: boolean; whatsapp: string | null };
@@ -217,6 +222,8 @@ export function webCatalog(db: RpcSource) {
     home: () => call<CatalogHome>(db, "web_catalog_home", {}),
     homeExtras: (per = 12) => call<HomeExtras>(db, "web_home_extras", { p_per: per }),
     locateVillage: (lat: number, lng: number) => call<VillageLocate>(db, "web_locate_village", { p_lat: lat, p_lng: lng }),
+    /** WEB4a (0244): the basket's lines, sku -> what its price is for (only the items sold by weight or by the kilo). */
+    priceFor: (skus: string[]) => call<Record<string, PriceFor>>(db, "web_price_for", { p_skus: skus }),
     category: (code: string) => call<CatalogCategory>(db, "web_catalog_category", { p_code: code }),
     product: (sku: string) => call<CatalogProduct>(db, "web_catalog_product", { p_sku: sku }),
     /** The chat's search (find_products, 0214, through web_catalog_search, 0216) with the filters read from the box by the chat's reading
