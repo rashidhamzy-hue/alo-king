@@ -7,6 +7,7 @@
 // for any other address.
 import { CSS } from "./style";
 import { CAPTURE_JS } from "./capture-js";
+import { MENUS_JS } from "./menus-js";
 import { ICONS } from "./icons";
 import { FONTS } from "./fonts.generated";
 import { UI_TOKENS } from "./ui.generated";
@@ -212,6 +213,8 @@ export function staticRoute(path: string): Response | null {
   if (path === "/manifest.webmanifest") return new Response(JSON.stringify(MANIFEST), { headers: { "content-type": "application/manifest+json", "cache-control": "max-age=300", ...SAFE } });
   // LB1: the label day's capture page script. Public and static like the shell, but not in SHELL_ASSETS: the worker never stores it.
   if (path === "/capture.js") return new Response(CAPTURE_JS, { headers: { "content-type": "text/javascript", "cache-control": "max-age=300", ...SAFE } });
+  // FD1: the Menus page's script (shrinks menu photos on the phone). Public and static, like capture.js.
+  if (path === "/menus.js") return new Response(MENUS_JS, { headers: { "content-type": "text/javascript", "cache-control": "max-age=300", ...SAFE } });
   if (path === "/shell.js") return new Response(SHELL_JS, { headers: { "content-type": "text/javascript", "cache-control": "max-age=300", ...SAFE } });
   // The worker file is never cached by the browser's HTTP cache, so a new shell reaches phones on their next visit.
   if (path === "/sw.js") return new Response(swSource(), { headers: { "content-type": "text/javascript", "cache-control": "no-cache", "service-worker-allowed": "/", ...SAFE } });
