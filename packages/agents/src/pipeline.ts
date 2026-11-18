@@ -4,7 +4,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
-import { basketAnswer, honestAnswer } from "./honest";
+import { basketAnswer, factPhrases, honestAnswer, kindSaid } from "./honest";
+import { readSearch } from "./search-reading";
 import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { formatWindowChoice, pinVillageButtonId, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, villageName } from "./messages";
@@ -79,6 +80,9 @@ export function villageForms(x: string | null | undefined): Set<string> {
 }
 const sameVillage = (x: string, village: Set<string>) => [...villageForms(x)].some((f) => village.has(f));
 
+/** B1e: the readings a kind asked with a fact may come in with no line. */
+const KIND_INTENTS = new Set(["order", "add_to_order", "question", "greeting"]);
+
 /** `said`: the customer's own words of the turn (texts and transcripts). The planner reads them as evidence between tied products (1.22). */
 export async function planReading(ctx: ToolContext, intent: OrderIntent | null, said?: string): Promise<Routed> {
   if (!intent) return { done: false, plan: null };
@@ -130,6 +134,16 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // SR1 (6): a basket said in words («mjadra for 6», "lunchbox snacks for the week", "a basket under $20"): built by code (0215), priced by
   // quote_order and sent as the card the customer confirms.
   if (said && !ctx.state.editing && await basketAnswer(ctx, intent, said)) return { done: true, path: "basket_built" };
+  // B1e (QA1, staging 17 Nov 19:09): "protein bars with no sugar" was read with no line and the fact as a restriction, and took the
+  // returning-customer path. A kind of product asked with a fact, in the customer's own words, is the line the reading left out: the
+  // honest answer gets it, and if it does not answer (an item whose own name holds the words), the usual path plans it. A fact alone
+  // («بلا سكر», "I'm diabetic, no sugar please") or a fact said of another item ("no sugar in the coffee") is no kind (kindSaid).
+  if (said && intent.lines.length === 0 && !intent.repeat_last && KIND_INTENTS.has(intent.intent)) {
+    const kind = kindSaid(said);
+    if (kind) intent = { ...intent, intent: intent.intent === "question" ? "question" : "order",
+                         lines: [{ raw: kind, query: kind, qty: readSearch(said).count ?? 1, unit: "each", brand_hint: null, source_hint: null, confidence: 0.5,
+                                   modifiers: factPhrases(said), change: null }] };
+  }
   if (said && await honestAnswer(ctx, intent, said)) return { done: true, path: "honest_answer" };
   // W1: a time said with no new item ("بكرا الصبح", "can you bring it friday afternoon?") is for what is in hand: the card waiting
   // on the tap, the basket waiting on us, or the order being changed.

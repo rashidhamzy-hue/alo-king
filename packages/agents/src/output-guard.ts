@@ -12,8 +12,9 @@
 //     a list, a status, is a fixed message that code builds (packages/agents/src/messages/).
 
 export type GuardCode = "money_in_free_text" | "quality_judgement" | "unapproved_food_claim" | "allergy_reassurance" | "sensitive_inference" | "too_long"
-  | "minimum_by_code" | "catalogue_claim" | "change_claim";
+  | "minimum_by_code" | "catalogue_claim" | "change_claim" | "area_claim" | "wrong_language";
 export interface Violation { code: GuardCode; match: string }
+import { wordsLanguage, type Speech } from "./language";
 
 /** Arabic-Indic and Persian digits to ASCII, Arabic decimal and thousands marks to "." and ",", tatweel removed, lower case. */
 export function normaliseForGuard(text: string): string {
@@ -132,6 +133,12 @@ export interface CheckOptions {
   /** PD1 (g): whether settings.catalog has a WhatsApp catalogue. False: the model may not offer the catalogue (staging, 15 Nov 22:20: the
    *  button it offered answered "write what you want"). Unknown (undefined): not checked. */
   catalogueReady?: boolean;
+  /** B1e: the places a tool or the planner returned this turn, each with its answer (served or not). Given (even empty), the model may say
+   *  that we do or do not deliver to a place only as one of these says, for that place (sim-021: "we don't deliver to Botmeh" against the
+   *  code's own «منوصّل على بطمة»). Unknown (undefined): not checked (the wording evals). */
+  areas?: readonly { names: readonly string[]; served: boolean }[];
+  /** B1e: the conversation's language (language.ts). Given, the model's own words must be in it: names a tool returned are left out. */
+  replyLanguage?: Speech | null;
 }
 
 // B1a (SIM1 fix 1): the minimum order, the basket and the gap are said by code with their amounts (basket.ts); the model never words
@@ -267,6 +274,71 @@ export function withoutEchoes(t: string, customerWords: string | undefined): str
 // Where a fact comes from, said in the reply: the pack, the label, the certificate, the maker or the kitchen's declaration.
 const SOURCE = /\b(?:pack|packet|package|label|box|bottle|wrapper|certificate|certified)\b|\b(?:the )?pack(?:et)? says\b|according to|declared by|the (?:maker|brand|vendor|kitchen) (?:says|declares)|l'emballage|l'étiquette|le paquet|selon|déclaré|العلبة|عالعلبة|على العلبة|الملصق|عالملصق|الكيس|عالكيس|مكتوب|حسب|بحسب|الشهادة|\b3al? (?:3elbe|3ilbe|el 3elbe)\b|\bmaktoub\b|\bmektoub\b/u;
 
+// ---------- B1e: where we deliver ----------
+// A sentence that says we do, or do not, deliver to a place. Delivery areas come only from the database (invariant 7, as for prices): the
+// model may say it only for a place a tool returned this turn with that answer. Text is folded by normaliseForGuard (lower case).
+const AREA_NO = new RegExp([
+  "\\b(?:we |i )?(?:don't|do not|can't|cannot|can not|won't|will not|are not able to|aren't able to)(?: yet)? (?:deliver|ship|cover|serve|go)\\b",
+  "\\bno deliver(?:y|ies) (?:to|in|for|there|at)\\b", "\\b(?:delivery|deliveries) (?:isn't|is not|aren't|are not)(?: yet)? (?:available|possible)\\b",
+  "\\bnot(?: yet)? (?:in|within|part of|inside|covered by) (?:our|the) (?:delivery |service )?(?:area|zone|range|coverage)\\b",
+  "\\b(?:outside|out of|beyond) (?:of )?(?:our|the) (?:delivery |service )?(?:area|zone|range|coverage)\\b", "\\b(?:isn't|is not|not)(?: yet)? (?:served|covered|deliverable)\\b",
+  "\\b(?:on|nous) ne (?:livr(?:e|ons)|dessert|desservons|couvr(?:e|ons)) pas\\b", "\\bpas (?:encore )?de livraison\\b", "\\bhors (?:de )?(?:notre |la )?zone\\b",
+  "\\bn'est pas (?:encore )?(?:desservi|couvert|livrable)",
+  "ما (?:منوص(?:ّ)?ل|بنوص(?:ّ)?ل|فينا نوص(?:ّ)?ل|منغط(?:ّ)?ي|منخدم|منطلع)", "ما في توصيل", "ما (?:عنا|عندنا|عندو|عنده|في عنا) توصيل", "ما بيوصل(?:و|ا)? التوصيل",
+  "مش (?:ضمن|ب)منطقت(?:نا|ن)", "(?:خارج|برّا|برا) (?:منطقة|منطقتنا|المنطقة|نطاق)", "التوصيل (?:مش|غير) (?:متاح|متوفر|موجود)", "لا يوجد توصيل",
+  "\\bma (?:mn|mni|bn|bni|mna|fina n|fina)?(?:wass?(?:e|i)l|wasel|wassel)\\b", "\\bma fi taws(?:ee|i|ea)l\\b", "\\bma (?:3and(?:o|na|kon)?|3anna|3enna) taws(?:ee|i|ea)l\\b",
+  "\\b(?:mesh|msh|mish) (?:b|bi|bel)?mant(?:e|i)2(?:a|e|itna|etna)\\b", "\\bbarra (?:el |l )?mant(?:e|i)2(?:a|e|itna|etna)\\b",
+].join("|"), "u");
+const AREA_YES = new RegExp([
+  "\\bwe (?:do |can |will |also )?(?:deliver|ship) (?:to (?!you\\b|your\\b|the door\\b)|there\\b|all over|across)", "\\byes,? we deliver\\b",
+  "\\bwe (?:do )?(?:cover|serve) (?!you\\b)\\p{L}", "\\b(?:is|are) (?:in|within|inside|covered by) (?:our|the) (?:delivery |service )?(?:area|zone|range|coverage)\\b",
+  "\\b(?:delivery|deliveries) (?:to|in) [\\p{L} ]{1,30}? (?:is|are) (?:available|possible)\\b",
+  "\\b(?:on|nous) livr(?:e|ons) (?:à|a|au|aux|en|dans|là|partout)\\b", "\\b(?:on|nous) (?:dessert|desservons)\\b",
+  "(?:^|[^\\p{L}])(?:منوص(?:ّ)?ل|بنوص(?:ّ)?ل|منغط(?:ّ)?ي|منخدم)(?![\\p{L}])", "في توصيل (?:على|ع|عل|ل|لـ|ل)", "(?:ضمن|ب)منطقت(?:نا|ن)",
+  "\\b(?:mn|mni|bn|bni)(?:wass?(?:e|i)l)\\b", "\\bfi taws(?:ee|i|ea)l (?:3a|la|3al|l)\\b", "\\b(?:b|bi|bel)mant(?:e|i)2(?:itna|etna)\\b",
+].join("|"), "u");
+/** A place's name folded for comparison: alef forms, taa marbuta, diacritics and tatweel; lower case. */
+const foldPlace = (x: string) => normaliseForGuard(x).replace(/[أإآ]/gu, "ا").replace(/ة/gu, "ه").replace(/[ً-ْ]/gu, "");
+/** The places of `areas` the sentence names, as whole words (an Arabic name may carry one clitic: «لبطمة», «عبعقلين»). */
+function placesNamed(s: string, areas: NonNullable<CheckOptions["areas"]>): { served: boolean }[] {
+  const t = foldPlace(s);
+  return areas.filter((a) => a.names.some((n) => {
+    const f = foldPlace(String(n ?? "")).trim();
+    if (f.length < 2) return false;
+    const esc = f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?<![\\p{L}\\p{N}])(?:(?:و|ف)?(?:ل|ب|ع|عل|لل|من))?${esc}(?![\\p{L}\\p{N}])`, "u").test(t);
+  }));
+}
+/** A sentence that says where we deliver, against what the tools said this turn. Null when it may be sent. */
+function areaClaim(t: string, areas: NonNullable<CheckOptions["areas"]>): string | null {
+  for (const s of t.split(/[.!?؟؛;\n]+/u).map((x) => x.trim()).filter(Boolean)) {
+    const no = AREA_NO.exec(s);
+    const yes = no ? null : AREA_YES.exec(s);
+    const m = no ?? yes;
+    if (!m) continue;
+    const served = !no;
+    const named = placesNamed(s, areas);
+    if (named.length) { if (named.every((a) => a.served === served)) continue; return m[0].trim(); }
+    // naming no place a tool returned: allowed only when the turn's tools returned exactly one place, with this answer ("we deliver there")
+    const mentionsOther = /(?<![\p{L}])(?:to|la|3a|à|au)\s+(?!you\b|your\b|there\b|here\b|el\b|l\b|the\b|3andak\b|3andik\b)\p{L}|(?<![\p{L}])(?:على|لـ)\s*\p{L}/u.test(s);
+    if (!mentionsOther && areas.length === 1 && areas[0]!.served === served) continue;
+    return m[0].trim();
+  }
+  return null;
+}
+
+// ---------- B1e: the conversation's language ----------
+/** The model's own words in a language other than the conversation's (sim-021: English to an Arabizi customer). Names are taken out first. */
+function otherLanguage(t: string, expected: Speech): string | null {
+  const said = wordsLanguage(t.replace(MARKS, " ").split(ECHO).join(" "));
+  if (!said) return null;
+  const arabicSide = expected === "ar" || expected === "arabizi";
+  if (said.speech === "ar") return arabicSide ? null : (said.strong ? "ar" : null);
+  if (!said.strong) return null;
+  if (arabicSide) return said.speech === "arabizi" ? null : said.speech;
+  return said.speech === expected ? null : said.speech;
+}
+
 /** Every check that applies to text written by the model. Returns the first violation, or null when the text may be sent. */
 export function checkModelText(text: string, opts: CheckOptions = {}): Violation | null {
   const money = moneyInText(text);
@@ -284,8 +356,12 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   if (claim) return { code: "change_claim", match: claim[0] };
   if (opts.catalogueReady === false) { const m = CATALOGUE_OFFER.exec(t); if (m) return { code: "catalogue_claim", match: m[0].trim() }; }
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
+  // B1e: where we deliver is the database's to say, for the place it was asked of (sim-021).
+  if (opts.areas) { const a = areaClaim(t, opts.areas); if (a) return { code: "area_claim", match: a }; }
   // PD1 (e): names a tool returned this turn and the customer's request said back are taken out; the rest is checked as before.
-  const rest = withoutEchoes(withoutNames(t, opts.products), opts.customerWords);
+  const named = withoutNames(t, opts.products);
+  if (opts.replyLanguage) { const l = otherLanguage(named, opts.replyLanguage); if (l) return { code: "wrong_language", match: l }; }
+  const rest = withoutEchoes(named, opts.customerWords);
   // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
   // judgement (K1: B4's live run refused it). A comma or a contrast word starts a new clause, so "I can't rank them, X is the best" fails.
   for (const c of opts.skipQuality ? [] : clauses(rest)) {
@@ -334,5 +410,7 @@ export const GUARD_HINT: Record<GuardCode, string> = {
   minimum_by_code: "Do not mention the minimum order: the system already tells the customer the minimum, their basket and what is missing, with buttons. Answer the rest of their message, or ask what they want to add.",
   change_claim: "Never say the order or basket was changed unless quote_order changed it this turn. To change it, call quote_order with the new lines (and remove), then send_confirmation for the new card; or ask what to change.",
   catalogue_claim: "Say only what a tool returned about the catalogue, and never offer the catalogue while it is not connected: ask what they need in words. Before saying a product is the only one or that there is no other, call search_catalog for it this turn; never say the catalogue is not ready (call show_catalog: the system answers if it cannot be shown).",
+  area_claim: "Never say whether we deliver to a place, or what delivery costs or how long it takes: only the system says it, from the database. If the customer asks, the system answers; if the plan has no village or does not recognise it (no_delivery_village, village_not_recognised), ask for the village or a location pin.",
+  wrong_language: "Write in the customer's own language and script (reply_language), as they write: never switch to another language. Product names stay as the tools returned them.",
   money_in_free_text: "Prices, fees and totals are never written in free text. Leave amounts out: pass the product ids in `price_of` and the system adds prices from the database, or call quote_order and send_confirmation so the card shows the total.",
 };

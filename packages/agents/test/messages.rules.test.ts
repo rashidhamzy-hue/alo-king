@@ -168,6 +168,11 @@ function render(m: Messages): Rendered[] {
   // SR1: what fits (each item priced, then its facts with their source, written by search.ts), and the baskets built by code
   add("honest.fits", [h.fits(["snacks"]), m.fixed.priced("Crunchy Kids Rice Cakes Apple No Added Sugar 30G", 0.85, true), h.closeFits].join("\n"));
   add("honest.noneFits", h.noneFits(["juice"])); add("honest.closeFits", h.closeFits);
+  // B1e: the offer to remember a restriction, on an order in hand and with none yet (QA1), and its two answers.
+  const rm = m.remember;
+  add("remember.offer", rm.offer(["no sugar"], true)); add("remember.offer.noOrder", rm.offer(["no sugar"], false));
+  add("remember.offer.long", rm.offer(["no peanuts, no sesame, no milk in anything"], false));
+  add("remember.yes", rm.yes); add("remember.no", rm.no); add("remember.kept", rm.kept); add("remember.notKept", rm.notKept);
   const b = m.built;
   add("built.dish", b.dish("Mjadra", 6)); add("built.lunchbox", b.lunchbox(10)); add("built.budget", b.budget(20));
   add("built.missing", b.missing(["burghul"])); add("built.overBudget", b.overBudget(15)); add("built.tooMany", b.tooMany(50)); add("built.none", b.none);

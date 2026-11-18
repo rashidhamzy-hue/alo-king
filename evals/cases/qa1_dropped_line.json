@@ -1,16 +1,41 @@
 {
-  "about": "QA1 (17 Nov 2026): the second of the two 15 November voice notes, sent again on staging (probe customer, 19:09 UTC, after a closed order). The live reading (claude-haiku-5-5) returned no line and one restriction, so the turn took the returning-customer path (agent_runs.trace.path = repeat_offer): a welcome with 'the same order as last time', then the restriction line «سجّلنا «no sugar» على طلبك، ولازم المطبخ يأكّد...» in Arabic to an English message, about an order that did not exist. No demand row. The first voice note ('I want snacks with no sugar for 5 kids'), sent two minutes before in the same chat, was read with its line and got PD1's honest answer. Open: the fix is the proposed session in docs/QA1.md (a reading change needs its own language gate and sim-test). No test runs this file yet; the session that fixes it adds the test (as evals/test/b1d-counts.test.ts runs b1d_counts_edits.json).",
+  "about": "QA1 (17 Nov 2026): the second of the two 15 November voice notes, sent again on staging (probe customer, 19:09 UTC, after a closed order). The live reading (claude-haiku-5-5) returned no line and one restriction, so the turn took the returning-customer path (agent_runs.trace.path = repeat_offer): a welcome with 'the same order as last time', then the restriction line «سجّلنا «no sugar» على طلبك، ولازم المطبخ يأكّد...» in Arabic to an English message, about an order that did not exist. No demand row. The first voice note ('I want snacks with no sugar for 5 kids'), sent two minutes before in the same chat, was read with its line and got PD1's honest answer. Fixed by B1e (18 Nov): code finds the kind in the customer's words when the reading gives no line (honest.ts, kindSaid), and the restriction line is in the customer's language and names no order that does not exist. Run by test/db/dropped-line-b1e.test.ts, beside evals/cases/b1e_dropped_line.json.",
   "run": "staging, 17 Nov 2026 19:09 UTC, agent_runs (concierge, claude-haiku-5-5)",
   "readings": [
     {
       "id": "qa1-protein-bars-no-line",
       "text": "protein bars with no sugar",
       "context": "a returning customer whose last order is closed; the message arrived as a voice note (Kapso's transcript)",
-      "reading": { "intent": "order", "language": "en", "lines": [], "restrictions": ["no sugar"] },
+      "reading": {
+        "intent": "order",
+        "language": "en",
+        "lines": [],
+        "restrictions": [
+          "no sugar"
+        ]
+      },
       "expect": {
-        "lines": [{ "qty": 1, "query": "protein bars" }],
-        "reply": { "kind": "unknown_product", "contains": ["We don't carry protein bars yet. I've noted your request."], "not_contains": ["Welcome to Alo King", "same order as last time", "على طلبك"] },
-        "demand_row": { "kind": "unknown_product", "query": "protein bars" },
+        "lines": [
+          {
+            "qty": 1,
+            "query": "protein bars"
+          }
+        ],
+        "reply": {
+          "kind": "unknown_product",
+          "contains": [
+            "We don't carry protein bars yet. I've noted your request."
+          ],
+          "not_contains": [
+            "Welcome to Alo King",
+            "same order as last time",
+            "على طلبك"
+          ]
+        },
+        "demand_row": {
+          "kind": "unknown_product",
+          "query": "protein bars"
+        },
         "language": "en"
       },
       "same_as": "evals/cases/pd1_honest_answer.json, protein-bars-no-sugar-en (there the reading is scripted with its line)"

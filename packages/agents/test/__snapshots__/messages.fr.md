@@ -1578,6 +1578,51 @@ Aucun de nos juice ne convient, d'après leurs emballages.
 Dites-moi lequel et combien.
 ```
 
+## remember.offer
+
+```text
+J'ai mis « no sugar » sur votre commande ; la cuisine doit le confirmer.
+On le retient pour vos prochaines commandes ?
+```
+
+## remember.offer.noOrder
+
+```text
+C'est noté : « no sugar » ; la cuisine doit le confirmer à chaque commande.
+On le retient pour vos prochaines commandes ?
+```
+
+## remember.offer.long
+
+```text
+C'est noté : « no peanuts, no sesame, no milk in anything » ; la cuisine doit le confirmer à chaque commande.
+On le retient pour vos prochaines commandes ?
+```
+
+## remember.yes
+
+```text
+Oui, retenez-le
+```
+
+## remember.no
+
+```text
+Juste cette fois
+```
+
+## remember.kept
+
+```text
+C'est fait : on le retient et on le met sur chaque commande. Dites « oubliez-moi » quand vous voulez.
+```
+
+## remember.notKept
+
+```text
+D'accord, juste pour cette commande.
+```
+
 ## built.dish
 
 ```text

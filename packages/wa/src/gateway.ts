@@ -22,7 +22,9 @@ export interface SendRequest {
   /** The tool results behind the words (B1a): a search ran this turn, the basket was changed this turn. */
   /** PD1 (e): the names returned this turn, the customer's words, the approved records by product and whether the catalogue is connected. */
   authored?: { by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean;
-               products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean };
+               products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean;
+               /** B1e: the places a tool returned this turn with their answer, and the conversation's language. */
+               areas?: { names: string[]; served: boolean }[]; replyLanguage?: "ar" | "arabizi" | "en" | "fr" | null };
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -54,7 +56,8 @@ export function preflight(req: SendRequest): string | null {
     const v = checkModelText(m.text?.body ?? m.interactive?.body?.text ?? "", { approvedFacts: new Set(a.approvedFacts ?? []),
       catalogueSearched: !!a.catalogueSearched, basketChanged: !!a.basketChanged, products: a.products ?? [], customerWords: a.customerWords ?? "",
       ...(a.approvedByProduct ? { approvedByProduct: new Map(Object.entries(a.approvedByProduct).map(([k, x]) => [k, new Set(x)])) } : {}),
-      ...(a.catalogueReady !== undefined ? { catalogueReady: a.catalogueReady } : {}) });
+      ...(a.catalogueReady !== undefined ? { catalogueReady: a.catalogueReady } : {}),
+      ...(a.areas ? { areas: a.areas } : {}), ...(a.replyLanguage ? { replyLanguage: a.replyLanguage } : {}) });
     if (v) return `model_text_${v.code}`;
   }
   if (typeof req.dedupeKey !== "string" || req.dedupeKey.length < 3) return "missing_dedupe_key";   // every send goes through the outbox claim

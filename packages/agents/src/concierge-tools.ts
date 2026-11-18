@@ -98,6 +98,8 @@ export interface ToolContext {
   customerWords?: string;
   /** PD1 (g): settings.catalog has a WhatsApp catalogue. False: the catalogue is never offered (staging, 15 Nov 22:20). */
   catalogueReady?: boolean;
+  /** B1e: the places a tool or the planner returned this turn, with their answer: the only places the model may say we deliver to or not. */
+  areas?: { names: string[]; served: boolean }[];
   /** SR1: query embeddings for search by meaning (Workers AI). Absent, or failing: the search runs on words alone (search.ts). */
   embedder?: import("./embeddings").Embedder;
 }
@@ -106,6 +108,8 @@ export interface ToolContext {
 export interface Authored {
   by: "model"; approvedFacts?: string[]; catalogueSearched?: boolean; basketChanged?: boolean;
   products?: { id: string; names: string[] }[]; customerWords?: string; approvedByProduct?: Record<string, string[]>; catalogueReady?: boolean;
+  /** B1e */
+  areas?: { names: string[]; served: boolean }[]; replyLanguage?: import("./language").Speech | null;
 }
 
 /** PD1 (e): keep the names of products a tool returned this turn. */
@@ -123,6 +127,19 @@ export function notePlanNames(ctx: Pick<ToolContext, "returned">, plan: unknown)
   for (const l of p?.lines ?? []) for (const x of [l.chosen, ...(l.candidates ?? [])]) if (x) noteReturned(ctx, x.product_id, x.name, x.name_ar);
   for (const l of p?.quote?.lines ?? []) noteReturned(ctx, l.product_id, l.name, l.name_ar);
 }
+/** B1e: a place a tool returned this turn, by every name it was said or stored under, with the database's answer. */
+export function noteArea(ctx: Pick<ToolContext, "areas">, names: unknown[], served: boolean): void {
+  const n = [...new Set(names.filter((x): x is string => typeof x === "string" && x.trim().length > 1).map((x) => x.trim()))];
+  if (n.length) (ctx.areas ??= []).push({ names: n, served });
+}
+/** B1e: the places a plan (plan_order) answered: the village it priced (served), and a village it found and does not serve. "No village yet"
+ *  (no_delivery_village) and "not recognised" say nothing about delivery. */
+export function notePlanAreas(ctx: Pick<ToolContext, "areas">, plan: unknown, saidVillage: string | null | undefined): void {
+  const p = plan as { village_id?: string | null; issues?: { code?: string; said?: string; village?: string; village_ar?: string }[] } | null;
+  if (!p) return;
+  if (p.village_id && saidVillage) noteArea(ctx, [saidVillage], true);
+  for (const i of p.issues ?? []) if (i.code === "village_not_served") noteArea(ctx, [i.said, i.village, i.village_ar], false);
+}
 /** PD1 (g): settings.catalog names a WhatsApp catalogue. Unreadable counts as not connected (fail closed: the offer is not made). */
 export async function catalogueReady(db: SupabaseClient): Promise<boolean> {
   try {
@@ -138,13 +155,14 @@ export function guardOptions(ctx: ToolContext) {
     customerWords: ctx.customerWords ?? "",
     approvedByProduct: ctx.approvedByProduct ?? new Map<string, Set<string>>(),
     ...(ctx.catalogueReady !== undefined ? { catalogueReady: ctx.catalogueReady } : {}),
+    areas: ctx.areas ?? [], replyLanguage: ctx.state.speech ?? null,
   };
 }
 function authored(ctx: ToolContext): Authored {
   const o = guardOptions(ctx);
   return { by: "model", catalogueSearched: o.catalogueSearched, basketChanged: o.basketChanged, products: o.products, customerWords: o.customerWords,
            approvedByProduct: Object.fromEntries([...o.approvedByProduct.entries()].map(([k, v]) => [k, [...v]])),
-           ...(o.catalogueReady !== undefined ? { catalogueReady: o.catalogueReady } : {}) };
+           ...(o.catalogueReady !== undefined ? { catalogueReady: o.catalogueReady } : {}), areas: o.areas, replyLanguage: o.replyLanguage };
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -220,10 +238,11 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     },
 
     async resolve_place({ village, landmark, verbatim }) {
-      const r = await rpc<{ village: { village_id: string; confidence: number } | null; landmark: { landmark_id: string } | null;
+      const r = await rpc<{ village: { village_id: string; confidence: number; name_en?: string; name_ar?: string | null } | null; landmark: { landmark_id: string } | null;
                             served: boolean; needs_pin: boolean; reason: string | null; saved_places: { place_id: string; village_id: string | null }[] }>(
         ctx.db, "resolve_place", { p_party: ctx.partyId, p_village: village ?? null, p_landmark: landmark ?? null });
       if (verbatim) ctx.state.directions = verbatim;
+      if (r.village) noteArea(ctx, [village, r.village.name_en, r.village.name_ar], r.served);    // B1e: the answer the model may say back
       if (r.village && r.served) ctx.state.villageId = r.village.village_id;
       else if (!village && r.saved_places.length === 1 && r.saved_places[0]!.village_id) {
         ctx.state.villageId = r.saved_places[0]!.village_id; ctx.state.placeId = r.saved_places[0]!.place_id;
