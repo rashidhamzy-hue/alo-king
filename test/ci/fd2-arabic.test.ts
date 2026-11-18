@@ -41,7 +41,9 @@ describe("docs/ARABIC_REVIEW.md lists every line FD2's Food page added", () => {
   it("every Arabic line of the page is in the section", () => {
     const lines = pairsOf(readFileSync(join(repo, FILE), "utf8")).map(([, ar]) => ar);
     expect(lines.length).toBeGreaterThan(20);
-    expect(lines.filter((x) => !section.includes(x.replace(/\|/g, "\\|")) && !section.includes(x))).toEqual([]);
+    // As the table writes a cell: a backslash and a pipe escaped (Markdown).
+    const cell = (x: string) => x.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+    expect(lines.filter((x) => !section.includes(cell(x)) && !section.includes(x))).toEqual([]);
   });
   it("no line praises, rates or makes a health claim, and the hub is never «المركز»", () => {
     const s = readFileSync(join(repo, FILE), "utf8");
