@@ -29,7 +29,7 @@ function check(html: string, label: string, opts: { installable?: boolean } = {}
   expect(html, `${label}: no inline script or style`).not.toMatch(/<script(?![^>]*\bsrc=)|<style|\sstyle="/);
 }
 
-const LEAD_PAGES = ["/", "/inbox", "/orders", "/approve", "/stock", "/more", "/install", "/names", "/payments", "/exceptions", "/catalog", "/riders", "/readiness", "/windows", "/zones", "/money", "/approvals", "/pictures", "/receiving", "/returns", "/refunds", "/cases", "/day-open", "/food-facts", "/search-words", "/auto-approvals", "/fx", "/intake"];
+const LEAD_PAGES = ["/", "/inbox", "/orders", "/approve", "/stock", "/more", "/install", "/names", "/payments", "/exceptions", "/catalog", "/riders", "/readiness", "/windows", "/zones", "/money", "/approvals", "/pictures", "/photos", "/receiving", "/returns", "/refunds", "/cases", "/day-open", "/food-facts", "/search-words", "/auto-approvals", "/fx", "/intake"];
 
 describe("the shell", () => {
   it("renders every page as valid HTML with a language, a direction, a title, one heading, and no inline script or style", async () => {

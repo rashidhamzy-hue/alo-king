@@ -228,7 +228,7 @@ export function id(c: Ctx, field: string): string {
  */
 export function returnTo(c: Ctx, fallback: string): string {
   const v = c.form.return_to ?? "";
-  return /^\/approve\?tab=(names|pictures|labels|money)(&n=\d{1,4})?$/.test(v) ? v : fallback;
+  return /^\/approve\?tab=(names|pictures|labels|money)(&n=\d{1,4})?$/.test(v) || /^\/photos\?f=(all|review|later|missing)(&n=\d{1,4})?$/.test(v) ? v : fallback;
 }
 
 /**

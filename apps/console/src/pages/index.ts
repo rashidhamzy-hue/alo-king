@@ -15,6 +15,7 @@ import { merchantsSection } from "./merchants";
 import { moneySection } from "./money";
 import { namesSection } from "./names";
 import { picturesSection } from "./pictures";
+import { photosSection } from "./photos";
 import { zonesSection } from "./zones";
 import { paymentsSection } from "./payments";
 import { returnsSection } from "./returns";
@@ -46,4 +47,4 @@ import { screensSection } from "./screens";
 import { placesSection } from "./places";
 import { menusSection } from "./menus";
 
-export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, approveSection, settingsSection, moneySection, dayCloseSection, receivingSection, purchaseOrdersSection, binsSection, temperatureSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection, placesSection, menusSection, screensSection];
+export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, approveSection, settingsSection, moneySection, dayCloseSection, receivingSection, purchaseOrdersSection, binsSection, temperatureSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, photosSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection, placesSection, menusSection, screensSection];

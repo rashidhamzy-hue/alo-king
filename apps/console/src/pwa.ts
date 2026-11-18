@@ -90,7 +90,7 @@ if(names){
   blocks.forEach(function(b,k){b.addEventListener("focusin",function(){cur=k;mark(false);});b.addEventListener("click",function(){cur=k;mark(false);});});
   mark(false);
 }
-// Approve (UX2b): one card at a time. a approves, r goes to the reject reason (it is needed), the arrow keys and space skip. Never while typing, never by touch.
+// Approve (UX2b): one card at a time. a approves, r goes to the reject reason (it is needed; on the Photos page r rejects at once), l puts a picture aside (Photos), the arrow keys and space skip. Never while typing, never by touch.
 var card=document.querySelector("[data-approve] .ak-approve-card");
 if(card){
   document.addEventListener("keydown",function(e){
@@ -99,7 +99,8 @@ if(card){
     if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||tag==="BUTTON"||tag==="A")return;
     var k=e.key,go=function(sel){var x=document.querySelector("[data-approve] "+sel);if(x){e.preventDefault();return x;}return null;};
     if(k==="a"){var b=go("[data-key=a]");if(b)b.click();}
-    else if(k==="r"){var f=go("[data-key=reason]");if(f)f.focus();}
+    else if(k==="r"){var rn=go("[data-key=r-now]");if(rn)rn.click();else{var f=go("[data-key=reason]");if(f)f.focus();}}
+    else if(k==="l"){var lb=go("[data-key=l]");if(lb)lb.click();}
     else if(k==="ArrowRight"||k===" "){var s=go("[data-key=skip]");if(s)location.href=s.getAttribute("href");}
     else if(k==="ArrowLeft"){var p=go("[data-key=prev]");if(p)location.href=p.getAttribute("href");}
   });

@@ -139,7 +139,7 @@ export function t(lang: Lang, key: Key, vars: Record<string, string | number> = 
 
 /** The page links' words by address, for the pages that were built before D5 (their own section labels stay English otherwise). */
 export const NAV_AR: Record<string, string> = {
-  "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور",
+  "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور", "/photos": "الصور: موافقة سريعة",
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
   "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "المال", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/approve": "الموافقات", "/settings": "الإعدادات", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
