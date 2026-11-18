@@ -25,7 +25,7 @@ const reading = {
     { name_ar: "سندويشات", name_en: "Sandwiches", dishes: [
       { name_ar: "شاورما دجاج", name_en: "Chicken shawarma", price: 450000, currency: "LBP", price_text: "450,000", translated: null,
         sizes: [{ name_ar: "عادي", name_en: "Regular", price: 450000, currency: "LBP" }, { name_ar: "كبير", name_en: "Large", price: 650000, currency: "LBP" }],
-        options: [{ group_ar: "الخبز", group_en: "Bread", required: true, min: 1, max: 1, choices: [{ name_ar: "عربي", name_en: "Arabic", price_delta: 0 }, { name_ar: "صاج", name_en: "Saj", price_delta: 50000 }] }],
+        options: [{ group_ar: "الخبز", group_en: "Bread", required: true, min: 1, max: 1, choices: [{ name_ar: "عربي", name_en: "Arabic", price_delta: 0 }, { name_ar: "Saj", name_en: null, price_delta: 50000 }] }],
         addons: [{ name_ar: "ثوم إضافي", name_en: "Extra garlic", price: 50000, currency: "LBP" }] },
       { name_ar: "طاووق", name_en: "Taouk", price: 5, currency: "USD", price_text: "$5", translated: "ar", sizes: [], options: [], addons: [] },
     ] },
@@ -155,7 +155,11 @@ describe("2 menus from photos", () => {
       ["Sandwiches", "Chicken shawarma", "450000", "LBP", "waiting"], ["Sandwiches", "Taouk", "5", "USD", "waiting"],
       ["Grills", "Healthy grilled plate", "9", "USD", "waiting"], ["Grills", "Whole chicken", null, null, "waiting"]]);
     expect(rows[0].sizes).toHaveLength(2);
+    // a Latin word read into the Arabic field (the dry run's "Regular", "Saj") goes to the English one; nothing Latin is kept as Arabic
+    expect(rows[0].sizes[0]).toMatchObject({ name_ar: "عادي", name_en: "Regular" });
     expect(rows[1].translated).toBe("ar");
+    const opts = (await db.one(`select options from menu_dish_proposals where name_en = 'Chicken shawarma'`)).options;
+    expect(opts[0].choices[1]).toEqual({ name_ar: null, name_en: "Saj", price_delta: 50000 });
     // the model's allergen line is not kept anywhere: dish facts come only from the vendor
     expect(JSON.stringify(await db.all(`select * from menu_dish_proposals where source_id = $1`, [src]))).not.toMatch(/allergen/);
     expect(await db.all(`select 1 from product_facts f join products p on p.id = f.product_id where p.owner_source_id = $1`, [src])).toEqual([]);

@@ -10,10 +10,6 @@
 # Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
 name: menu-read
 on:
-  # FD1, TEMPORARY: the dry run on this branch (a workflow_dispatch workflow must be on main first). Removed in the next commit.
-  push:
-    branches: [claude/focused-feynman-urydyk]
-    paths: [test/fixtures/menus/dry-run.txt]
   workflow_dispatch:
     inputs:
       max_usd:
@@ -47,7 +43,7 @@ jobs:
     steps:
       - name: Main only (a dry run may run from any branch)
         env:
-          DRY: ${{ github.event_name == 'push' || inputs.dry_run }}
+          DRY: ${{ inputs.dry_run }}
         run: |
           if [ "$DRY" != "true" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
             echo "::error::menu-read runs from main only (staging must have migrations 0245 to 0247); choose branch main, or tick dry_run"
@@ -66,7 +62,7 @@ jobs:
           MAX_USD: ${{ inputs.max_usd || '2' }}
           LIMIT: ${{ inputs.limit }}
           BATCH_IDS: ${{ inputs.batch_ids }}
-          DRY_RUN: ${{ github.event_name == 'push' || inputs.dry_run }}
+          DRY_RUN: ${{ inputs.dry_run }}
           RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           OUT_DIR: out/menus
         run: |

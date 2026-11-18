@@ -43,6 +43,7 @@ const TOOL: Anthropic.Tool = {
 const PROMPT = "You read a photo of a Lebanese restaurant's printed menu for the person who checks every dish against the menu before anything is sold. " +
   "Report only what is printed: section headings, dish names, prices with their currency, sizes, choices and extras with their prices. " +
   "Give each dish's name in Arabic and in English: copy what is printed, and where only one language is printed, write the other yourself and say which in 'translated'. " +
+  "Every name_ar (dishes, sizes, choices, extras, sections) is in Arabic letters and every name_en in Latin letters: never copy an English word into name_ar. " +
   "Never write a description, an ingredient, an allergen, a diet, halal, sugar or spice fact, a health claim, a rating or praise: none of that is read from a menu. " +
   "Never invent or estimate a price: a dish with no printed price has price null. Keep the menu's order.";
 

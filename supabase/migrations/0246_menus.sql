@@ -108,6 +108,14 @@ create or replace function menu_price(p jsonb) returns numeric language sql immu
 create or replace function menu_currency(p jsonb) returns text language sql immutable set search_path = public, pg_temp as $$
   select case when upper(coalesce(p #>> '{}', '')) in ('USD', 'LBP') then upper(p #>> '{}') end $$;
 
+-- The two names of a thing, each in its own script: the Arabic one must have Arabic letters, the English one Latin letters. The dry run's
+-- reader put "Regular" and "Saj" in the Arabic field; such a name moves to the English field (or is dropped where it is already there), so the
+-- person checking sees an empty Arabic name to type rather than a Latin one presented as Arabic.
+create or replace function menu_name_ar(p_ar jsonb, p_en jsonb) returns text language sql immutable set search_path = public, pg_temp as $$
+  select coalesce(case when menu_text(p_ar) ~ '[؀-ۿ]' then menu_text(p_ar) end, case when menu_text(p_en) ~ '[؀-ۿ]' and menu_text(p_en) !~ '[A-Za-z]' then menu_text(p_en) end) $$;
+create or replace function menu_name_en(p_ar jsonb, p_en jsonb) returns text language sql immutable set search_path = public, pg_temp as $$
+  select coalesce(case when menu_text(p_en) ~ '[A-Za-z]' then menu_text(p_en) end, case when menu_text(p_ar) ~ '[A-Za-z]' and menu_text(p_ar) !~ '[؀-ۿ]' then menu_text(p_ar) end) $$;
+
 -- What the run read for one photo (the form of apps/console/src/menu-read.ts). Only names, sections, prices, sizes, options and add-ons are
 -- kept; any other key (an allergen, a claim, a description) is ignored. p_reading null: the reading failed; the photo stays waiting.
 create or replace function record_menu_reading(p_photo uuid, p_reading jsonb, p_model text, p_by uuid, p_reason text default null) returns jsonb
@@ -125,25 +133,25 @@ begin
   end if;
   for sec in select * from jsonb_array_elements(p_reading->'sections') loop
     for d in select * from jsonb_array_elements(case when jsonb_typeof(sec->'dishes') = 'array' then sec->'dishes' else '[]'::jsonb end) loop
-      continue when menu_text(d->'name_ar') is null and menu_text(d->'name_en') is null;
-      select coalesce(jsonb_agg(jsonb_build_object('name_ar', menu_text(x->'name_ar'), 'name_en', menu_text(x->'name_en'), 'price', menu_price(x->'price'),
+      continue when menu_name_ar(d->'name_ar', d->'name_en') is null and menu_name_en(d->'name_ar', d->'name_en') is null;
+      select coalesce(jsonb_agg(jsonb_build_object('name_ar', menu_name_ar(x->'name_ar', x->'name_en'), 'name_en', menu_name_en(x->'name_ar', x->'name_en'), 'price', menu_price(x->'price'),
                'currency', coalesce(menu_currency(x->'currency'), menu_currency(d->'currency')))), '[]'::jsonb)
         into v_sizes from jsonb_array_elements(case when jsonb_typeof(d->'sizes') = 'array' then d->'sizes' else '[]'::jsonb end) x
        where menu_text(x->'name_ar') is not null or menu_text(x->'name_en') is not null;
-      select coalesce(jsonb_agg(jsonb_build_object('group_ar', menu_text(g->'group_ar'), 'group_en', menu_text(g->'group_en'),
+      select coalesce(jsonb_agg(jsonb_build_object('group_ar', menu_name_ar(g->'group_ar', g->'group_en'), 'group_en', menu_name_en(g->'group_ar', g->'group_en'),
                'required', coalesce((g->>'required')::boolean, false), 'min', greatest(coalesce((g->>'min')::int, 0), 0), 'max', greatest(coalesce((g->>'max')::int, 1), 1),
-               'choices', coalesce((select jsonb_agg(jsonb_build_object('name_ar', menu_text(c->'name_ar'), 'name_en', menu_text(c->'name_en'),
+               'choices', coalesce((select jsonb_agg(jsonb_build_object('name_ar', menu_name_ar(c->'name_ar', c->'name_en'), 'name_en', menu_name_en(c->'name_ar', c->'name_en'),
                                                                     'price_delta', coalesce(menu_price(c->'price_delta'), 0)))
                                       from jsonb_array_elements(case when jsonb_typeof(g->'choices') = 'array' then g->'choices' else '[]'::jsonb end) c
                                      where menu_text(c->'name_ar') is not null or menu_text(c->'name_en') is not null), '[]'::jsonb))), '[]'::jsonb)
         into v_opts from jsonb_array_elements(case when jsonb_typeof(d->'options') = 'array' then d->'options' else '[]'::jsonb end) g
        where menu_text(g->'group_ar') is not null or menu_text(g->'group_en') is not null;
-      select coalesce(jsonb_agg(jsonb_build_object('name_ar', menu_text(x->'name_ar'), 'name_en', menu_text(x->'name_en'), 'price', menu_price(x->'price'),
+      select coalesce(jsonb_agg(jsonb_build_object('name_ar', menu_name_ar(x->'name_ar', x->'name_en'), 'name_en', menu_name_en(x->'name_ar', x->'name_en'), 'price', menu_price(x->'price'),
                'currency', coalesce(menu_currency(x->'currency'), menu_currency(d->'currency')))), '[]'::jsonb)
         into v_add from jsonb_array_elements(case when jsonb_typeof(d->'addons') = 'array' then d->'addons' else '[]'::jsonb end) x
        where menu_text(x->'name_ar') is not null or menu_text(x->'name_en') is not null;
       insert into menu_dish_proposals(source_id, photo_id, section_ar, section_en, name_ar, name_en, translated, price, currency, price_text, sizes, options, addons, read_model)
-        values (m.source_id, p_photo, menu_text(sec->'name_ar'), menu_text(sec->'name_en'), menu_text(d->'name_ar'), menu_text(d->'name_en'),
+        values (m.source_id, p_photo, menu_name_ar(sec->'name_ar', sec->'name_en'), menu_name_en(sec->'name_ar', sec->'name_en'), menu_name_ar(d->'name_ar', d->'name_en'), menu_name_en(d->'name_ar', d->'name_en'),
                 case when d->>'translated' in ('ar', 'en') then d->>'translated' end, menu_price(d->'price'),
                 case when menu_price(d->'price') is not null then menu_currency(d->'currency') end, menu_text(d->'price_text', 60), v_sizes, v_opts, v_add, left(p_model, 80));
       n := n + 1;
