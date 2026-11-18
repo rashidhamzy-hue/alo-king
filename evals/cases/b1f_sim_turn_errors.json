@@ -1,0 +1,14 @@
+{
+  "about": "B1f: CX2's sim-test (run 44303693502, before 0257) had three turn errors (path agent_error, the technical line), each on the turn after the customer corrected a line. The run's artifact (sim-results, results.jsonl) gives each turn's text; the planner's input is the customer's line as the reading gives it and the whole message (`_message`). On the database without 0257 the planner stops on 'cannot extract elements from a scalar' (0256's catalog_other_kind reading JSON null candidates); with 0257 it plans. sim-006's own fault was elsewhere: «مياه فوارة طلاية» was not a word of Talaya (the sim's world has no Arabic name for it), so it was offered oranges, then told we do not carry it; 0253 adds the words (evals/cases/b1f_labneh_search.json, talaya). Run by test/db/b1f-sim-turn-errors.test.ts.",
+  "cases": [
+    { "id": "sim-016-turn-2", "message": "لا، مش حبوب. غوروستي صدر ديك رومي بدي",
+      "lines": [{ "raw": "غوروستي صدر ديك رومي", "query": "غوروستي صدر ديك رومي", "qty": 1, "modifiers": ["مش حبوب"] }], "failed_before_0257": true },
+    { "id": "sim-028-turn-10", "message": "لا يا ابني مش أربع، بدي تلاتة بس. والمورتديلا مع زيتون كان عندكن من المنى، ما بتشوفها؟",
+      "lines": [{ "raw": "المورتديلا مع زيتون من المنى", "query": "Al Mouna mortadella beef with olives", "qty": 3, "change": "set", "modifiers": [] }], "failed_before_0257": true },
+    { "id": "sim-028-turn-10-short", "message": "لا يا ابني مش أربع، بدي تلاتة بس. والمورتديلا مع زيتون كان عندكن من المنى، ما بتشوفها؟",
+      "lines": [{ "raw": "مورتديلا مع زيتون", "query": "mortadella olives", "qty": 3, "modifiers": [] }], "failed_before_0257": true },
+    { "id": "sim-006-turn-4", "message": "لا مش هيك، بدي مياه تالايا الفوارة ليمون وليم 330 مل، 3 قنينات",
+      "lines": [{ "raw": "مياه تالايا الفوارة ليمون وليم 330 مل، 3 قنينات", "query": "Talaya sparkling water lemon lime 330ml", "qty": 3, "modifiers": [] }], "failed_before_0257": false,
+      "expect_sku": "AK-0106" }
+  ]
+}

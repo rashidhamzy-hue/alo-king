@@ -2139,3 +2139,16 @@ shown, never deducted. `${...}` is filled in by the page.
 | Food | Recorded. The rider now holds $${Number(r.float_usd).toFixed(2)} of float. | سُجّل. مع المندوب الآن $${Number(r.float_usd).toFixed(2)} عهدة. | |
 | Food | Recorded. It differs from the food's price by $${d.toFixed(2)}: shown on the balance, never deducted. | سُجّل. يختلف عن سعر الأكل بـ $${d.toFixed(2)}: يظهر في الرصيد ولا يُخصم أبداً. | |
 | Food | Not done: the action log could not be written. Try again. | لم يتم: تعذّر تسجيل الإجراء. حاول من جديد. | |
+## B1f, "Weights to record on label day" (console, staff-facing, written by a model; 18 November 2026)
+No customer message changed. The page's words in `apps/console/src/pages/weights.ts`; the questions themselves are English data (`price_basis_checks.question`).
+
+| Arabic | English | Read |
+| --- | --- | --- |
+| أوزان للتسجيل يوم الملصقات | Weights to record on label day | not yet |
+| للعلبة، الوزن غير مؤكّد بعد | per pack, weight not confirmed yet | not yet |
+| للعلبة، حوالي {g} غ | per pack of about {g} g | not yet |
+| بالكيلو · بالحبة (لا يُذكر شيء) | per kg · per piece (nothing said) | not yet |
+| زِن علبة · أساس السعر للتأكيد · لا يُباع قبل الجواب | weigh one pack · price basis to confirm · not sold until answered | not yet |
+| سعرنا هو: للعلبة / للكيلو · كيف تعرف (فاتورة، ميزان، كرتونة) · احفظ الجواب | Our price is: for the pack / per kg · How you know (invoice, scale, tray) · Save the answer | not yet |
+| حُفظ: السعر للكيلو؛ تقول الصفحات الآن «بالكيلو». · حُفظ: السعر للعلبة. | Saved: the price is per kg; the pages now say "per kg". · Saved: the price is for the pack. | not yet |
+| كل منتج أدناه يُباع بالعلبة، لكن لا وزن معتمداً للعلبة بعد، أو قد يكون سعر المورّد للكيلو لا للعلبة… | Each item below is sold by the pack, but no pack weight is approved yet, or the supplier's price may be per kg… | not yet |
