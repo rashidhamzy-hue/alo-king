@@ -121,7 +121,7 @@ describe("2. the lapsed-order notice", () => {
     await tick();
     const mine = sent.filter((m) => m.type === "interactive" && JSON.stringify(m).includes(lapsed.code));
     expect(mine).toHaveLength(1);
-    expect(mine[0].interactive.body.text).toBe(ar.notice.orderCancelled(lapsed.code, "ما تأكّد الطلب بالوقت المحدد"));
+    expect(mine[0].interactive.body.text).toBe(ar.notice.orderCancelled(lapsed.code, "ما تأكّد الطلب بالوقت المحدد", true));
     expect(mine[0].interactive.action.buttons[0].reply).toEqual({ id: `order:reopen:${lapsed.orderId}`, title: ar.cx.reopenButton });
     expect(sent.filter((m) => JSON.stringify(m).includes(own.code))).toHaveLength(0);
   });

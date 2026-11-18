@@ -57,7 +57,7 @@
       "expect": {
         "path": "closed_kept",
         "contains": [
-          "ما لقيت «نص كفوف» عنّا."
+          "ما لقيت «نص كفوف» عنّا"
         ],
         "not_contains": []
       }
@@ -81,7 +81,7 @@
       "expect": {
         "path": "ask",
         "contains": [
-          "ما لقيت «nos kfouf» عنّا."
+          "ما لقيت «nos kfouf» عنّا"
         ],
         "not_contains": []
       },
@@ -134,7 +134,7 @@
       "expect": {
         "path": "card",
         "contains": [
-          "لسّا ما عنّا nescafe vanilla، سجّلنا طلبك."
+          "لسّا ما عنّا nescafe vanilla"
         ],
         "not_contains": [
           "أي واحد بدك",
@@ -162,7 +162,7 @@
     "no_house_default": "AK-0046",
     "expect": {
       "contains": [
-        "ما لقيت «نص كفوف» عنّا."
+        "ما لقيت «نص كفوف» عنّا"
       ]
     }
   }

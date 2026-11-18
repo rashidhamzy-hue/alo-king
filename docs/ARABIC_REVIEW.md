@@ -1961,3 +1961,105 @@ names (`/places` «الأماكن», `/menus` «القوائم» in `NAV_AR`) an
 | places (lists) | Sun | الأحد | |
 | places (lists) | Places | الأماكن | |
 | places (lists) | Menus | القوائم | |
+
+
+
+## CX2 stage 2, the customer messages in the approved layout (18 November 2026)
+
+The founder approved the redesign (`docs/MESSAGES.md`) with five changes; these are the Arabic lines as the code now writes them (sample values: AK-1234, لبنة, 08:00). Same meaning as the lines above; new are the bold headings, the emojis at the start of a line, « · » before an amount, and the words of the approved proposal. Every other customer line is in `packages/agents/test/__snapshots__/messages.ar.md`.
+
+| Arabic | Read by |
+|---|---|
+| 💬 *وصلت رسالتك لحدا من الفريق*<br>رح يردّ عليك خلال دقايق.<br>بهالوقت فيك تكمّل طلبك معي عادي. | |
+| 💬 رسالتك عند الفريق، وحدا رح يردّ عليك. | |
+| 💬 *بعدنا عم نتابع رسالتك*<br>حدا من الفريق رح يردّ عليك.<br>بتكمّل الطلب، منتصل فيك، أو بتبعت رسالة صوتية؟ | |
+| 💬 *رجعت معك*<br>رسالتك بعدها عند الفريق ورح يردّوا عليك.<br>شو فيني ساعدك هلّق؟ | |
+| 🌙 *مسكّرين هلّق، منفتح الساعة 08:00*<br>سجّلنا طلبك، وحدا من الفريق بيجاوبك أول ما نفتح.<br>فيك تطلب هلّق ومنحفظلك الطلب لوقت ما نفتح. | |
+| ✅ *خلّصنا موضوعك*<br>إذا بدك شي تاني، اكتبلنا هون. | |
+| 🛒 كمّل الطلب | |
+| ✅ تمام، حدا من الفريق رح يتصل فيك على هالرقم. | |
+| 🛒 تفضّل، شو بتحب تطلب؟ | |
+| 💬 ابعت رسالتك الصوتية هون، ويلّي عم يتابعك من الفريق رح يسمعها. | |
+| ⚠️ *صار في مشكلة تقنية صغيرة من عنّا*<br>ابعت رسالتك كمان مرة بعد دقيقة. | |
+| ⚠️ *خلّينا نكمّل من هون*<br>اختار من تحت. | |
+| 💬 *عفواً، ما فهمت عليك منيح*<br>شو بتحب تعمل؟ | |
+| 🔎 شوف الأغراض | |
+| 📦 وين طلبي | |
+| 💬 احكي مع حدا | |
+| ⚠️ *ما زبطت هالكبسة من عنّا*<br>جرّب كمان مرة. | |
+| 🔁 جرّب كمان مرة | |
+| ⚠️ *هالمعلومة مش مأكّدة بسجلاتنا*<br>فما فينا نقول إنها مناسبة إلك. بتحب نختار شي تاني؟ | |
+| 🔎 اكتبلي شو بدك، وبدوّرلك عليه. | |
+| 💬 مرحبا، معك فريق ألو كينغ بخصوص الطلب *AK-1234*.<br>كيف فينا نساعدك؟ | |
+| 💬 مرحبا، معك فريق ألو كينغ بخصوص الطلب *AK-1234*.<br>آسفين عالإزعاج. خبّرنا شو صار بالزبط؟ | |
+| 💬 مرحبا، معك فريق ألو كينغ بخصوص الطلب *AK-1234*.<br>وصلنا طلبك ورح نراجعه ونرجعلك بالجواب. | |
+| 💬 مرحبا، معك فريق ألو كينغ بخصوص الدفع للطلب *AK-1234*.<br>عم نراجعه هلّق. | |
+| 💬 مرحبا، معك فريق ألو كينغ بخصوص الطلب *AK-1234*.<br>وصلتنا رسالتك وعم نتابعها هلّق. خبّرنا شو صار؟ | |
+| 🛒 *طلبك أقل من الحد الأدنى*<br><br>الحد الأدنى للطلب · $5.00<br>طلبك هلّق · $0.69<br>*ناقصك · $4.31*<br><br>زيد شي، أو اختار من تحت. | |
+| 🛒 *الحد الأدنى للطلب · $5.00*<br>شو بتحب تطلب؟ | |
+| ❌ إلغاء الطلب | |
+| ✅ *تمام، ما رح نبعت شي*<br>سلّتك فاضية. اكتبلي أيمتى ما بدك تطلب. | |
+| 🛒 *طلبك لسّا ما انبعت*<br>بسلّتك:<br>• 1 × لبنة<br>• 2 × خبز | |
+| ✅ *عدّلنا طلبك*<br>خبز: 2 → 4 | |
+| ⚠️ *مش متوفّر هلّق*<br>• لبنة<br>قلّي شو بدك بدالو، أو منشيلو. | |
+| 📦 *طلبك AK-1234 عم يتحضّر هلّق*<br>ما فينا نلغيه من هون. حدا من فريقنا رح يتّصل فيك بخصوصه. | |
+| 📍 *تمام، منوصّل على بعقلين بلا موقع*<br>السائق رح يتّصل فيك قبل ما يطلع ليتأكّد من العنوان. | |
+| 📍 *ما في مشكلة بلا موقع*<br>اكتبلي اسم الضيعة وأقرب معلم للبيت (جامع، كنيسة، مدرسة، فرن). | |
+| 🙏 العفو، تكرم عينك. إذا بدك شي، اكتبلي هون. | |
+| 👋 *أهلا فيك بألو كينغ!*<br>منوصّلك أغراض البيت لعند بابك بالشوف.<br><br>🛒 اكتبلي شو بدك، أو ابعت رسالة صوتية.<br>🕘 فاتحين كل يوم من 08:00 لـ 22:00.<br><br>_لمّا تراسلنا، بتوافق إنّو نحفظ رسايلك وطلباتك بس لنخدمك. فيك تكتب STOP بأي وقت لنوقّف._ | |
+| _لمّا تراسلنا، بتوافق إنّو نحفظ رسايلك وطلباتك بس لنخدمك. فيك تكتب STOP بأي وقت لنوقّف._ | |
+| 🛒 اطلب | |
+| 📍 بتوصلو لعندي؟ | |
+| 🛒 تفضّل، اكتبلي شو بدك أو ابعت رسالة صوتية. | |
+| 📍 *منوصّل لعندك؟*<br>ابعتلنا موقعك من الزر تحت أو اكتب اسم الضيعة، ومنقلّك. | |
+| ✅ *تمام*<br>الدفع بالمبلغ المظبوط. | |
+| 💵 أوّل شي، اختار الورقة يلي رح تدفع فيها. | |
+| ❌ إيه، ألغيه | |
+| 🏠 لسّا ما في استلام من عنّا، فمنوصّلك لعند البيت. | |
+| 🔁 *إذا في غرض ناقص*<br>منحطّ أقرب بديل | |
+| ✅ *تمام*<br>إذا في غرض ناقص منحطّ أقرب بديل. | |
+| 🔁 *إذا في غرض ناقص*<br>منسألك قبل ما نبدّل | |
+| ✅ *تمام*<br>إذا في غرض ناقص منسألك قبل ما نبدّل. | |
+| 🔁 *إذا في غرض ناقص*<br>منشيلو من الطلب | |
+| ✅ *تمام*<br>إذا في غرض ناقص منشيلو من الطلب. | |
+| ✅ *تمام، منجيبلك فراطة للـ$20.00*<br>الفراطة · $12.73 | |
+| ✅ *تمام، ما منرجّعلك فراطة*<br>بتصير رصيد إلك بعد الدفع · $12.73 | |
+| ⚠️ هالورقة أقل من المجموع · $7.27 | |
+| 📦 *بلّشنا نحضّر طلبك AK-1234*<br>ما بقى فينا نغيّر هالخيار. | |
+| ❌ *بدك نلغي طلبك AK-1234؟*<br>لسّا ما بلّشنا نحضّرو. | |
+| ❌ *بدك نلغي طلبك AK-1234؟*<br>لسّا ما بلّشنا نحضّرو.<br>المبلغ يلي دفعتو بيرجع رصيد إلك · $7.27 | |
+| 📦 *بلّشنا نحضّر طلبك AK-1234*<br>ما فينا نلغيه من هون.<br>إذا لغيناه، بيرجعلك رصيد · $5.27<br>ما بيرجعو عالرفّ: لبنة.<br>💬 حدا من الفريق رح يحكيك هلّق. | |
+| 📦 *بلّشنا نحضّر طلبك AK-1234*<br>ما فينا نلغيه من هون. ما دفعت شي بعد.<br>💬 حدا من الفريق رح يحكيك هلّق. | |
+| 🛵 *طلبك AK-1234 صار عالطريق*<br>ما فينا نلغيه من هون.<br>💬 حدا من الفريق رح يحكيك هلّق. | |
+| 🔢 *رمز الاستلام: 4821*<br>عطيه للدليفري بس لمّا يوصلك الطلب. | |
+| 🏠 *الاستلام*<br>مستودع ألو كينغ، بلا رسم توصيل | |
+| 📦 *طلبك AK-1234 جاهز للاستلام*<br>من مستودع ألو كينغ. جيب معك رمز الاستلام. | |
+| 🔎 *«ربطة خبز»: أي واحد بدك؟*<br>عنّا 2. اختار من القائمة. | |
+| 🛒 *«ربطة خبز»: حطّينالك Wooden Bakery Pita White Medium 400G*<br>إذا بدك غيرو، قلّي. | |
+| 🛒 *ما عندك طلب مفتوح هلّق*<br>اكبس تحت لنجهّزلك نفس آخر طلب إلك بأسعار اليوم:<br>لبنة، خبز | |
+| 🛒 *طلبك أقل من الحد الأدنى*<br>بسلّتك:<br>• 1 × لبنة<br><br>الحد الأدنى للطلب · $5.00<br>طلبك هلّق · $0.69<br>*ناقصك · $4.31*<br><br>زيد شي، أو اختار من تحت. | |
+| 🌙 *مسكّرين هلّق، منفتح الساعة 08:00*<br><br>✅ طلبك محفوظ:<br>• 1 × لبنة<br><br>بس نفتح، اكبس *ابعت طلبي* ومنكمّل من هون. | |
+| 🛒 *طلبك AK-1234 بعدو ناطرك*<br>اكبس *تأكيد الطلب* عالورقة يلي فوق لنبعتو، أو *تعديل* لتغيّر شي. | |
+| 🔁 رجعنا فتحنا طلبك من *AK-1234*، بأسعار اليوم. | |
+| 🔁 افتح الطلب | |
+| 🔢 *رمز الاستلام: 4821*<br>عطيه لموظف المستودع بس لمّا تاخد طلبك. | |
+| 🕘 *جايي قريباً، لسّا ما فينا نبيعو*<br>• لبنة<br>قلّي شو بدك بدالو، أو منشيلو. | |
+| 🕘 *جايي قريباً، لسّا ما فينا نبيعو*<br>• لبنة<br>• خبز<br>قلّي شو بدك بدالو، أو منشيلو. | |
+
+WEB2's WhatsApp lines (the website's sign-in and card), in the new layout, with English and French:
+
+| Arabic | English | French |
+|---|---|---|
+| ✅ *تأكّد رقمك*<br>ارجع عالموقع وكمّل طلبك من هونيك. | ✅ *Your number is confirmed*<br>Go back to the website to finish your order. | ✅ *Votre numéro est confirmé*<br>Retournez sur le site pour terminer votre commande. |
+| ⚠️ *هالرمز انتهت صلاحيته*<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | ⚠️ *This code has expired*<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | ⚠️ *Ce code a expiré*<br>Retournez sur le site et appuyez à nouveau sur « Confirmer votre numéro sur WhatsApp ». |
+| ⚠️ *هالرمز انستعمل من رقم تاني*<br>ارجع عالموقع واطلب رمز جديد. | ⚠️ *Another number already used this code*<br>Go back to the website for a new one. | ⚠️ *Un autre numéro a déjà utilisé ce code*<br>Retournez sur le site pour en obtenir un nouveau. |
+| ⚠️ *ما عرفنا هالرمز*<br>ارجع عالموقع واضغط «أكّد رقمك على واتساب» من جديد. | ⚠️ *We don't know this code*<br>Go back to the website and tap "Confirm your number on WhatsApp" again. | ⚠️ *Nous ne connaissons pas ce code*<br>Retournez sur le site et appuyez à nouveau sur « Confirmer votre numéro sur WhatsApp ». |
+| ✅ *طلّعناك من حسابك عالموقع*<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ *You are signed out of the website*<br>Your orders and this chat stay as they are. | ✅ *Vous êtes déconnecté du site*<br>Vos commandes et cette conversation restent telles quelles. |
+| ✅ *طلّعناك من حسابك عالموقع على كل الأجهزة*<br>طلباتك ومحادثتك هون باقيين متل ما هنّي. | ✅ *You are signed out of the website on every device*<br>Your orders and this chat stay as they are. | ✅ *Vous êtes déconnecté du site sur tous les appareils*<br>Vos commandes et cette conversation restent telles quelles. |
+| 💬 ما في جهاز مسجّل دخول على الموقع برقمك. | 💬 No device is signed in to the website with your number. | 💬 Aucun appareil n'est connecté au site avec votre numéro. |
+| 📦 *طلبك AK-1042 ما عاد ناطر تأكيد*<br>إذا بدك تعرف وين صار، اسألني هون. | 📦 *Order AK-1042 is no longer waiting for your Confirm*<br>Ask me here if you want to know where it is. | 📦 *La commande AK-1042 n'attend plus votre confirmation*<br>Demandez-moi ici si vous voulez savoir où elle en est. |
+| 🔎 *ما لقينا طلب إلك بهالرقم*<br>اكتبلي شو بدك ومنساعدك. | 🔎 *We found no order of yours with that number*<br>Tell me what you need and we'll help. | 🔎 *Nous n'avons trouvé aucune commande à vous avec ce numéro*<br>Dites-moi ce qu'il vous faut et nous vous aiderons. |
+| رح تدفع بالليرة، ومعك<br>2,000,000 ل.ل | You pay in lira, with<br>2,000,000 LBP | Vous payez en livres, avec<br>2,000,000 LBP |
+| Labneh 500 g: منحطّ أقرب بديل | Labneh 500 g: we put the closest match | Labneh 500 g : nous mettons le plus proche |
+| Labneh 500 g: منسألك قبل ما نبدّل | Labneh 500 g: we ask you before swapping | Labneh 500 g : nous vous demandons avant de remplacer |
+| Labneh 500 g: منشيلو من الطلب | Labneh 500 g: we take it off | Labneh 500 g : nous le retirons |

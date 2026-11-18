@@ -61,21 +61,23 @@ export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?
     { id: orderButtonId("edit", input.orderId), title: m.card.edit },
     { id: orderButtonId("cancel", input.orderId), title: m.card.cancel },
   ]);
-  const whole = [head, "", ...items, "", ...sums, "", ...terms].join("\n");
+  // CX2: one line per item, its amount at the end after « · ».
+  const lines: string[] = [];
+  for (let i = 0; i < items.length; i += 2) lines.push(`${items[i]} · ${items[i + 1]}`);
+  const whole = [head, "", ...lines, "", ...sums, "", ...terms].join("\n");
   const before: Outbound[] = opts.before ? [{ type: "text", text: { body: opts.before } }] : [];
   if (whole.length <= BODY_LIMIT) return [...before, buttonsOf(whole)];
 
   // Too long for one card: every line first, as text (with `before` on top), then the card with the totals.
   const listed: string[] = [];
   let used = (opts.before ? opts.before.length + 2 : 0) + head.length + 2;
-  for (let i = 0; i < items.length; i += 2) {
-    const pair = `${items[i]}\n${items[i + 1]}`;
-    const more = m.card.more((items.length - i) / 2);
-    if (used + pair.length + 1 + more.length > TEXT_LIMIT) { listed.push(more); break; }
-    listed.push(pair); used += pair.length + 1;
+  for (let i = 0; i < lines.length; i++) {
+    const more = m.card.more(lines.length - i);
+    if (used + lines[i]!.length + 1 + more.length > TEXT_LIMIT) { listed.push(more); break; }
+    listed.push(lines[i]!); used += lines[i]!.length + 1;
   }
   const first = [...(opts.before ? [opts.before, ""] : []), head, "", ...listed].join("\n");
-  return [{ type: "text", text: { body: first } }, buttonsOf([head, "", ...sums, "", ...terms].join("\n"))];
+  return [{ type: "text", text: { body: first } }, buttonsOf([head, m.card.itemsAbove, "", ...sums, "", ...terms].join("\n"))];
 }
 
 /** Fixed replies to the three buttons. Deterministic text, no model. 2.8 adds the window and the scheduled-order answers. */

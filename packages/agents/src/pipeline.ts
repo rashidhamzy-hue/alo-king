@@ -363,7 +363,8 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // W1 ("the plan asks when"): only fresh goods are short now, and they are bought for the order: offer the windows.
   const short = plan.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock");
   if (!when && matched && plan.quote && !plan.pickup && short.length > 0 && short.every((i) => i.bought_to_order === true) && plan.issues.every(schedulable)) {
-    const names = plan.lines.filter((l) => short.some((i) => i.product_id === l.chosen?.product_id)).map((l) => (l.chosen ? productName(l.chosen, ctx.state.lang ?? "ar") : l.raw));
+    // CX2 (the founder's item 4): each product's own name from the quote (the database), never the customer's words or a fragment.
+    const names = plan.quote.lines.filter((q) => short.some((i) => i.product_id === q.product_id)).map((q) => productName(q, ctx.state.lang ?? "ar"));
     const routed = await basketWhen(ctx, basketNow, terms, plan.quote, { any: true },
                                     { before: before, body: T(ctx).windows.freshForWindow(names), orNow: false });
     if (routed.done) return routed;
@@ -641,7 +642,7 @@ async function acceptWithoutPin(ctx: ToolContext, intent: OrderIntent, said: str
   // The village as resolve_place checks it, with the landmark: the existing path for a place said in words.
   const place = await rpc<{ village: { village_id: string } | null; served: boolean }>(ctx.db, "resolve_place",
     { p_party: ctx.partyId, p_village: village.name_ar ?? village.name_en, p_landmark: intent.address.landmark ?? null }).catch(() => null);
-  if (place && place.village && !place.served) return say(T(ctx).answer.outOfArea(villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en), []), "out_of_area");
+  if (place && place.village && !place.served) { const r = await answerOutOfArea(ctx, villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en)); return r.done ? r : { done: false, plan: null }; }
   ctx.state.villageId = village.village_id;
   // A place said in words: the village, the building, the floor and the customer's own words, with no coordinates. The database
   // already treats such a place as deliverable (place_is_locatable, confirm_order_checked: directions of eight characters or more), so

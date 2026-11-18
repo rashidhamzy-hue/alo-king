@@ -114,7 +114,7 @@ describe("a customer picks a window by tap (C3's request 2: interactive.list_rep
     expect((await db.one(`select slot_id from slot_holds where order_id = $1`, [o.id])).slot_id).toBe(evening);
     // Where is my order: the window, never minutes (C3's request 6).
     await t.text("وين طلبي");
-    expect(bodyOf(outbound.at(-1)!)).toBe(`✅ طلبك ${o.short_code}: مأكّد، والتوصيل ${await label(evening)}.`);
+    expect(bodyOf(outbound.at(-1)!)).toBe(ar.answer.confirmedFor(o.short_code, await label(evening)));
   }, 60_000);
 
   it("a full window is never offered; the slot that filled before the tap refuses and the others are offered (request 3)", async () => {

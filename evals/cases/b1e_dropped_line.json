@@ -20,7 +20,7 @@
           "sugar"
         ],
         "contains": [
-          "We don't carry protein bars yet. I've noted your request."
+          "We don't carry protein bars yet"
         ],
         "not_contains": [
           "Welcome to Alo King",
@@ -50,7 +50,7 @@
           "sugar"
         ],
         "contains": [
-          "لسّا ما فينا نأكّد السكر بالسناكس يلي عنّا."
+          "لسّا ما فينا نأكّد السكر بالسناكس يلي عنّا"
         ],
         "not_contains": [
           "أهلا فيك",
@@ -78,7 +78,7 @@
           "sugar"
         ],
         "contains": [
-          "لسّا ما عنّا protein bars، سجّلنا طلبك."
+          "لسّا ما عنّا protein bars"
         ],
         "not_contains": [
           "أهلا فيك",
@@ -135,7 +135,7 @@
           "sugar"
         ],
         "contains": [
-          "We don't carry protein bars yet. I've noted your request."
+          "We don't carry protein bars yet"
         ],
         "not_contains": [
           "Welcome to Alo King",
@@ -241,7 +241,7 @@
           ]
         ],
         "contains": [
-          "I can't confirm the sugar for our labneh yet."
+          "I can't confirm the sugar for our labneh yet"
         ],
         "note": "As before B1e (pinned, not endorsed): with one line, PD1 applies the whole message's facts to that line, so 'no sugar in the coffee' is asked of the labneh. Open for the next ordering session (docs/HANDOFF.md, B1e)."
       }

@@ -14,39 +14,50 @@ import { pickCard, pickChangeText, returnCard, substitutionQuestion } from "../.
 import { cashAsk, dropCard, offerCard, pickupCard, type Job } from "@ak/agents/job-card";
 
 // ---------- the rules ----------
-const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢"]);
-const GREETING_ONLY = "👑";
+// CX2 (approved by the founder, 18 November 2026; docs/MESSAGES.md and packages/agents/src/messages/types.ts): the customer's messages.
+const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝"]);
 const MAX_LINE = 120;          // rule 1: about three phone lines
-const MAX_EMOJI = 3;           // rule 4
+const MAX_EMOJI = 3, MAX_EMOJI_CARD = 6;
 const AMOUNT = /-?\$\d+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+ (?:ل\.ل|LBP)|\b\d+ (?:ل\.ل|LBP)/gu;
 const EMOJI = /\p{Extended_Pictographic}️?/gu;
+const CODE_RE = /AK-[0-9A-Z]{2,10}/g;
+// M1's rules, kept for the staff line (ops.*), which CX2 does not change.
+const OPS_ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢"]);
 
 interface Rendered { key: string; text: string; greeting?: boolean; kind?: "card" | "template" }
+const norm = (e: string) => e.replace("️", "");
+const ALLOWED_N = new Set([...ALLOWED].map(norm));
 
 function problems(r: Rendered, m: Messages): string[] {
   const out: string[] = [];
   const lines = r.text.split("\n");
   // A template's values are one line each (Meta takes no line break inside a value): rule 1 is for messages.
   if (r.kind !== "template") lines.forEach((l, i) => { if (l.length > MAX_LINE) out.push(`rule 1: line ${i + 1} has ${l.length} characters`); });
-  const emojis = (r.text.match(EMOJI) ?? []).map((e) => e.replace("️", "") === "⚠" ? "⚠️" : e);
-  for (const e of emojis) {
-    if (e === GREETING_ONLY ? !r.greeting : !ALLOWED.has(e)) out.push(`rule 4: emoji ${e} not allowed here`);
+  const emojis = (r.text.match(EMOJI) ?? []).map(norm);
+  if (r.key.startsWith("ops.")) {
+    for (const e of emojis) if (!OPS_ALLOWED.has(e) && e !== "⚠") out.push(`rule 4 (ops): emoji ${e} not allowed`);
+    if (emojis.length > MAX_EMOJI) out.push(`rule 4 (ops): ${emojis.length} emojis`);
+  } else {
+    for (const e of emojis) if (!ALLOWED_N.has(e)) out.push(`rule 2: emoji ${e} is not in the 22`);
+    if (emojis.length > (r.kind === "card" ? MAX_EMOJI_CARD : MAX_EMOJI)) out.push(`rule 2: ${emojis.length} emojis`);
+    lines.forEach((l, i) => {
+      const es = l.match(EMOJI) ?? [];
+      if (es.length > 1) out.push(`rule 2: line ${i + 1} has ${es.length} emojis: ${l}`);
+      if (es.length === 1 && !l.trimStart().startsWith(es[0]!)) out.push(`rule 2: the emoji is not at the start of line ${i + 1}: ${l}`);
+    });
+    // rule 3: the order number is always bold (inside a *…* span), outside templates (Meta takes no bold)
+    if (r.kind !== "template") lines.forEach((l, i) => {
+      const spans = [...l.matchAll(/\*[^*]+\*/g)].map((x) => [x.index!, x.index! + x[0].length] as const);
+      for (const c of l.matchAll(CODE_RE)) if (!spans.some(([a, b]) => c.index! > a && c.index! < b)) out.push(`rule 3: ${c[0]} not bold on line ${i + 1}: ${l}`);
+    });
+    if ((r.text.match(/(^|\s)_|_($|[\s.])/g) ?? []).length % 2) out.push("rule 3: an unmatched _");
   }
-  if (emojis.length > MAX_EMOJI) out.push(`rule 4: ${emojis.length} emojis`);
-  if ((r.text.match(/\*/g) ?? []).length % 2) out.push("rule 5: an unmatched *");
-  lines.forEach((l, i) => {
-    for (const b of l.match(/\*[^*]+\*/g) ?? []) {
-      const whole = l.trim() === b || l.trim().endsWith(b) && l.trim().startsWith("🛒");
-      const total = /المجموع|Total|total/u.test(b);
-      const heading = i === 0 || l.startsWith("🛒 ");
-      if (!whole || (!heading && !total)) out.push(`rule 5: bold "${b}" is neither a heading nor the total`);
-    }
-  });
-  if (/[٠-٩۰-۹]/u.test(r.text)) out.push("rule 7: Arabic-Indic digits");
+  if ((r.text.match(/\*/g) ?? []).length % 2) out.push("rule 3: an unmatched *");
+  if (/[٠-٩۰-۹]/u.test(r.text)) out.push("rule 4: Arabic-Indic digits");
   lines.forEach((l, i) => {
     const found = l.match(AMOUNT) ?? [];
-    if (found.length > 1) out.push(`rule 7: line ${i + 1} has ${found.length} amounts: ${l}`);
-    if (found.length === 1 && !l.replace(/[*.]+$/u, "").trimEnd().endsWith(found[0]!)) out.push(`rule 7: the amount is not on its own line: ${l}`);
+    if (found.length > 1) out.push(`rule 4: line ${i + 1} has ${found.length} amounts: ${l}`);
+    if (found.length === 1 && !l.replace(/[*._)]+$/u, "").trimEnd().endsWith(found[0]!)) out.push(`rule 4: the amount does not end its line: ${l}`);
   });
   void m;
   return out;
@@ -94,10 +105,10 @@ function render(m: Messages): Rendered[] {
   add("card.heading", c.heading(CODE)); add("card.item", c.item("2", names[0]!, ["بلا ملح"])); add("card.more", c.more(3));
   add("card.delivery", m.amount(c.delivery(L === "ar" ? "بعقلين" : "Baakline"), 1)); add("card.smallOrder", m.amount(c.smallOrder, 0.5));
   add("card.dues", m.amount(c.dues, 1.5)); add("card.credit", m.amount(c.credit, -1.25)); add("card.total", `*${m.amount(c.total, 7.27)}*`);
-  add("card.orLbp", c.orLbp(651000)); add("card.address", c.address("Baakline")); add("card.pickup", c.pickup); add("card.eta", c.eta(30));
+  add("card.items", m.amount(c.items, 6.27)); add("card.itemsAbove", c.itemsAbove); add("card.orLbp", c.orLbp(651000)); add("card.address", c.address("Baakline")); add("card.pickup", c.pickup); add("card.eta", c.eta(30));
   add("card.deliverNow", c.deliverNow); add("card.window", c.window(when)); add("card.payment", c.payment("cod"));
   for (const k of ["cod", "whish", "omt"] as const) add(`card.payName.${k}`, c.payName[k]);
-  add("card.changeFor", c.changeFor); add("card.changeForLbp", `${c.changeForLbp}\n${m.lbp(2000000)}`); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
+  add("card.changeFor", c.changeFor); add("card.changeForLbp", `${c.changeForLbp} · ${m.lbp(2000000)}`); add("card.prepayFirst", c.prepayFirst(c.payName.whish, 50)); add("card.prepay", c.prepay(c.payName.whish));
   add("card.replaces", c.replaces("AK-1040")); add("card.reopenedFrom", c.reopenedFrom("AK-1040")); add("card.consent", c.consent);
   add("card.confirm", c.confirm); add("card.edit", c.edit); add("card.cancel", c.cancel);
   for (const x of cards(L)) formatOrderCard(x.input).forEach((o, i, all) => add(`${x.key}${all.length > 1 ? `.${i + 1}` : ""}`, bodyOf(o), { kind: i === all.length - 1 ? "card" : undefined }));
@@ -140,17 +151,17 @@ function render(m: Messages): Rendered[] {
   add("status.ready.pickup", st("ready", { is_pickup: true }));
   add("answer.noOpenOrder", a.noOpenOrder); add("answer.noOpenRepeat", a.noOpenRepeat(names.slice(0, 3), 2)); add("answer.awaitingConfirmation", a.awaitingConfirmation(CODE, null)); add("answer.awaitingPayment", a.awaitingPayment(CODE, when, 7.27));
   add("answer.confirmedFor", a.confirmedFor(CODE, when)); add("answer.preparingFor", a.preparingFor(CODE, when)); add("answer.preparing", a.preparing(CODE, 20));
-  add("answer.ready", a.ready(CODE, false)); add("answer.onTheWay", a.onTheWay(CODE, 10)); add("answer.arrived", a.arrived(CODE)); add("answer.delivered", a.delivered(CODE));
+  add("answer.ready", a.ready(CODE, false)); add("answer.onTheWay", a.onTheWay(CODE, 10)); add("answer.onTheWay.cash", a.onTheWay(CODE, 10, 7.27)); add("answer.arrived", a.arrived(CODE)); add("answer.delivered", a.delivered(CODE));
   add("answer.failed", a.failed(CODE)); add("answer.other", a.other(CODE)); add("answer.hours", a.hours("08:00", "22:00", true)); add("answer.hours.closed", a.hours("08:00", "22:00", false));
-  add("answer.outOfArea", a.outOfArea("صيدا", ["بعقلين", "بيت الدين", "الخريبة"])); add("answer.inArea", a.inArea("بيت الدين", 1.5, 30));
-  add("answer.noPrevious", a.noPrevious); add("answer.allMissing", a.allMissing(names)); add("answer.repeatOffer", repeatOfferText([...names, "x", "y", "z"], L), { greeting: true });
+  add("answer.outOfArea", a.outOfArea(L === "ar" ? "صيدا" : "Saida")); add("answer.inArea", a.inArea("بيت الدين", 1.5, 30));
+  add("answer.noPrevious", a.noPrevious); add("answer.allMissing", a.allMissing(names)); add("answer.repeatOffer", repeatOfferText([...names, "x", "y", "z"], L));
   add("answer.repeatButton", a.repeatButton); add("answer.stale", a.stale); add("answer.someMissing", a.someMissing([names[2]!]));
   add("answer.lira", a.lira(89500, { code: CODE, usd: 7.27, lbp: 651000 })); add("answer.lira.noOrder", a.lira(89500, null)); add("answer.noRate", a.noRate);
 
   // B1a: the basket said by code (the minimum, the basket so far, what changed, a refused cancel).
   const bk = m.basket;
   add("basket.minimum", bk.minimum(5, 0.69, 4.31, names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("basket.minimumIs", bk.minimumIs(5));
-  add("basket.which", bk.which(names[0]!, names.slice(0, 3).map((n) => `${n}: $1.01`))); add("basket.houseDefault", bk.houseDefault("ربطة خبز", names[0]!));
+  add("basket.which", bk.which(names[0]!, 3)); add("basket.whichButton", bk.whichButton); add("basket.houseDefault", bk.houseDefault("ربطة خبز", names[0]!));
   add("basket.cancelButton", bk.cancelButton); add("basket.cleared", bk.cleared); add("basket.soFar", bk.soFar(names.map((n, i) => `${i + 1} × ${n}`)));
   add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!])); add("basket.comingSoon", bk.comingSoon([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));
@@ -178,7 +189,7 @@ function render(m: Messages): Rendered[] {
   add("built.missing", b.missing(["burghul"])); add("built.overBudget", b.overBudget(15)); add("built.tooMany", b.tooMany(50)); add("built.none", b.none);
   // CX1: the welcome (the one other place 👑 may appear: it is a greeting), the card's choices, cancel, the handover code, pickup.
   const cx = m.cx;
-  add("cx.welcome", cx.welcome("08:00", "22:00"), { greeting: true }); add("cx.welcome.noHours", cx.welcome(null, null), { greeting: true });
+  add("cx.welcome", cx.welcome("09:00", "21:00")); add("cx.welcome.noHours", cx.welcome(null, null));
   for (const k of ["privacy", "orderButton", "areaButton", "orderAsk", "areaAsk", "keepLine", "choicesButton", "choicesMissing", "choicesNote", "choicesOrder",
                    "exactRow", "keepRow", "cancelRow", "exactSet", "needsNote", "cancelYes", "pickupOff"] as const) add(`cx.${k}`, cx[k]);
   for (const p of ["best_match", "ask", "remove"] as const) {
@@ -196,9 +207,13 @@ function render(m: Messages): Rendered[] {
                    "retryButton", "notOnRecord", "browseInWords"] as const) add(`support.${k}`, sp[k]);
   add("support.afterHours", sp.afterHours("08:00"));
   for (const k of ["person_requested", "order_problem", "complaint", "refund", "payment", "safety", "other"] as const) add(`support.draft.${k}`, sp.draft(k, CODE));
+  // CX2: the question after delivery, its buttons and its two answers, in the customer's language.
+  const fb = m.feedback;
+  add("feedback.ask", fb.ask(CODE)); add("feedback.fineButton", fb.fineButton); add("feedback.problemButton", fb.problemButton);
+  add("feedback.fine", fb.fine); add("feedback.problem", fb.problem(CODE));
   const n = m.notice;
-  add("notice.orderCancelled", n.orderCancelled(CODE, "ما تأكّد الطلب بالوقت المحدد")); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
-  add("notice.paymentReceived", n.paymentReceived(CODE, "12.50$ نقداً")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.riderWaiting", n.riderWaiting(CODE));
+  add("notice.orderCancelled", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time")); add("notice.orderCancelled.reopen", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time", true)); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
+  add("notice.paymentReceived", n.paymentReceived(CODE, L === "ar" ? "12.50$ نقداً" : L === "en" ? "12.50$ cash" : "12.50$ en espèces")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.onTheWay.cash", n.onTheWay(CODE, 7.27)); add("notice.riderWaiting", n.riderWaiting(CODE));
   add("notice.delayed", n.delayed(CODE)); add("notice.calledOff", n.calledOff(CODE, 0)); add("notice.calledOff.credit", n.calledOff(CODE, 7.27));
 
   const sh = m.shelf;
@@ -305,14 +320,19 @@ describe("message design rules (SYSTEM_BRIEF, M1)", () => {
         expect(bodyOf(card).length, key).toBeLessThanOrEqual(1024);
       }
       const card = bodyOf(formatOrderCard(cards(lang)[0]!.input)[0]!);
-      expect(card).toContain(lang === "ar" ? "📍 بعقلين، بيت الاختبار، الطابق 2" : "📍 Baakline, بيت الاختبار, الطابق 2");
+      expect(card).toContain(lang === "ar" ? "📍 *العنوان*\nبعقلين، بيت الاختبار، الطابق 2" : lang === "en" ? "📍 *Deliver to*\nBaakline, بيت الاختبار, الطابق 2" : "📍 *Livrer à*\nBaakline, بيت الاختبار, الطابق 2");
+      // CX2: one line per item, its amount at the end after « · »; the founder's words for a missing item (change 1).
+      expect(card).toContain(lang === "ar" ? "1 × كرتونة مي تنورين 2 ليتر (6 قناني) · $2.01" : "1 × Tannourine water 2 L (pack of 6) · $2.01");
+      expect(card).toContain(m.cx.missingLine("ask"));
     });
     it(`${lang}: buttons and list rows fit WhatsApp (20 and 24 characters)`, () => {
       for (const t of [m.card.confirm, m.card.edit, m.card.cancel, m.fixed.keptButton, m.answer.repeatButton, m.sub.keep, m.sub.remove, m.windows.button, m.cx.reopenButton,
                        m.ops.accept, m.ops.decline, m.ops.picked, m.ops.arrived, m.ops.delivered, m.ops.noAnswer, m.ops.exactButton, m.ops.pickDone, m.ops.pickMissing,
                        m.ops.countReturn, m.ops.returnDefault, m.ops.returnAllFit, m.ops.returnAllWaste, m.ops.riderCannot, m.ops.riderConfirmButton,
                        m.ops.cashReceivedButton, m.ops.dropHub, m.ops.dropOmt, m.ops.chooseSubButton, m.ops.whichMissingButton, m.ops.startButton("AK-1042"),
-                       m.ops.sendBack("AK-1042")]) expect(t.length, t).toBeLessThanOrEqual(20);
+                       m.ops.sendBack("AK-1042"), m.basket.whichButton, m.basket.cancelButton, m.feedback.fineButton, m.feedback.problemButton, m.cx.orderButton, m.cx.areaButton,
+                       m.cx.cancelYes, m.remember.yes, m.remember.no, m.support.keepOrderingButton, m.support.browseButton, m.support.myOrderButton, m.support.personButton,
+                       m.support.retryButton, m.support.callbackButton, m.support.voiceNoteButton]) expect(t.length, t).toBeLessThanOrEqual(20);
       for (let off = 0; off < 7; off++) for (let dow = 1; dow <= 7; dow++) {
         const row = windowRow(W(off, dow), lang);
         expect(row.title.length, row.title).toBeLessThanOrEqual(24);       // W1's fix, in every language

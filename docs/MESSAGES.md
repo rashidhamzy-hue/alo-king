@@ -1,13 +1,21 @@
 # Customer messages: before and after (CX2)
 
-**Stage 1, waiting for the founder.** Every customer message, as WhatsApp shows it, before (today's code; where today's code is not one function, the founder's own staging chat of 18 November 07:36 to 09:06) and after (the proposal), in Arabic and English. French follows the English in stage 2.
-The pictures are on the console's **Screens** page, session **cx2**: each message is two pages, `cx2-<message>-before` and `cx2-<message>-after`, at 390 px, Arabic and English.
-Reply in the chat with what to change ("card: drop the italic line", "welcome: say ..."); stage 2 puts the approved words in the code, with the message-rules tests and snapshots changed on purpose.
-This file is written by `test/screens/cx2-doc.test.ts` from `test/screens/cx2-messages.ts`: change the words there, not here.
+**Approved by the founder on 18 November 2026, with five changes, and in the code since CX2 stage 2.** This file is the record of what was
+approved; it is no longer generated. The words the code sends are in `packages/agents/src/messages/{ar,en,fr}.ts`, and every one of them, as
+sent, is in `packages/agents/test/__snapshots__/messages.{ar,en,fr}.md`, checked against the rules below by `packages/agents/test/messages.rules.test.ts`.
+The stage-1 pictures stay on the console's **Screens** page, session **cx2**.
+
+The founder's five changes (applied in stage 2):
+1. The card's missing-item line: «منسألك قبل ما نبدّل» / "We ask you before swapping anything".
+2. 👑 retired everywhere (`answer.repeatOffer` and `cx.welcome` greet with 👋).
+3. Every other customer message (status, answers, times, and the rest) in the new layout: the order number in bold, one emoji at the start of a
+   line, the 22 emojis only; a status answer and the notice for the same state say the same words.
+4. `windows.freshForWindow`: «طازة» / "Fresh" before each product's own name from the quote (the database), never the customer's words.
+5. Restaurant and food messages untouched (`windows.restaurantNoWindow`, `fixed.notAvailable`, `fixed.listingClaimed`): FD2 owns them.
 
 ## The rules, before and after
 
-| Rule | Before (M1, SYSTEM_BRIEF) | After (proposed) |
+| Rule | Before (M1, SYSTEM_BRIEF) | After (approved, in the code) |
 |---|---|---|
 | Layout | Plain lines; a heading only on the card | Every message opens with one **bold heading line** and its emoji; a blank line between sections; lines under about 60 characters on a phone |
 | Emoji | 10 allowed (📍 🛒 🛵 ✅ 💵 🌙 ⚠️ 📦 🏠 🔢), at most 3, 👑 only in a greeting | Widened on purpose to 22: the 10, plus ⏱️ 🔁 🕘 👋 🙏 🔎 ✏️ ❌ 💬 ☀️ 👇 📝; at most 6 in an order card, 3 elsewhere; one per heading or button; 👑 retired (👋 greets) |

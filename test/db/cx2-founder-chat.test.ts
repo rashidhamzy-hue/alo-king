@@ -40,6 +40,12 @@ describe("CX2: the founder's chat, every line said", () => {
     for (const x of c.expect.not_contains) expect(all).not.toContain(x);
   });
 
+  it("0257: a plan line with JSON null for its candidates (or a word that is not a list) never stops the planner (language gate 44303688282)", async () => {
+    expect((await db.one(`select catalog_other_kind('["mate"]'::jsonb, 'null'::jsonb) as r`)).r).toBe(true);
+    expect((await db.one(`select catalog_other_kind('"mate"'::jsonb, '[]'::jsonb) as r`)).r).toBe(false);
+    expect((await db.one(`select catalog_other_kind(null, null) as r`)).r).toBe(false);
+  });
+
   it(`${chat.loop.id}: the model's reply did not name the line; code does`, async () => {
     // «لبنة» alone with no house default is the loop's question (B1c); the model asks about the labneh and nothing else.
     await db.pg.query(`update products set house_default = false where sku = $1`, [chat.loop.no_house_default]);

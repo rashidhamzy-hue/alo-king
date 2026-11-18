@@ -72,34 +72,29 @@ export function wrongLanguage(expected: Lang, text: string): Seen | null {
   return seen === "fr" ? null : seen;
 }
 
-// ---------- the message rules (M1) ----------
-const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "👑"]);
-const MAX_LINE = 120, MAX_EMOJI = 3;
+// ---------- the message rules (CX2, approved 18 November 2026; packages/agents/test/messages.rules.test.ts) ----------
+const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝"]
+  .map((e) => e.replace("️", "")));
+const MAX_LINE = 120, MAX_EMOJI = 6;
 const AMOUNT = /-?\$\d+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+ (?:ل\.ل|LBP)|\b\d+ (?:ل\.ل|LBP)/gu;
 const EMOJI = /\p{Extended_Pictographic}️?/gu;
-/** The rules test's problems() for one message (the greeting crown is allowed anywhere here: the run cannot tell a greeting). */
+/** The rules test's problems() for one message, as far as a run can check them on any message, code's or the model's: the 22 emojis (at
+ *  most six, an order card's count), one emoji a line, matched bold and italic marks, Western digits, one amount a line at its end. */
 export function ruleProblems(m: BotMsg): string[] {
   if (m.kind === "template" || m.kind === "location") return [];
   const out: string[] = [];
   const lines = m.text.split("\n");
   lines.forEach((l, i) => { if (l.length > MAX_LINE) out.push(`rule 1: line ${i + 1} has ${l.length} characters`); });
-  const emojis = (m.text.match(EMOJI) ?? []).map((e) => (e.replace("️", "") === "⚠" ? "⚠️" : e));
-  for (const e of emojis) if (!ALLOWED.has(e)) out.push(`rule 4: emoji ${e} not allowed`);
-  if (emojis.length > MAX_EMOJI) out.push(`rule 4: ${emojis.length} emojis`);
-  if ((m.text.match(/\*/g) ?? []).length % 2) out.push("rule 5: an unmatched *");
-  lines.forEach((l, i) => {
-    for (const b of l.match(/\*[^*]+\*/g) ?? []) {
-      const whole = l.trim() === b || (l.trim().endsWith(b) && l.trim().startsWith("🛒"));
-      const total = /المجموع|Total|total/u.test(b);
-      const heading = i === 0 || l.startsWith("🛒 ");
-      if (!whole || (!heading && !total)) out.push(`rule 5: bold "${b}" is neither a heading nor the total`);
-    }
-  });
-  if (/[٠-٩۰-۹]/u.test(m.text)) out.push("rule 7: Arabic-Indic digits");
+  const emojis = (m.text.match(EMOJI) ?? []).map((e) => e.replace("️", ""));
+  for (const e of emojis) if (!ALLOWED.has(e)) out.push(`rule 2: emoji ${e} not allowed`);
+  if (emojis.length > MAX_EMOJI) out.push(`rule 2: ${emojis.length} emojis`);
+  lines.forEach((l, i) => { if ((l.match(EMOJI) ?? []).length > 1) out.push(`rule 2: line ${i + 1} has more than one emoji`); });
+  if ((m.text.match(/\*/g) ?? []).length % 2) out.push("rule 3: an unmatched *");
+  if (/[٠-٩۰-۹]/u.test(m.text)) out.push("rule 4: Arabic-Indic digits");
   lines.forEach((l, i) => {
     const found = l.match(AMOUNT) ?? [];
-    if (found.length > 1) out.push(`rule 7: line ${i + 1} has ${found.length} amounts`);
-    if (found.length === 1 && !l.replace(/[*.]+$/u, "").trimEnd().endsWith(found[0]!)) out.push(`rule 7: the amount is not at the end of line ${i + 1}`);
+    if (found.length > 1) out.push(`rule 4: line ${i + 1} has ${found.length} amounts`);
+    if (found.length === 1 && !l.replace(/[*._)]+$/u, "").trimEnd().endsWith(found[0]!)) out.push(`rule 4: the amount is not at the end of line ${i + 1}`);
   });
   for (const o of m.options) if (o.title.length > (m.kind === "list" ? 24 : 20)) out.push(`option title over the limit: ${o.title}`);
   return out;

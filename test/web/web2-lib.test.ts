@@ -28,7 +28,8 @@ describe("the readers", () => {
   });
   it("a card line's label and amount", () => {
     expect(splitAmount("Delivery (Baakline): $1.00")).toEqual(["Delivery (Baakline):", "$1.00"]);
-    expect(splitAmount("*Total: $16.45*")).toEqual(["Total:", "$16.45"]);
+    expect(splitAmount("*Total · $16.45*")).toEqual(["Total", "$16.45"]);                        // CX2: the chat's « · » is not the label's
+    expect(splitAmount("Delivery to Baakline · $1.00")).toEqual(["Delivery to Baakline", "$1.00"]);
     expect(splitAmount("or 1,472,000 LBP")).toEqual(["or", "1,472,000 LBP"]);
     expect(splitAmount("If an item is missing: we ask you")).toEqual(["If an item is missing: we ask you", null]);
   });

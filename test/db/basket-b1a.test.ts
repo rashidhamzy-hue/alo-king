@@ -34,7 +34,9 @@ const order = (lines: unknown[], intent = "order", village: string | null = "ب�
 const bodyOf = (s: Sent): string => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
 /** B1c: the minimum line lists the basket under its first line; the fixed words are compared without it. */
 const unlisted = (b: string) => b.replace(/\n(?:بسلّتك:|In your basket:|Dans votre panier :)(?=\n)/g, "").replace(/\n• [^\n]+/g, "");
-const buttonsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
+// CX2: a "which one?" is a list message: its rows are the choices, as a button message's buttons are.
+const buttonsOf = (s: Sent): { id: string; title: string }[] => [...(s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply),
+  ...(s.body.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => ({ id: r.id, title: r.title })))];
 const isCard = (s: Sent) => buttonsOf(s).some((b) => b.id.startsWith("order:confirm:"));
 const tapId = (t: ReturnType<typeof flow>, id: string) => t.tap(id);
 const NO_OPEN = [ar.answer.noOpenOrder, en.answer.noOpenOrder];
@@ -48,9 +50,9 @@ describe("fix 1: the minimum is said by code, with the minimum, the basket and t
     expect(outbound).toHaveLength(1);
     const msg = outbound[0]!;
     expect(unlisted(bodyOf(msg))).toBe(ar.basket.minimum(5, 0.69, 4.31));
-    expect(bodyOf(msg)).toContain("الحد الأدنى للطلب: $5.00");
-    expect(bodyOf(msg)).toContain("طلبك هلّق: $0.69");
-    expect(bodyOf(msg)).toContain("ناقصك: $4.31");
+    expect(bodyOf(msg)).toContain("الحد الأدنى للطلب · $5.00");
+    expect(bodyOf(msg)).toContain("طلبك هلّق · $0.69");
+    expect(bodyOf(msg)).toContain("ناقصك · $4.31");
     // No button raises a quantity for the customer: the B1a run on main counted "+7 Lipton" as a product the customer never chose.
     expect(buttonsOf(msg).map((x) => x.id)).toEqual([MENU_BROWSE, BASKET_CLEAR]);
 
@@ -58,7 +60,7 @@ describe("fix 1: the minimum is said by code, with the minimum, the basket and t
     await t.text("شو الحد الأدنى بالضبط؟");
     expect(t.seen).toHaveLength(2);
     expect(outbound).toHaveLength(2);
-    expect(bodyOf(outbound[1]!)).toContain("ناقصك: $4.31");
+    expect(bodyOf(outbound[1]!)).toContain("ناقصك · $4.31");
   });
 
   it("an item said next is added to the basket under the minimum, never a new basket", async () => {
@@ -67,8 +69,8 @@ describe("fix 1: the minimum is said by code, with the minimum, the basket and t
     await t.text("بدي ليبتون");
     await t.text("زيد اربع ربطات خبز");
     expect(outbound.some(isCard)).toBe(false);                        // 0.69 + 4 × 1.01 = 4.73: still under, so the minimum again
-    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك هلّق: $4.73");
-    expect(bodyOf(outbound.at(-1)!)).toContain("ناقصك: $0.27");
+    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك هلّق · $4.73");
+    expect(bodyOf(outbound.at(-1)!)).toContain("ناقصك · $0.27");
     await t.text("وربطة كمان");
     const card = outbound.find(isCard)!;
     expect(card).toBeTruthy();
@@ -156,7 +158,7 @@ describe("fix 4: the basket changes only by what the customer picked (sim-215, s
     const bread = await db.one(`select qty from order_items where order_id = $1 and product_id = $2`, [orders[1].id, ids.BREAD]);
     expect(Number(bread.qty)).toBe(4);
     const all = outbound.map(bodyOf).join("\n");
-    expect(all).toContain("✅ عدّلنا طلبك:");
+    expect(all).toContain("✅ *عدّلنا طلبك*");
     expect(all).toContain("2 → 4");
     expect((await db.one(`select count(*)::int as n from order_items where order_id = $1`, [orders[1].id])).n).toBe(2);   // the labneh stays
   });
@@ -358,7 +360,7 @@ describe("the two no-reply turns: a window tapped for a basket kept overnight (s
       const n = outbound.length;
       await t.say({ type: "interactive", interactive: { type: "list_reply", list_reply: { id: windowButtonId(slot, null), title: "x" } } });
       expect(outbound.length).toBeGreaterThan(n);
-      expect(bodyOf(outbound.at(-1)!)).toContain("ناقصك: $0.50");
+      expect(bodyOf(outbound.at(-1)!)).toContain("ناقصك · $0.50");
     } finally {
       await db.pg.query(`update offers set price_usd = 5.00 where product_id = $1`, [ids.LABNEH]);
       await db.pg.query(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}'::jsonb where key = 'hours'`);

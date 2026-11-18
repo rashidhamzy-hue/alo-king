@@ -33,7 +33,9 @@ const line = (raw: string, query: string, qty = 1, extra: Record<string, unknown
 const order = (lines: unknown[], intent = "order", village: string | null = "بعقلين") =>
   ({ intent, fulfilment: "delivery", lines, address: { village, landmark: null, building: null, floor: null, recipient_name: null, verbatim: null } });
 const bodyOf = (s: Sent): string => s.body.text?.body ?? s.body.interactive?.body?.text ?? "";
-const buttonsOf = (s: Sent): { id: string; title: string }[] => (s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
+// CX2: a "which one?" is a list message: its rows are the choices, as a button message's buttons are.
+const buttonsOf = (s: Sent): { id: string; title: string }[] => [...(s.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply),
+  ...(s.body.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => ({ id: r.id, title: r.title })))];
 const isCard = (s: Sent) => buttonsOf(s).some((b) => b.id.startsWith("order:confirm:"));
 const name = async (k: string) => (await db.one(`select name_en from products where id = $1`, [P[k]])).name_en as string;
 async function lastOrderLines(party: string) {
@@ -54,13 +56,13 @@ describe("fix 1: a generic word or a brand alone is one question by code, never 
     expect(picks.length).toBeLessThanOrEqual(3);
     expect(picks.every((b) => b.id.startsWith("pick:"))).toBe(true);
     expect(bodyOf(q)).toContain("«2 كيس عدس»: أي واحد بدك؟");          // the customer's words, Latin digits (message rule 7)
-    expect(bodyOf(q)).toContain("$0.99");                              // the prices come from the plan
+    expect(JSON.stringify(q.body.interactive.action)).toContain("$0.99");   // the prices come from the plan (CX2: under each row of the list)
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
     await t.tap(pickButtonId(P.lentilsRed!), "Deroni Red");
     expect(t.seen).toHaveLength(1);                                    // the tap is code's: no model
     const after = bodyOf(outbound.at(-1)!);
     expect(after).toContain(`2 × ${await name("lentilsRed")}`);         // the minimum line shows the basket, with the count said
-    expect(after).toContain("طلبك هلّق: $1.98");
+    expect(after).toContain("طلبك هلّق · $1.98");
   });
 
   it("a brand alone («بدي Gorosti») with one product is that product, shown in the basket line (sim-016)", async () => {
@@ -80,7 +82,7 @@ describe("fix 1: a generic word or a brand alone is one question by code, never 
     const body = bodyOf(outbound.at(-1)!);                              // 3 × 1.42 + 0.69 = 4.95: the minimum, with both lines
     expect(body).toContain(`3 × ${await name("colgateHerbal")}`);
     expect(body).toContain(`1 × ${await name("lipton")}`);
-    expect(body).toContain("طلبك هلّق: $4.95");
+    expect(body).toContain("طلبك هلّق · $4.95");
   });
 
   it("button titles stay apart within 20 characters", () => {
@@ -125,7 +127,7 @@ describe("the basket is shown, and a count said again is not added again (sim-01
     await pinned(db, t, ids.BAAKLINE);
     await t.text("baddi 3 Lipton ice tea red fruits");
     await t.text("w baddi ba3ten el 3 Lipton");
-    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك هلّق: $2.07");
+    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك هلّق · $2.07");
     expect(bodyOf(outbound.at(-1)!)).toContain(`3 × ${await name("lipton")}`);
   });
 
@@ -228,7 +230,7 @@ describe("fix 3: «where is my order?» with no open order offers the last one (
     await db.pg.query(`update orders set status = 'closed', delivered_at = now() - interval '5 days' where id = $1`, [old.order_id]);
     await t.text("آخر طلبية كانت من خمس ايام، مش مسجلة عندكن؟");
     const offer = outbound.at(-1)!;
-    expect(bodyOf(offer)).toContain("ما عندك طلب مفتوح هلّق.");
+    expect(bodyOf(offer)).toContain("ما عندك طلب مفتوح هلّق");
     expect(buttonsOf(offer).map((b) => b.id)).toEqual([repeatButtonId(old.order_id)]);
     await t.tap(repeatButtonId(old.order_id), ar.answer.repeatButton);
     expect(bodyOf(outbound.at(-1)!)).toContain(`8 × ${await name("lipton")}`);
@@ -315,7 +317,7 @@ describe("fix 3: same as last time with a past basket under today's minimum (sim
     expect(t.seen).toHaveLength(1);
     const body = bodyOf(outbound.at(-1)!);
     expect(body).toContain(`2 × ${await name("lipton")}`);
-    expect(body).toContain("الحد الأدنى للطلب: $5.00");
+    expect(body).toContain("الحد الأدنى للطلب · $5.00");
   });
   it("the button: the same, never silence", async () => {
     const t = flow(db, []);

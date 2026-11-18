@@ -51,7 +51,10 @@ export function addressText(a: CardAddress | null | undefined, q: Pick<Quote, "v
   return messages(lang).join([village, a?.building, a?.floor].map((x) => latinDigits((x ?? "").trim())).filter(Boolean));
 }
 
-/** The card's words without its buttons: the heading, the lines (each followed by its amount), the sums and the terms. */
+/**
+ * The card's words without its buttons: the heading, the lines (each followed by its amount: formatOrderCard joins the two with « · »; the
+ * website prints them as a table row), the totals block, and the terms as short sections with blank lines between them (CX2).
+ */
 export function orderCardParts(input: CardInput, gaps?: Set<string>): { head: string; items: string[]; sums: string[]; terms: string[] } {
   const { quote: q } = input;
   const lang = input.lang ?? "ar";
@@ -63,7 +66,10 @@ export function orderCardParts(input: CardInput, gaps?: Set<string>): { head: st
     return [m.card.item(qty(l.qty), productName(l, lang, gaps), extras), usd(l.line_total_usd)];
   });
 
+  // CX2: the totals block: the items, each fee, what is owed or credited, the total in bold, then the lira.
   const sums: string[] = [];
+  const itemsSum = Math.round(q.lines.reduce((a, l) => a + Number(l.line_total_usd), 0) * 100) / 100;
+  sums.push(m.amount(m.card.items, Number(q.subtotal_usd ?? itemsSum)));
   if (!q.pickup) sums.push(m.amount(m.card.delivery(villageName(lang, q.village_ar, q.village) || null), q.delivery_fee_usd));
   const small = Number(q.small_order_fee_usd ?? 0);
   if (small > 0) sums.push(m.amount(m.card.smallOrder, small));
@@ -76,28 +82,30 @@ export function orderCardParts(input: CardInput, gaps?: Set<string>): { head: st
   sums.push(`*${m.amount(m.card.total, q.total_usd)}*`);
   if (q.total_lbp) sums.push(m.card.orLbp(q.total_lbp));
 
-  const terms: string[] = [];
-  if (q.pickup) terms.push(input.pickupPlace ? m.cx.pickupAt(input.pickupPlace) : m.card.pickup);
+  // CX2: the sections, each a bold heading with its emoji: where and when, the payment, a missing item; a blank line between them.
+  const where: string[] = [];
+  if (q.pickup) where.push(input.pickupPlace ? m.cx.pickupAt(input.pickupPlace) : m.card.pickup);
   else {
-    terms.push(m.card.address(addressText(input.address, q, lang)));
-    terms.push(input.window ? m.card.window(windowLabel(input.window, lang)) : q.eta_minutes ? m.card.eta(q.eta_minutes) : m.card.deliverNow);
+    where.push(m.card.address(addressText(input.address, q, lang)));
+    where.push(input.window ? m.card.window(windowLabel(input.window, lang)) : q.eta_minutes ? m.card.eta(q.eta_minutes) : m.card.deliverNow);
   }
-  terms.push(m.card.payment(input.paymentMethod));
+  const pay: string[] = [m.card.payment(input.paymentMethod)];
   const how = m.card.payName[input.paymentMethod];
   // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
-  if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") terms.push(m.card.prepayFirst(how, input.prepay.maxCodUsd));
-  else if (dues > 0 && input.paymentMethod !== "cod") terms.push(m.card.prepay(how));
+  if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") pay.push(m.card.prepayFirst(how, input.prepay.maxCodUsd));
+  else if (dues > 0 && input.paymentMethod !== "cod") pay.push(m.card.prepay(how));
   if (input.changeForUsd && input.paymentMethod === "cod") {
-    terms.push(m.card.changeFor, usd(input.changeForUsd));
-    if (input.keepChange) terms.push(m.cx.keepLine);
+    pay.push(m.amount(m.card.changeFor, input.changeForUsd));
+    if (input.keepChange) pay.push(m.cx.keepLine);
   }
-  if (input.changeForLbp && input.paymentMethod === "cod") terms.push(m.card.changeForLbp, m.lbp(input.changeForLbp));
+  if (input.changeForLbp && input.paymentMethod === "cod") pay.push(`${m.card.changeForLbp} · ${m.lbp(input.changeForLbp)}`);
   // CX1: the missing-item choice, always said (the list under the confirmation changes it, until picking starts).
-  terms.push(m.cx.missingLine(input.missingPref ?? "ask"));
+  const missing: string[] = [m.cx.missingLine(input.missingPref ?? "ask")];
   // WEB2: an item with its own choice, under the order's.
-  for (const it of input.missingItems ?? []) if (it.pref !== (input.missingPref ?? "ask")) terms.push(m.cx.missingItemLine(productName(it, lang, gaps), it.pref));
-  if (input.replaces) terms.push(m.card.replaces(input.replaces));
-  if (input.reopenedFrom) terms.push(m.card.reopenedFrom(input.reopenedFrom));
+  for (const it of input.missingItems ?? []) if (it.pref !== (input.missingPref ?? "ask")) missing.push(m.cx.missingItemLine(productName(it, lang, gaps), it.pref));
+  const terms: string[] = [...where, "", ...pay, "", ...missing];
+  if (input.replaces) terms.push("", m.card.replaces(input.replaces));
+  if (input.reopenedFrom) terms.push("", m.card.reopenedFrom(input.reopenedFrom));
   terms.push("", m.card.consent);
   return { head, items, sums, terms };
 }
