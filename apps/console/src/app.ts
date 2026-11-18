@@ -177,6 +177,25 @@ export function explain(e: unknown): string {
       [/^ALREADY_HIDDEN/, "That page is already hidden."],
       [/^UNKNOWN_LISTING/, "That place was not found."],
       [/^REQUEST_NOT_OPEN/, "That request is already closed."],
+      // FD1: places and menus (0245 to 0247)
+      [/^OWNER_NOT_ON_FILE/, "A place is public only once its owner's claim or application is on file. Keep it on testers only."],
+      [/^PLACE_EXISTS/, "A place was already made from this listing."],
+      [/^LISTING_NOT_FOUND/, "That listing was not found, or it is hidden."],
+      [/^VILLAGE_REQUIRED/, "Choose the place's village."],
+      [/^PHONE_INVALID/, "Type the number in full: + and the country code (+961...)."],
+      [/^PREP_MINUTES/, "Preparation time is 0 to 180 minutes."],
+      [/^HOURS_INVALID/, "Opening and closing are times like 11:00 and 22:00."],
+      [/^VISIBILITY_INVALID/, "Choose off, testers only or public."],
+      [/^NOT_A_PLACE/, "That is not a place made from a listing."],
+      [/^MENU_PATH/, "That photo does not belong to this place."],
+      [/^MENU_PHOTOS_UNREAD/, "A menu photo is still waiting for the reading run."],
+      [/^MENU_DISHES_WAITING/, "Approve or reject every dish first."],
+      [/^MENU_NOT_CHECKED/, "Stamp the menu as checked first (Menus page)."],
+      [/^DISH_NAME_CLAIM/, "A dish name says what it is, never how good or healthy it is. Change the name, then approve."],
+      [/^PRICE_REQUIRED/, "Type the price as printed and choose USD or LBP."],
+      [/^DISH_ALREADY_REVIEWED/, "That dish was already decided."],
+      [/^DISH_NOT_FOUND/, "That dish was not found."],
+      [/^NO_FX_RATE/, "Record today's lira rate (Money, Rate) before approving a lira price."],
     ];
     for (const [re, say] of known) { const hit = re.exec(m); if (hit) return say.replace(/\$(\d)/g, (_, i) => hit[Number(i)] ?? ""); }
     return `The database refused: ${m}`;

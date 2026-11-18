@@ -1660,6 +1660,7 @@ the customer's own words.
 | `remember.notKept` | تمام، بس لهالطلب. | OK, just for this order. | D'accord, juste pour cette commande. | |
 
 Still Arabic only, unchanged (not B1e's): the memory answers ("what do you know about me", "forget", "stop remembering"; `MEMORY_TEXT` in `memory.ts`).
+<<<<<<< HEAD
 
 
 ## CX2, a line we could not find, and the redesigned customer messages (18 November 2026)
@@ -1671,3 +1672,167 @@ cx2); their Arabic is read there before stage 2 puts it in the code.
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
 | `honest.notFound` | ما لقيت «{x}» عنّا. إذا قصدك شي تاني، قلّي ياه بكلمات تانية. | I couldn't find “{x}” in our shop. If you meant something else, tell me in other words. | Je n'ai pas trouvé « {x} » chez nous. Si vous pensiez à autre chose, dites-le autrement. | |
+=======
+>>>>>>> origin/main
+
+## FD1, the Places and Menus pages (console, staff-facing, written by a model; 18 November 2026)
+
+Written by a model; **not yet read by an Arabic reader**. The console's two new pages (`apps/console/src/pages/places.ts`, `menus.ts`), their menu
+names (`/places` «الأماكن», `/menus` «القوائم» in `NAV_AR`) and the Settings page's food service fee (`settingmeta.ts`). The test
+`test/ci/fd1-arabic.test.ts` keeps this table equal to the pages. Rules the words keep: no rating, praise or health word (invariant 14); a place is
+«مكان», a dish «طبق»; "testers only" is «للمختبرين فقط»; we never message a place's number. `${...}` and `{n}`, `{i}` are filled in by the page.
+
+| Page | English | Arabic | Reader's note |
+|---|---|---|---|
+| places | no village | بلا قرية | |
+| places | Approved, off | موافق عليه، متوقف | |
+| places | Orderable | يمكن الطلب منه | |
+| places | ${p.photos_waiting} photo(s) wait for the reading | ${p.photos_waiting} صورة بانتظار القراءة | |
+| places | ${p.dishes_waiting} dish(es) to check | ${p.dishes_waiting} طبق للمراجعة | |
+| places | No menu yet | لا قائمة بعد | |
+| places | Menu not stamped | القائمة غير مختومة | |
+| places | Ready to approve | جاهز للموافقة | |
+| places | Opens | يفتح | |
+| places | Closes | يغلق | |
+| places | Days off | أيام العطلة | |
+| places | Preparation time (minutes) | وقت التحضير (دقائق) | |
+| places | Village | القرية | |
+| places | Choose | اختر | |
+| places |  (not served) |  (خارج الخدمة) | |
+| places | Opening and closing are times like 11:00. | الفتح والإغلاق أوقات مثل 11:00. | |
+| places | Places | الأماكن | |
+| places | New place | مكان جديد | |
+| places | Testers | المختبرون | |
+| places | Restaurants for the friends' test. Alo King buys for the customer: a rider orders and pays at the counter, or we call the order in. The restaurant does nothing new. A place is orderable only once approved, and only by those its visibility allows; public needs the owner's claim or application on file. We never message a place's number. | مطاعم تجربة الأصدقاء. ألو كينغ يشتري عن الزبون: المندوب يطلب ويدفع على الصندوق، أو نتصل بالطلب. لا يفعل المطعم شيئاً جديداً. لا يمكن الطلب من مكان إلا بعد الموافقة عليه، ولمن تسمح لهم الرؤية فقط؛ وللجميع يتطلّب مطالبة صاحبه أو طلبه. لا نراسل رقم أي مكان أبداً. | |
+| places | Customers whose WhatsApp number is here see and order from places that are "testers only". | الزبائن الذين رقم واتساب الخاص بهم هنا يرون الأماكن "للمختبرين فقط" ويطلبون منها. | |
+| places | Number | الرقم | |
+| places | Remove | إزالة | |
+| places | Remove | أزل | |
+| places | No tester yet. | لا مختبرين بعد. | |
+| places | A customer's WhatsApp number, in full (+961...) | رقم واتساب الزبون كاملاً (+961...) | |
+| places | Add the tester | أضف المختبر | |
+| places | Listing name or village | اسم الإدراج أو القرية | |
+| places | Find the listing | ابحث عن الإدراج | |
+| places | Find | ابحث | |
+| places | Listings | الإدراجات | |
+| places | Place | المكان | |
+| places | map | الخريطة | |
+| places | already a place | مكان من قبل | |
+| places | Make a place | اصنع مكاناً | |
+| places | No listing matches. | لا إدراج يطابق. | |
+| places | Name | الاسم | |
+| places | The place's public phone (shown here only) | هاتف المكان العام (يظهر هنا فقط) | |
+| places | A new place is off: nobody sees it until you set its visibility and approve it. | المكان الجديد متوقف: لا يراه أحد حتى تضبط رؤيته وتوافق عليه. | |
+| places | Make the place | اصنع المكان | |
+| places | Phone | الهاتف | |
+| places | Visibility | الرؤية | |
+| places | Dishes | الأطباق | |
+| places | Menu checked | فُحصت القائمة | |
+| places | State | الحالة | |
+| places | none | لا يوجد | |
+| places | not yet | ليس بعد | |
+| places | No place yet. | لا مكان بعد. | |
+| places | Make one from its listing: New place. | اصنع واحداً من إدراجه: مكان جديد. | |
+| places | That place was not found. | لم يُعثر على هذا المكان. | |
+| places | Who sees and orders from it | من يراه ويطلب منه | |
+| places | The owner's claim or application is on file: public is allowed. | مطالبة صاحب المكان أو طلبه موجودة: يُسمح بالعرض للجميع. | |
+| places | No claim or application from the owner yet: public is refused until there is one. | لا مطالبة ولا طلب من صاحب المكان بعد: يُرفض العرض للجميع حتى يوجد أحدهما. | |
+| places | Reason | السبب | |
+| places | Set the visibility | اضبط الرؤية | |
+| places | Approved | موافق عليه | |
+| places | Orderable for its visibility only. | يمكن الطلب منه حسب رؤيته فقط. | |
+| places | Approving needs approved dishes and the "menu checked" stamp. No commission and no terms: Alo King buys at the counter. | الموافقة تحتاج أطباقاً موافقاً عليها وختم "فُحصت القائمة". لا عمولة ولا شروط: ألو كينغ يشتري على الصندوق. | |
+| places | Approve the place | وافق على المكان | |
+| places | All places | كل الأماكن | |
+| places | Menu | القائمة | |
+| places | Approval | الموافقة | |
+| places | Details | التفاصيل | |
+| places | The place's public phone (shown here only; empty removes it) | هاتف المكان العام (يظهر هنا فقط؛ فارغ يحذفه) | |
+| places | Save the details | احفظ التفاصيل | |
+| places | That listing is not valid. | هذا الإدراج غير صالح. | |
+| places | The place is made. It is off: photograph its menu next. | صُنع المكان. هو متوقف: صوّر قائمته الآن. | |
+| places | Saved. | تم الحفظ. | |
+| places | Choose off, testers only or public. | اختر متوقف أو للمختبرين فقط أو للجميع. | |
+| places | Write the reason (at least 3 characters). | اكتب السبب (٣ أحرف على الأقل). | |
+| places | Visibility: ${VIS[v as Place["visibility"]][0]}. | الرؤية: ${VIS[v as Place["visibility"]][1]}. | |
+| places | Approved: ${r.items} dish(es), orderable for its visibility (${r.visibility}). | تمت الموافقة: ${r.items} طبق، يمكن الطلب منه حسب رؤيته (${r.visibility}). | |
+| places | Added. | أُضيف. | |
+| places | Removed. | أُزيل. | |
+| menus | Sizes | الأحجام | |
+| menus | required | إلزامي | |
+| menus | optional | اختياري | |
+| menus | Add-ons | إضافات | |
+| menus | The name praises or makes a health claim: change it | الاسم يمدح أو يدّعي فائدة صحية: غيّره | |
+| menus | printed | مطبوع | |
+| menus | no price | بلا سعر | |
+| menus | the photo | الصورة | |
+| menus | Name in Arabic | الاسم بالعربية | |
+| menus | Name in English | الاسم بالإنكليزية | |
+| menus | Section | القسم | |
+| menus | Price as printed | السعر كما هو مطبوع | |
+| menus | Currency | العملة | |
+| menus | as read | كما قُرئت | |
+| menus | Approve this dish | وافق على هذا الطبق | |
+| menus | Reason to reject | سبب الرفض | |
+| menus | Reject | ارفض | |
+| menus | Menus | القوائم | |
+| menus | Photograph a place's menu, run the reading, check every dish, then stamp the menu as checked. | صوّر قائمة المكان، شغّل القراءة، راجع كل طبق، ثم اختم القائمة كمفحوصة. | |
+| menus | Photos waiting | صور بالانتظار | |
+| menus | Dishes to check | أطباق للمراجعة | |
+| menus | On sale | معروض | |
+| menus | Make one on the Places page first. | اصنع واحداً في صفحة الأماكن أولاً. | |
+| menus | Shrinking and sending photo {i} of {n}… | جارٍ تصغير الصورة {i} من {n} وإرسالها… | |
+| menus | {n} photo(s) were not saved: choose them again. | لم تُحفظ {n} صورة: اخترها من جديد. | |
+| menus | Photograph a menu page | صوّر صفحة من القائمة | |
+| menus | Save the photo | احفظ الصورة | |
+| menus | One page per photo, flat and sharp, the whole page in the frame. | صفحة واحدة في كل صورة، مسطحة وواضحة، والصفحة كلها داخل الإطار. | |
+| menus | Photos | الصور | |
+| menus | Taken | التُقطت | |
+| menus | Reading | القراءة | |
+| menus | Photo | صورة | |
+| menus | Read | قُرئت | |
+| menus | Failed ${p.failures}×: waits for the next run | فشلت ${p.failures} مرة: تنتظر القراءة التالية | |
+| menus | Waits for the reading run | بانتظار القراءة | |
+| menus | No photo yet. | لا صور بعد. | |
+| menus | Dish | الطبق | |
+| menus | Today | اليوم | |
+| menus | Choices | الخيارات | |
+| menus | Food facts | المعلومات الغذائية | |
+| menus | ${d.declared} declared by the vendor; the rest not confirmed yet | ${d.declared} صرّح بها البائع؛ والباقي غير مؤكد بعد | |
+| menus | Not confirmed yet | غير مؤكدة بعد | |
+| menus | No dish approved yet. | لا طبق موافق عليه بعد. | |
+| menus | Menu checked on ${m.place.menu_checked_on} | فُحصت القائمة في ${m.place.menu_checked_on} | |
+| menus | All menus | كل القوائم | |
+| menus | ${waitingPhotos} photo(s) wait for the reading run: GitHub, Actions, menu-read, Run workflow, branch main. | ${waitingPhotos} صورة بانتظار القراءة: GitHub، Actions، menu-read، Run workflow، الفرع main. | |
+| menus | Today's rate: ${Number(m.fx).toLocaleString("en-US")} LBP to the dollar. A lira price follows the day's rate. | سعر اليوم: ${Number(m.fx).toLocaleString("en-US")} ليرة للدولار. السعر بالليرة يتبع سعر اليوم. | |
+| menus | No lira rate is recorded: a lira price cannot be approved until one is. | لا يوجد سعر صرف مسجّل: لا يمكن الموافقة على سعر بالليرة قبل تسجيله. | |
+| menus | Nothing to check. | لا شيء للمراجعة. | |
+| menus | ${m.rejected} dish(es) rejected. | ${m.rejected} طبق مرفوض. | |
+| menus | On sale once the place is approved | يُعرض بعد الموافقة على المكان | |
+| menus | Stamp it once every dish here matches the menu as printed today. | اختمها حين يطابق كل طبق هنا القائمة المطبوعة اليوم. | |
+| menus | Stamp: menu checked today | اختم: فُحصت القائمة اليوم | |
+| menus | The stamp waits until every photo is read and every dish is decided. | الختم ينتظر قراءة كل صورة والبت في كل طبق. | |
+| menus | Saved already. | محفوظة من قبل. | |
+| menus | Saved. It waits for the reading run. | حُفظت. تنتظر القراءة. | |
+| menus | Not done: the action log could not be written. Try again. | لم يتم: تعذّر تسجيل الإجراء. حاول من جديد. | |
+| menus | Choose approve or reject. | اختر موافقة أو رفض. | |
+| menus | The price is not a number above zero. | السعر ليس رقماً أكبر من صفر. | |
+| menus | Approved at $${Number(r.price_usd ?? 0).toFixed(2)} today. | تمت الموافقة بسعر $${Number(r.price_usd ?? 0).toFixed(2)} اليوم. | |
+| menus | Rejected. | رُفض. | |
+| menus | Menu checked on ${r.menu_checked_on}. | فُحصت القائمة في ${r.menu_checked_on}. | |
+| settingmeta | Food service fee (per restaurant order) | رسم خدمة الطعام (لكل طلب من مطعم) | |
+| settingmeta | USD; 0 is off | دولار؛ 0 يعني معطّل | |
+| settingmeta | Company income. The delivery fee for food is the zone's and belongs to whoever delivers. | دخل للشركة. رسم توصيل الطعام هو رسم المنطقة ويعود لمن يوصّل. | |
+| places (lists) | Off | متوقف | |
+| places (lists) | Testers only | للمختبرين فقط | |
+| places (lists) | Public | للجميع | |
+| places (lists) | Mon | الاثنين | |
+| places (lists) | Tue | الثلاثاء | |
+| places (lists) | Wed | الأربعاء | |
+| places (lists) | Thu | الخميس | |
+| places (lists) | Fri | الجمعة | |
+| places (lists) | Sat | السبت | |
+| places (lists) | Sun | الأحد | |
+| places (lists) | Places | الأماكن | |
+| places (lists) | Menus | القوائم | |
+>>>>>>> origin/main
