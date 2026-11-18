@@ -3,18 +3,30 @@
 import { describe, expect, it } from "vitest";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { COUNTS, LANG_COUNTS, makeScenarios, MAX_TURNS, oosPool, TOTAL, type Scenario } from "../scenarios";
+import { COUNTS, FOOD_VARIANTS, LANG_COUNTS, makeFoodScenarios, makeScenarios, MAX_TURNS, oosPool, TOTAL, type Scenario } from "../scenarios";
+import foodCommitted from "../food-scenarios.json";
 import { loadCatalog } from "../catalog";
 import committed from "../scenarios.json";
 
 const env = ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {});
 const generated = makeScenarios();
-if (env.SIM_WRITE_SCENARIOS === "1") writeFileSync(fileURLToPath(new URL("../scenarios.json", import.meta.url)), JSON.stringify(generated, null, 1) + "\n");
+const food = makeFoodScenarios();
+if (env.SIM_WRITE_SCENARIOS === "1") {
+  writeFileSync(fileURLToPath(new URL("../scenarios.json", import.meta.url)), JSON.stringify(generated, null, 1) + "\n");
+  writeFileSync(fileURLToPath(new URL("../food-scenarios.json", import.meta.url)), JSON.stringify(food, null, 1) + "\n");
+}
 const file = committed as Scenario[];
 
 describe("SIM1 scenarios", () => {
   it("the committed file is the generator's output", () => {
     expect(file).toEqual(generated);
+  });
+
+  it("FD2: the food scenarios are their generator's output, apart from the 500, every variant twice, invented data only", () => {
+    expect(foodCommitted).toEqual(food);
+    expect(food.map((s) => s.variant).sort()).toEqual([...FOOD_VARIANTS, ...FOOD_VARIANTS].sort());
+    expect(food.every((s) => s.category === "food" && s.id.startsWith("food-") && s.items.length === 0)).toBe(true);
+    for (const s of food) expect(`${s.persona} ${s.goal}`).not.toMatch(/\+?\d{8,}/);
   });
 
   it("five seeds re-run give the same scripts", () => {

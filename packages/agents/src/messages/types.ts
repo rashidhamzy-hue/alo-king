@@ -82,6 +82,9 @@ export interface Messages {
     reopenedFrom: (code: S) => S;
     consent: S;
     confirm: S; edit: S; cancel: S;
+    /** FD2: a food order names its place under the heading («🍗 من: <place>»), and the food service fee's line (when above 0). */
+    from: (place: S) => S;
+    serviceFee: S;
   };
 
   /** The fixed replies to the card's buttons (2.8 adds the window). */
@@ -135,7 +138,7 @@ export interface Messages {
   windows: {
     choose: S; button: S; now: S; none: S; gone: S; noneAt: S; noneAtAll: S; nowUnavailable: S; orChoose: S;
     freshForWindow: (names: S[]) => S;
-    pickupNoWindow: S; restaurantNoWindow: S;
+    pickupNoWindow: S;
     notChangeable: (code: S) => S;
   };
 
@@ -371,6 +374,33 @@ export interface Messages {
     tooMany: (max: number) => S;
     none: S;
   };
+  /** FD2: ordering food from a place (food.ts), and what the customer hears when staff call the place ahead (0250). */
+  food: {
+    secondOrder: (place: S) => S;
+    menu: (place: S, more: boolean) => S;
+    dishesButton: S;
+    whichDish: (words: S, place: S) => S;
+    notOnMenu: (words: S[], place: S) => S;
+    choose: (dish: S, group: S, required: boolean) => S;
+    chooseButton: S;
+    noThanks: S;
+    closed: (place: S, opens: S | null) => S;
+    /** Ingredients or allergens we have no approved record of: we ask the place; never "safe" (invariant 15). */
+    askPlace: (dish: S, place: S) => S;
+    /** A time asked for a food order (replaces windows.restaurantNoWindow): it comes when ready, about this long. */
+    arrives: (place: S | null, minutes: number | null) => S;
+    accepted: (code: S, place: S, minutes: number) => S;
+    itemMissing: (code: S, place: S, item: S) => S;
+    keepRest: S; cancelOrder: S; acceptPrice: S;
+    closedNow: (code: S, place: S) => S;
+    priceLower: (code: S, place: S, item: S, total: number) => S;
+    priceUp: (code: S, place: S, item: S, was: number, now: number, total: number) => S;
+    dropped: (code: S, total: number) => S;
+    priceAccepted: (code: S, total: number) => S;
+    answerCancelled: (code: S) => S;
+    notWaiting: (code: S) => S;
+  };
+
   ops: {
     newPick: (code: S) => S;
     startButton: (code: S) => S;
@@ -464,5 +494,7 @@ export interface Messages {
     codeLockedAlert: (code: S) => S;
     codeOk: (code: S) => S;
     keepChange: (note: number) => S;
+    /** FD2: a confirmed food order waits for staff to call the place (the console's Food page). */
+    foodCall: (code: S, place: S) => S;
   };
 }

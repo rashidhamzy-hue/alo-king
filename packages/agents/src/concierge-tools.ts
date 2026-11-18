@@ -54,6 +54,10 @@ export interface ConversationState {
   editing?: { orderId: string; shortCode: string } | null;
   /** B1c: lines asked about by code («ربطة خبز»: which one?), the first being asked now, each with its words, count and the products offered. */
   asking?: import("./choice").AskingLine[] | null;
+  /** FD2: the food place the basket in hand is for, and the choice code is asking (food.ts). */
+  food?: import("./food").FoodState | null;
+  /** FD2: another shop's basket, kept apart while this one is built (one shop per order); the basket in hand again once a card went. */
+  parked?: import("./food").Parked | null;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
@@ -69,7 +73,9 @@ export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: num
   prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null;
   /** B1b: a risk flag for the order once created (a first order without a pin: call before dispatch). Kept while the card waits. */
   flag?: { rule: string; details: Record<string, unknown> } | null }
-export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
+export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null;
+  /** FD2: a dish's chosen options (dish_options ids); the database prices them (0249). */
+  options?: string[] }
 
 export interface ToolContext {
   db: SupabaseClient;
@@ -294,9 +300,12 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
                                        note: l.note ?? null, replaces: substituteOf.get(l.product_id) ?? null })),
         ...(remove ?? []).map((p) => ({ op: "remove" as const, product_id: p })),
       ];
+      // FD2: food from a place is ordered by code (food.ts asks every choice by list or buttons). The model never adds a dish.
+      const dishIds = await dishPlaces(ctx, (lines ?? []).map((l) => l.product_id));
+      if (dishIds.size) return { ok: false, error: "food_by_code", note: "Dishes of a place are ordered by code: ask the customer to say the place's name and the dish, and code takes it from there. Do not add a dish yourself." };
       const basket = applyEdits(held?.lines ?? [], edits).lines;
       const villageId = pickup ? null : ctx.state.villageId ?? null;
-      const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket, p_village: villageId, p_pickup: !!pickup });
+      const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: basket, p_village: villageId, p_pickup: !!pickup });
       ctx.timesQuoted = true;                                         // B1f: the quote carries the ETA
       ctx.state.lastQuote = { lines: basket, villageId, pickup: !!pickup, quote };
       ctx.state.basketAt = Date.now();
@@ -312,7 +321,24 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const ids = [...new Set(product_ids ?? [])].slice(0, 6);
       const codes = (restrictions ?? []).map((r) => r.trim().toLowerCase()).filter(Boolean);
       const out = [];
+      // FD2: a dish of a place. Its facts are only what the place declared (FD1's dish_facts_status); anything else is not confirmed, and
+      // we ask the place when we call it. Never "safe" (invariant 15).
+      const dishes = await dishPlaces(ctx, ids);
       for (const id of ids) {
+        const dish = dishes.get(id);
+        if (dish) {
+          const place = dish.place;
+          const facts = await rpc<{ attribute: string; status: string; value: string | null }[]>(ctx.db, "dish_facts_status", { p_dish: id });
+          for (const f of facts) if (f.status === "declared_by_vendor") {
+            const m = (ctx.approvedByProduct ??= new Map());
+            m.set(id, (m.get(id) ?? new Set<string>()).add(guardAttribute(f.attribute, f.attribute === "halal" || f.attribute === "vegetarian" || f.attribute === "vegan" || f.attribute === "fasting" ? "diet" : "allergen")));
+          }
+          out.push({ product_id: id, dish_of: place, declared_by_place: facts.filter((f) => f.status === "declared_by_vendor"),
+                     not_confirmed: facts.filter((f) => f.status !== "declared_by_vendor").map((f) => f.attribute),
+                     note: `A dish of ${place}. Anything not declared_by_place is not confirmed: say we will ask ${place} when we call them, and never say it is safe or free of anything.`,
+                     say_this: T(ctx).food.askPlace(productName(dish, ctx.state.lang ?? "ar"), place) });
+          continue;
+        }
         // PD1 (0206): whether food facts apply to this item at all, its level, and its facts by level. Only a fact-complete item's
         // facts are usable; a sellable item's read "not_confirmed_yet"; a non-food item has none ("doesn't apply").
         const chat = await rpc<{ applies: boolean; level: string; template: string | null; facts: FoodFact[]; nutrition: unknown; claims: { claim: string }[]; note: string }>(
@@ -415,6 +441,14 @@ export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: fa
   return { ok: false, error: `refused:${v.code}`, hint: GUARD_HINT[v.code] };
 }
 
+/** FD2: which of these products are dishes of a place, with the place's name and the dish's (dish_places, 0249). Empty when none is. */
+async function dishPlaces(ctx: ToolContext, ids: string[]): Promise<Map<string, { place: string; name: string; name_ar: string | null }>> {
+  const want = [...new Set(ids.filter((x) => /^[0-9a-f-]{36}$/.test(x)))];
+  if (!want.length) return new Map();
+  const rows = await rpc<{ product_id: string; place: string; name_en: string; name_ar: string | null }[]>(ctx.db, "dish_places", { p_ids: want }).catch(() => []);
+  return new Map((rows ?? []).map((r) => [r.product_id, { place: r.place, name: r.name_en, name_ar: r.name_ar }]));
+}
+
 interface FoodFact { attribute: string; kind: string; value: string; status: string; source: string | null; expired: boolean }
 const USABLE = new Set(["certified", "declared", "calculated"]);
 /** PD1: the guard's attribute for an approved printed claim (0204). */
@@ -431,7 +465,7 @@ const MAX_PRICED = 6;
 async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   const ids = [...new Set(productIds)].slice(0, MAX_PRICED);
   const q = await rpc<{ lines: { product_id?: string; name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(
-    ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true });
+    ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true });
   if (q.lines.length === 0) return { ok: false, error: "price_of_unknown_products" };
   const lang = ctx.state.lang ?? "ar";
   return { ok: true, text: q.lines.map((l) => T(ctx).fixed.priced(productName(l, lang), Number(l.unit_price_usd), l.ok)).join("\n") };
@@ -452,7 +486,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   // A rider must be able to call. WhatsApp may not have told us the number (1.19): ask for one before the card, and keep the
   // basket so the card goes out as soon as the number arrives.
   if (!basket.pickup && !(await rpc<string | null>(ctx.db, "customer_contact_phone", { p_party: ctx.partyId }))) {
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: false, p_slot: slotId });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: basket.lines, p_village: basket.villageId, p_pickup: false, p_slot: slotId });
     ctx.timesQuoted = true;
     ctx.state.slotId = slotId;
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
@@ -572,6 +606,8 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   // The directions went onto the order (and the place); they are not carried into the next order.
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
   ctx.state.slotId = null; ctx.state.editing = null; ctx.basketChanged = true;
+  // FD2: one shop per order. The other shop's basket kept apart while this one was built is the basket in hand again.
+  (await import("./food")).afterCard(ctx);
   return { ok: true, order_code: created.short_code! };
 }
 

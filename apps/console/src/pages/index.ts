@@ -45,7 +45,8 @@ import { binsSection } from "./bins";
 import { temperatureSection } from "./temperature";
 import { screensSection } from "./screens";
 import { placesSection } from "./places";
+import { foodSection } from "./food";
 import { menusSection } from "./menus";
 import { weightsSection } from "./weights";
 
-export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, approveSection, settingsSection, moneySection, dayCloseSection, receivingSection, purchaseOrdersSection, binsSection, temperatureSection, weightsSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, photosSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection, placesSection, menusSection, screensSection];
+export const registry: Section[] = [todaySection, inboxSection, ordersSection, dayOpenSection, paymentsSection, ridersSection, riderJobsSection, riderIncidentsSection, pickSection, stockSection, captureSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, approveSection, settingsSection, moneySection, dayCloseSection, receivingSection, purchaseOrdersSection, binsSection, temperatureSection, weightsSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, labelQueueSection, fxSection, zonesSection, merchantsSection, photosSection, picturesSection, namesSection, readinessSection, autoApprovalsSection, windowsSection, hubsSection, staffSection, templatesSection, gallerySection, listingsSection, placesSection, menusSection, foodSection, screensSection];

@@ -4,7 +4,9 @@
 import { messages, productName, usd, villageName, windowLabel, type Lang } from "./messages";
 import { latinDigits } from "./output-guard";
 
-export interface QuoteLine { product_id?: string; name: string; name_ar: string | null; qty: number; unit: string; line_total_usd: number; modifiers?: string[]; note?: string | null }
+export interface QuoteLine { product_id?: string; name: string; name_ar: string | null; qty: number; unit: string; line_total_usd: number; modifiers?: string[]; note?: string | null;
+  /** FD2: a dish's chosen options, both names, as quoted (0249); shown in the customer's language after the dish's name. */
+  options?: { name_en: string; name_ar: string | null }[] }
 export interface Quote {
   ok: boolean; issues: { code: string; [k: string]: unknown }[]; lines: QuoteLine[];
   subtotal_usd: number; delivery_fee_usd: number; total_usd: number; fx_rate_lbp: number | null; total_lbp: number | null;
@@ -17,6 +19,12 @@ export interface Quote {
   credit_usd?: number;
   /** W1 (0118): quoted for a window (quote_order with a slot): the window, and whether a line is bought for the order (fresh). */
   slot_id?: string | null; window?: DeliveryWindow | null; bought_to_order?: boolean;
+  /** FD2 (0249): the food service fee (company income; settings.food.service_fee_usd), its own line when above 0. Included in total_usd. */
+  service_fee_usd?: number;
+  /** FD2 (0249): the one shop of the basket; a place (kind "place") is named on the card «🍗 من: …». */
+  shop?: { source_id: string; name: string; kind: "hub" | "place" | "merchant" } | null;
+  /** FD2 (0249): the basket is food from a place. */
+  food?: boolean;
 }
 /** A delivery window as the database gives it (window_json, migration 0040): the hub's local date and times, never computed here. */
 export interface DeliveryWindow { slot_id: string; date: string; dow: number; day_offset: number; starts: string; ends: string }
@@ -59,10 +67,13 @@ export function orderCardParts(input: CardInput, gaps?: Set<string>): { head: st
   const { quote: q } = input;
   const lang = input.lang ?? "ar";
   const m = messages(lang);
-  const head = m.card.heading(input.shortCode);
+  // FD2: a food order names its place under the heading: «🍗 من: <place>».
+  const head = q.shop?.kind === "place" ? `${m.card.heading(input.shortCode)}\n${m.card.from(q.shop.name)}` : m.card.heading(input.shortCode);
   const items = q.lines.flatMap((l) => {
     // B1b (the second run on main, 43756167947): the customer's own words on a line («٥٠٠ مل، ١٢ قنينة») show with Latin digits (rule 7).
-    const extras = [...(l.modifiers ?? []), ...(l.note ? [l.note] : [])].map(latinDigits);
+    // FD2: a dish's options first, in the customer's language (their price is in the line's amount, from the database).
+    const opts = (l.options ?? []).map((o) => (lang === "ar" ? o.name_ar ?? o.name_en : o.name_en ?? o.name_ar ?? ""));
+    const extras = [...opts, ...(l.modifiers ?? []), ...(l.note ? [l.note] : [])].map(latinDigits);
     return [m.card.item(qty(l.qty), productName(l, lang, gaps), extras), usd(l.line_total_usd)];
   });
 
@@ -73,6 +84,9 @@ export function orderCardParts(input: CardInput, gaps?: Set<string>): { head: st
   if (!q.pickup) sums.push(m.amount(m.card.delivery(villageName(lang, q.village_ar, q.village) || null), q.delivery_fee_usd));
   const small = Number(q.small_order_fee_usd ?? 0);
   if (small > 0) sums.push(m.amount(m.card.smallOrder, small));
+  // FD2: the food service fee (company income), its own line when above 0.
+  const service = Number(q.service_fee_usd ?? 0);
+  if (service > 0) sums.push(m.amount(m.card.serviceFee, service));
   // What is owed from a delivery nobody answered is its own line, so the total adds up on the card (1.4).
   const dues = Number(q.dues_usd ?? 0);
   if (dues > 0) sums.push(m.amount(m.card.dues, dues));

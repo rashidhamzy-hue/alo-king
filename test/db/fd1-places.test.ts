@@ -226,7 +226,7 @@ describe("2 menus from photos", () => {
 
 describe("3 prices and the food service fee", () => {
   it("a food service fee setting, 0, editable by an admin within bounds", async () => {
-    expect((await db.one(`select value from settings where key = 'food'`)).value).toEqual({ service_fee_usd: 0 });
+    expect((await db.one(`select value from settings where key = 'food'`)).value).toMatchObject({ service_fee_usd: 0 });   // FD2 (0250) adds float_max_usd to the same setting
     expect(await db.one(`select kind, min_value::text as lo, max_value::text as hi, two_person from editable_settings where key = 'food' and field = 'service_fee_usd'`))
       .toEqual({ kind: "number", lo: "0", hi: "5", two_person: false });
   });

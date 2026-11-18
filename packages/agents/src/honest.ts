@@ -337,7 +337,7 @@ export async function basketAnswer(ctx: ToolContext, intent: OrderIntent, said: 
                                    ...built.lines.map((l) => ({ product_id: l.product_id, qty: Number(l.qty) }))];
   const villageId = ctx.state.villageId ?? null;
   const pickup = intent.fulfilment === "pickup";
-  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: lines, p_village: pickup ? null : villageId, p_pickup: pickup });
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: lines, p_village: pickup ? null : villageId, p_pickup: pickup });
   ctx.state.lastQuote = { lines, villageId, pickup, quote };
   ctx.state.basketAt = Date.now();
   for (const l of quote.lines ?? []) noteReturned(ctx, (l as { product_id?: string }).product_id, (l as { name?: string }).name, (l as { name_ar?: string | null }).name_ar);

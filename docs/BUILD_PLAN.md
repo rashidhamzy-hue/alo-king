@@ -486,7 +486,7 @@ Finished sessions (SP1 to WH1a, B1e, QA1, DOC2) are in `docs/STATUS.md`, "Sessio
 | Wave | Session | Waits for | Migrations | State |
 |---|---|---|---|---|
 | 4 | FD1 friends' test food: places and menus | DS2 | 0245 to 0247 | **Done** 18 November (`docs/log/FD1.md`); 0248 unused |
-| 4 | FD2 friends' test food: ordering for testers (quote, card, the rider buys at the counter, ledger) | FD1 | Next free number | Not started |
+| 4 | FD2 friends' test food: ordering for testers (quote, card, the rider buys at the counter, ledger) | FD1 | 0249 to 0251 | **Done** (18 November; `docs/log/fd2.md`). The website's food pages are WEB4b's, on FD2's API |
 | 4 | T1 friends' test set-up | The critical path in `docs/STATUS.md` | 0134 | Waits for gate A's approvals, label day and stock |
 | 4 | B1f search and product data: «لبنة», the eggs, by-weight items, weights list, the time guard, the sim turn errors | Nothing | 0253 | **Done** 18 November (`docs/log/b1f.md`) |
 | 4 | WEB4a (was DS3) the website to the reference: stage 1 the frame and home, stage 2 aisles, an aisle, product, search | Done | 0243, 0244 | Both stages approved by the founder and merged, 18 November (`docs/log/web4a.md`) |

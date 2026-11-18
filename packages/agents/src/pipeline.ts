@@ -18,6 +18,7 @@ import { courtesyOf, stillOffTopic } from "./courtesy";
 import { packSizeCount } from "./reading";
 import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, itemsOf, minimumGap, namesOf, underMinimumOnly } from "./basket";
 import { askableLine, askChoice, questionsFor, quoted } from "./choice";
+import { foodTurn, typedAnswer } from "./food";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -37,6 +38,13 @@ export interface Plan {
   village_id: string | null; place_id: string | null; pickup: boolean; needs_pin: boolean;
   payment_method: "cod" | "whish" | "omt"; prepay_required: boolean; dues_usd: number; change_for_usd: number | null;
 }
+/** FD2: the plan's items come from a shop the basket in hand does not (one shop per order). */
+function otherShop(a: Quote | null | undefined, b: Quote | null | undefined): boolean {
+  const shops = (q: Quote | null | undefined) => new Set((q?.lines ?? []).map((l) => (l as { source_id?: string }).source_id).filter((x): x is string => !!x));
+  const was = shops(a), now = shops(b);
+  return was.size > 0 && now.size > 0 && [...now].some((x) => !was.has(x));
+}
+
 /** done: the turn is answered. Otherwise the loop runs, with the plan when there is one. */
 export type Routed = { done: true; path: string } | { done: false; plan: (Partial<Plan> & { repeat?: RepeatPlan | null }) | null };
 
@@ -86,6 +94,11 @@ const KIND_INTENTS = new Set(["order", "add_to_order", "question", "greeting"]);
 /** `said`: the customer's own words of the turn (texts and transcripts). The planner reads them as evidence between tied products (1.22). */
 export async function planReading(ctx: ToolContext, intent: OrderIntent | null, said?: string): Promise<Routed> {
   if (!intent) return { done: false, plan: null };
+  // FD2: a food question waits (a size, a sauce): words that name one of its options answer it, whatever the reading made of them.
+  if (said && ctx.state.food?.asking) {
+    const a = await typedAnswer(ctx, said, routeBasket);
+    if (a.done) return a;
+  }
   // Questions the database answers by itself (1.3). B1a: never "no open order" while a basket is in hand (answerStatusOrBasket).
   if (intent.intent === "status") return answerStatusOrBasket(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   // B1a (SIM1 fix 1): "what is the minimum?" is answered by code with the amount: the basket's gap when there is one.
@@ -127,6 +140,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
       const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.offTopic } }, T(ctx).fixed.offTopic);
       return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
     }
+  }
+  // FD2: a food place named (by its name or the names customers use), or the food basket in hand: the food path (food.ts), before the
+  // grocery planner. A place this customer may not order from gets the honest "not on Alo King yet". Not done: groceries, as before.
+  if (said !== undefined) {
+    const f = await foodTurn(ctx, intent, said, routeBasket);
+    if (f.done) return f;
   }
   // PD1 (g): a kind of product asked with a fact («snacks with no sugar for 5 kids», "protein bars with no sugar") that no approved record
   // can answer: code says what we do not carry yet, what we cannot confirm yet, and up to three real items by name and price, and logs
@@ -170,7 +189,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // B1d (sim-042): a complaint or a question that says what to change («Ma talabt sukkar! ... shil el sukkar») is an edit to the basket in
   // hand; before, it went to the loop, which said "removed" and left the sugar in the basket four times.
   const editing = EDIT_INTENTS.has(intent.intent) || (SAYS_EDIT_INTENTS.has(intent.intent) && intent.lines.some((l) => !!(l as { change?: string | null }).change));
-  const held = !changing && !intent.repeat_last && intent.lines.length > 0 && editing ? await heldBasket(ctx) : null;
+  let held = !changing && !intent.repeat_last && intent.lines.length > 0 && editing ? await heldBasket(ctx) : null;
   if (intent.intent !== "order" && !changing && !held) return { done: false, plan: null };
   if (intent.repeat_last && intent.lines.length === 0) {
     const r = await repeatLast(ctx);
@@ -211,6 +230,9 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...used, _message: said.slice(0, 2000) } : used,
                                                   p_village: ctx.state.villageId ?? null, p_choices: own });
   plan = await ownProducts(ctx, plan, used);
+  // FD2: one shop per order. Items of another shop than the basket in hand (groceries after a food card, or the other way) are a new basket,
+  // a second order; the one in hand stays as it is (a card waiting for its tap is its own order).
+  if (held && otherShop(held.quote, plan.quote)) held = null;
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   // B1c: a question asked by code that these words answer (a product it offered, now chosen) waits no more, and the next one waits.
@@ -273,7 +295,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     if (held.slotId !== undefined && ctx.state.slotId == null) ctx.state.slotId = held.slotId;
     heldTerms = held.terms;
     if (!merged.lines.length) return (await clearBasket(ctx)) ? { done: true, path: "basket_cleared" } : { done: false, plan };
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: merged.lines, p_village: villageId, p_pickup: pickup });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: merged.lines, p_village: villageId, p_pickup: pickup });
     ctx.state.lastQuote = { lines: merged.lines, villageId, pickup, quote };
     ctx.state.basketAt = Date.now();
     if (placeId) ctx.state.placeId = placeId;
@@ -348,7 +370,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
       { p_party: ctx.partyId, p_order: old.orderId });
     const lines = intent.intent === "add_to_order" && b.found ? [...(b.lines ?? []), ...plan.quote_lines] : plan.quote_lines;
     const basket = { lines, villageId: plan.village_id ?? b.village_id ?? null, placeId: plan.place_id ?? b.place_id ?? null, pickup: false };
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: lines, p_village: basket.villageId, p_pickup: false, p_slot: ctx.state.slotId ?? old.slotId });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: lines, p_village: basket.villageId, p_pickup: false, p_slot: ctx.state.slotId ?? old.slotId });
     const routed = when ? await basketWhen(ctx, basket, terms, quote, when, { before: before })
                         : await sendBasket(ctx, basket, terms, quote, before);
     return routed.done ? routed : { done: false, plan };
@@ -380,7 +402,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
                      villageId: pickup ? null : plan.village_id ?? r.village_id ?? null };
     if (basket.villageId) ctx.state.villageId = basket.villageId;
     if (basket.placeId) ctx.state.placeId = basket.placeId;
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: pickup });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: basket.lines, p_village: basket.villageId, p_pickup: pickup });
     if (!quote.ok) return { done: false, plan: { ...plan, repeat: r } };
     const missing = (r.missing ?? []).map((m) => productName(m, ctx.state.lang ?? "ar"));
     const before = [unavailable, missing.length ? T(ctx).answer.someMissing(missing) : null].filter(Boolean).join("\n") || undefined;
@@ -393,7 +415,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const whereOnly = plan.next === "ask" && !plan.pickup && matched && !plan.village_id &&
     plan.issues.length > 0 && plan.issues.every((i) => WHERE_ISSUES.has(i.code));
   if (whereOnly) {
-    const quote = plan.quote ?? await rpc<Quote>(ctx.db, "quote_order", { p_lines: plan.quote_lines, p_village: null, p_pickup: false });
+    const quote = plan.quote ?? await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: plan.quote_lines, p_village: null, p_pickup: false });
     const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, before, pinNote);
     return routed.done ? routed : { done: false, plan };
   }
@@ -481,7 +503,7 @@ async function ownProducts(ctx: ToolContext, plan: Plan, intent: Pick<OrderInten
   if (!strays.length) return plan;
   const ids = [...new Set(strays.flatMap((l) => (l.tied ?? []).map((t) => t.product_id)))];
   const villageId = plan.pickup ? null : plan.village_id ?? ctx.state.villageId ?? null;
-  const info = await rpc<Quote>(ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: villageId, p_pickup: !!plan.pickup })
+  const info = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: villageId, p_pickup: !!plan.pickup })
     .catch(() => null);
   if (!info?.lines?.length) return plan;
   const short = new Set(info.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock").map((i) => String((i as { product_id?: string }).product_id)));
@@ -502,7 +524,7 @@ async function ownProducts(ctx: ToolContext, plan: Plan, intent: Pick<OrderInten
     }
     return own.length ? { ...l, status: "ambiguous", chosen: null, candidates: own.slice(0, 3).map((x) => ({ ...x, price_usd: x.price_usd ?? 0 })) } : l;
   });
-  const quote = quote_lines.length ? await rpc<Quote>(ctx.db, "quote_order", { p_lines: quote_lines, p_village: villageId, p_pickup: !!plan.pickup }).catch(() => null) : null;
+  const quote = quote_lines.length ? await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: quote_lines, p_village: villageId, p_pickup: !!plan.pickup }).catch(() => null) : null;
   const other = plan.issues.filter((i) => !QUOTE_ISSUES.has(i.code));
   const issues = quote ? [...quote.issues, ...other] : other;
   const asks = lines.some((l) => l.status !== "matched" && l.status !== "merchant_not_onboarded");
@@ -855,7 +877,7 @@ export async function sendKept(ctx: ToolContext, opts: { pin?: boolean } = {}): 
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
   if (ctx.state.awaiting !== "opening" || !q || !terms) return false;
   const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
-  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
   const closed = quote.issues.find((i) => i.code === "closed");
   if (closed) return (await keepUntilOpen(ctx, { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup, quote }, terms,
                                           String(closed.opens ?? ""), { pin: opts.pin })).ok;
@@ -1079,7 +1101,7 @@ export async function resumeBasket(ctx: ToolContext, before?: string): Promise<D
     }
   }
   const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
-  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup, ...(ctx.state.slotId ? { p_slot: ctx.state.slotId } : {}) });
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: q.lines, p_village: villageId, p_pickup: q.pickup, ...(ctx.state.slotId ? { p_slot: ctx.state.slotId } : {}) });
   ctx.state.lastQuote = { ...q, villageId, quote };
   if (a === "minimum" || a === "window") ctx.state.awaiting = null;
   return routeBasket(ctx, { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup }, terms, quote, before);
@@ -1123,7 +1145,7 @@ export async function explainNotSent(ctx: ToolContext): Promise<Done> {
   const q = ctx.state.lastQuote;
   if (q?.lines.length) {
     const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_party: ctx.partyId, p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
     const terms = ctx.state.pending ?? { payment: "cod" as const, changeForUsd: null, notes: ctx.state.directions ?? null };
     const basket = { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup };
     if (minimumGap(quote)) return (await askMinimum(ctx, basket, terms, quote)) ? { done: true, path: "minimum" } : { done: false };

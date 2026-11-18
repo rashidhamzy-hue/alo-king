@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 // SIM1: the throwaway database a batch of simulated conversations runs on. PGlite (Postgres in the process, the database every
 // test/db test uses) with every migration on main, then staging's catalogue and settings loaded over it (staging.ts), or the
 // repository seeds when no copy is given (local runs and tests). Nothing here is ever sent anywhere.
@@ -104,6 +106,9 @@ export async function openWorld(opts: { label: string; copy: Copy | null; oosSku
     await db.pg.query(`update sources set village_id = (select id from villages where name_en = 'Baakline') where id = $1`, [hub.id]);
     adjustments.push("the hub had no village: Baakline set"); hub = { ...hub };
   }
+  // FD2: the seeded test place (invented; testers only), for the food scenarios. The same file staging and the tests use.
+  try { await db.pg.exec(readFileSync(fileURLToPath(new URL("../../scripts/staging/test-place.sql", import.meta.url)), "utf8")); adjustments.push("the seeded test place (scripts/staging/test-place.sql)"); }
+  catch (e) { adjustments.push(`the test place could not be seeded: ${String(e).slice(0, 120)}`); }
   const sku = new Map((await db.all<{ sku: string; id: string }>(`select sku, id from products`)).map((r) => [r.sku, r.id]));
   if (opts.oosSkus.length) {
     const ids = opts.oosSkus.map((s) => sku.get(s)).filter((x): x is string => !!x);

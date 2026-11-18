@@ -1961,7 +1961,7 @@ names (`/places` «الأماكن», `/menus` «القوائم» in `NAV_AR`) an
 | places (lists) | Sun | الأحد | |
 | places (lists) | Places | الأماكن | |
 | places (lists) | Menus | القوائم | |
-
+| Places (FD2) | Other names customers use for it, separated by commas (the chat finds the place by these too) | أسماء أخرى يستعملها الزبائن له، تفصل بينها فواصل (المحادثة تجد المكان بها أيضاً) | |
 
 
 ## CX2 stage 2, the customer messages in the approved layout (18 November 2026)
@@ -2064,6 +2064,81 @@ WEB2's WhatsApp lines (the website's sign-in and card), in the new layout, with 
 | Labneh 500 g: منسألك قبل ما نبدّل | Labneh 500 g: we ask you before swapping | Labneh 500 g : nous vous demandons avant de remplacer |
 | Labneh 500 g: منشيلو من الطلب | Labneh 500 g: we take it off | Labneh 500 g : nous le retirons |
 
+## FD2, the Food page (console, staff-facing, written by a model; 18 November 2026)
+
+Written by a model; **not yet read by an Arabic reader**. The console's Food page (`apps/console/src/pages/food.ts`): the call-ahead tasks and
+the riders' cash; its menu name `/food` «الأكل» in `NAV_AR`. The test `test/ci/fd2-arabic.test.ts` keeps this table equal to the page. The
+customer's food messages (the card's «🍗 من: …», the choices, what staff found on the phone) are in `packages/agents/src/messages/ar.ts`
+(`food`, `card.from`, `card.serviceFee`) and every one of them, as sent, in `packages/agents/test/__snapshots__/messages.ar.md`. Rules the words
+keep: no rating, praise or health word (invariant 14); a place is «مكان», a dish «طبق»; we never message a place's number; a difference is
+shown, never deducted. `${...}` is filled in by the page.
+
+| Page | English | Arabic | Reader's note |
+|---|---|---|---|
+| Food | The customer was asked; their tap decides. Then call the place again. | سُئل الزبون؛ نقرته تقرر. ثم اتصل بالمكان من جديد. | |
+| Food | The place took it: ready in (minutes) | قبل المكان الطلب: جاهز خلال (دقائق) | |
+| Food | Accepted | قُبل | |
+| Food | An item is missing | صنف غير متوفر | |
+| Food | Ask the customer | اسأل الزبون | |
+| Food | A price changed | تغيّر سعر | |
+| Food | The new price of one (USD) | السعر الجديد للواحد (دولار) | |
+| Food | Record the price | سجّل السعر | |
+| Food | The place is closed: cancel the order | المكان مغلق: ألغِ الطلب | |
+| Food | Call ${k.place} | اتصل بـ ${k.place} | |
+| Food | no phone on file (Places page) | لا هاتف مسجّل (صفحة الأماكن) | |
+| Food | ready at | جاهز | |
+| Food | Read out to the place: | اقرأ للمكان: | |
+| Food | Customer's notes (ask about any allergy): | ملاحظات الزبون (اسأل عن أي حساسية): | |
+| Food | Food | الأكل | |
+| Food | the customer pays | يدفع الزبون | |
+| Food | On shift | في الدوام | |
+| Food | Since | منذ | |
+| Food | Float given | عهدة أُعطيت | |
+| Food | Paid to places | دُفع للأماكن | |
+| Food | Float returned | عهدة أُعيدت | |
+| Food | Float the rider holds | العهدة مع المندوب | |
+| Food | Cash collected at the door | كاش حُصّل على الباب | |
+| Food | Cash dropped | كاش سُلّم | |
+| Food | Cash the rider holds | الكاش مع المندوب | |
+| Food | Food orders: owed to the place against paid | طلبات الأكل: المستحق للمكان مقابل المدفوع | |
+| Food | Order | الطلب | |
+| Food | Place | المكان | |
+| Food | Owed | المستحق | |
+| Food | Paid | المدفوع | |
+| Food | Difference | الفرق | |
+| Food | Receipt | الإيصال | |
+| Food | photo | صورة | |
+| Food | none | لا يوجد | |
+| Food | No food order in this shift. | لا طلبات أكل في هذه الوردية. | |
+| Food | ${b.differences} order(s) with a difference or no counter payment recorded. Shown, never deducted. | ${b.differences} طلب فيه فرق أو بلا دفع مسجّل. يُعرض فقط ولا يُخصم أبداً. | |
+| Food | Calls | الاتصالات | |
+| Food | Riders' cash | كاش المناديب | |
+| Food | No food order to call about. | لا طلب أكل للاتصال بشأنه. | |
+| Food | A confirmed food order appears here. | يظهر هنا كل طلب أكل مؤكَّد. | |
+| Food | Rider | المندوب | |
+| Food | The float | العهدة | |
+| Food | Amount (USD) | المبلغ (دولار) | |
+| Food | Give the float | أعطِ العهدة | |
+| Food | Float returned | أُعيدت العهدة | |
+| Food | The rider paid the place | المندوب دفع للمكان | |
+| Food | Shrinking and sending the receipt… | جارٍ تصغير الإيصال وإرساله… | |
+| Food | The receipt was not saved: choose it again. | لم يُحفظ الإيصال: اختره من جديد. | |
+| Food | Amount on the receipt (USD) | المبلغ على الإيصال (دولار) | |
+| Food | Photograph the receipt and save | صوّر الإيصال واحفظ | |
+| Food | Save | احفظ | |
+| Food | No accepted food order waiting for a counter payment. | لا طلب أكل مقبول بانتظار دفع على الصندوق. | |
+| Food | End-of-shift balance | رصيد نهاية الوردية | |
+| Food | No rider on shift or holding a float. | لا مندوب في الدوام أو معه عهدة. | |
+| Food | Food orders: call the place, record what it said; the customer is told each step in their language. A rider is offered the job only once the place took it. We never message a place's number: staff call it. | طلبات الأكل: اتصل بالمكان وسجّل ما قاله؛ يُخبَر الزبون بكل خطوة بلغته. لا يُعرض الطلب على مندوب إلا بعد أن يقبله المكان. لا نراسل رقم أي مكان: الموظفون يتصلون. | |
+| Food |  The customer was told. |  أُخبر الزبون. | |
+| Food |  The customer could not be told (${n.why ?? "not sent"}): write to them from the Inbox. |  تعذّر إخبار الزبون (${n.why ?? "لم تُرسل"}): راسله من صندوق الوارد. | |
+| Food | Recorded: the place took it. A rider is offered the job now. | سُجّل: قبل المكان الطلب. يُعرض الآن على مندوب. | |
+| Food | Recorded. The customer is asked: go on without it, or cancel. | سُجّل. سُئل الزبون: المتابعة بدونه أو الإلغاء. | |
+| Food | Recorded: the order is cancelled and the place is closed for today. | سُجّل: أُلغي الطلب وأُغلق المكان لليوم. | |
+| Food | Recorded. | سُجّل. | |
+| Food | Recorded. The rider now holds $${Number(r.float_usd).toFixed(2)} of float. | سُجّل. مع المندوب الآن $${Number(r.float_usd).toFixed(2)} عهدة. | |
+| Food | Recorded. It differs from the food's price by $${d.toFixed(2)}: shown on the balance, never deducted. | سُجّل. يختلف عن سعر الأكل بـ $${d.toFixed(2)}: يظهر في الرصيد ولا يُخصم أبداً. | |
+| Food | Not done: the action log could not be written. Try again. | لم يتم: تعذّر تسجيل الإجراء. حاول من جديد. | |
 ## B1f, "Weights to record on label day" (console, staff-facing, written by a model; 18 November 2026)
 No customer message changed. The page's words in `apps/console/src/pages/weights.ts`; the questions themselves are English data (`price_basis_checks.question`).
 
