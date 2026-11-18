@@ -31,8 +31,12 @@ The smoke test (`apps/web/scripts/smoke.sh`): the «لبنة» known-failure bra
 
 Each was dispatched once, on the branch, after CI passed.
 
+## On staging (after the merge)
+Merged as [rashidhamzy-hue/alo-king#134](https://github.com/rashidhamzy-hue/alo-king/pull/134) (after merging `main` with FD2's 0249 to 0251; CI green on the merge; the model runs above were on the commit before that merge, whose B1f code is the same). `deploy-staging` from `main`: run [44383240410](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44383240410), green. The web smoke test: run [44383605365](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44383605365), green, «لبنة» a real check. Read on staging afterwards: labne, labneh, labni, «لبنة», «لبنه» → AK-0042, AK-0046, AK-0051; «لبن» → AK-0041 (ayran), AK-0044, AK-0048, AK-0050, AK-0052, AK-0056, AK-0057. Five wrong terms removed (`search_word_drops`): «لبنة» on AK-0048, AK-0056, AK-0057, «لبنة كاملة» on AK-0056, and "lebneh" on AK-0048 (caught by the shared spelling form). 25 open price-basis checks, 1 blocking (the eggs, Each, not orderable); the weights list has 26 rows, 25 to weigh.
+
+**Left for a later session (not B1f's scope):** «لبن» also finds Halloum AK-0044, because staging's pack has "لبن ليت" (Liban Lait misspelt) as its brand word; Halloum's brand is not Liban Lait on the sheet. A data fix for the search-words review list.
+
 ## Not proven here
-- The «لبنة» fix on staging until `deploy-staging` from `main` runs 0253 (then the web smoke test checks it live).
 - A real pack weight or price basis: Bassem's label day (the list below).
 - The time guard against a live model on WhatsApp (only in the sim-test).
 
