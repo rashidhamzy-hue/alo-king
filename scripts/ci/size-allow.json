@@ -1,0 +1,34 @@
+{
+ "_about": "What scripts/ci/repo-hygiene.mjs lets through. sizeCeilings: files that were already over 300 KB when the rule began (18 November 2026). Each may shrink, never grow (max is its size that day); a file is removed from the list when it is gone or under the limit; nothing is added without a reader (a new data file over 300 KB is split, compressed or kept out of the repository). Every entry is a data file or an applied migration, none a document. imagesAllowed: images under docs/ the repository may keep (icons and fonts the site serves): none.",
+ "sizeCeilings": {
+  "evals/language/results/after.json": {
+   "max": 1453063,
+   "why": "A recorded language-gate result (the run's every answer). Read by the offline replay and compared by tests; an eval record, not hand-written text."
+  },
+  "supabase/migrations/0054_language_pack.sql": {
+   "max": 1019473,
+   "why": "An applied migration (invariant: migrations are append-only, never edited); it carries the language pack's phrases as data."
+  },
+  "evals/sim/scenarios.json": {
+   "max": 641963,
+   "why": "The simulated customers' scenario set, read by evals/sim and its tests; one JSON data file."
+  },
+  "evals/language/pack.json": {
+   "max": 578474,
+   "why": "The language pack (the phrasings the planner is tested on), loaded by the language-gate eval and by 0054's source."
+  },
+  "evals/language/results/after-claude-sonnet-5.json": {
+   "max": 463420,
+   "why": "A recorded language-gate result for one model, kept as a baseline for comparison."
+  },
+  "evals/language/results/replay.json": {
+   "max": 395317,
+   "why": "The recorded readings the offline replay runs against (free, zero-wrong): data, not text."
+  },
+  "evals/language/results/before.json": {
+   "max": 364153,
+   "why": "A recorded language-gate result from before PD1, kept as the baseline."
+  }
+ },
+ "imagesAllowed": []
+}

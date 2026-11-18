@@ -11,6 +11,7 @@ import { DbError, isMissingFunction } from "./db";
 import type { StaffAuth } from "./auth";
 import { AuthUnavailable, MIN_PASSWORD } from "./auth";
 import type { Media } from "./media";
+import type { ScreensStore } from "../../../scripts/screens/storage.mjs";
 import { CSS, THEMES, form, html, page, type FlashUndo, type FormCtx, type Raw, type Theme } from "./html";
 import {
   FLASH_COOKIE, SESSION_COOKIE, SESSION_SECONDS, SETPW_COOKIE, clearCookie, hmac, randomToken, readCookie, same, seal, setCookie, unseal,
@@ -27,6 +28,8 @@ export interface Deps {
   db: Db;
   auth: StaffAuth;
   media: Media;
+  /** DOC2: the private `screens` bucket (screenshots of the console and the website, listed by the Screens page). Absent in a rig that has none. */
+  screens?: Pick<ScreensStore, "list" | "sign">;
   /** The gateway's send (packages/wa/src/gateway.ts): preflight, can_send, outbox claim. The console has no other way out. */
   send(req: SendRequest): Promise<SendResult>;
   secret: string;

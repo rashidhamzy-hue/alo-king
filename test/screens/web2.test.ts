@@ -1,8 +1,10 @@
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
 // WEB2: screenshots of the basket, sign-in, checkout, the order page (waiting for the WhatsApp Confirm, then confirmed), history, account and
-// "How it works", at 390 and 1280 px, in Arabic and English (docs/screens/web2, beside the reference's screens in docs/screens/ds2/ref-web-*),
+// "How it works", at 390 and 1280 px, in Arabic and English (the screens bucket, web2/, beside the reference's screens, ref-web-*),
 // a check that nothing scrolls sideways at 390 px, and each page's weight on a first visit measured by the browser itself (nothing cached).
 // Skipped unless SCREENS names a folder, because it needs a browser (Playwright's Chromium) that CI does not install:
-//   SCREENS=docs/screens/web2 npx vitest run test/screens/web2.test.ts
+//   SCREENS=/tmp/shots/web2 npx vitest run test/screens/web2.test.ts
 // The website runs built, in the Worker runtime, over the real migrations and the seed catalogue. Invented data only.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { build, preview } from "astro";

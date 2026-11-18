@@ -1,3 +1,5 @@
+// DOC2: screenshots are never committed (CI refuses an image under docs/). Run with SCREENS=<a folder outside the repository>, or dispatch the `screens` workflow
+// (action shoot, this test file, the session's name) on the branch: it runs the test in Chromium and uploads the images to the private screens bucket.
 // LB1: the label day's capture page in a real browser (Playwright's Chromium, a phone-sized screen), with screenshots at 390 px in English
 // and Arabic, and the behaviour the page's script exists for: a photo that fails to upload is kept in the phone and sent again (no signal, a
 // server error, the page closed before it went), never lost; the page moves on to the next item by itself; the camera scan.
