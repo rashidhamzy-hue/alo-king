@@ -13,7 +13,7 @@ import { LS, screens, type Bubble, type L } from "./cx2-messages";
 const OUT = process.env.SCREENS;
 const font = (pkg: string, file: string) => readFileSync(fileURLToPath(new URL(`../../node_modules/@fontsource/${pkg}/files/${file}`, import.meta.url))).toString("base64");
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 /** WhatsApp's own formatting: *bold*, _italic_, ~strike~, ```mono```; each line takes its own direction, as WhatsApp does. */
 export function waHtml(text: string): string {
   return text.split("\n").map((line) => {

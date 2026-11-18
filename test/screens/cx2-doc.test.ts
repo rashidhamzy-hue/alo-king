@@ -24,7 +24,7 @@ function inventory(): { key: string; en: string; ar: string }[] {
   const en = read("en"), ar = read("ar");
   return [...en.keys()].filter((k) => !k.startsWith("ops.") && !k.startsWith("ak_")).map((key) => ({ key, en: en.get(key)!, ar: ar.get(key) ?? "" }));
 }
-const oneLine = (t: string) => t.replace(/\|/g, "\\|").replace(/\n/g, " ⏎ ").slice(0, 160) + (t.length > 160 ? "…" : "");
+const oneLine = (t: string) => t.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ⏎ ").slice(0, 160) + (t.length > 160 ? "…" : "");
 
 function doc(): string {
   const S = screens();
