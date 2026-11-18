@@ -22,8 +22,8 @@ describe("docs/ARABIC_REVIEW.md lists every word of the join pages", () => {
       expect(row.ar, row.key).toBe(cell(DICTS.ar[row.key]!)); expect(row.en, row.key).toBe(cell(DICTS.en[row.key]!)); expect(row.fr, row.key).toBe(cell(DICTS.fr[row.key]!));
     }
   });
-  it("the Postgres line a sender consents with is in the table, in the words migration 0233 stores", () => {
-    const sql = readFileSync(join(repo, "supabase/migrations/0233_join_applications.sql"), "utf8");
+  it("the Postgres line a sender consents with is in the table, in the words the latest claim_link_code stores (0235, B1e)", () => {
+    const sql = readFileSync(join(repo, "supabase/migrations/0235_join_consent_words.sql"), "utf8");
     for (const purpose of ["rider", "vendor"]) {
       const stored = new RegExp(`when '${purpose}'\\s+then '([^']+)'`).exec(sql)![1]!;
       expect(section, purpose).toContain(stored);

@@ -1,0 +1,35 @@
+{
+  "about": "B1e (18 Nov 2026): the model never says whether we deliver to a place. Delivery areas, fees and times come only from the database (invariant 7, as for prices). sim-021 of QA1's sim-test (run 44154789374, Arabizi, at night then the morning, Botmeh): the model said three times that Botmeh has no delivery ('ma 3ando tawseel', 'Ma fi tawseel la Botmeh', then in English 'we don't deliver to Botmeh'), while the code's own answer, from resolve_place, was «✅ إيه منوصّل على بطمة … $1.50». The plan's issue was no_delivery_village, which means only that no village is known yet. The output guard (packages/agents/src/output-guard.ts, area_claim) refuses a sentence that says we do or do not deliver somewhere unless a tool returned that place, with that answer, this turn (`areas`). The same reply in English to an Arabizi customer is refused too (wrong_language: the model writes in the conversation's language). Run by packages/agents/test/area-claim-b1e.test.ts and, through the turn, test/db/area-claim-b1e.test.ts.",
+  "refused": [
+    { "id": "sim-021-t5", "speech": "arabizi", "areas": [], "code": "area_claim",
+      "text": "Tamam, mnfta7 el sa3a 8 el subh w ba3ref el order. Bass el balde Botmeh ma 3ando tawseel, shu el balde el tanye?" },
+    { "id": "sim-021-t6", "speech": "arabizi", "areas": [], "code": "area_claim", "text": "Ma fi tawseel la Botmeh lal2an, lal2ayf. Shu baddak ta3mel?" },
+    { "id": "sim-021-t8", "speech": "arabizi", "areas": [], "code": "area_claim", "text": "Not yet: we don't deliver to Botmeh, and we're closed now until 08:00." },
+    { "id": "sim-021-t6-contradicts-the-tool", "speech": "arabizi", "areas": [{ "names": ["Batmeh", "بطمة", "Botmeh"], "served": true }], "code": "area_claim",
+      "text": "Ma fi tawseel la Botmeh lal2an, lal2ayf. Shu baddak ta3mel?" },
+    { "id": "yes-with-no-tool-en", "speech": "en", "areas": [], "code": "area_claim", "text": "Yes, we deliver to Baakline. What would you like?" },
+    { "id": "yes-with-no-tool-ar", "speech": "ar", "areas": [], "code": "area_claim", "text": "إيه منوصّل على بعقلين. شو بدك؟" },
+    { "id": "no-with-no-tool-ar", "speech": "ar", "areas": [], "code": "area_claim", "text": "ما في توصيل لبطمة لهلّق. شو بتحب تعمل؟" },
+    { "id": "no-with-no-tool-fr", "speech": "fr", "areas": [], "code": "area_claim", "text": "Nous ne livrons pas à Botmeh pour l'instant." },
+    { "id": "outside-our-area-en", "speech": "en", "areas": [], "code": "area_claim", "text": "Kfarnabrakh is outside our delivery area." },
+    { "id": "english-to-arabizi", "speech": "arabizi", "areas": [], "code": "wrong_language", "text": "Not yet, the order is not ready. Do you want to add something?" },
+    { "id": "arabic-to-english", "speech": "en", "areas": [], "code": "wrong_language", "text": "تمام، شو بدك كمان؟" },
+    { "id": "english-to-french", "speech": "fr", "areas": [], "code": "wrong_language", "text": "Sorry, which one do you want? We have two of them." }
+  ],
+  "allowed": [
+    { "id": "no-as-the-tool-said", "speech": "arabizi", "areas": [{ "names": ["Kfarnabrakh", "كفرنبرخ"], "served": false }], "text": "Ma fi tawseel la Kfarnabrakh lal2an. Shu baddak ta3mel?" },
+    { "id": "yes-as-the-tool-said", "speech": "en", "areas": [{ "names": ["Baakline", "بعقلين"], "served": true }], "text": "We deliver to Baakline. What would you like?" },
+    { "id": "yes-as-the-tool-said-ar", "speech": "ar", "areas": [{ "names": ["Baakline", "بعقلين"], "served": true }], "text": "إيه منوصّل على بعقلين. شو بدك؟" },
+    { "id": "sim-021-t2", "speech": "arabizi", "areas": [], "text": "Tamam, 2ayyedna el balde Botmeh. Fi shi ba3ed?" },
+    { "id": "asks-the-village", "speech": "arabizi", "areas": [], "text": "Shu esm el balde? Aw ba3atle location pin." },
+    { "id": "asks-the-village-en", "speech": "en", "areas": [], "text": "Which village are you in? You can also send a location pin." },
+    { "id": "to-you-tomorrow", "speech": "en", "areas": [], "text": "Your basket is kept until we open. Would you like to add anything?" },
+    { "id": "arabizi-reply", "speech": "arabizi", "areas": [], "text": "Tamam, shu baddak kamen?" },
+    { "id": "short-merci", "speech": "arabizi", "areas": [], "text": "Ok merci!" },
+    { "id": "french-reply", "speech": "fr", "areas": [], "text": "Lequel voulez-vous ?" },
+    { "id": "arabic-with-an-english-name", "speech": "ar", "areas": [], "products": [{ "id": "p1", "names": ["Lipton Ice Tea Tropical Zero Sugar 320Ml"] }],
+      "text": "عنا Lipton Ice Tea Tropical Zero Sugar 320Ml. قديش بدك؟" },
+    { "id": "english-with-an-english-name-to-arabizi", "speech": "arabizi", "areas": [], "products": [{ "id": "p1", "names": ["Oui Oui Wet Wipes Aqua Pure 80 Sheets"] }],
+      "text": "Tamam, 7ottet Oui Oui Wet Wipes Aqua Pure 80 Sheets. Shu baddak kamen?" }
+  ]
+}

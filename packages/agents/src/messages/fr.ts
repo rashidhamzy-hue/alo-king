@@ -284,6 +284,13 @@ D'ici là, rien ne change sur la page.`,
     noneFits: (kinds) => `Aucun de nos ${list(kinds, "et")} ne convient, d'après leurs emballages.`,
     closeFits: "Dites-moi lequel et combien.",
   },
+  remember: {
+    offer: (rs, onOrder) => onOrder ? `J'ai mis « ${rs.join(", ")} » sur votre commande ; la cuisine doit le confirmer.\nOn le retient pour vos prochaines commandes ?`
+                                    : `C'est noté : « ${rs.join(", ")} » ; la cuisine doit le confirmer à chaque commande.\nOn le retient pour vos prochaines commandes ?`,
+    yes: "Oui, retenez-le", no: "Juste cette fois",
+    kept: "C'est fait : on le retient et on le met sur chaque commande. Dites « oubliez-moi » quand vous voulez.",
+    notKept: "D'accord, juste pour cette commande.",
+  },
   built: {
     dish: (dish, people) => `${dish} pour ${people} : tout ce qu'il faut, selon la quantité par personne.`,
     lunchbox: (units) => `Goûters pour la boîte à lunch : ${units} en tout, de plusieurs sortes.`,

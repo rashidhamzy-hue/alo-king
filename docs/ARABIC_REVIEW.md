@@ -1230,7 +1230,7 @@ Source: the `pick(L, "English", "Arabic")` pairs and the `{ en, ar }` entries ad
 
 ## UX3, the join pages and the Applicants tab (17 November 2026)
 
-Written by a model; **the Arabic, English and French below wait for a reader** (the last column is empty). Three places hold words:
+Written by a model; **read by the coordinator on 18 November** ("RA 18 Nov"; applied by B1e: `web.join_cash_h` «سقف النقد» and the two consent lines, migration 0235; every other row as written). Three places hold words:
 the website's two pages (the keys `join_*`, `vend_*`, `kind_shop` in `apps/web/src/lib/join-words.ts`, merged into the three dictionaries in `apps/web/src/lib/i18n.ts`; the test `test/ci/ux3-arabic.test.ts` holds this table equal to them, word for word),
 the one Postgres line (the consent a sender gives by sending their code, `claim_link_code`, migration 0233; Lebanese, as the checkout's is), and the console's Applicants tab (staff only, `apps/console/src/pages/riders.ts`, beside its English with `pick(L, en, ar)`).
 Rules the words keep: a rider keeps the whole delivery fee and all tips (invariant 10); no commission figure for a place is published; applying opens nothing (invariant 11); no rating, praise or promise of income (invariant 14);
@@ -1241,147 +1241,166 @@ The shifts (morning 08:00 to 15:30, evening 15:30 to 23:00) are a draft taken fr
 
 | Key | Arabic | English | French | Read by |
 |---|---|---|---|---|
-| `web.join_footer_rider` | كن مندوباً معنا | Ride with us | Livrer avec nous | |
-| `web.join_footer_vendor` | بع عبر ألو كينغ | Sell on Alo King | Vendre sur Alo King | |
-| `web.vend_from_place` | هل هذا مكانك؟ قدّم طلباً للبيع عبر ألو كينغ | Own this place? Apply to sell on Alo King | C'est votre établissement ? Demandez à vendre sur Alo King | |
-| `web.kind_shop` | متجر | Shop | Magasin | |
-| `web.join_rider_eyebrow` | كن مندوباً مع ألو كينغ | Ride with Alo King | Livrer avec Alo King | |
-| `web.join_rider_title` | وصّل في الشوف. وخذ الرسوم كاملة. | Deliver in the Chouf. Keep the whole fee. | Livrez dans le Chouf. Gardez tous les frais. | |
-| `web.join_rider_lead` | البقالة تخرج من مستودعنا إلى قرىً تعرفها. كل رسم توصيل وكل إكرامية لك. | Groceries leave our hub and go to villages you know. Every delivery fee and every tip is yours. | Les courses partent de notre centre vers des villages que vous connaissez. Chaque frais de livraison et chaque pourboire sont à vous. | |
-| `web.join_apply_cta` | قدّم طلبك في دقيقتين | Apply in 2 minutes | Postulez en 2 minutes | |
-| `web.join_how_cta` | كيف تربح | How you earn | Comment vous gagnez | |
-| `web.join_earn_h` | ما الذي تربحه | What you earn | Ce que vous gagnez | |
-| `web.join_fee_t` | 100٪ من رسم التوصيل | 100% of the delivery fee | 100 % des frais de livraison | |
-| `web.join_fee_range` | التوصيلة تدفع من {min} إلى {max}، حسب القرية. | A delivery pays {min} to {max}, depending on the village. | Une livraison rapporte de {min} à {max}, selon le village. | |
-| `web.join_fee_text` | الرسم يُحصَّل لك أنت، لا لألو كينغ. لا نأخذ منه شيئاً. | The fee is collected for you, not for Alo King. We take nothing from it. | Les frais sont encaissés pour vous, pas pour Alo King. Nous n'en prélevons rien. | |
-| `web.join_tips_t` | 100٪ من الإكراميات | 100% of tips | 100 % des pourboires | |
-| `web.join_tips_text` | كل إكرامية لك كاملة. | Every tip is yours, in full. | Chaque pourboire est à vous, en entier. | |
-| `web.join_pay_t` | الدفع عن كل توصيلة | Paid per delivery | Payé à la livraison | |
-| `web.join_pay_text` | لا يوجد أجر بالساعة. ما تربحه هو رسم كل توصيلة تنجزها وإكراميتها. | There is no hourly wage. What you earn is the fee and the tip of each delivery you make. | Il n'y a pas de salaire horaire. Vous gagnez les frais et le pourboire de chaque livraison que vous faites. | |
-| `web.join_shifts_h` | الورديات | Shifts | Créneaux | |
-| `web.join_shifts_lead` | أخبرنا بالأيام والورديات التي تستطيع العمل فيها. | Tell us the days and shifts you can ride. | Dites-nous les jours et les créneaux où vous pouvez livrer. | |
-| `web.join_shift_morning` | صباحية | Morning | Matin | |
-| `web.join_shift_evening` | مسائية | Evening | Soir | |
-| `web.join_who_h` | من يستطيع التوصيل | Who can ride | Qui peut livrer | |
-| `web.join_who_vehicle` | عندك وسيلة نقل: {vehicles}. | You have a vehicle: {vehicles}. | Vous avez un véhicule : {vehicles}. | |
-| `web.join_who_licence` | تخبرنا هل عندك رخصة قيادة، نعم أو لا. نقرأ الجواب مع باقي طلبك. | You tell us whether you have a driving licence, yes or no. We read the answer with the rest of your application. | Vous nous dites si vous avez un permis de conduire, oui ou non. Nous lisons la réponse avec le reste de votre candidature. | |
-| `web.join_who_hours` | تستطيع العمل في الأيام والورديات التي تختارها. | You can ride the days and shifts you choose. | Vous livrez les jours et les créneaux que vous choisissez. | |
-| `web.join_who_number` | رقم واتساب الخاص بك يُؤكَّد بأن تراسلنا أنت أولاً. لا نراسل رقماً لم يراسلنا. | Your WhatsApp number is confirmed by you messaging us first. We never message a number that has not messaged us. | Votre numéro WhatsApp est confirmé quand vous nous écrivez en premier. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | |
-| `web.join_who_person` | شخص يقرأ كل طلب ويقرر. تقديم الطلب لا يجعلك مندوباً. | A person reads every application and decides. Applying does not make you a rider. | Une personne lit chaque candidature et décide. Postuler ne fait pas de vous un livreur. | |
-| `web.join_cash_h` | النقد وحدّه | Cash and its limit | L'argent liquide et sa limite | |
-| `web.join_cash_text` | كثير من الزبائن يدفعون نقداً عند التسليم، وأنت تحمل هذا النقد للمستودع. من {soft} لا تُعرض عليك طلبات نقدية جديدة، ولا بعد {hard} أبداً، إلى أن تسلّم النقد في المستودع. | Many customers pay cash on delivery, and you carry that cash for the hub. From {soft} you are not offered new cash orders, and never past {hard}, until you hand cash over at the hub. | Beaucoup de clients paient en espèces à la livraison, et vous portez cet argent pour le centre. À partir de {soft} on ne vous propose plus de commande en espèces, et jamais au-delà de {hard}, jusqu'à ce que vous remettiez l'argent au centre. | |
-| `web.join_terms_h` | الشروط المكتوبة | Written terms | Conditions écrites | |
-| `web.join_terms_text` | كل شيء مكتوب. تُوقَّع شروطك المكتوبة وتُحفظ عندنا قبل أن تحمل نقداً أو تأخذ توصيلة. | Everything is in writing. Your written terms are signed and kept on file before you carry cash or take a delivery. | Tout est par écrit. Vos conditions écrites sont signées et conservées avant que vous portiez de l'argent ou preniez une livraison. | |
-| `web.join_terms_owed` | قد يُسجَّل عجز النقد ديناً عليك، لكنه لا يُخصم أبداً من رسومك أو إكرامياتك أو أرباحك تلقائياً. | A shortfall may be recorded as owed by you, but it is never taken out of your fees, tips or earnings automatically. | Un manque peut être noté comme dû par vous, mais il n'est jamais retiré automatiquement de vos frais, pourboires ou gains. | |
-| `web.join_terms_rating` | لا يُقيَّم المناديب ولا تُعطى لهم درجات ولا يُرتَّبون. | Riders are never rated, scored or ranked. | Les livreurs ne sont ni notés, ni classés. | |
-| `web.join_apply_h` | قدّم طلبك | Apply | Postuler | |
-| `web.join_confirm_h` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmez votre numéro sur WhatsApp | |
-| `web.join_confirm_rider` | أنت تراسلنا أولاً، فنعرف أن الرقم لك. احصل على رمز ثم أرسله إلينا على واتساب. لا نراسل رقماً لم يراسلنا. | You message us first, so we know the number is yours. Get a code, then send it to us on WhatsApp. We never message a number that has not messaged us. | Vous nous écrivez en premier, pour que nous sachions que le numéro est le vôtre. Obtenez un code, puis envoyez-le-nous sur WhatsApp. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | |
-| `web.join_confirm_vendor` | أرسل الرمز من رقم واتساب صاحب المكان أو مديره، لنعرف من نكتب إليه. أنت تراسلنا أولاً. لا نراسل رقماً لم يراسلنا. | Send the code from the WhatsApp number of the owner or manager, so we know who to write to. You message us first. We never message a number that has not messaged us. | Envoyez le code depuis le numéro WhatsApp du propriétaire ou du gérant, pour que nous sachions à qui écrire. Vous nous écrivez en premier. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | |
-| `web.join_confirm_get` | أعطني الرمز | Get my code | Obtenir mon code | |
-| `web.join_code_h` | رمزك | Your code | Votre code | |
-| `web.join_code_send` | افتح واتساب وأرسل الرمز | Open WhatsApp and send the code | Ouvrir WhatsApp et envoyer le code | |
-| `web.join_code_plain` | أرسل {code} إلى رقم واتساب الخاص بنا. | Send {code} to our WhatsApp number. | Envoyez {code} à notre numéro WhatsApp. | |
-| `web.join_code_note` | الرمز يعمل لبضع دقائق. إذا توقف عن العمل فاحصل على رمز جديد. | The code works for a few minutes. If it stops working, get a new one. | Le code fonctionne quelques minutes. S'il ne marche plus, obtenez-en un nouveau. | |
-| `web.join_code_check` | أرسلته | I have sent it | Je l'ai envoyé | |
-| `web.join_code_new` | رمز جديد | Get a new code | Nouveau code | |
-| `web.join_confirmed` | تم تأكيد رقمك. | Your number is confirmed. | Votre numéro est confirmé. | |
-| `web.join_name` | اسمك | Your name | Votre nom | |
-| `web.join_village` | قريتك | Your village | Votre village | |
-| `web.join_vehicle` | وسيلة النقل | Your vehicle | Votre véhicule | |
-| `web.join_vehicle_choose` | اختر | Choose | Choisir | |
-| `web.join_vehicle_motorbike` | دراجة نارية | Motorbike | Moto | |
-| `web.join_vehicle_car` | سيارة | Car | Voiture | |
-| `web.join_vehicle_bicycle` | دراجة هوائية | Bicycle | Vélo | |
-| `web.join_licence` | هل عندك رخصة قيادة؟ | Do you have a driving licence? | Avez-vous un permis de conduire ? | |
-| `web.join_yes` | نعم | Yes | Oui | |
-| `web.join_no` | لا | No | Non | |
-| `web.join_days` | الأيام التي تستطيع العمل فيها | Days you can ride | Jours où vous pouvez livrer | |
-| `web.join_shifts` | الورديات التي تستطيع العمل فيها | Shifts you can ride | Créneaux où vous pouvez livrer | |
-| `web.join_day_mon` | الاثنين | Monday | Lundi | |
-| `web.join_day_tue` | الثلاثاء | Tuesday | Mardi | |
-| `web.join_day_wed` | الأربعاء | Wednesday | Mercredi | |
-| `web.join_day_thu` | الخميس | Thursday | Jeudi | |
-| `web.join_day_fri` | الجمعة | Friday | Vendredi | |
-| `web.join_day_sat` | السبت | Saturday | Samedi | |
-| `web.join_day_sun` | الأحد | Sunday | Dimanche | |
-| `web.join_submit` | أرسل طلبي | Send my application | Envoyer ma candidature | |
-| `web.join_err_name` | اكتب اسمك. | Write your name. | Écrivez votre nom. | |
-| `web.join_err_village` | اكتب اسم قريتك. | Write your village. | Écrivez votre village. | |
-| `web.join_err_vehicle` | اختر وسيلة النقل. | Choose your vehicle. | Choisissez votre véhicule. | |
-| `web.join_err_licence` | أخبرنا هل عندك رخصة: نعم أو لا. | Tell us whether you have a licence: yes or no. | Dites-nous si vous avez un permis : oui ou non. | |
-| `web.join_err_hours` | اختر يوماً واحداً على الأقل ووردية واحدة على الأقل. | Choose at least one day and one shift. | Choisissez au moins un jour et un créneau. | |
-| `web.join_err_confirm` | أكّد رقمك على واتساب أولاً. | Confirm your number on WhatsApp first. | Confirmez d'abord votre numéro sur WhatsApp. | |
-| `web.join_err_limit` | طلبات كثيرة من هذا الجهاز اليوم. حاول غداً، أو راسلنا على واتساب. | Too many applications from this device today. Try again tomorrow, or message us on WhatsApp. | Trop de candidatures depuis cet appareil aujourd'hui. Réessayez demain, ou écrivez-nous sur WhatsApp. | |
-| `web.join_err_failed` | حدث خطأ. حاول مرة أخرى. | Something went wrong. Try again. | Une erreur s'est produite. Réessayez. | |
-| `web.join_done_h` | طلبك وصلنا. | Your application is with us. | Votre candidature est chez nous. | |
-| `web.join_done_text` | شخص يقرؤه ويقرر. تقديم الطلب لا يجعلك مندوباً. نكتب إليك على واتساب، في المحادثة التي أرسلت منها الرمز. | A person reads it and decides. Applying does not make you a rider. We write to you on WhatsApp, on the chat where you sent your code. | Une personne la lit et décide. Postuler ne fait pas de vous un livreur. Nous vous écrivons sur WhatsApp, dans la conversation où vous avez envoyé votre code. | |
-| `web.vend_eyebrow` | بع عبر ألو كينغ | Sell on Alo King | Vendre sur Alo King | |
-| `web.vend_title` | بِع لأهل الشوف من واتساب. | Sell to the Chouf from WhatsApp. | Vendez au Chouf depuis WhatsApp. | |
-| `web.vend_lead` | عائلات في الشوف تطلب منا. نريد أن نقدّم طعاماً من المطابخ والمحلات التي تعرفها. تصلك الطلبات على واتساب، ونستطيع توصيلها. | Families across the Chouf order from us. We want to carry food from the kitchens and shops they know. Orders reach you on WhatsApp, and we can deliver them. | Des familles du Chouf commandent chez nous. Nous voulons proposer la cuisine et les commerces qu'elles connaissent. Les commandes vous arrivent sur WhatsApp, et nous pouvons les livrer. | |
-| `web.vend_notopen` | لا يوجد مطبخ أو محل مفتوح على ألو كينغ بعد. نبدأ مع الأماكن التي نتفق معها على الشروط. | No kitchen or shop is open on Alo King yet. We start with the places we agree terms with. | Aucune cuisine ni aucun commerce n'est encore ouvert sur Alo King. Nous commençons avec les lieux dont nous avons convenu des conditions. | |
-| `web.vend_cta` | قدّم طلبك في دقيقتين | Apply in 2 minutes | Postulez en 2 minutes | |
-| `web.vend_listed` | هل مكانك مدرج؟ ابحث عنه | Already listed? Find your place | Déjà listé ? Trouvez votre lieu | |
-| `web.vend_offer_h` | ماذا تقدّم ألو كينغ | What Alo King offers | Ce qu'offre Alo King | |
-| `web.vend_o1_t` | طلبات على واتساب | Orders on WhatsApp | Commandes sur WhatsApp | |
-| `web.vend_o1` | يصلك كل طلب رسالةً وتجيب عليه هناك. بلا جهاز لوحي وبلا تطبيق. | Each order reaches you as a message, and you answer it there. No tablet and no app. | Chaque commande vous arrive en message, et vous y répondez là. Pas de tablette, pas d'application. | |
-| `web.vend_o2_t` | التوصيل | Delivery | Livraison | |
-| `web.vend_o2` | نستطيع إيصال الطلب إلى الزبون: يسلّمه المندوب عند الباب ويأخذ الرمز والنقد. | We can bring the order to the customer: the rider hands it over at the door and takes the code and the cash. | Nous pouvons porter la commande au client : le livreur la remet à la porte et prend le code et l'argent. | |
-| `web.vend_o3_t` | ظهور منصف | Found fairly | Trouvé équitablement | |
-| `web.vend_o3` | يجد الزبائن الأماكن بحسب ما يطلبونه وبحسب المسافة. لا نقيّم مكاناً ولا نرتّبه ولا نمدحه. | Customers find places by what they ask for and by distance. We never rate, rank or praise a place. | Les clients trouvent les lieux selon ce qu'ils demandent et la distance. Nous ne notons, ne classons ni ne vantons aucun lieu. | |
-| `web.vend_o4_t` | شروط تُتفق أولاً | Terms, agreed first | Conditions convenues d'abord | |
-| `web.vend_o4` | عمولتنا جزء من الشروط التي نتفق عليها معك قبل أن تبدأ. لا يوجد رقم في هذه الصفحة. | Our commission is part of the terms we agree with you before you start. There is no figure on this page. | Notre commission fait partie des conditions que nous convenons avec vous avant de commencer. Il n'y a pas de chiffre sur cette page. | |
-| `web.vend_next_h` | ماذا يحدث بعد طلبك | What happens after you apply | Ce qui se passe après votre candidature | |
-| `web.vend_n1` | تؤكّد رقمك بأن تراسلنا. | You confirm your number by messaging us. | Vous confirmez votre numéro en nous écrivant. | |
-| `web.vend_n2` | شخص من فريقنا يقرأ طلبك ويكتب إليك. | A person from our team reads your application and writes to you. | Une personne de notre équipe lit votre candidature et vous écrit. | |
-| `web.vend_n3` | نتفق على الشروط كتابةً، ونراجع قائمتك وأسعارك. | We agree the terms in writing, and check your menu and your prices. | Nous convenons des conditions par écrit, et vérifions votre menu et vos prix. | |
-| `web.vend_n4` | وعندها فقط يُفتح مكانك. تقديم الطلب لا يفتح مكانك. | Only then is your place opened. Applying does not open your place. | Alors seulement votre lieu est ouvert. Postuler n'ouvre pas votre lieu. | |
-| `web.vend_apply_h` | قدّم طلبك | Apply | Postuler | |
-| `web.vend_name` | اسم المكان | Name of the place | Nom du lieu | |
-| `web.vend_kind` | نوع المكان | What kind of place | Type de lieu | |
-| `web.vend_kind_choose` | اختر | Choose | Choisir | |
-| `web.vend_village` | القرية | Village | Village | |
-| `web.vend_place_h` | مكانك في قائمتنا | Your place on our list | Votre lieu sur notre liste | |
-| `web.vend_claim_note` | أنت تقدّم طلباً باسم {name}. وهذا يُحتسب مطالبةً بتلك الصفحة. | You are applying for {name}. This counts as your claim of that page. | Vous postulez pour {name}. Cela compte comme votre revendication de cette page. | |
-| `web.vend_claim_other` | ليس هذا المكان؟ قدّم الطلب بدونه | Not this place? Apply without it | Pas ce lieu ? Postulez sans lui | |
-| `web.vend_submit` | أرسل طلبي | Send my application | Envoyer ma candidature | |
-| `web.vend_err_name` | اكتب اسم المكان. | Write the name of the place. | Écrivez le nom du lieu. | |
-| `web.vend_err_kind` | اختر نوع المكان. | Choose what kind of place it is. | Choisissez le type de lieu. | |
-| `web.vend_done_text` | شخص يقرؤه ويكتب إليك على واتساب، في المحادثة التي أرسلت منها الرمز. تقديم الطلب لا يفتح مكانك. | A person reads it and writes to you on WhatsApp, on the chat where you sent your code. Applying does not open your place. | Une personne la lit et vous écrit sur WhatsApp, dans la conversation où vous avez envoyé votre code. Postuler n'ouvre pas votre lieu. | |
+| `web.join_footer_rider` | كن مندوباً معنا | Ride with us | Livrer avec nous | RA 18 Nov |
+| `web.join_footer_vendor` | بع عبر ألو كينغ | Sell on Alo King | Vendre sur Alo King | RA 18 Nov |
+| `web.vend_from_place` | هل هذا مكانك؟ قدّم طلباً للبيع عبر ألو كينغ | Own this place? Apply to sell on Alo King | C'est votre établissement ? Demandez à vendre sur Alo King | RA 18 Nov |
+| `web.kind_shop` | متجر | Shop | Magasin | RA 18 Nov |
+| `web.join_rider_eyebrow` | كن مندوباً مع ألو كينغ | Ride with Alo King | Livrer avec Alo King | RA 18 Nov |
+| `web.join_rider_title` | وصّل في الشوف. وخذ الرسوم كاملة. | Deliver in the Chouf. Keep the whole fee. | Livrez dans le Chouf. Gardez tous les frais. | RA 18 Nov |
+| `web.join_rider_lead` | البقالة تخرج من مستودعنا إلى قرىً تعرفها. كل رسم توصيل وكل إكرامية لك. | Groceries leave our hub and go to villages you know. Every delivery fee and every tip is yours. | Les courses partent de notre centre vers des villages que vous connaissez. Chaque frais de livraison et chaque pourboire sont à vous. | RA 18 Nov |
+| `web.join_apply_cta` | قدّم طلبك في دقيقتين | Apply in 2 minutes | Postulez en 2 minutes | RA 18 Nov |
+| `web.join_how_cta` | كيف تربح | How you earn | Comment vous gagnez | RA 18 Nov |
+| `web.join_earn_h` | ما الذي تربحه | What you earn | Ce que vous gagnez | RA 18 Nov |
+| `web.join_fee_t` | 100٪ من رسم التوصيل | 100% of the delivery fee | 100 % des frais de livraison | RA 18 Nov |
+| `web.join_fee_range` | التوصيلة تدفع من {min} إلى {max}، حسب القرية. | A delivery pays {min} to {max}, depending on the village. | Une livraison rapporte de {min} à {max}, selon le village. | RA 18 Nov |
+| `web.join_fee_text` | الرسم يُحصَّل لك أنت، لا لألو كينغ. لا نأخذ منه شيئاً. | The fee is collected for you, not for Alo King. We take nothing from it. | Les frais sont encaissés pour vous, pas pour Alo King. Nous n'en prélevons rien. | RA 18 Nov |
+| `web.join_tips_t` | 100٪ من الإكراميات | 100% of tips | 100 % des pourboires | RA 18 Nov |
+| `web.join_tips_text` | كل إكرامية لك كاملة. | Every tip is yours, in full. | Chaque pourboire est à vous, en entier. | RA 18 Nov |
+| `web.join_pay_t` | الدفع عن كل توصيلة | Paid per delivery | Payé à la livraison | RA 18 Nov |
+| `web.join_pay_text` | لا يوجد أجر بالساعة. ما تربحه هو رسم كل توصيلة تنجزها وإكراميتها. | There is no hourly wage. What you earn is the fee and the tip of each delivery you make. | Il n'y a pas de salaire horaire. Vous gagnez les frais et le pourboire de chaque livraison que vous faites. | RA 18 Nov |
+| `web.join_shifts_h` | الورديات | Shifts | Créneaux | RA 18 Nov |
+| `web.join_shifts_lead` | أخبرنا بالأيام والورديات التي تستطيع العمل فيها. | Tell us the days and shifts you can ride. | Dites-nous les jours et les créneaux où vous pouvez livrer. | RA 18 Nov |
+| `web.join_shift_morning` | صباحية | Morning | Matin | RA 18 Nov |
+| `web.join_shift_evening` | مسائية | Evening | Soir | RA 18 Nov |
+| `web.join_who_h` | من يستطيع التوصيل | Who can ride | Qui peut livrer | RA 18 Nov |
+| `web.join_who_vehicle` | عندك وسيلة نقل: {vehicles}. | You have a vehicle: {vehicles}. | Vous avez un véhicule : {vehicles}. | RA 18 Nov |
+| `web.join_who_licence` | تخبرنا هل عندك رخصة قيادة، نعم أو لا. نقرأ الجواب مع باقي طلبك. | You tell us whether you have a driving licence, yes or no. We read the answer with the rest of your application. | Vous nous dites si vous avez un permis de conduire, oui ou non. Nous lisons la réponse avec le reste de votre candidature. | RA 18 Nov |
+| `web.join_who_hours` | تستطيع العمل في الأيام والورديات التي تختارها. | You can ride the days and shifts you choose. | Vous livrez les jours et les créneaux que vous choisissez. | RA 18 Nov |
+| `web.join_who_number` | رقم واتساب الخاص بك يُؤكَّد بأن تراسلنا أنت أولاً. لا نراسل رقماً لم يراسلنا. | Your WhatsApp number is confirmed by you messaging us first. We never message a number that has not messaged us. | Votre numéro WhatsApp est confirmé quand vous nous écrivez en premier. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | RA 18 Nov |
+| `web.join_who_person` | شخص يقرأ كل طلب ويقرر. تقديم الطلب لا يجعلك مندوباً. | A person reads every application and decides. Applying does not make you a rider. | Une personne lit chaque candidature et décide. Postuler ne fait pas de vous un livreur. | RA 18 Nov |
+| `web.join_cash_h` | سقف النقد | Cash and its limit | L'argent liquide et sa limite | RA 18 Nov |
+| `web.join_cash_text` | كثير من الزبائن يدفعون نقداً عند التسليم، وأنت تحمل هذا النقد للمستودع. من {soft} لا تُعرض عليك طلبات نقدية جديدة، ولا بعد {hard} أبداً، إلى أن تسلّم النقد في المستودع. | Many customers pay cash on delivery, and you carry that cash for the hub. From {soft} you are not offered new cash orders, and never past {hard}, until you hand cash over at the hub. | Beaucoup de clients paient en espèces à la livraison, et vous portez cet argent pour le centre. À partir de {soft} on ne vous propose plus de commande en espèces, et jamais au-delà de {hard}, jusqu'à ce que vous remettiez l'argent au centre. | RA 18 Nov |
+| `web.join_terms_h` | الشروط المكتوبة | Written terms | Conditions écrites | RA 18 Nov |
+| `web.join_terms_text` | كل شيء مكتوب. تُوقَّع شروطك المكتوبة وتُحفظ عندنا قبل أن تحمل نقداً أو تأخذ توصيلة. | Everything is in writing. Your written terms are signed and kept on file before you carry cash or take a delivery. | Tout est par écrit. Vos conditions écrites sont signées et conservées avant que vous portiez de l'argent ou preniez une livraison. | RA 18 Nov |
+| `web.join_terms_owed` | قد يُسجَّل عجز النقد ديناً عليك، لكنه لا يُخصم أبداً من رسومك أو إكرامياتك أو أرباحك تلقائياً. | A shortfall may be recorded as owed by you, but it is never taken out of your fees, tips or earnings automatically. | Un manque peut être noté comme dû par vous, mais il n'est jamais retiré automatiquement de vos frais, pourboires ou gains. | RA 18 Nov |
+| `web.join_terms_rating` | لا يُقيَّم المناديب ولا تُعطى لهم درجات ولا يُرتَّبون. | Riders are never rated, scored or ranked. | Les livreurs ne sont ni notés, ni classés. | RA 18 Nov |
+| `web.join_apply_h` | قدّم طلبك | Apply | Postuler | RA 18 Nov |
+| `web.join_confirm_h` | أكّد رقمك على واتساب | Confirm your number on WhatsApp | Confirmez votre numéro sur WhatsApp | RA 18 Nov |
+| `web.join_confirm_rider` | أنت تراسلنا أولاً، فنعرف أن الرقم لك. احصل على رمز ثم أرسله إلينا على واتساب. لا نراسل رقماً لم يراسلنا. | You message us first, so we know the number is yours. Get a code, then send it to us on WhatsApp. We never message a number that has not messaged us. | Vous nous écrivez en premier, pour que nous sachions que le numéro est le vôtre. Obtenez un code, puis envoyez-le-nous sur WhatsApp. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | RA 18 Nov |
+| `web.join_confirm_vendor` | أرسل الرمز من رقم واتساب صاحب المكان أو مديره، لنعرف من نكتب إليه. أنت تراسلنا أولاً. لا نراسل رقماً لم يراسلنا. | Send the code from the WhatsApp number of the owner or manager, so we know who to write to. You message us first. We never message a number that has not messaged us. | Envoyez le code depuis le numéro WhatsApp du propriétaire ou du gérant, pour que nous sachions à qui écrire. Vous nous écrivez en premier. Nous n'écrivons jamais à un numéro qui ne nous a pas écrit. | RA 18 Nov |
+| `web.join_confirm_get` | أعطني الرمز | Get my code | Obtenir mon code | RA 18 Nov |
+| `web.join_code_h` | رمزك | Your code | Votre code | RA 18 Nov |
+| `web.join_code_send` | افتح واتساب وأرسل الرمز | Open WhatsApp and send the code | Ouvrir WhatsApp et envoyer le code | RA 18 Nov |
+| `web.join_code_plain` | أرسل {code} إلى رقم واتساب الخاص بنا. | Send {code} to our WhatsApp number. | Envoyez {code} à notre numéro WhatsApp. | RA 18 Nov |
+| `web.join_code_note` | الرمز يعمل لبضع دقائق. إذا توقف عن العمل فاحصل على رمز جديد. | The code works for a few minutes. If it stops working, get a new one. | Le code fonctionne quelques minutes. S'il ne marche plus, obtenez-en un nouveau. | RA 18 Nov |
+| `web.join_code_check` | أرسلته | I have sent it | Je l'ai envoyé | RA 18 Nov |
+| `web.join_code_new` | رمز جديد | Get a new code | Nouveau code | RA 18 Nov |
+| `web.join_confirmed` | تم تأكيد رقمك. | Your number is confirmed. | Votre numéro est confirmé. | RA 18 Nov |
+| `web.join_name` | اسمك | Your name | Votre nom | RA 18 Nov |
+| `web.join_village` | قريتك | Your village | Votre village | RA 18 Nov |
+| `web.join_vehicle` | وسيلة النقل | Your vehicle | Votre véhicule | RA 18 Nov |
+| `web.join_vehicle_choose` | اختر | Choose | Choisir | RA 18 Nov |
+| `web.join_vehicle_motorbike` | دراجة نارية | Motorbike | Moto | RA 18 Nov |
+| `web.join_vehicle_car` | سيارة | Car | Voiture | RA 18 Nov |
+| `web.join_vehicle_bicycle` | دراجة هوائية | Bicycle | Vélo | RA 18 Nov |
+| `web.join_licence` | هل عندك رخصة قيادة؟ | Do you have a driving licence? | Avez-vous un permis de conduire ? | RA 18 Nov |
+| `web.join_yes` | نعم | Yes | Oui | RA 18 Nov |
+| `web.join_no` | لا | No | Non | RA 18 Nov |
+| `web.join_days` | الأيام التي تستطيع العمل فيها | Days you can ride | Jours où vous pouvez livrer | RA 18 Nov |
+| `web.join_shifts` | الورديات التي تستطيع العمل فيها | Shifts you can ride | Créneaux où vous pouvez livrer | RA 18 Nov |
+| `web.join_day_mon` | الاثنين | Monday | Lundi | RA 18 Nov |
+| `web.join_day_tue` | الثلاثاء | Tuesday | Mardi | RA 18 Nov |
+| `web.join_day_wed` | الأربعاء | Wednesday | Mercredi | RA 18 Nov |
+| `web.join_day_thu` | الخميس | Thursday | Jeudi | RA 18 Nov |
+| `web.join_day_fri` | الجمعة | Friday | Vendredi | RA 18 Nov |
+| `web.join_day_sat` | السبت | Saturday | Samedi | RA 18 Nov |
+| `web.join_day_sun` | الأحد | Sunday | Dimanche | RA 18 Nov |
+| `web.join_submit` | أرسل طلبي | Send my application | Envoyer ma candidature | RA 18 Nov |
+| `web.join_err_name` | اكتب اسمك. | Write your name. | Écrivez votre nom. | RA 18 Nov |
+| `web.join_err_village` | اكتب اسم قريتك. | Write your village. | Écrivez votre village. | RA 18 Nov |
+| `web.join_err_vehicle` | اختر وسيلة النقل. | Choose your vehicle. | Choisissez votre véhicule. | RA 18 Nov |
+| `web.join_err_licence` | أخبرنا هل عندك رخصة: نعم أو لا. | Tell us whether you have a licence: yes or no. | Dites-nous si vous avez un permis : oui ou non. | RA 18 Nov |
+| `web.join_err_hours` | اختر يوماً واحداً على الأقل ووردية واحدة على الأقل. | Choose at least one day and one shift. | Choisissez au moins un jour et un créneau. | RA 18 Nov |
+| `web.join_err_confirm` | أكّد رقمك على واتساب أولاً. | Confirm your number on WhatsApp first. | Confirmez d'abord votre numéro sur WhatsApp. | RA 18 Nov |
+| `web.join_err_limit` | طلبات كثيرة من هذا الجهاز اليوم. حاول غداً، أو راسلنا على واتساب. | Too many applications from this device today. Try again tomorrow, or message us on WhatsApp. | Trop de candidatures depuis cet appareil aujourd'hui. Réessayez demain, ou écrivez-nous sur WhatsApp. | RA 18 Nov |
+| `web.join_err_failed` | حدث خطأ. حاول مرة أخرى. | Something went wrong. Try again. | Une erreur s'est produite. Réessayez. | RA 18 Nov |
+| `web.join_done_h` | طلبك وصلنا. | Your application is with us. | Votre candidature est chez nous. | RA 18 Nov |
+| `web.join_done_text` | شخص يقرؤه ويقرر. تقديم الطلب لا يجعلك مندوباً. نكتب إليك على واتساب، في المحادثة التي أرسلت منها الرمز. | A person reads it and decides. Applying does not make you a rider. We write to you on WhatsApp, on the chat where you sent your code. | Une personne la lit et décide. Postuler ne fait pas de vous un livreur. Nous vous écrivons sur WhatsApp, dans la conversation où vous avez envoyé votre code. | RA 18 Nov |
+| `web.vend_eyebrow` | بع عبر ألو كينغ | Sell on Alo King | Vendre sur Alo King | RA 18 Nov |
+| `web.vend_title` | بِع لأهل الشوف من واتساب. | Sell to the Chouf from WhatsApp. | Vendez au Chouf depuis WhatsApp. | RA 18 Nov |
+| `web.vend_lead` | عائلات في الشوف تطلب منا. نريد أن نقدّم طعاماً من المطابخ والمحلات التي تعرفها. تصلك الطلبات على واتساب، ونستطيع توصيلها. | Families across the Chouf order from us. We want to carry food from the kitchens and shops they know. Orders reach you on WhatsApp, and we can deliver them. | Des familles du Chouf commandent chez nous. Nous voulons proposer la cuisine et les commerces qu'elles connaissent. Les commandes vous arrivent sur WhatsApp, et nous pouvons les livrer. | RA 18 Nov |
+| `web.vend_notopen` | لا يوجد مطبخ أو محل مفتوح على ألو كينغ بعد. نبدأ مع الأماكن التي نتفق معها على الشروط. | No kitchen or shop is open on Alo King yet. We start with the places we agree terms with. | Aucune cuisine ni aucun commerce n'est encore ouvert sur Alo King. Nous commençons avec les lieux dont nous avons convenu des conditions. | RA 18 Nov |
+| `web.vend_cta` | قدّم طلبك في دقيقتين | Apply in 2 minutes | Postulez en 2 minutes | RA 18 Nov |
+| `web.vend_listed` | هل مكانك مدرج؟ ابحث عنه | Already listed? Find your place | Déjà listé ? Trouvez votre lieu | RA 18 Nov |
+| `web.vend_offer_h` | ماذا تقدّم ألو كينغ | What Alo King offers | Ce qu'offre Alo King | RA 18 Nov |
+| `web.vend_o1_t` | طلبات على واتساب | Orders on WhatsApp | Commandes sur WhatsApp | RA 18 Nov |
+| `web.vend_o1` | يصلك كل طلب رسالةً وتجيب عليه هناك. بلا جهاز لوحي وبلا تطبيق. | Each order reaches you as a message, and you answer it there. No tablet and no app. | Chaque commande vous arrive en message, et vous y répondez là. Pas de tablette, pas d'application. | RA 18 Nov |
+| `web.vend_o2_t` | التوصيل | Delivery | Livraison | RA 18 Nov |
+| `web.vend_o2` | نستطيع إيصال الطلب إلى الزبون: يسلّمه المندوب عند الباب ويأخذ الرمز والنقد. | We can bring the order to the customer: the rider hands it over at the door and takes the code and the cash. | Nous pouvons porter la commande au client : le livreur la remet à la porte et prend le code et l'argent. | RA 18 Nov |
+| `web.vend_o3_t` | ظهور منصف | Found fairly | Trouvé équitablement | RA 18 Nov |
+| `web.vend_o3` | يجد الزبائن الأماكن بحسب ما يطلبونه وبحسب المسافة. لا نقيّم مكاناً ولا نرتّبه ولا نمدحه. | Customers find places by what they ask for and by distance. We never rate, rank or praise a place. | Les clients trouvent les lieux selon ce qu'ils demandent et la distance. Nous ne notons, ne classons ni ne vantons aucun lieu. | RA 18 Nov |
+| `web.vend_o4_t` | شروط تُتفق أولاً | Terms, agreed first | Conditions convenues d'abord | RA 18 Nov |
+| `web.vend_o4` | عمولتنا جزء من الشروط التي نتفق عليها معك قبل أن تبدأ. لا يوجد رقم في هذه الصفحة. | Our commission is part of the terms we agree with you before you start. There is no figure on this page. | Notre commission fait partie des conditions que nous convenons avec vous avant de commencer. Il n'y a pas de chiffre sur cette page. | RA 18 Nov |
+| `web.vend_next_h` | ماذا يحدث بعد طلبك | What happens after you apply | Ce qui se passe après votre candidature | RA 18 Nov |
+| `web.vend_n1` | تؤكّد رقمك بأن تراسلنا. | You confirm your number by messaging us. | Vous confirmez votre numéro en nous écrivant. | RA 18 Nov |
+| `web.vend_n2` | شخص من فريقنا يقرأ طلبك ويكتب إليك. | A person from our team reads your application and writes to you. | Une personne de notre équipe lit votre candidature et vous écrit. | RA 18 Nov |
+| `web.vend_n3` | نتفق على الشروط كتابةً، ونراجع قائمتك وأسعارك. | We agree the terms in writing, and check your menu and your prices. | Nous convenons des conditions par écrit, et vérifions votre menu et vos prix. | RA 18 Nov |
+| `web.vend_n4` | وعندها فقط يُفتح مكانك. تقديم الطلب لا يفتح مكانك. | Only then is your place opened. Applying does not open your place. | Alors seulement votre lieu est ouvert. Postuler n'ouvre pas votre lieu. | RA 18 Nov |
+| `web.vend_apply_h` | قدّم طلبك | Apply | Postuler | RA 18 Nov |
+| `web.vend_name` | اسم المكان | Name of the place | Nom du lieu | RA 18 Nov |
+| `web.vend_kind` | نوع المكان | What kind of place | Type de lieu | RA 18 Nov |
+| `web.vend_kind_choose` | اختر | Choose | Choisir | RA 18 Nov |
+| `web.vend_village` | القرية | Village | Village | RA 18 Nov |
+| `web.vend_place_h` | مكانك في قائمتنا | Your place on our list | Votre lieu sur notre liste | RA 18 Nov |
+| `web.vend_claim_note` | أنت تقدّم طلباً باسم {name}. وهذا يُحتسب مطالبةً بتلك الصفحة. | You are applying for {name}. This counts as your claim of that page. | Vous postulez pour {name}. Cela compte comme votre revendication de cette page. | RA 18 Nov |
+| `web.vend_claim_other` | ليس هذا المكان؟ قدّم الطلب بدونه | Not this place? Apply without it | Pas ce lieu ? Postulez sans lui | RA 18 Nov |
+| `web.vend_submit` | أرسل طلبي | Send my application | Envoyer ma candidature | RA 18 Nov |
+| `web.vend_err_name` | اكتب اسم المكان. | Write the name of the place. | Écrivez le nom du lieu. | RA 18 Nov |
+| `web.vend_err_kind` | اختر نوع المكان. | Choose what kind of place it is. | Choisissez le type de lieu. | RA 18 Nov |
+| `web.vend_done_text` | شخص يقرؤه ويكتب إليك على واتساب، في المحادثة التي أرسلت منها الرمز. تقديم الطلب لا يفتح مكانك. | A person reads it and writes to you on WhatsApp, on the chat where you sent your code. Applying does not open your place. | Une personne la lit et vous écrit sur WhatsApp, dans la conversation où vous avez envoyé votre code. Postuler n'ouvre pas votre lieu. | RA 18 Nov |
 
 ### The consent a sender gives by sending their code (migration 0233, `claim_link_code`)
 
 | Purpose | Arabic | English | Read by |
 |---|---|---|---|
-| `rider` | بإرسال الرمز بتأكد رقمك وبتوافق نردّ عليك على هالمحادثة بخصوص طلب انضمامك كمندوب | By sending the code you confirm your number and agree that we answer you on this chat about your application to ride. | |
-| `vendor` | بإرسال الرمز بتأكد رقمك وبتوافق نردّ عليك على هالمحادثة بخصوص طلب انضمام محلّك | By sending the code you confirm your number and agree that we answer you on this chat about your place's application. | |
+| `rider` | لمّا تبعت الرمز، بتأكّد رقمك وبتوافق إنّو نردّ عليك بهالمحادثة على طلب انضمامك كدليفري. | By sending the code you confirm your number and agree that we answer you on this chat about your application to ride. | RA 18 Nov |
+| `vendor` | لمّا تبعت الرمز، بتأكّد رقمك وبتوافق إنّو نردّ عليك بهالمحادثة على طلب انضمام محلّك. | By sending the code you confirm your number and agree that we answer you on this chat about your place's application. | RA 18 Nov |
 | `checkout` (as before) | بإرسال الرمز بتأكد رقمك وبتوافق نبعتلك تحديثات طلباتك على هالمحادثة | By sending the code you confirm your number and agree that we send you your order updates on this chat. | RA 17 Nov |
 
 ### The console, Riders, Applicants tab
 
 | English | Arabic | Read by |
 |---|---|---|
-| Applicants | المتقدّمون | |
-| Vehicle | وسيلة النقل | |
-| Licence | رخصة | |
-| Licence: yes | رخصة: نعم | |
-| Licence: no | رخصة: لا | |
-| Days | الأيام | |
-| Shifts | الورديات | |
-| WhatsApp number | رقم واتساب | |
-| Applied | قُدّم | |
-| Its case in the Inbox (resolved) | حالته في الوارد (مُغلقة) | |
-| Open its case in the Inbox | افتح حالته في الوارد | |
-| Accept | قبول | |
-| Why (kept with the decision) | السبب (يُحفظ مع القرار) | |
-| Accepted | مقبول | |
-| People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash. | أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً. | |
-| Waiting (${open.length}) | بالانتظار (${open.length}) | |
-| Nobody is waiting. | لا أحد بالانتظار. | |
-| Decided | تم البتّ فيها | |
-| No application has been decided yet. | لم يُبتّ في أي طلب بعد. | |
-| Someone already decided this application. | بتّ شخص آخر في هذا الطلب. | |
-| This number is already on the ops line, so they are a rider or staff already. Nothing was changed. | هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء. | |
-| This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | |
-| ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | |
-| Declined. The reason is kept. | تم الرفض. السبب محفوظ. | |
+| Applicants | المتقدّمون | RA 18 Nov |
+| Vehicle | وسيلة النقل | RA 18 Nov |
+| Licence | رخصة | RA 18 Nov |
+| Licence: yes | رخصة: نعم | RA 18 Nov |
+| Licence: no | رخصة: لا | RA 18 Nov |
+| Days | الأيام | RA 18 Nov |
+| Shifts | الورديات | RA 18 Nov |
+| WhatsApp number | رقم واتساب | RA 18 Nov |
+| Applied | قُدّم | RA 18 Nov |
+| Its case in the Inbox (resolved) | حالته في الوارد (مُغلقة) | RA 18 Nov |
+| Open its case in the Inbox | افتح حالته في الوارد | RA 18 Nov |
+| Accept | قبول | RA 18 Nov |
+| Why (kept with the decision) | السبب (يُحفظ مع القرار) | RA 18 Nov |
+| Accepted | مقبول | RA 18 Nov |
+| People who applied on the website after confirming their number on WhatsApp (they messaged us first). Each is not a rider yet: accepting is what makes them one. It starts no shift, records no terms and sends no message; answer them from the Inbox case, and record their written terms on the roster before they carry cash. | أشخاص قدّموا طلباً على الموقع بعد أن أكّدوا رقمهم على واتساب (راسلونا أولاً). ليس أحدهم مندوباً بعد: القبول هو ما يجعله مندوباً. لا يبدأ وردية ولا يسجّل شروطاً ولا يرسل رسالة؛ أجبهم من حالتهم في الوارد، وسجّل شروطهم المكتوبة في القائمة قبل أن يحملوا نقداً. | RA 18 Nov |
+| Waiting (${open.length}) | بالانتظار (${open.length}) | RA 18 Nov |
+| Nobody is waiting. | لا أحد بالانتظار. | RA 18 Nov |
+| Decided | تم البتّ فيها | RA 18 Nov |
+| No application has been decided yet. | لم يُبتّ في أي طلب بعد. | RA 18 Nov |
+| Someone already decided this application. | بتّ شخص آخر في هذا الطلب. | RA 18 Nov |
+| This number is already on the ops line, so they are a rider or staff already. Nothing was changed. | هذا الرقم موجود أصلاً على خط العمليات، فهو مندوب أو موظف بالفعل. لم يتغيّر شيء. | RA 18 Nov |
+| This application has no confirmed number, so no rider can be made from it. | لا رقم مؤكَّد لهذا الطلب، فلا يمكن إنشاء مندوب منه. | RA 18 Nov |
+| ${name} is now a rider. Next: record their written terms on the roster. | ${name} صار مندوباً. الخطوة التالية: سجّل شروطه المكتوبة في القائمة. | RA 18 Nov |
+| Declined. The reason is kept. | تم الرفض. السبب محفوظ. | RA 18 Nov |
+
+## B1e, the offer to remember a restriction, in the customer's language (18 November 2026)
+
+Written by a model; **waits for a reader** (the last column is empty). The offer (build plan 1.14) was Arabic only and always said «على طلبك», even with no
+order (QA1: «سجّلنا «no sugar» على طلبك» in Arabic to an English customer who had no order). It now has the customer's language (`remember` in
+`packages/agents/src/messages/{ar,en,fr}.ts`) and a second form for when no basket, card or order is in hand. The Arabic with an order and the
+Arabic buttons and answers are the lines read before (moved from `memory.ts`, one line break added so no line passes 120 characters). `{r}` is
+the customer's own words.
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `remember.offer` (an order in hand) | سجّلنا «{r}» على طلبك، ولازم المطبخ يأكّد.<br>بتحب نتذكّرها لطلباتك الجاية؟ | I've put “{r}” on your order; the kitchen must confirm it.<br>Shall we remember it for your next orders? | J'ai mis « {r} » sur votre commande ; la cuisine doit le confirmer.<br>On le retient pour vos prochaines commandes ? | |
+| `remember.offer` (no order yet) | سجّلنا «{r}»، ولازم المطبخ يأكّدها بكل طلب.<br>بتحب نتذكّرها لطلباتك الجاية؟ | Noted: “{r}”; the kitchen must confirm it on each order.<br>Shall we remember it for your next orders? | C'est noté : « {r} » ; la cuisine doit le confirmer à chaque commande.<br>On le retient pour vos prochaines commandes ? | |
+| `remember.yes` | إيه، تذكّرها | Yes, remember it | Oui, retenez-le | |
+| `remember.no` | بس هالمرة | Just this time | Juste cette fois | |
+| `remember.kept` | تم، رح نتذكّرها ونحطّها على كل طلب. فيك تقلّي «إنسى» بأي وقت. | Done: we'll remember it and put it on every order. Say “forget me” any time. | C'est fait : on le retient et on le met sur chaque commande. Dites « oubliez-moi » quand vous voulez. | |
+| `remember.notKept` | تمام، بس لهالطلب. | OK, just for this order. | D'accord, juste pour cette commande. | |
+
+Still Arabic only, unchanged (not B1e's): the memory answers ("what do you know about me", "forget", "stop remembering"; `MEMORY_TEXT` in `memory.ts`).

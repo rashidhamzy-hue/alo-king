@@ -344,7 +344,7 @@ describe("customer control of memory (1.14)", () => {
     const c = await pinned(db, t, ids.BAAKLINE);
     await t.text("no meat please, labneh and bread");
     await t.tap("memory:keep:no");
-    expect(outbound.at(-1)!.body.text.body).toBe("تمام، بس لهالطلب.");
+    expect(outbound.at(-1)!.body.text.body).toBe("OK, just for this order.");            // B1e: in the customer's language (English here), no longer always Arabic
     expect(await db.rpc("customer_restrictions", { p_party: c.party_id })).toEqual([]);
     await t.text("can you tell me everything you have saved on me and my orders?");
     expect(outbound.at(-1)!.body.text.body).toContain("هيدا يلي منعرفو عنك");

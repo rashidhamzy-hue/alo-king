@@ -1578,6 +1578,51 @@ $0.85
 قلّي أيّا واحد بدك وقدّيش.
 ```
 
+## remember.offer
+
+```text
+سجّلنا «no sugar» على طلبك، ولازم المطبخ يأكّد.
+بتحب نتذكّرها لطلباتك الجاية؟
+```
+
+## remember.offer.noOrder
+
+```text
+سجّلنا «no sugar»، ولازم المطبخ يأكّدها بكل طلب.
+بتحب نتذكّرها لطلباتك الجاية؟
+```
+
+## remember.offer.long
+
+```text
+سجّلنا «no peanuts, no sesame, no milk in anything»، ولازم المطبخ يأكّدها بكل طلب.
+بتحب نتذكّرها لطلباتك الجاية؟
+```
+
+## remember.yes
+
+```text
+إيه، تذكّرها
+```
+
+## remember.no
+
+```text
+بس هالمرة
+```
+
+## remember.kept
+
+```text
+تم، رح نتذكّرها ونحطّها على كل طلب. فيك تقلّي «إنسى» بأي وقت.
+```
+
+## remember.notKept
+
+```text
+تمام، بس لهالطلب.
+```
+
 ## built.dish
 
 ```text

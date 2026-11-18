@@ -1,0 +1,280 @@
+{
+  "about": "B1e (18 Nov 2026): a message with a kind of product and a fact but no product name, read with no line (QA1 on staging, 17 Nov 19:09: 'protein bars with no sugar', evals/cases/qa1_dropped_line.json). The reading's lines are scripted as the live model gave them (none, the fact as a restriction). Code finds the kind in the customer's own words and gives PD1's honest answer with a demand row; never the returning-customer welcome, never a line about an order that does not exist. A fact alone ('no sugar', 'I'm diabetic, no sugar please') and a restriction inside a real order ('labneh, no sugar in the coffee', read with its line) keep the path they had before B1e (pinned here, including PD1's one-line rule, which asks the fact of the labneh); the restriction line is now in the customer's language and names no order that does not exist. Every turn is a returning customer with a closed order, as on staging. Run by test/db/dropped-line-b1e.test.ts (flows) and evals/test/b1e-kind.test.ts (the kind in the words, code only).",
+  "cases": [
+    {
+      "id": "protein-bars-no-sugar-en",
+      "said": "protein bars with no sugar",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "no sugar"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "kind": "unknown_product",
+        "query": "protein bars",
+        "facts": [
+          "sugar"
+        ],
+        "contains": [
+          "We don't carry protein bars yet. I've noted your request."
+        ],
+        "not_contains": [
+          "Welcome to Alo King",
+          "same order as last time",
+          "on your order",
+          "على طلبك",
+          "سجّلنا"
+        ]
+      }
+    },
+    {
+      "id": "snacks-no-sugar-kids-ar",
+      "said": "بدي سناكس بلا سكر للولاد",
+      "language": "ar_lb",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "بلا سكر"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "kind": "facts_unconfirmed",
+        "query": "سناكس",
+        "facts": [
+          "sugar"
+        ],
+        "contains": [
+          "لسّا ما فينا نأكّد السكر بالسناكس يلي عنّا."
+        ],
+        "not_contains": [
+          "أهلا فيك",
+          "متل المرة الماضية",
+          "على طلبك"
+        ]
+      }
+    },
+    {
+      "id": "protein-bars-no-sugar-arabizi",
+      "said": "bidde protein bars bala sekkar",
+      "language": "arabizi",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "bala sekkar"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "kind": "unknown_product",
+        "query": "protein bars",
+        "facts": [
+          "sugar"
+        ],
+        "contains": [
+          "لسّا ما عنّا protein bars، سجّلنا طلبك."
+        ],
+        "not_contains": [
+          "أهلا فيك",
+          "متل المرة الماضية",
+          "على طلبك"
+        ]
+      }
+    },
+    {
+      "id": "protein-bars-no-sugar-fr",
+      "said": "des barres protéinées sans sucre",
+      "language": "fr",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "sans sucre"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "kind": "unknown_product",
+        "query": "barres protéinées",
+        "facts": [
+          "sugar"
+        ],
+        "contains": [
+          "barres protéinées"
+        ],
+        "not_contains": [
+          "Bienvenue",
+          "comme la dernière fois",
+          "sur votre commande",
+          "على طلبك"
+        ]
+      }
+    },
+    {
+      "id": "protein-bars-no-sugar-en-question",
+      "said": "do you have protein bars with no sugar?",
+      "language": "en",
+      "reading": {
+        "intent": "question",
+        "lines": [],
+        "restrictions": [
+          "no sugar"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "kind": "unknown_product",
+        "query": "protein bars",
+        "facts": [
+          "sugar"
+        ],
+        "contains": [
+          "We don't carry protein bars yet. I've noted your request."
+        ],
+        "not_contains": [
+          "Welcome to Alo King",
+          "on your order",
+          "على طلبك"
+        ]
+      }
+    }
+  ],
+  "unchanged": [
+    {
+      "id": "no-sugar-alone-en",
+      "said": "no sugar",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "no sugar"
+        ]
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand_rows": 0,
+        "restriction_line": {
+          "language": "en",
+          "not_contains": [
+            "on your order",
+            "على طلبك"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diabetic-no-sugar-en",
+      "said": "I'm diabetic, no sugar please",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "no sugar"
+        ]
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand_rows": 0,
+        "restriction_line": {
+          "language": "en",
+          "not_contains": [
+            "on your order",
+            "على طلبك"
+          ]
+        }
+      }
+    },
+    {
+      "id": "bala-sukkar-alone-ar",
+      "said": "بلا سكر",
+      "language": "ar_lb",
+      "reading": {
+        "intent": "order",
+        "lines": [],
+        "restrictions": [
+          "بلا سكر"
+        ]
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand_rows": 0,
+        "restriction_line": {
+          "language": "ar",
+          "not_contains": [
+            "على طلبك"
+          ]
+        }
+      }
+    },
+    {
+      "id": "labneh-no-sugar-in-the-coffee-one-line",
+      "said": "labneh, no sugar in the coffee",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "labneh",
+            "query": "labneh",
+            "qty": 1,
+            "modifiers": []
+          }
+        ],
+        "restrictions": [
+          "no sugar in the coffee"
+        ]
+      },
+      "expect": {
+        "path": "honest_answer",
+        "demand": [
+          [
+            "facts_unconfirmed",
+            "labneh"
+          ]
+        ],
+        "contains": [
+          "I can't confirm the sugar for our labneh yet."
+        ],
+        "note": "As before B1e (pinned, not endorsed): with one line, PD1 applies the whole message's facts to that line, so 'no sugar in the coffee' is asked of the labneh. Open for the next ordering session (docs/HANDOFF.md, B1e)."
+      }
+    },
+    {
+      "id": "labneh-and-coffee-two-lines",
+      "said": "labneh, and a coffee with no sugar in it",
+      "language": "en",
+      "reading": {
+        "intent": "order",
+        "lines": [
+          {
+            "raw": "labneh",
+            "query": "labneh",
+            "qty": 1,
+            "modifiers": []
+          },
+          {
+            "raw": "coffee",
+            "query": "coffee",
+            "qty": 1,
+            "modifiers": [
+              "no sugar"
+            ]
+          }
+        ],
+        "restrictions": []
+      },
+      "expect": {
+        "not_path": "honest_answer",
+        "demand": [],
+        "note": "A plain item beside the fact: the usual ordering path answers the whole message (PD1), as before B1e."
+      }
+    }
+  ]
+}
