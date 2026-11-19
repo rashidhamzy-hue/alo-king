@@ -54,7 +54,8 @@ curl -sS -f "${auth[@]}" -X POST -H 'Content-Type: application/json' -d '{"prefi
 python3 - "$tmp" <<'PY'
 import json, re, sys
 names = [o["name"] for o in json.load(open(sys.argv[1])) if o.get("id")]
-bad = [n for n in names if not re.fullmatch(r"AK-[0-9]{4}-[0-9a-f-]{36}\.(jpg|png|webp)", n)]
+# WEB4b (0252): each public picture also has a JPEG copy for the WhatsApp catalogue feed, <sku>-<image id>.feed.jpg (catalog-jpegs workflow)
+bad = [n for n in names if not re.fullmatch(r"AK-[0-9]{4}-[0-9a-f-]{36}(\.feed\.jpg|\.(jpg|png|webp))", n)]
 assert not bad, f"FAIL: {len(bad)} object(s) in catalog are not product pictures by name (the Worker's hourly pass removes strays)"
 print(f"catalog holds {len(names)} picture(s), every one named like a product picture")
 PY
