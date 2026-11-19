@@ -4,7 +4,7 @@
 //   - each role sees only its sections (picker: Pick and Stock; ops lead: the seven; admin: the seven and Settings);
 //   - the one Approvals inbox has a card for each kind, posting to the routes the older pages had, and comes back to the next card;
 //   - Today lists what needs attention, most urgent first, each with one tap; then today's four numbers;
-//   - Orders filters groceries and food; the assistant's place is on every page; Sentry's count is read with a read-only token.
+//   - Orders filters groceries and food; the assistant is on every lead's page (AST1; a picker has none); Sentry's count is read with a read-only token.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -63,7 +63,7 @@ describe("old addresses", () => {
   });
 
   it("every page of a section and every Advanced tool is in a menu: nothing is lost from the navigation", async () => {
-    const listed = new Set([...GROUPS.flatMap((g) => g.hrefs), ...ADVANCED, "/more", "/merchants"]);
+    const listed = new Set([...GROUPS.flatMap((g) => g.hrefs), ...ADVANCED, "/more", "/merchants", "/assistant"]);   // AST1: the assistant is reached by its button on every lead's page
     const pages = registry.map((s) => s.nav.href).filter((h) => !Object.keys(MOVED).includes(h) && !["/exceptions", "/cases", "/rider-incidents", "/intake", "/food-facts"].includes(h));
     for (const h of pages) expect(listed.has(h), h).toBe(true);
   });
@@ -210,11 +210,15 @@ describe("Orders, the assistant's place", () => {
     expect((await b.get("/orders")).text).toContain(grocery.code);
   });
 
-  it("keeps a place for the assistant on every page: a button, a panel beside the page, and /assistant, all saying coming soon", async () => {
+  // AST1 filled CON1's place: the button and the panel are on every page of a lead (admin, ops lead); a picker has no assistant.
+  it("puts the assistant on every lead's page (a button, a panel beside the page, /assistant); a picker has none", async () => {
+    const lead = (await who("ops_lead", "Lea2")).b;
+    for (const p of ["/", "/stock", "/more", "/orders"]) { const t = (await lead.get(p)).text; expect(t, p).toContain('class="ak-assistant-btn" href="/assistant"'); expect(t, p).toContain('data-assistant="AST1"'); }
+    const a = await lead.get("/assistant");
+    expect(a.status).toBe(200); expect(a.text).toContain("never changes anything"); expect(a.text).not.toContain('data-assistant="AST1"');
     const { b } = await who("picker", "Pia2");
-    for (const p of ["/pick", "/stock", "/more"]) { const t = (await b.get(p)).text; expect(t, p).toContain('class="ak-assistant-btn" href="/assistant"'); expect(t, p).toContain('data-assistant="AST1"'); }
-    const a = (await b.get("/assistant")).text;
-    expect(a).toContain("Coming soon"); expect(a).toContain("never act");
+    for (const p of ["/pick", "/stock", "/more"]) { const t = (await b.get(p)).text; expect(t, p).not.toContain("ak-assistant"); }
+    expect((await b.get("/assistant")).status).toBe(403);
     expect((await r.browser().get("/sign-in")).text).not.toContain("ak-assistant");
   });
 });

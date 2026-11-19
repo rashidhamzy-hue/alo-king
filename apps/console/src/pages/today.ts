@@ -19,6 +19,19 @@ import { ALL, LEADS } from "../roles";
 import { badge, button, icon, kpiTile, kpis, limitBar, tabs, tileLink, timerChip, timerState, type Compare, type IconName, type KpiOpts } from "@ak/ui/components";
 import { statusLabel } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
+import { latestDigest } from "../assistant/digest";
+import { renderAnswer } from "../assistant/guard";
+
+/** AST1: the latest nightly digest (what went well, what went wrong, the top things to fix), in this person's language. */
+function digestCard(c: Ctx, d: { day: string; text_en: string | null; text_ar: string | null } | null): Raw | "" {
+  if (!d) return "";
+  const L = c.lang;
+  const text = L === "ar" ? d.text_ar ?? d.text_en : d.text_en ?? d.text_ar;
+  const day = String(d.day).slice(0, 10);
+  return html`<section class="ak-digest" aria-label="${pick(L, "The day's digest", "خلاصة اليوم")}"><h2>${pick(L, `Digest of ${day}`, `خلاصة يوم ${day}`)}</h2>
+${text ? html`<div class="ak-answer">${renderAnswer(text)}</div>` : html`<p class="muted">${pick(L, "The figures were saved, but the text could not be checked against them, so it is not shown. Ask the assistant about that day.", "حُفظت الأرقام، لكن تعذّر التحقق من النص مقابلها، لذلك لا يُعرض. اسأل المساعد عن ذلك اليوم.")}</p>`}
+<p><a href="/assistant">${pick(L, "Ask the assistant", "اسأل المساعد")}</a></p></section>`;
+}
 
 export const ACTIVE = ["awaiting_confirmation", "awaiting_payment", "confirmed", "preparing", "ready", "out_for_delivery", "arrived", "failed_delivery", "delivered"] as const;
 const IN_PROGRESS = new Set(["confirmed", "preparing", "ready", "out_for_delivery", "arrived"]);
@@ -325,7 +338,7 @@ async function today(c: Ctx) {
   const lead = LEADS.includes(c.staff.role);
   // CON1: a picker sees Pick and Stock only; their Today is the pick queue.
   if (!lead) return redirect("/pick");
-  const [d, inbox, k, a] = await Promise.all([todayData(c), inboxData(c), kpiData(c), attentionData(c)]);
+  const [d, inbox, k, a, digest] = await Promise.all([todayData(c), inboxData(c), kpiData(c), attentionData(c), latestDigest(c.deps.db).catch(() => null)]);
   const now = c.deps.now();
   const word = (s: string) => statusWord(L, s);
   const statusOrder = [...ACTIVE, "closed", "cancelled"];
@@ -380,6 +393,7 @@ ${list.length === 0 ? html`<p class="none">${pick(L, "None", "لا شيء")}</p>
 <p class="live" data-live>${t(L, "updated_at", { time: clock })}</p>
 ${attentionView(c, needs, a.errors)}
 ${todayNumbers(c, k, a.accept)}
+${digestCard(c, digest)}
 <details class="ak-today-more"><summary>${pick(L, "More of today: the live board, the riders, the drawer", "المزيد عن اليوم: اللوحة الحيّة والمناديب والصندوق")}</summary>
 ${attention}
 ${k ? kpiTiles(c, k, inbox.chats, inbox.lateCases, inbox.excs.length) : ""}

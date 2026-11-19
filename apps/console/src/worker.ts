@@ -13,6 +13,9 @@ import { registry } from "./pages";
 import { sendDayClose } from "./pages/dayclose";
 import { runTemperatureCheck } from "./temperature-check";
 import { pushConfigured, pushNewExceptions, pushTestAlert } from "./push";
+import { anthropicModel } from "./assistant/run";
+import { githubReader, sentryReader } from "./assistant/tools";
+import { writeDigest } from "./assistant/digest";
 
 /** The cron that checks for new high-priority exceptions to push (wrangler.jsonc); the other cron is the day-close report. */
 export const PUSH_CRON = "*/2 * * * *";
@@ -42,6 +45,9 @@ export interface Env {
   SENTRY_READ_TOKEN?: string;
   SENTRY_ORG?: string;
   SENTRY_API?: string;
+  /** AST1: failed GitHub Actions runs for the assistant. A read-only token (Worker secret, scope actions:read) and the repository (a variable). */
+  GITHUB_READ_TOKEN?: string;
+  GITHUB_REPO?: string;
 }
 
 /** CON1: the count of error events in the last 24 hours (this environment), read from Sentry's events API; null if Sentry did not answer in 4 s. */
@@ -90,6 +96,10 @@ export function depsFor(env: Env): Deps {
     supabaseUrl: env.SUPABASE_URL,
     now: () => new Date(),
     ...(sentryErrors(env) ? { errorsLast24h: sentryErrors(env)! } : {}),
+    // AST1: the assistant (its model, and its two outside reads, each only with a read-only token)
+    ...(env.ANTHROPIC_API_KEY ? { assistantModel: anthropicModel(env.ANTHROPIC_API_KEY) } : {}),
+    ...(sentryReader(env) ? { assistantSentry: sentryReader(env)! } : {}),
+    ...(githubReader(env, () => new Date()) ? { assistantGithub: githubReader(env, () => new Date())! } : {}),
     ...(pushConfigured(env) ? { pushPublicKey: env.VAPID_PUBLIC_KEY!, pushTest: (partyId: string) => pushTestAlert(db, env, partyId, new Date()) } : {}),
     ...(env.ANTHROPIC_API_KEY ? { readLabel: labelReader({ apiKey: env.ANTHROPIC_API_KEY, model: env.MODEL_FAST || "claude-haiku-5-5" }), labelModel: env.MODEL_FAST || "claude-haiku-5-5" } : {}),
   };
@@ -128,6 +138,17 @@ const handler = {
       })());
       return;
     }
+    // AST1: the nightly digest, with the day close's cron. Written to a table only (nothing is sent); only while the assistant is on and under its caps.
+    if (env.ANTHROPIC_API_KEY) ctx.waitUntil((async () => {
+      try {
+        const deps = depsFor(env);
+        const r = await writeDigest(deps.db, deps.assistantModel!, new Date());
+        console.log(JSON.stringify({ level: "info", event: "assistant_digest", ...r }));
+      } catch (e) {
+        Sentry.captureException(e, { tags: { where: "assistant_digest" } });
+        console.error(JSON.stringify({ level: "error", event: "assistant_digest_failed", err: String(e).slice(0, 300) }));
+      }
+    })());
     ctx.waitUntil((async () => {
       try {
         const out = await sendDayClose(depsFor(env));
