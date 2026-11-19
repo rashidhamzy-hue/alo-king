@@ -78,7 +78,7 @@ describe("WEB4b 0252", () => {
     expect(ours.find((x) => x.field === "rider.shifts.1.to")).toMatchObject({ before: "23:00", after: "21:00" });
   });
   it("the party that applied it is blocked: it passes no role check", async () => {
-    await expect(db.rpc("change_setting", { p_key: "join", p_field: "rider.shifts.0.from", p_value: JSON.stringify("09:30"), p_by: "00000000-0000-4000-8000-0000000000c1", p_reason: "try" }))
+    await expect(db.rpc("change_setting", { p_key: "join", p_field: "rider.shifts.0.from", p_value: JSON.stringify("09:30"), p_by: "00000000-0000-4000-8000-0000000000d1", p_reason: "try" }))
       .rejects.toThrow(/NOT_AUTHORISED/);
   });
   it("the Settings page lists the four shift edges and an admin changes one through change_setting; a shift must start before it ends", async () => {

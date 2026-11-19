@@ -110,12 +110,12 @@ on conflict (key, field) do nothing;
 
 -- ---------- 1c: the founder's decision, through the console's door ----------
 insert into parties(id, role, display_name, is_blocked, notes)
-values ('00000000-0000-4000-8000-0000000000c1', 'admin', 'The founder''s decision of 18 November (applied by migration 0252)', false,
+values ('00000000-0000-4000-8000-0000000000d1', 'admin', 'The founder''s decision of 18 November (applied by migration 0252)', false,
         'Session WEB4b. Recorded as the one who changed a setting a founder decision set, through change_setting_now. Admin only while 0252 runs; blocked after it, so it passes no role check and no account signs in as it.')
 on conflict (id) do update set is_blocked = false;
 
 do $$
-declare by_ uuid := '00000000-0000-4000-8000-0000000000c1'; why text := 'match the 09:00–21:00 hours (founder decision 18 Nov)';
+declare by_ uuid := '00000000-0000-4000-8000-0000000000d1'; why text := 'match the 09:00–21:00 hours (founder decision 18 Nov)';
         j jsonb := setting('join');
 begin
   -- the shifts are morning then evening (0233): the order of the array is what the paths name
@@ -130,7 +130,7 @@ begin
   end if;
 end $$;
 
-update parties set is_blocked = true where id = '00000000-0000-4000-8000-0000000000c1';
+update parties set is_blocked = true where id = '00000000-0000-4000-8000-0000000000d1';
 
 -- ---------- 2: brand words that are another item's kind word ----------
 create table if not exists search_word_drops (

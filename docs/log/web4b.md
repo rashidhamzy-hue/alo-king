@@ -59,7 +59,9 @@ reading or prompt code changed, so no language gate and no simulation ran (rule 
   (3, real sharp): a 1000 px WebP becomes a 1000 × 1000 JPEG under 150 KB; a tall picture whole on white; no metadata.
 - `test/ci/web4b-words.test.ts`, `test/ci/screens-doc2.test.ts` (the food pages beside the reference), `test/ci/ux2b-arabic.test.ts` (the console's
   new Arabic lines are in the review table).
-- **Tests changed on purpose:** `test/web/pages-web1.test.ts` (`/join/rider` shows the shifts: now 09:00–15:00 and 15:00–21:00);
+- **Tests changed on purpose:** `test/web/pages-web1.test.ts` and `apps/console/test/ux3-applicants.test.ts` (the shifts shown: now 09:00–15:00 and
+  15:00–21:00); `apps/console/test/windows.test.ts` (its 08:00 to 10:00 window is now before the first shift, so B1f's rule no longer offers
+  it: the test's window is 10:00 to 12:00);
   `catalog-public-a5` and `catalog-k1` (the feed's address is the JPEG's).
 - `test/screens/web4b.test.ts` (Chromium, here and by the `screens` workflow): six pages at 390 and 1440 px in Arabic, English and
   French, dark at 390; no sideways scroll; at most one primary action.
