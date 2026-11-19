@@ -2152,3 +2152,117 @@ No customer message changed. The page's words in `apps/console/src/pages/weights
 | سعرنا هو: للعلبة / للكيلو · كيف تعرف (فاتورة، ميزان، كرتونة) · احفظ الجواب | Our price is: for the pack / per kg · How you know (invoice, scale, tray) · Save the answer | not yet |
 | حُفظ: السعر للكيلو؛ تقول الصفحات الآن «بالكيلو». · حُفظ: السعر للعلبة. | Saved: the price is per kg; the pages now say "per kg". · Saved: the price is for the pack. | not yet |
 | كل منتج أدناه يُباع بالعلبة، لكن لا وزن معتمداً للعلبة بعد، أو قد يكون سعر المورّد للكيلو لا للعلبة… | Each item below is sold by the pack, but no pack weight is approved yet, or the supplier's price may be per kg… | not yet |
+
+## WEB4b, the website's food pages (19 November 2026)
+
+Written by a model (session WEB4b); **not yet read by an Arabic reader**. The website's words for the places a visitor may order from, a place's menu with its
+choices, the food basket and the food checkout: the `w4b_` keys of `apps/web/src/lib/i18n-web4b.ts`, merged into the site's dictionary (`test/ci/web4b-words.test.ts`
+checks this table lists every one, word for word). The site's register (formal Arabic). Neutral wording only: no rating, praise or health word, and never "safe": a
+fact is «مُصرَّح به من المحل» or «لم يتأكد بعد: اسألنا» (invariants 14 and 15). `{n}`, `{name}`, `{place}`, `{old}`, `{new}`, `{group}`, `{dish}`, `{time}`, `{gap}`,
+`{min}`, `{max}` and `{list}` are filled by code from the database.
+
+| Key | Arabic | English | French | Read by |
+|---|---|---|---|---|
+| `web.w4b_order_from` | اطلب من هذه الأماكن | Order from these places | Commander chez ces lieux | not yet |
+| `web.w4b_order_from_note` | حالياً لا يرى هذه الأماكن إلا من يجرّبون ألو كينغ. | Only the people testing Alo King see these places for now. | Pour l'instant, seules les personnes qui testent Alo King voient ces lieux. | not yet |
+| `web.w4b_listed` | ليست على ألو كينغ بعد | Not on Alo King yet | Pas encore sur Alo King | not yet |
+| `web.w4b_prep` | يُحضَّر خلال {n} دقيقة تقريباً | Prepared in about {n} min | Préparé en {n} min environ | not yet |
+| `web.w4b_open` | يستقبل الطلبات الآن | Taking orders now | Prend les commandes maintenant | not yet |
+| `web.w4b_closed_opens` | مغلق، يفتح الساعة {time} | Closed, opens {time} | Fermé, ouvre à {time} | not yet |
+| `web.w4b_closed_today` | مغلق اليوم | Closed today | Fermé aujourd'hui | not yet |
+| `web.w4b_back_food` | أماكن الطعام | Food places | Lieux pour manger | not yet |
+| `web.w4b_sections` | الأقسام | Sections | Rubriques | not yet |
+| `web.w4b_from` | من {place} | From {place} | De {place} | not yet |
+| `web.w4b_how` | يشتري مندوبنا طلبك من المحل ويوصله إليك. تدفع للمندوب نقداً عند الباب. | Our rider buys your order at the counter and brings it. You pay the rider in cash at the door. | Notre livreur achète votre commande au comptoir et vous l'apporte. Vous payez le livreur en espèces à la porte. | not yet |
+| `web.w4b_choose` | اختر | Choose | Choisir | not yet |
+| `web.w4b_add` | أضف | Add | Ajouter | not yet |
+| `web.w4b_add_named` | أضف {name} إلى سلة الطعام | Add {name} to the food basket | Ajouter {name} au panier repas | not yet |
+| `web.w4b_required` | مطلوب | Required | Obligatoire | not yet |
+| `web.w4b_optional` | اختياري | Optional | Facultatif | not yet |
+| `web.w4b_pick_one` | اختر واحداً | Choose one | Choisissez-en un | not yet |
+| `web.w4b_pick_up_to` | اختر حتى {n} | Choose up to {n} | Jusqu'à {n} | not yet |
+| `web.w4b_pick_range` | اختر من {min} إلى {max} | Choose {min} to {max} | De {min} à {max} | not yet |
+| `web.w4b_no_thanks` | لا، شكراً | No, thanks | Non, merci | not yet |
+| `web.w4b_qty` | العدد | How many | Combien | not yet |
+| `web.w4b_need_choice` | اختر {group} أولاً، ثم أضفه. | Choose {group} first, then add it. | Choisissez d'abord : {group}, puis ajoutez-le. | not yet |
+| `web.w4b_bad_choice` | هذا الخيار لم يعد في هذا الطبق. اختر من جديد. | That choice is not on this dish any more. Choose again. | Ce choix n'existe plus pour ce plat. Choisissez à nouveau. | not yet |
+| `web.w4b_added` | أُضيف إلى سلة الطعام. | Added to your food basket. | Ajouté à votre panier repas. | not yet |
+| `web.w4b_facts` | مسببات الحساسية والنظام الغذائي | Allergens and diet | Allergènes et régime | not yet |
+| `web.w4b_facts_intro` | فقط ما صرّح به المحل. «لم يتأكد بعد» تعني أننا لا نعرف: اسألنا قبل أن تطلب، واكتب أي حساسية في طلبك. نخبر المحل حين نتصل به. | Only what the place has declared. "Not confirmed yet" means we do not know: ask us before you order, and write any allergy in your order. We tell the place when we call. | Seulement ce que le lieu a déclaré. « Pas encore confirmé » veut dire que nous ne savons pas : demandez-nous avant de commander, et écrivez toute allergie dans votre commande. Nous le disons au lieu quand nous l'appelons. | not yet |
+| `web.w4b_declared` | مُصرَّح به من المحل | declared by the place | déclaré par le lieu | not yet |
+| `web.w4b_not_confirmed` | لم يتأكد بعد: اسألنا | not confirmed yet: ask us | pas encore confirmé : demandez-nous | not yet |
+| `web.w4b_all_not_confirmed` | مسببات الحساسية والنظام الغذائي: لم يتأكد بعد: اسألنا. | Allergens and diet: not confirmed yet: ask us. | Allergènes et régime : pas encore confirmé : demandez-nous. | not yet |
+| `web.w4b_rest_not_confirmed` | لم يتأكد بعد: اسألنا: {list} | Not confirmed yet: ask us: {list} | Pas encore confirmé : demandez-nous : {list} | not yet |
+| `web.w4b_v_contains` | يحتوي | contains | contient | not yet |
+| `web.w4b_v_may_contain` | قد يحتوي | may contain | peut contenir | not yet |
+| `web.w4b_v_free` | لا يحتوي | does not contain | ne contient pas | not yet |
+| `web.w4b_v_yes` | نعم | yes | oui | not yet |
+| `web.w4b_v_no` | لا | no | non | not yet |
+| `web.w4b_fact_gluten` | غلوتين | Gluten | Gluten | not yet |
+| `web.w4b_fact_crustaceans` | قشريات | Crustaceans | Crustacés | not yet |
+| `web.w4b_fact_eggs` | بيض | Eggs | Œufs | not yet |
+| `web.w4b_fact_fish` | سمك | Fish | Poisson | not yet |
+| `web.w4b_fact_peanuts` | فول سوداني | Peanuts | Arachides | not yet |
+| `web.w4b_fact_soy` | صويا | Soy | Soja | not yet |
+| `web.w4b_fact_milk` | حليب | Milk | Lait | not yet |
+| `web.w4b_fact_tree_nuts` | مكسرات | Tree nuts | Fruits à coque | not yet |
+| `web.w4b_fact_celery` | كرفس | Celery | Céleri | not yet |
+| `web.w4b_fact_mustard` | خردل | Mustard | Moutarde | not yet |
+| `web.w4b_fact_sesame` | سمسم | Sesame | Sésame | not yet |
+| `web.w4b_fact_sulphites` | كبريتيت | Sulphites | Sulfites | not yet |
+| `web.w4b_fact_lupin` | ترمس | Lupin | Lupin | not yet |
+| `web.w4b_fact_molluscs` | رخويات | Molluscs | Mollusques | not yet |
+| `web.w4b_fact_halal` | حلال | Halal | Halal | not yet |
+| `web.w4b_fact_vegetarian` | نباتي | Vegetarian | Végétarien | not yet |
+| `web.w4b_fact_vegan` | نباتي صرف | Vegan | Végan | not yet |
+| `web.w4b_fact_fasting` | صيامي | Fasting (siyami) | Carême (siyami) | not yet |
+| `web.w4b_fact_contains_sugar` | يحتوي سكراً | Contains sugar | Contient du sucre | not yet |
+| `web.w4b_fact_spicy` | حار | Spicy | Épicé | not yet |
+| `web.w4b_ask_us` | اسألنا على واتساب | Ask us on WhatsApp | Demandez-nous sur WhatsApp | not yet |
+| `web.w4b_basket_title` | سلة الطعام | Your food basket | Votre panier repas | not yet |
+| `web.w4b_basket_empty` | سلة الطعام فارغة. | Your food basket is empty. | Votre panier repas est vide. | not yet |
+| `web.w4b_basket_empty_text` | اختر الأطباق من صفحة المحل. | Choose dishes on a place's page. | Choisissez des plats sur la page d'un lieu. | not yet |
+| `web.w4b_view_basket` | سلة الطعام · {n} | Food basket · {n} | Panier repas · {n} | not yet |
+| `web.w4b_basket_label` | سلة الطعام، {n} أطباق | Food basket, {n} dishes | Panier repas, {n} plats | not yet |
+| `web.w4b_apart` | سلة الطعام منفصلة عن سلة البقالة: طلب الطعام وطلب البقالة طلبان، لكلٍّ بطاقته. | Your food basket is kept apart from your grocery basket: a food order and a grocery order are two orders, each with its own card. | Votre panier repas est séparé de votre panier de courses : une commande de repas et une commande de courses sont deux commandes, chacune avec sa carte. | not yet |
+| `web.w4b_more_dishes` | أضف المزيد من {place} | Add more from {place} | Ajouter d'autres plats de {place} | not yet |
+| `web.w4b_empty` | أفرغ سلة الطعام | Empty the food basket | Vider le panier repas | not yet |
+| `web.w4b_checkout` | إلى الدفع | Go to checkout | Passer à la commande | not yet |
+| `web.w4b_full` | سلة الطعام ممتلئة. أرسل هذا الطلب أولاً، أو أخرج شيئاً منها. | Your food basket is full. Send this order first, or take something out. | Votre panier repas est plein. Envoyez d'abord cette commande, ou retirez quelque chose. | not yet |
+| `web.w4b_switch_title` | تبدأ سلة طعام جديدة؟ | Start a new food basket? | Commencer un nouveau panier repas ? | not yet |
+| `web.w4b_switch_text` | في سلة الطعام أطباق من {old}. طلب الطعام يكون من محل واحد. تبدأ سلة جديدة من {new}؟ | Your food basket has dishes from {old}. A food order comes from one place. Start a new basket with {new}? | Votre panier repas contient des plats de {old}. Une commande de repas vient d'un seul lieu. Commencer un nouveau panier avec {new} ? | not yet |
+| `web.w4b_switch_yes` | ابدأ سلة جديدة من {new} | Start a new basket with {new} | Nouveau panier avec {new} | not yet |
+| `web.w4b_switch_no` | أبقِ سلتي من {old} | Keep my basket from {old} | Garder mon panier de {old} | not yet |
+| `web.w4b_dishes` | الأطباق | Dishes | Plats | not yet |
+| `web.w4b_service_fee` | رسم الخدمة | Service fee | Frais de service | not yet |
+| `web.w4b_delivery` | التوصيل (كله للمندوب) | Delivery (all to the rider) | Livraison (tout au livreur) | not yet |
+| `web.w4b_total` | المجموع | Total | Total | not yet |
+| `web.w4b_fee_later` | يُضاف رسم التوصيل عند الدفع، حين نعرف إلى أين نوصله. | The delivery fee is added at checkout, once we know where to bring it. | Les frais de livraison s'ajoutent à la commande, une fois l'adresse connue. | not yet |
+| `web.w4b_eta` | يصل خلال {n} دقيقة تقريباً | Arrives in about {n} min | Arrive dans {n} min environ | not yet |
+| `web.w4b_issue_closed` | {place} مغلق الآن. يفتح الساعة {time}. | {place} is closed now. It opens at {time}. | {place} est fermé maintenant. Ouverture à {time}. | not yet |
+| `web.w4b_issue_closed_today` | {place} مغلق اليوم. | {place} is closed today. | {place} est fermé aujourd'hui. | not yet |
+| `web.w4b_issue_choice` | {dish}: اختر {group}. | {dish}: choose {group}. | {dish} : choisissez {group}. | not yet |
+| `web.w4b_issue_gone` | {dish} ليس في القائمة الآن. أخرجه لتكمل. | {dish} is not on the menu now. Take it out to go on. | {dish} n'est plus au menu. Retirez-le pour continuer. | not yet |
+| `web.w4b_issue_min` | أضف {gap} لتصل إلى الحد الأدنى {min}. | Add {gap} more to reach the {min} minimum. | Ajoutez {gap} pour atteindre le minimum de {min}. | not yet |
+| `web.w4b_issue_shop_closed` | نحن مغلقون الآن. نستقبل الطلبات من جديد الساعة {time}. | We are closed now. Orders open again at {time}. | Nous sommes fermés. Les commandes reprennent à {time}. | not yet |
+| `web.w4b_issue_other` | في السلة شيء يحتاج إلى تعديل قبل إرسالها. | Something in the basket needs a change before it can be sent. | Quelque chose dans le panier doit changer avant l'envoi. | not yet |
+| `web.w4b_checkout_title` | أرسل طلب الطعام | Send your food order | Envoyer votre commande de repas | not yet |
+| `web.w4b_where` | إلى أين | Where to | Où livrer | not yet |
+| `web.w4b_cash` | الدفع نقداً عند الاستلام: تدفع للمندوب بالدولار أو بالليرة عند الباب. | Cash on delivery: pay the rider in dollars or lira at the door. | Paiement à la livraison : payez le livreur en dollars ou en livres à la porte. | not yet |
+| `web.w4b_notes` | طلب أو حساسية، للمحل | A request or an allergy, for the place | Une demande ou une allergie, pour le lieu | not yet |
+| `web.w4b_notes_hint` | نقرأه للمحل حين نتصل به. أي حساسية تكتبها نعاملها كحساسية. | We read it to the place when we call. An allergy you write is treated as an allergy. | Nous la lisons au lieu quand nous l'appelons. Une allergie écrite est traitée comme une allergie. | not yet |
+| `web.w4b_card` | بطاقة طلبك | Your order card | Votre carte de commande | not yet |
+| `web.w4b_send` | أرسل الطلب إلى واتساب | Send the order to my WhatsApp | Envoyer la commande sur mon WhatsApp | not yet |
+| `web.w4b_confirm_on_wa` | يُسجَّل الطلب حين تضغط «تأكيد» على واتساب. لا يُطلب شيء قبل ذلك. | The order is placed when you tap Confirm on WhatsApp. Nothing is ordered before that. | La commande est passée quand vous touchez « Confirmer » sur WhatsApp. Rien n'est commandé avant. | not yet |
+| `web.w4b_err_not_ready` | السلة تحتاج إلى تعديل قبل إرسالها: انظر أعلاه. | The basket needs a change before it can be sent: see above. | Le panier doit changer avant l'envoi : voir plus haut. | not yet |
+| `web.w4b_err_place` | اختر أولاً إلى أين نوصل الطلب. | Choose where to bring the order first. | Choisissez d'abord où livrer la commande. | not yet |
+| `web.w4b_err_any` | لم نتمكن من إرسال الطلب. حاول مرة أخرى بعد قليل. | We could not send the order. Please try again in a moment. | Nous n'avons pas pu envoyer la commande. Réessayez dans un instant. | not yet |
+
+The console's Settings page (`apps/console/src/pages/settingmeta.ts`), the rider shifts made editable by migration 0252:
+
+| Arabic | English | Read by |
+|---|---|---|
+| تبدأ وردية المندوبين الصباحية | Morning rider shift starts | not yet |
+| تنتهي وردية المندوبين الصباحية | Morning rider shift ends | not yet |
+| تبدأ وردية المندوبين المسائية | Evening rider shift starts | not yet |
+| تنتهي وردية المندوبين المسائية | Evening rider shift ends | not yet |

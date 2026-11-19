@@ -1,0 +1,161 @@
+---
+// WEB4b: the food checkout, one page that works with no script, on the grocery checkout's pattern (WEB2):
+//   1. Your number: until this device is signed in by a WhatsApp message, the sign-in panel.
+//   2. Where: a saved place, or a pin (this phone's location, a pasted map link or coordinates), then house and floor. The pin decides the
+//      village and the fee (save_customer_pin); the page chooses neither.
+//   3. A request or an allergy for the place: on the order's notes, read to the place when staff call (FD2). An allergy is an allergy.
+//   4. Cash on delivery only (food is cash, FD2). The food service fee is the setting's (0 today), its own line when above 0.
+//   5. The card, in the WhatsApp card's own words (orderCardParts, «🍗 من: <place>» included). "Send the order to my WhatsApp" makes the card
+//      and the gateway sends it; the customer's Confirm tap there places the order (invariant 4; C1). The page then becomes the order page.
+// One primary action (the frame in focus): the send button.
+import Base from "../../layouts/Base.astro";
+import Unavailable from "../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Empty from "@ak/ui-astro/Empty.astro";
+import "../../styles/order.css";
+import { orderCardParts } from "@ak/agents/order-card-text";
+import { nameIn, t } from "../../lib/i18n";
+import { sameOrigin } from "../../lib/session";
+import { chatWith, ordering, parsePin, plainWords, seeOther, splitAmount, visitorOf } from "../../lib/order";
+import { foodApi } from "../../lib/food";
+import { basketCookie, basketOf, isUuid } from "../../lib/food-basket";
+import { NOT_THE_BASKETS, issueWords } from "../../lib/food-words";
+import { pricedLines } from "../../lib/food-quote";
+const { lang, env } = Astro.locals;
+Astro.response.headers.set("Cache-Control", "no-store");
+const cookie = Astro.request.headers.get("cookie");
+const posted = Astro.request.method === "POST";
+if (posted && !sameOrigin(Astro.request, Astro.url)) return new Response("Forbidden", { status: 403 });
+const form = posted ? await Astro.request.formData() : Astro.url.searchParams;
+const get = (k: string) => { const x = form.get(k); return typeof x === "string" ? x : ""; };
+let placeId: string | null = isUuid(get("at")) ? get("at") : null;
+const notes = get("notes").slice(0, 300);
+const key = /^[\w-]{16,64}$/.test(get("key")) ? get("key") : crypto.randomUUID();
+const basket = basketOf(cookie);
+
+let failed = false; let error = ""; let notice = ""; let pin: any = null;
+let v; let facts: any; let account: any; let menu: any = null; let q: any = null;
+try {
+  v = await visitorOf(env, cookie);
+  facts = await ordering(env).serviceFacts();
+  const api = foodApi(env);
+  if (basket) menu = await api.menu(v.token, basket.place);
+  if (basket && menu?.ok && v.linked && v.token) {
+    const o = ordering(env);
+    const act = get("do");
+    if (posted && act === "pin") {
+      const at = parsePin(get("pin")) ?? (get("lat") && get("lng") ? { lat: Number(get("lat")), lng: Number(get("lng")) } : null);
+      if (!at) error = t(lang, "w2_pin_bad");
+      else {
+        pin = await o.savePin(v.token, at.lat, at.lng);
+        if (pin.ok) placeId = pin.place_id;
+        if (pin.status === "outside") error = t(lang, "w2_pin_outside");
+        else if (pin.status === "located" && pin.served === false) error = t(lang, "w2_pin_not_served", { village: nameIn(lang, pin.village, pin.village_ar) });
+        else if (pin.status === "located") notice = t(lang, "w2_pin_located", { village: nameIn(lang, pin.village, pin.village_ar) });
+      }
+    } else if (posted && act === "village" && placeId && isUuid(get("village"))) {
+      const r = await o.pinVillage(v.token, placeId, get("village"));
+      if (!r.ok) error = t(lang, "w2_pin_bad");
+    } else if (posted && act === "details" && placeId) {
+      await o.placeDetails(v.token, placeId, { building: get("building") || null, floor: get("floor") || null, directions: get("directions") || null });
+    } else if (posted && act === "place") {
+      if (!placeId) error = t(lang, "w4b_err_place");
+      else {
+        const r = await api.order(v.token, { requestKey: key, at: placeId, place: basket.place, lines: basket.lines, notes: notes || null, lang });
+        if (r.created && r.short_code && r.link) {
+          return seeOther(`/o/${encodeURIComponent(r.short_code)}?k=${encodeURIComponent(r.link)}`, basketCookie(null));
+        }
+        error = r.error === "not_ready" ? t(lang, "w4b_err_not_ready") : r.error === "no_place" ? t(lang, "w4b_err_place")
+          : r.error === "not_linked" ? t(lang, "w2_err_not_linked") : t(lang, "w4b_err_any");
+      }
+    }
+    account = await o.account(v.token);
+    const places: any[] = account.ok ? account.places : [];
+    if (!placeId || !places.some((p) => p.place_id === placeId)) placeId = places[0]?.place_id ?? null;
+    const r = await api.quote(v.token, basket.place, basket.lines, placeId);
+    q = r.ok ? r.quote : null;
+    const here = places.find((p) => p.place_id === placeId);
+    if (here && !here.building && !error && !notice) notice = t(lang, "w2_need_details");
+  }
+} catch { failed = true; Astro.response.status = 503; }
+
+const empty = !basket || !menu?.ok;
+const places: any[] = account?.ok ? account.places : [];
+const place = places.find((p) => p.place_id === placeId) ?? null;
+const lines = basket && menu?.ok ? pricedLines(lang, basket, menu, q) : [];
+const issues: string[] = (q?.issues ?? []).filter((i: any) => !NOT_THE_BASKETS.has(i.code)).map((i: any) => issueWords(lang, i, (id) => lines.find((x) => x.productId === id)?.name ?? null));
+// The card's words, as WhatsApp will show them: the same function, the quote the database gave, cash on delivery.
+const parts = q && placeId ? orderCardParts({ orderId: "", shortCode: "", lang, quote: { ...q, window: null }, paymentMethod: "cod", changeForUsd: null, changeForLbp: null,
+  missingPref: null, missingItems: [], window: null, address: place ? { village_en: place.village, village_ar: place.village_ar, building: place.building, floor: place.floor } : null } as any) : null;
+const chatLocation = chatWith(facts?.whatsapp, "📍");
+const ready = !!placeId && !!q && issues.length === 0;
+---
+<Base title={t(lang, "w4b_checkout_title")} lang={lang} path="/food/checkout" whatsapp={facts?.whatsapp ?? null} noindex focus>
+  {failed || !v ? <Unavailable lang={lang} /> : <div class="w2">
+    <h1>{t(lang, "w4b_checkout_title")}</h1>
+    {empty ? <Empty title={t(lang, "w4b_basket_empty")} text={t(lang, "w4b_basket_empty_text")} icon="cart" />
+    : !v.linked ? <section>
+        <h2>{t(lang, "w2_signin_title")}</h2>
+        <p class="muted">{t(lang, "w2_signin_lead", { days: facts?.session_days ?? 90 })}</p>
+        {facts?.whatsapp ? <form method="post" action="/signin"><input type="hidden" name="next" value="/food/checkout">
+          <Button label={t(lang, "w2_signin_button")} icon="chat" variant="primary" size="lg" block /></form> : <p>{t(lang, "w2_signin_no_wa")}</p>}
+        <p class="muted small">{t(lang, "w2_signin_consent")}</p>
+      </section>
+    : <form method="post" action="/food/checkout" class="w2">
+        <input type="hidden" name="key" value={key}>
+        <p class="muted">{t(lang, "w4b_from", { place: menu.name })} · <a href="/food/basket">{t(lang, "w4b_basket_title")}</a></p>
+        {error && <p class="w2-note warn" role="alert">{error}</p>}
+        {notice && !error && <p class="w2-note" role="status">{notice}</p>}
+        {issues.length > 0 && <div class="w2-note warn" role="alert"><ul>{issues.map((i) => <li>{i}</li>)}</ul></div>}
+
+        <section>
+          <fieldset>
+            <legend>{t(lang, "w4b_where")}</legend>
+            {places.length === 0 && <p class="muted">{t(lang, "w2_no_places")}</p>}
+            {places.map((p) => <label class="w2-choice"><input type="radio" name="at" value={p.place_id} checked={p.place_id === placeId}>
+              <span>{nameIn(lang, p.village, p.village_ar) || "—"}{p.building ? ` · ${p.building}` : ""}{p.floor ? ` · ${p.floor}` : ""}
+                <small>{p.has_pin ? t(lang, "w2_has_pin") : t(lang, "w2_no_pin")}{p.served === false ? ` · ${t(lang, "w2_pin_not_served", { village: nameIn(lang, p.village, p.village_ar) })}` : ""}</small></span></label>)}
+          </fieldset>
+          {pin?.status === "unsure" && (pin.candidates ?? []).length > 0 && <fieldset>
+            <legend>{t(lang, "w2_pin_unsure")}</legend>
+            {pin.candidates.map((c: any) => <label class="w2-choice"><input type="radio" name="village" value={c.village_id}><span>{nameIn(lang, c.name_en, c.name_ar)}</span></label>)}
+            <Button label={t(lang, "w2_pin_choose")} name="do" value="village" variant="soft" />
+          </fieldset>}
+          <div class="w2-row">
+            <Button label={t(lang, "w2_use_location")} name="do" value="pin" icon="pin" variant="soft" attrs={{ "data-geo": "" }} />
+            <input type="hidden" name="lat" value=""><input type="hidden" name="lng" value="">
+          </div>
+          <p class="muted small">{t(lang, "w2_location_hint")}</p>
+          <div class="w2-row">
+            <label class="ak-field"><span>{t(lang, "w2_paste_pin")}</span><input class="ak-input" name="pin" maxlength="500" placeholder={t(lang, "w2_paste_hint")} autocomplete="off"></label>
+            <Button label={t(lang, "w2_save_pin")} name="do" value="pin" variant="soft" />
+          </div>
+          {chatLocation && <p class="small"><a href={chatLocation} rel="noopener" target="_blank">{t(lang, "w2_send_location")}</a> · {t(lang, "w2_send_location_hint")} <Button label={t(lang, "w2_refresh")} name="do" value="update" variant="ghost" size="sm" /></p>}
+          {place && <div class="w2-row">
+            <label class="ak-field"><span>{t(lang, "w2_house")}</span><input class="ak-input" name="building" maxlength="120" value={place.building ?? ""}></label>
+            <label class="ak-field"><span>{t(lang, "w2_floor")}</span><input class="ak-input" name="floor" maxlength="40" value={place.floor ?? ""}></label>
+            <Button label={t(lang, "w2_save")} name="do" value="details" variant="soft" />
+          </div>}
+        </section>
+
+        <section>
+          <label class="ak-field"><span>{t(lang, "w4b_notes")}</span><textarea name="notes" maxlength="300">{notes}</textarea></label>
+          <p class="muted small">{t(lang, "w4b_notes_hint")}</p>
+          <p>{t(lang, "w4b_cash")}</p>
+          <Button label={t(lang, "w2_update")} name="do" value="update" variant="ghost" icon="refresh" />
+        </section>
+
+        <section>
+          <h2>{t(lang, "w4b_card")}</h2>
+          {parts && <div class="w2-card" data-card>
+            {parts.head.includes("\n") && <p class="head" data-from>{plainWords(parts.head.split("\n")[1] ?? "")}</p>}
+            <ul>{parts.items.map((x, i) => i % 2 === 0 ? <li><span>{x}</span><bdi>{parts.items[i + 1]}</bdi></li> : null)}</ul>
+            <ul>{parts.sums.map((s) => { const [a, b] = splitAmount(s); return b ? <li class={/\*/.test(s) ? "total" : ""}><span>{a}</span><bdi>{b}</bdi></li> : <li><span>{a}</span></li>; })}</ul>
+            <ul class="terms">{parts.terms.filter((x) => x.trim()).map((x) => <li>{plainWords(x)}</li>)}</ul>
+          </div>}
+          <p class="w2-big">{t(lang, "w4b_confirm_on_wa")}</p>
+          <Button label={t(lang, "w4b_send")} name="do" value="place" variant="gold" size="lg" icon="chat" block disabled={!ready} />
+        </section>
+      </form>}
+  </div>}
+</Base>

@@ -6,6 +6,7 @@ import { joinAr, joinEn, joinFr } from "./join-words";
 
 import { W2 } from "./i18n-web2";
 import { W4 } from "./i18n-web4a";
+import { W4B } from "./i18n-web4b";
 
 export const LANGS = ["ar", "en", "fr"] as const;
 export type Lang = (typeof LANGS)[number];
@@ -204,7 +205,7 @@ const fr: Dict = {
   kind_restaurant: "Restaurant", kind_cafe: "Café", kind_bakery: "Boulangerie", kind_sweets: "Pâtisserie", kind_catering: "Traiteur", kind_butcher: "Boucherie",
   ...joinFr,
 };
-export const DICTS: Record<Lang, Dict> = { en: { ...en, ...W2.en, ...W4.en }, ar: { ...ar, ...W2.ar, ...W4.ar }, fr: { ...fr, ...W2.fr, ...W4.fr } };
+export const DICTS: Record<Lang, Dict> = { en: { ...en, ...W2.en, ...W4.en, ...W4B.en }, ar: { ...ar, ...W2.ar, ...W4.ar, ...W4B.ar }, fr: { ...fr, ...W2.fr, ...W4.fr, ...W4B.fr } };
 
 /** A word's key: any key of the English dictionary (WEB2's `w2_` keys included). A missing key is a bug the test names. */
 export type Key = string;

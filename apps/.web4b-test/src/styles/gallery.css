@@ -1,0 +1,9 @@
+/* The gallery page only (staging): the operations components and the gallery's own layout, which the shop's pages never load. */
+@import "../../../../packages/ui/styles/components.more.css";
+@import "../../../../packages/ui/styles/components.ops.css";
+@import "../../../../packages/ui/styles/gallery.css";
+@layer components {
+  .riders { list-style: none; margin: var(--ak-space-3) 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--ak-space-3); }
+  .riders li { background: var(--ak-surface); border: 1px solid var(--ak-line); border-radius: var(--ak-radius); padding: var(--ak-space-3) var(--ak-space-4); }
+  .riders .row { display: flex; justify-content: space-between; gap: var(--ak-space-2); }
+}

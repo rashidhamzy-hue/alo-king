@@ -206,6 +206,9 @@ been done yet. Meta moves its labels now and then: if a button is named differen
    password. The first line is `id,title,description,availability,condition,price,link,image_link,brand,product_type,custom_label_0`.
    Only items with a picture approved on the console's pictures page are listed; on 14 Nov that is none, so the file is that one line.
    `select catalog_feed_report();` in the SQL Editor says how many are in the feed and how many still lack a picture.
+   **WEB4b (0252):** each row's `image_link` is the picture's JPEG copy (`…feed.jpg`, 1000 × 1000, under 150 KB), made by the
+   `catalog-jpegs` workflow (hourly at :43, or GitHub → Actions → **catalog-jpegs** → **Run workflow**, branch `main`). An approved picture
+   appears in the feed once its JPEG is made; `select catalog_public_report();` says how many JPEGs exist and how many wait.
 
 **B. The catalog in Commerce Manager.**
 1. Open `business.facebook.com/commerce` → top left, choose the Alo King business portfolio → **+ Add catalog** (or **Create a catalog**).

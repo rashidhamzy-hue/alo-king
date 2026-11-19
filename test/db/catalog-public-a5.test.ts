@@ -8,6 +8,7 @@ import type { TestDb } from "./harness";
 import { supabaseOver } from "./supabase-shim";
 import { fakeStore } from "./public-store-kit";
 import { catalogFeed, syncCatalogPictures } from "../../apps/gateway/src/catalog-feed";
+import { run as feedJpegPass } from "../../scripts/images/feed-jpegs.mjs";
 
 let db: TestDb;
 let ops: string;
@@ -31,6 +32,15 @@ const feedRows = async () => db.rpc<any[]>("catalog_feed");
 const feedCsv = async (s: ReturnType<typeof fakeStore>) => (await catalogFeed(new Request("https://gw/catalog/feed.csv", { headers: { Authorization: `Basic ${btoa("meta:pw")}` } }),
   { db: supabaseOver(db).client, password: "pw", publicUrl: publicBase, store: s.store })).text();
 
+/** WEB4b: the catalog-jpegs workflow's pass over the same buckets, with a stand-in encoder (the real one is scripts/images/test/feed-jpegs.test.mjs).
+ *  It reads only what the database's work list names from `media`, and writes only into `catalog`. */
+const jpegPass = (s: ReturnType<typeof fakeStore>, bytes = 90_000) => feedJpegPass({
+  store: { rpc: (fn: string, a?: Record<string, unknown>) => db.rpc(fn, a ?? {}),
+    download: async (k: string) => { const b = s.media.get(k); if (b === undefined) throw new Error(`source not found: ${k}`); s.everPublic.push(k); return b; },
+    uploadPublic: async (k: string, data: string) => { s.catalog.set(k, { bytes: data, createdAt: new Date().toISOString() }); },
+    removePublic: async (ks: string[]) => { for (const k of ks) s.catalog.delete(k); } },
+  convert: async (b: string) => ({ data: `jpeg of ${b}`, bytes }) });
+
 beforeAll(async () => {
   ({ db } = await openFlowDb());
   ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
@@ -39,7 +49,7 @@ beforeAll(async () => {
 }, 60_000);
 beforeEach(async () => {
   // a clean slate: no picture, no book entry
-  await db.pg.exec(`delete from catalog_public_pictures; delete from product_images; update products set is_active = true`);
+  await db.pg.exec(`delete from catalog_public_pictures; delete from catalog_feed_jpegs; delete from product_images; update products set is_active = true`);
 });
 
 describe("what is public", () => {
@@ -68,11 +78,54 @@ describe("what is public", () => {
     expect(r.copied).toBe(1);
     expect([...s.catalog.keys()]).toEqual([work.copy[0].public_path]);
     expect(s.everPublic).toEqual([a.media]);
+    // WEB4b: the feed links the picture's JPEG copy, never the stored copy, and only once the JPEG is made
+    expect((await feedCsv(s)).trim().split("\n")).toHaveLength(1);
+    const jw = await db.rpc<any>("catalog_feed_jpeg_work");
+    expect(jw.make).toEqual([{ image_id: a.image, media_path: a.media, public_path: `AK-0103-${a.image}.feed.jpg` }]);
+    expect(await jpegPass(s)).toMatchObject({ made: 1, removed: 0, failed: 0 });
     const csv = await feedCsv(s);
-    expect(csv).toContain(publicBase(work.copy[0].public_path));
+    expect(csv).toContain(publicBase(`AK-0103-${a.image}.feed.jpg`));
+    expect(csv).not.toContain(publicBase(work.copy[0].public_path));
     // a second pass changes nothing, and the address is the same one
     expect(await syncCatalogPictures(supabaseOver(db).client, s.store)).toMatchObject({ copied: 0, removed: 0 });
-    expect(await feedCsv(s)).toContain(publicBase(work.copy[0].public_path));
+    expect(await jpegPass(s)).toMatchObject({ made: 0, removed: 0 });
+    expect(await feedCsv(s)).toContain(publicBase(`AK-0103-${a.image}.feed.jpg`));
+    expect([...s.catalog.keys()].sort()).toEqual([work.copy[0].public_path, `AK-0103-${a.image}.feed.jpg`].sort());
+  });
+
+  it("WEB4b: the feed JPEG is made once, under 150 KB, only for a public picture; a withdrawn one leaves the feed at once and the bucket on the next minute", async () => {
+    const a = await propose("AK-0103"); const b = await propose("AK-0080");
+    await review(a.image, "approve");                                                      // b stays proposed
+    const s = fakeStore([a.media, b.media, ...PRIVATE_ONLY]);
+    await syncCatalogPictures(supabaseOver(db).client, s.store);
+    await jpegPass(s);
+    expect(s.everPublic.filter((k) => k !== a.media)).toEqual([]);                          // nothing else in media was ever read
+    expect([...s.catalog.keys()].filter((k) => k.endsWith(".feed.jpg"))).toEqual([`AK-0103-${a.image}.feed.jpg`]);
+    expect(await db.one(`select bytes from catalog_feed_jpegs where image_id = $1`, [a.image])).toEqual({ bytes: 90000 });
+    await expect(db.rpc("catalog_feed_jpeg_made", { p_image: a.image, p_bytes: 150001 })).rejects.toThrow(/JPEG_TOO_BIG/);
+    await review(a.image, "reject");
+    expect((await feedRows()).length).toBe(0);                                             // left the feed before any removal
+    const r = await syncCatalogPictures(supabaseOver(db).client, s.store);                  // the gateway's minute
+    expect(r).toMatchObject({ removed: 1, jpegsRemoved: 1 });
+    expect(s.catalog.size).toBe(0);
+    expect(await db.one(`select count(*)::int n from catalog_feed_jpegs`)).toEqual({ n: 0 });
+    expect(await db.rpc<any>("catalog_public_report")).toMatchObject({ feed_jpegs: 0, feed_jpegs_to_make: 0, feed_jpegs_to_remove: 0 });
+  });
+
+  it("WEB4b: a JPEG over 150 KB is never uploaded or recorded; the hourly pass keeps a known JPEG and forgets a vanished one", async () => {
+    const a = await propose("AK-0103");
+    await review(a.image, "approve");
+    const s = fakeStore([a.media]);
+    await syncCatalogPictures(supabaseOver(db).client, s.store);
+    expect(await jpegPass(s, 160_000)).toMatchObject({ made: 0, failed: 1 });
+    expect([...s.catalog.keys()].some((k) => k.endsWith(".feed.jpg"))).toBe(false);
+    await jpegPass(s);
+    await db.pg.query(`update catalog_feed_jpegs set made_at = now() - interval '1 hour'`);
+    for (const [k, v] of s.catalog) s.catalog.set(k, { ...v, createdAt: new Date(Date.now() - 3600_000).toISOString() });
+    expect(await syncCatalogPictures(supabaseOver(db).client, s.store, { reconcile: true })).toMatchObject({ strays: 0, forgotten: 0 });
+    s.catalog.delete(`AK-0103-${a.image}.feed.jpg`);                                        // lost
+    expect(await syncCatalogPictures(supabaseOver(db).client, s.store, { reconcile: true })).toMatchObject({ forgotten: 1 });
+    expect(await jpegPass(s)).toMatchObject({ made: 1 });
   });
 
   it("a picture whose licence a customer may not see is never public, even approved (search results, unknown licence)", async () => {
@@ -180,6 +233,7 @@ describe("failures", () => {
     const s = fakeStore([b.media]);                                                        // a's private object is missing
     await expect(syncCatalogPictures(supabaseOver(db).client, s.store)).rejects.toThrow(/1 failed/);
     expect(s.catalog.size).toBe(1);
+    expect(await jpegPass(s)).toMatchObject({ made: 1, failed: 1 });                       // WEB4b: a's JPEG cannot be made either
     const csv = (await feedCsv(s)).trim().split("\n");
     expect(csv.some((r) => r.startsWith("AK-0080,"))).toBe(true);
     expect(csv.some((r) => r.startsWith("AK-0103,"))).toBe(false);

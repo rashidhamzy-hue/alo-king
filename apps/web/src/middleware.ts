@@ -58,7 +58,8 @@ async function handle(ctx: any, next: () => Promise<Response>, env: WebEnv): Pro
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 
-  if (req.method === "POST" && /^\/(?:cart(?:\/\w+)?|checkout|signin|account|orders|village(?:\/locate)?)$/.test(url.pathname) && !(orderPostLimit ??= makeLimiter(Number(env.WEB_POST_LIMIT) || 60, 60_000))(req.headers.get("cf-connecting-ip") ?? "unknown")) {
+  // WEB4b: the food basket's and the food checkout's posts count the same.
+  if (req.method === "POST" && /^\/(?:cart(?:\/\w+)?|checkout|signin|account|orders|village(?:\/locate)?|food\/basket\/(?:add|line)|food\/checkout)$/.test(url.pathname) && !(orderPostLimit ??= makeLimiter(Number(env.WEB_POST_LIMIT) || 60, 60_000))(req.headers.get("cf-connecting-ip") ?? "unknown")) {
     return new Response("Too many requests. Try again in a minute.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   }
 

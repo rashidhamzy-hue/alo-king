@@ -1,0 +1,61 @@
+---
+// WEB2: "How it works", after the design reference's /how, with our real numbers: the hours, the minimum, the fee and time for each served
+// village, the small-order fee when there is one, today's lira rate, the first-order cash cap and the confirm timers, all read from the
+// settings by web_service_facts (0229). Nothing here is written as a number. The payment ways are the ones the chat takes (cash in dollars or
+// lira, Whish or OMT confirmed by a person); card and Whish Pay wait for the company and are not offered. No rating or praise (invariant 14).
+import Base from "../layouts/Base.astro";
+import Unavailable from "../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import "../styles/order.css";
+import { nameIn, t, usd } from "../lib/i18n";
+import { lbp, ordering } from "../lib/order";
+import { CATEGORY_PHOTOS, FOOD_PHOTO, unsplashPage } from "../lib/category-photos";
+const { lang, env } = Astro.locals;
+let f: any = null; let failed = false;
+try { f = await ordering(env).serviceFacts(); } catch { failed = true; Astro.response.status = 503; }
+const hours = f?.hours?.open && f?.hours?.close ? `${String(f.hours.open).slice(0, 5)}–${String(f.hours.close).slice(0, 5)}` : null;
+const small = f && Number(f.small_order_fee?.fee_usd) > 0 ? f.small_order_fee : null;
+const cap = f ? Number(f.first_order_max_cod_usd ?? 0) : 0;
+---
+<Base title={t(lang, "w2_how_title")} lang={lang} path="/how" whatsapp={f?.whatsapp ?? null} description={t(lang, "w2_how_lead")}>
+  {failed || !f ? <Unavailable lang={lang} /> : <div class="w2 wide">
+    <h1>{t(lang, "w2_how_title")}</h1>
+    <p class="lead">{t(lang, "w2_how_lead")}</p>
+    <section><h2>{t(lang, "w2_how_ways")}</h2>
+      <ul class="w2-perks">
+        <li><Icon name="chat" /><span>{t(lang, "w2_how_way_text")}</span></li>
+        <li><Icon name="message" /><span>{t(lang, "w2_how_way_voice")}</span></li>
+        <li><Icon name="cart" /><span>{t(lang, "w2_how_way_web")}</span></li>
+      </ul>
+    </section>
+    <section><h2>{t(lang, "w2_how_steps")}</h2>
+      <ol class="w2-steps"><li>{t(lang, "w2_how_step1")}</li><li>{t(lang, "w2_how_step2")}</li><li>{t(lang, "w2_how_step3")}</li><li>{t(lang, "w2_how_step4")}</li></ol>
+    </section>
+    <section><h2>{t(lang, "w2_how_when")}</h2>
+      {hours && <p>{t(lang, "w2_how_hours", { hours })}</p>}
+      <p>{t(lang, "w2_how_min")} <bdi>{usd(f.min_order_usd)}</bdi></p>
+      {small && <p>{t(lang, "w2_how_small", { below: usd(small.below_subtotal_usd) })} <bdi>{usd(small.fee_usd)}</bdi></p>}
+    </section>
+    <section><h2>{t(lang, "w2_how_fees")}</h2>
+      <table class="w2-table"><thead><tr><th>{t(lang, "w2_how_village")}</th><th>{t(lang, "w2_how_fee")}</th><th>{t(lang, "w2_how_time")}</th></tr></thead>
+        <tbody>{f.served.map((v: any) => <tr><td>{nameIn(lang, v.name_en, v.name_ar)}</td><td><bdi>{usd(v.fee_usd)}</bdi></td><td>{t(lang, "about_min", { n: v.eta_minutes })}</td></tr>)}</tbody></table>
+      <p class="muted small">{t(lang, "w2_rider_fee_note")}</p>
+    </section>
+    <section><h2>{t(lang, "w2_how_pay")}</h2>
+      <p>{t(lang, "w2_how_pay_cash")}</p>
+      {f.fx_rate_lbp && <p>{t(lang, "w2_how_pay_rate")} <bdi>{lbp(lang, f.fx_rate_lbp)}</bdi></p>}
+      <p>{t(lang, "w2_how_pay_transfer")}</p>
+      {cap > 0 && <p>{t(lang, "w2_how_first", { cap: usd(cap) })}</p>}
+      <p class="muted small">{t(lang, "w2_no_card")}</p>
+    </section>
+    <section><h2>{t(lang, "w2_how_missing")}</h2><p>{t(lang, "w2_how_missing_text")}</p></section>
+    <section><h2>{t(lang, "w2_how_confirm")}</h2><p>{t(lang, "w2_how_confirm_text", { r: f.confirm_reminder_min, l: f.confirm_lapse_min })}</p></section>
+    <section><h2>{t(lang, "w2_how_code")}</h2><p>{t(lang, "w2_how_code_text")}</p></section>
+    <section><h2>{t(lang, "w2_how_account")}</h2><p>{t(lang, "w2_how_account_text")}</p></section>
+    <section id="photos"><h2>{t(lang, "w4_photos")}</h2><p class="muted small">{t(lang, "w4_photos_text")}</p>
+      <ul class="credits small">{[...Object.values(CATEGORY_PHOTOS), FOOD_PHOTO].map((p) => <li lang="en"><a href={unsplashPage(p.id)} rel="noopener" target="_blank">{p.subject}</a></li>)}</ul>
+    </section>
+    <div class="w2-actions"><Button label={t(lang, "w2_how_cta")} href="/aisles" variant="gold" size="lg" /></div>
+  </div>}
+</Base>

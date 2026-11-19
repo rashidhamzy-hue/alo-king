@@ -22,6 +22,17 @@ export function makeStore({ url, key, fetchImpl = fetch }) {
       if (!res.ok) throw new Error(`download_${res.status}`);
       return Buffer.from(await res.arrayBuffer());
     },
+    /** WEB4b: one object into the PUBLIC `catalog` bucket (the feed's JPEG copy). Only ever a path the database's work list named. */
+    async uploadPublic(path, data, contentType = "image/jpeg") {
+      const res = await fetchRetry(`${url}/storage/v1/object/catalog/${path}`, { method: "POST", headers: { ...h, "content-type": contentType, "x-upsert": "true", "cache-control": "max-age=31536000" }, body: data }, { fetchImpl });
+      if (!res.ok) throw new Error(`upload_public_${res.status}: ${(await res.text()).slice(0, 200)}`);
+    },
+    /** WEB4b: objects out of the public `catalog` bucket. */
+    async removePublic(paths) {
+      if (!paths.length) return;
+      const res = await fetchRetry(`${url}/storage/v1/object/catalog`, { method: "DELETE", headers: { ...h, "content-type": "application/json" }, body: JSON.stringify({ prefixes: paths }) }, { fetchImpl });
+      if (!res.ok) throw new Error(`remove_public_${res.status}`);
+    },
     async upload(path, data, contentType = "image/jpeg") {
       const res = await fetchRetry(`${url}/storage/v1/object/media/${path}`, { method: "POST", headers: { ...h, "content-type": contentType, "x-upsert": "true" }, body: data }, { fetchImpl });
       if (!res.ok) throw new Error(`upload_${res.status}: ${(await res.text()).slice(0, 200)}`);

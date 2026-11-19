@@ -1,0 +1,19 @@
+---
+// Shown by the service worker when a page is not saved and there is no network. Static, and in the three languages at once, because
+// it cannot know which one the visitor chose.
+export const prerender = true;
+import { DICTS, dirOf } from "../lib/i18n";
+---
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Alo King</title>
+  <style>body{font:16px/1.5 "IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;margin:0;padding:24px 16px;max-inline-size:36rem;margin-inline:auto;background:#FAF8F3;color:#0E0F12}section{margin-block:12px;padding:16px 20px;background:#FFFEFD;border:1px solid #E0DED8;border-radius:24px}h1{font-size:1.375rem;line-height:1.2;letter-spacing:-0.02em;margin:0 0 4px}p{margin:0;color:#4D5057}.home{display:inline-flex;align-items:center;justify-content:center;min-block-size:48px;padding:0 24px;margin-block-start:12px;border-radius:24px;background:#0E0F12;color:#FAF8F3;font-weight:600;text-decoration:none;box-shadow:inset 0 -3px 0 rgb(0 0 0/.2)}@media (prefers-color-scheme:dark){body{background:#0E0F12;color:#FAF8F3}section{background:#17191E;border-color:#2A2D34}p{color:#A9ABB3}.home{background:#C9A227;color:#0E0F12}}</style>
+</head>
+<body>
+  {(["ar", "en", "fr"] as const).map((l) => (
+    <section lang={l} dir={dirOf(l)}><h1>{DICTS[l].offline}</h1><p>{DICTS[l].offline_text}</p></section>
+  ))}
+  <a class="home" href="/">Alo King</a>
+</body>
+</html>

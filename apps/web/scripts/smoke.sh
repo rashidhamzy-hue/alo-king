@@ -42,6 +42,17 @@ a=$(list labne); b=$(list "لبنة"); c=$(list labneh); d=$(list labni); e=$(li
 [ -n "$f" ] || fail "لبن (laban) finds nothing"
 [ "$f" != "$a" ] || fail "لبن (laban) finds the labneh products: [$f]"
 echo "- labne, labneh, labni, لبنة and لبنه find the same products: $a; لبن finds laban: $f"
+# WEB4b (0252): a brand word that was another item's kind word is gone: «لبن» never finds Halloum (AK-0044), «ماي» never the Maestro tea.
+case "$f" in *'/p/AK-0044"'*) fail "لبن finds Halloum AK-0044: [$f]" ;; esac
+case "$(list "ماي")" in *'/p/AK-0143"'*) fail "ماي finds the Maestro tea AK-0143" ;; esac
+echo "- لبن does not find Halloum; ماي does not find the Maestro tea"
+
+# WEB4b: the food pages. A visitor who is not a tester sees no testers-only place: the test kitchen is never on the public site.
+[ "$(get -o "$tmp/food.html" -w '%{http_code}' "$url/food")" = 200 ] || fail "/food did not answer 200"
+if grep -qiE 'test kitchen|/food/place/' "$tmp/food.html"; then fail "/food shows a place to order from to a visitor who is not a tester"; fi
+[ "$(get -o /dev/null -w '%{http_code}' "$url/food/basket")" = 200 ] || fail "/food/basket did not answer 200"
+[ "$(get -o /dev/null -w '%{http_code}' "$url/food/place/00000000-0000-4000-8000-000000000000")" = 404 ] || fail "an unknown place is not a 404"
+echo "- /food: 200, no testers-only place shown; /food/basket: 200; an unknown place: 404"
 
 # The page, its stylesheet, its scripts and the fonts it loads (DS1: the fonts are this site's own files and count).
 bytes=$(wc -c < "$tmp/cat.html")

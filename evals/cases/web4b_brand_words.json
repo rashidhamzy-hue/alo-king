@@ -1,0 +1,30 @@
+{
+  "about": "WEB4b (B1f's 'left for a later session', 19 Nov 2026): on staging «لبن» found Halloum AK-0044, because the search-words job (version auto-2026-11-16) wrote 'Liban Lait' as its brand («لبن ليت», «ليبن ليت», 'Liban Lait', 'liban lait'); Halloum's brand is Leentaanayel. brand_word_collisions(), run on staging read only, found three more brand words that are another item's kind word: «ماي سترو» on Maestro tea AK-0143 («ماي», water), 'tanour al asir' on Tannour bread AK-0088 ('asir', juice), 'indomie mee' on Indomie noodles AK-0174 ('mee', water). The staging rows are written into the test database through save_search_words (the job's own door) after the seeds, as on staging. Run by test/db/web4b-brand-words.test.ts on find_products (the chat's search) and web_catalog_search (the website).",
+  "staging_terms": {
+    "AK-0044": [["لبن ليت", "brand", "ar"], ["ليبن ليت", "brand", "ar"], ["Liban Lait", "brand", "en"], ["liban lait", "brand", "arabizi"], ["ليان تعنايل", "brand", "ar"], ["Leen Taanayel", "brand", "en"], ["حلوم", "kind", "ar"], ["halloum", "kind", "arabizi"]],
+    "AK-0048": [["لبن", "kind", "ar"], ["لبن عيران", "kind", "ar"], ["laban", "kind", "arabizi"], ["lait", "kind", "fr"]],
+    "AK-0050": [["لبن", "kind", "ar"], ["laban", "kind", "arabizi"]],
+    "AK-0143": [["مايسترو", "brand", "ar"], ["ماي سترو", "brand", "ar"], ["maestro", "brand", "en"], ["شاي", "kind", "ar"], ["tea", "kind", "en"]],
+    "AK-0102": [["ماي", "kind", "ar"], ["mee", "kind", "arabizi"], ["مياه", "kind", "ar"]],
+    "AK-0088": [["tannour el asser", "brand", "arabizi"], ["tanour al asir", "brand", "arabizi"], ["تنور العصر", "brand", "ar"], ["خبز", "kind", "ar"]],
+    "AK-0114": [["asir", "kind", "arabizi"], ["عصير", "kind", "ar"]],
+    "AK-0174": [["indomie", "brand", "en"], ["indomie mee", "brand", "en"], ["noodles", "kind", "en"]]
+  },
+  "must_not_find": [
+    { "query": "لبن", "sku": "AK-0044" },
+    { "query": "lait", "sku": "AK-0044" },
+    { "query": "ماي", "sku": "AK-0143" },
+    { "query": "asir", "sku": "AK-0088" },
+    { "query": "mee", "sku": "AK-0174" }
+  ],
+  "must_find": [
+    { "query": "لبن", "sku": "AK-0050" },
+    { "query": "حلوم", "sku": "AK-0044" },
+    { "query": "ليان تعنايل", "sku": "AK-0044" },
+    { "query": "مايسترو", "sku": "AK-0143" },
+    { "query": "ماي", "sku": "AK-0102" },
+    { "query": "تنور العصر", "sku": "AK-0088" },
+    { "query": "asir", "sku": "AK-0114" },
+    { "query": "indomie", "sku": "AK-0174" }
+  ]
+}

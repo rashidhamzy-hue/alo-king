@@ -2,7 +2,8 @@
 // have signed. A place shows its name, its kind, its village, its distance from the hub and a map link, and the line that it is not on Alo King yet.
 // Never a phone, a rating, a review count, a menu, hours, a photo or a price: the data has none, and these helpers invent none.
 // Sorting is by distance or name only (invariant 14). Nothing here is read from a prompt or typed in: every value comes from web_food_list and web_food_place.
-import type { Listing } from "@ak/commerce/index";
+import { webFood, type Listing } from "@ak/commerce/index";
+import { postgrestSource, type WebEnv } from "./db";
 import { t, type Key, type Lang } from "./i18n";
 
 export const PAGE_SIZE = 20;
@@ -49,3 +50,8 @@ export const villageIn = (lang: Lang, l: Pick<Listing, "village" | "village_ar">
 
 /** Our WhatsApp with "Claim <listing_id>" already typed. The customer-line turn reads it by code (no model). Null until a person has set the chat's address. */
 export const claimLink = (chat: string | null | undefined, id: string): string | null => (chat ? `${chat.replace(/\?.*$/, "")}?text=${encodeURIComponent(`Claim ${id}`)}` : null);
+
+/** WEB4b: FD2's food API (0251), as the website's role: the places this visitor may order from, a place's menu, a basket's quote, the order. */
+export const foodApi = (env: WebEnv) => webFood(postgrestSource(env));
+/** The page of a place a visitor may order from (an approved place, by its source id). */
+export const orderHref = (sourceId: string) => `/food/place/${encodeURIComponent(sourceId)}`;

@@ -1,0 +1,104 @@
+---
+// WEB2: the basket. Lines with their quantity (one less, one more) and Remove; every price, the fee, the minimum and the totals are read again
+// from the database on every view (cart_view or checkout_quote over plan_cart and quote_order, 0130: the same functions a WhatsApp catalogue
+// cart goes through), never kept by the page (invariant 7). A sold-out, no-longer-sold or "coming soon" item (SELL1) is named and left out of
+// the total; a price that moved since it was added is named. The delivery fee shows once a village is chosen (a served village, from the
+// database); the checkout's pin decides the real one. Works with no script. Never cached.
+import Base from "../../layouts/Base.astro";
+import Unavailable from "../../components/Unavailable.astro";
+import Button from "@ak/ui-astro/Button.astro";
+import Empty from "@ak/ui-astro/Empty.astro";
+import Stepper from "@ak/ui-astro/Stepper.astro";
+import Icon from "@ak/ui-astro/Icon.astro";
+import "../../../../../packages/ui/styles/components.more.css";
+import "../../styles/order.css";
+import type { CartView, CheckoutQuote, ServiceFacts } from "@ak/commerce/index";
+import { nameIn, t, usd } from "../../lib/i18n";
+import { lbp, ordering, commerce, visitorOf } from "../../lib/order";
+import { PickerBody } from "../../components/ref/Frame";
+import { frameOf } from "../../lib/frame";
+import { priceForText } from "../../lib/cards";
+const { lang, env, catalog } = Astro.locals;
+Astro.response.headers.set("Cache-Control", "no-store");
+const cookie = Astro.request.headers.get("cookie");
+let failed = false; let v; let facts: ServiceFacts | null = null; let q: (CartView & CheckoutQuote) | null = null; let missing: string[] = [];
+const villageId = /(?:^|;\s*)ak_village=([0-9a-f-]{36})/.exec(cookie ?? "")?.[1] ?? null;
+try {
+  v = await visitorOf(env, cookie);
+  facts = await ordering(env).serviceFacts();
+  const served = facts.served.find((x: any) => x.village_id === villageId) ?? null;
+  if (v.token) q = served ? await commerce(env).checkoutQuote(v.token, { village: served.village_id }) as any : await commerce(env).viewCart(v.token) as any;
+  if (q && q.ok === false && (q as any).error === "empty_cart") q = null;
+  // "Order again" names what it could not add first (orders.astro sends their codes here).
+  const skus = (Astro.url.searchParams.get("missing") ?? "").split(",").filter((s) => /^AK-\d{1,8}$/.test(s)).slice(0, 8);
+  for (const sku of skus) { const p = await catalog().product(sku); if (p.ok) missing.push(nameIn(lang, p.product.name_en, p.product.name_ar)); else missing.push(sku); }
+} catch { failed = true; Astro.response.status = 503; }
+// WEB4a: the reference's village picker replaces the dropdown (the same list as the header's chip, grouped by zone with fee and time).
+const pickerFrame = failed ? null : await frameOf(env, cookie, { lang, path: "/cart" });
+// WEB4a stage 2 (0244): what each line's price is for ("per kg", "per pack of about 500 g"), only for the items sold by weight.
+let perOf: Record<string, string> = {};
+if (!failed && (q?.lines ?? []).length) {
+  try { const pf = await catalog().priceFor((q!.lines ?? []).map((l) => l.sku)); perOf = Object.fromEntries(Object.entries(pf).map(([s, x]) => [s, priceForText(lang, x) ?? ""]).filter(([, w]) => w)); } catch { perOf = {}; }
+}
+const village = facts && villageId ? facts.served.find((x: any) => x.village_id === villageId) ?? null : null;
+const quote = q?.quote ?? null;
+const removed = q?.removed ?? [];
+const out = new Set(removed.map((r) => r.sku));
+const lines = (q?.lines ?? []).filter((l) => !out.has(l.sku));
+const priced = (sku: string) => quote?.lines.find((x) => x.sku === sku) ?? null;
+const below = (quote?.issues ?? q?.issues ?? []).find((i) => i.code === "below_minimum") as { minimum_usd: number; subtotal_usd: number } | undefined;
+const count = lines.reduce((a, l) => a + Number(l.qty), 0);
+const byReason = (r: string) => removed.filter((x) => x.reason === r).map((x) => ({ sku: x.sku, name: nameIn(lang, x.name, x.name_ar) }));
+const groups = [["out_of_stock", "w2_sold_out"], ["coming_soon", "w2_coming_soon"], ["unknown", "w2_unknown"]] as const;
+const minOk = !below && lines.length > 0;
+const ltr = (x: string) => (lang === "ar" ? "\u2066" + x + "\u2069" : x);
+---
+<Base title={t(lang, "w2_basket_title")} lang={lang} path="/cart" whatsapp={facts?.whatsapp ?? null} basket={count} noindex>
+  {failed ? <Unavailable lang={lang} /> : <div class="w2">
+    <h1>{t(lang, "w2_basket_title")}</h1>
+    {missing.length > 0 && <div class="w2-note warn" role="status"><p>{t(lang, "w2_again_missing")}</p><ul>{missing.map((n) => <li>{n}</li>)}</ul></div>}
+    {Astro.url.searchParams.get("again") && missing.length === 0 && <p class="w2-note ok" role="status">{t(lang, "w2_again_done")}</p>}
+    {lines.length === 0 && removed.length === 0
+      ? <Empty title={t(lang, "w2_basket_empty")} text={t(lang, "w2_basket_empty_text")} icon="cart" />
+      : <>
+        {groups.map(([r, key]) => byReason(r).length > 0 && <div class="w2-note warn" role="status"><p>{t(lang, key)}</p>
+          <ul class="w2-out">{byReason(r).map((x) => <li><span>{x.name}</span>
+            <form method="post" action="/cart/line"><input type="hidden" name="sku" value={x.sku}><input type="hidden" name="back" value="/cart"><Button label={t(lang, "w2_remove")} name="qty" value="0" variant="ghost" size="sm" /></form></li>)}</ul></div>)}
+        {(q?.price_changed ?? []).length > 0 && <div class="w2-note" role="status"><p>{t(lang, "w2_price_changed")}</p>
+          <ul>{q!.price_changed.map((c) => <li>{nameIn(lang, c.name, c.name_ar)}: <bdi>{usd(c.price_usd)}</bdi></li>)}</ul></div>}
+        <ul class="w2-lines">
+          {lines.map((l) => { const p = priced(l.sku); return (
+            <li>
+              <span class="nmc"><a class="nm" href={`/p/${encodeURIComponent(l.sku)}`}>{nameIn(lang, l.name, l.name_ar)}</a>
+                {perOf[l.sku] && <small class="per" data-per>{perOf[l.sku]}</small>}</span>
+              <span class="amt"><bdi>{p ? usd(p.line_total_usd) : ""}</bdi>{p && Number(l.qty) > 1 && <small><bdi>{usd(p.unit_price_usd)}</bdi> × {l.qty}</small>}</span>
+              <form method="post" action="/cart/line" class="qty"><input type="hidden" name="sku" value={l.sku}><input type="hidden" name="back" value="/cart">
+                <Stepper name="qty" value={Number(l.qty)} min={0} max={99} labels={{ less: t(lang, "w2_less"), more: t(lang, "w2_more"), quantity: t(lang, "w2_qty") }} />
+                <Button label={t(lang, "w2_remove")} name="qty" value="0" variant="ghost" size="sm" icon="close" iconOnly />
+              </form>
+            </li>); })}
+        </ul>
+        {quote && lines.length > 0 && <dl class="w2-sums">
+          <div><dt>{t(lang, "w2_items_total")}</dt><dd><bdi>{usd(quote.subtotal_usd)}</bdi></dd></div>
+          {village
+            ? <div><dt>{t(lang, "w2_delivery_to", { village: nameIn(lang, village.name_en, village.name_ar) })}</dt><dd><bdi>{usd(quote.delivery_fee_usd)}</bdi></dd></div>
+            : null}
+          {Number(quote.small_order_fee_usd) > 0 && <div><dt>{t(lang, "w2_small_fee")}</dt><dd><bdi>{usd(quote.small_order_fee_usd)}</bdi></dd></div>}
+          <div class="total"><dt>{t(lang, "w2_total")}</dt><dd><bdi>{usd(quote.total_usd)}</bdi></dd></div>
+          {quote.total_lbp && <div class="lira"><dt>{t(lang, "w2_in_lira")}</dt><dd><bdi>{lbp(lang, quote.total_lbp)}</bdi></dd></div>}
+        </dl>}
+        {lines.length > 0 && !village && pickerFrame && pickerFrame.villages.length > 0 && <section class="w2-village">
+          <p class="muted">{t(lang, "w2_fee_pick")}</p>
+          <div class="ak-card picker-page"><PickerBody f={pickerFrame} idp="cart" back="/cart" /></div></section>}
+        {village && <p class="w2-village inline"><a class="ak-btn ak-btn--ghost ak-btn--sm" href="/village?back=/cart"><Icon name="pin" /><span>{t(lang, "w4_change_village", { village: nameIn(lang, village.name_en, village.name_ar) })}</span></a></p>}
+        {lines.length > 0 && (below
+          ? <p class="w2-note warn" role="status">{t(lang, "w2_min_missing", { min: ltr(usd(below.minimum_usd)), gap: ltr(usd(Math.max(0, Number(below.minimum_usd) - Number(below.subtotal_usd)))) })}</p>
+          : facts && Number(facts.min_order_usd) > 0 && <p class="muted small">{t(lang, "w2_min_ok")}</p>)}
+        <div class="w2-actions">
+          {minOk && <Button label={t(lang, "w2_checkout")} href="/checkout" variant="gold" size="lg" icon="check" />}
+          <Button label={t(lang, "w2_browse")} href="/aisles" variant="ghost" />
+        </div>
+        <p class="muted small">{t(lang, "w2_prices_note")} {t(lang, "w2_rider_fee_note")}</p>
+      </>}
+  </div>}
+</Base>

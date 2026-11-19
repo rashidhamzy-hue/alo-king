@@ -8,11 +8,19 @@
 // only while it is the item's approved, customer-usable picture; syncCatalogPictures() below keeps it so, from the database's list
 // of work (catalog_picture_work), every minute from the cron. Receipts, voice notes and proposed pictures are in `media` and
 // are never copied. A row whose picture is not copied yet has no address and is left out of the feed until it is.
+//
+// WEB4b (0252): Meta documents JPEG and PNG, and the founder's pictures are WebP. The feed's image_link is therefore each picture's
+// JPEG copy (<sku>-<image id>.feed.jpg in the same public bucket: 1000 x 1000, under 150 KB), made once by the catalog-jpegs workflow
+// (scripts/images/feed-jpegs.mjs, sharp: this Worker's 10 ms of CPU cannot decode and encode a picture). A row whose JPEG is not made
+// yet is left out, as a row whose copy is not made. A withdrawn picture leaves the feed at once (the database's join), and its JPEG
+// leaves the bucket on the next minute here (removing costs no CPU). The website keeps showing the picture as stored (public_path).
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface FeedRow {
   sku: string; product_id: string; name_en: string; name_ar: string | null; brand: string; price_usd: number; in_stock: boolean;
   media_path: string; public_path: string | null; attribution: string | null; licence: string;
+  /** WEB4b (0252): the JPEG copy for the feed, once made; null until then. */
+  feed_jpeg_path?: string | null;
   category_code: string; category_en: string; category_ar: string; subgroup_en: string | null; subgroup_ar: string | null;
 }
 export interface FeedSettings { product_link: string | null; currency?: string }
@@ -73,7 +81,7 @@ export async function catalogFeed(req: Request, deps: FeedDeps): Promise<Respons
   if (error) return new Response("feed unavailable", { status: 503 });
   const rows = (data ?? []) as FeedRow[];
   const images = new Map<string, string>();
-  for (const r of rows) if (r.public_path) images.set(r.sku, deps.publicUrl(r.public_path));
+  for (const r of rows) if (r.feed_jpeg_path) images.set(r.sku, deps.publicUrl(r.feed_jpeg_path));   // JPEG only (WEB4b): never the WebP copy
   return new Response(feedCsv(rows, settings, images), { headers: { "content-type": "text/csv; charset=utf-8", "cache-control": "no-store" } });
 }
 
@@ -117,7 +125,9 @@ export function supabasePublicStore(db: SupabaseClient): PublicStore {
   };
 }
 
-export interface PictureSyncResult { copied: number; removed: number; strays: number; forgotten: number; failed: number }
+export interface PictureSyncResult { copied: number; removed: number; strays: number; forgotten: number; failed: number;
+  /** WEB4b: feed JPEGs of withdrawn pictures removed from the bucket (they are made by the catalog-jpegs workflow, never here). */
+  jpegsRemoved: number }
 
 /**
  * Makes the public bucket match the database's books: removes first (privacy before convenience), then copies. The list of work
@@ -127,7 +137,7 @@ export interface PictureSyncResult { copied: number; removed: number; strays: nu
  * Each job is done on its own: one failure does not stop the others. Throws at the end if any failed, so the caller reports it.
  */
 export async function syncCatalogPictures(db: SupabaseClient, store: PublicStore, opts: { reconcile?: boolean; now?: number } = {}): Promise<PictureSyncResult> {
-  const r: PictureSyncResult = { copied: 0, removed: 0, strays: 0, forgotten: 0, failed: 0 };
+  const r: PictureSyncResult = { copied: 0, removed: 0, strays: 0, forgotten: 0, failed: 0, jpegsRemoved: 0 };
   const errors: string[] = [];
   const fail = (what: string, e: unknown) => { r.failed++; errors.push(`${what}: ${String((e as Error)?.message ?? e).slice(0, 120)}`); };
   const call = async <T>(fn: string, args?: Record<string, unknown>): Promise<T> => {
@@ -140,6 +150,13 @@ export async function syncCatalogPictures(db: SupabaseClient, store: PublicStore
   for (const j of work.remove ?? []) {
     try { await store.remove([j.public_path]); await call("catalog_picture_removed", { p_image: j.image_id }); r.removed++; } catch (e) { fail(`remove ${j.public_path}`, e); }
   }
+  // WEB4b: a withdrawn picture's feed JPEG goes too, first (privacy before convenience). Making one is the workflow's job.
+  try {
+    const jw = await call<{ remove: { image_id: string; public_path: string }[] }>("catalog_feed_jpeg_work");
+    for (const j of jw.remove ?? []) {
+      try { await store.remove([j.public_path]); await call("catalog_feed_jpeg_removed", { p_image: j.image_id }); r.jpegsRemoved++; } catch (e) { fail(`remove ${j.public_path}`, e); }
+    }
+  } catch (e) { fail("feed jpeg work", e); }
   for (const j of work.copy ?? []) {
     try { await store.copy(j.media_path, j.public_path); await call("catalog_picture_copied", { p_image: j.image_id }); r.copied++; } catch (e) { fail(`copy ${j.public_path}`, e); }
   }
