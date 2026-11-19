@@ -27,7 +27,7 @@ function digestCard(c: Ctx, d: { day: string; text_en: string | null; text_ar: s
   if (!d) return "";
   const L = c.lang;
   const text = L === "ar" ? d.text_ar ?? d.text_en : d.text_en ?? d.text_ar;
-  const day = String(d.day).slice(0, 10);
+  const day = (d.day as unknown) instanceof Date ? (d.day as unknown as Date).toISOString().slice(0, 10) : String(d.day).slice(0, 10);
   return html`<section class="ak-digest" aria-label="${pick(L, "The day's digest", "خلاصة اليوم")}"><h2>${pick(L, `Digest of ${day}`, `خلاصة يوم ${day}`)}</h2>
 ${text ? html`<div class="ak-answer">${renderAnswer(text)}</div>` : html`<p class="muted">${pick(L, "The figures were saved, but the text could not be checked against them, so it is not shown. Ask the assistant about that day.", "حُفظت الأرقام، لكن تعذّر التحقق من النص مقابلها، لذلك لا يُعرض. اسأل المساعد عن ذلك اليوم.")}</p>`}
 <p><a href="/assistant">${pick(L, "Ask the assistant", "اسأل المساعد")}</a></p></section>`;

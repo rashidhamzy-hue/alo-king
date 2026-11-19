@@ -27,9 +27,9 @@ export function outcomeText(L: Lang, o: Outcome, reason?: string | null): string
 
 /** One question and its answer (or what happened instead). The admin sees what the answer cost, in small text. */
 export function turnHtml(L: Lang, t: { question: string; answer: string | null; usd: number | string; outcome: Outcome; reason?: string | null }, admin: boolean): Raw {
-  const body = t.outcome === "answered" && t.answer ? html`<div class="ak-answer">${renderAnswer(t.answer)}</div>` : html`<p class="ak-answer note">${outcomeText(L, t.outcome, t.reason)}</p>`;
+  const body = t.outcome === "answered" && t.answer ? html`<div class="ak-answer" dir="auto">${renderAnswer(t.answer)}</div>` : html`<p class="ak-answer note">${outcomeText(L, t.outcome, t.reason)}</p>`;
   const cost = admin && Number(t.usd) > 0 ? html`<p class="ak-cost"><bdi>$${Number(t.usd).toFixed(4)}</bdi></p>` : "";
-  return html`<li class="ak-turn"><p class="ak-q">${t.question}</p>${body}${cost}</li>`;
+  return html`<li class="ak-turn"><p class="ak-q" dir="auto">${t.question}</p>${body}${cost}</li>`;
 }
 
 export function askForm(c: Pick<Ctx, "lang" | "staff">, compact = false): Raw {

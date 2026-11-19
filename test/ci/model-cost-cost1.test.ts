@@ -235,6 +235,7 @@ describe("every model-calling entry point is metered", () => {
     ["scripts/label/read.mjs", /finishMeter\(out\.meter/],                                 // LB1: the batch reading run; its meter is built in batch.mjs (a library, below)
     ["scripts/menus/read.mjs", /finishMeter\(out\.meter/],                                 // FD1: the menu reading run; its meter is built in batch.mjs (a library, below)
     ["evals/search/live.search.test.ts", /startMeter\(\{ workflow: "search-eval"/],     // SR1: the reading before and after, the embeddings
+    ["evals/assistant/live.assistant.test.ts", /startMeter\(\{ workflow: "assistant-eval"/], // AST1: the console assistant's twenty questions
   ];
   for (const [file, re] of metered) it(`${file} starts a meter and records the run`, () => {
     const s = read(file);
@@ -269,6 +270,7 @@ describe("every model-calling entry point is metered", () => {
       "evals/sim/sim.live.test.ts", "evals/sim/test/guard.test.ts", "evals/sim/test/judge-basket-lb1.test.ts",           // LB1: a spy around the stand-in judge
       "scripts/label/batch.mjs",                                                                                        // LB1: the reading run's library: priced at half, recorded by read.mjs
       "scripts/menus/batch.mjs",                                                                                        // FD1: the menu reading run's library: priced at half, recorded by read.mjs
+      "evals/assistant/eval.ts",                                                                                        // AST1: the grader and the scripted model, used by the metered live eval
     ]);
     const entries = new Set(metered.map(([f]) => f));
     const callers = [...walk("scripts"), ...walk("evals")].filter((f) => /\.(mjs|ts|sh|js)$/.test(f)).filter((f) => /api\.anthropic\.com|@anthropic-ai\/sdk|messages\.create/.test(read(f)));
@@ -289,10 +291,11 @@ describe("every workflow that spends on a model has a dollar cap with a safe def
     [".github/workflows/research-load.yml", /MODEL_COST_CAP_USD: \$\{\{ inputs\.max_usd \|\| '2' \}\}/],
     [".github/workflows/images.yml", /MODEL_COST_CAP_USD: \$\{\{ inputs\.max_usd \|\| '2' \}\}/],
     [".github/workflows/language-pack.yml", /MODEL_COST_CAP_USD: \$\{\{ inputs\.max_usd \|\| '5' \}\}/],
+    [".github/workflows/assistant-eval.yml", /MODEL_COST_CAP_USD: \$\{\{ inputs\.max_usd \|\| '0\.5' \}\}/],
   ];
   for (const [file, re] of caps) it(`${file}: cap input, default, and a run id per attempt`, () => {
     const w = read(file);
-    expect(w).toMatch(/max_usd:\s*\n\s+description:[^\n]*\n\s+type: string\n\s+default: "\d+"|max_usd: \{ description: "[^"]*", type: string, default: "\d+" \}/);
+    expect(w).toMatch(/max_usd:\s*\n\s+description:[^\n]*\n\s+type: string\n\s+default: "\d+(\.\d+)?"|max_usd: \{ description: "[^"]*", type: string, default: "\d+(\.\d+)?" \}/);
     expect(w).toMatch(re);
     expect(w).toMatch(/MODEL_COST_RUN_ID: \$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
   });

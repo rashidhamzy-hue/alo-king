@@ -71,7 +71,7 @@ export const TOOLS: Tool[] = [
     name: "products",
     description: "Products: how many active items are sellable, the ones that are not and why (no Arabic name, no photo, no price...), items without an approved photo, price bases to confirm, and what customers searched for that found nothing in the last N days.",
     input_schema: obj({ days: { type: "integer", minimum: 1, maximum: 31, description: "For the searches. Default 7." } }), roles: LEADS,
-    run: (e, i) => e.db.rpc("assistant_products", { p_now: e.now.toISOString(), p_days: intArg(i.days, 1, 31, 7), p_limit: 20 }),
+    run: (e, i) => e.db.rpc("assistant_products", { p_now: e.now.toISOString(), p_days: intArg(i.days, 1, 31, 7), p_limit: 10 }),
   },
   {
     name: "customers",

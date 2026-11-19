@@ -78,8 +78,8 @@ export async function askAssistant(t: TurnInput): Promise<TurnResult> {
   const call = async (toolChoice: "auto" | "none"): Promise<Block[] | "over_cap"> => {
     spend = await readSpend(t.db, t.now);
     if (!spend.allowed) return "over_cap";
-    const res = await t.model({ model: spend.model, max_tokens: 4000, system, tools: toolDefs, tool_choice: { type: toolChoice }, messages,
-      output_config: { effort: "medium" } } as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    const res = await t.model({ model: spend.model, max_tokens: 2000, system, tools: toolDefs, tool_choice: { type: toolChoice }, messages,
+      output_config: { effort: "low" } } as Anthropic.Messages.MessageCreateParamsNonStreaming);
     model = res.model ?? spend.model;
     const u = res.usage;
     usd += Number(await t.db.rpc("ast_record_cost", { p_workflow: "assistant", p_model: spend.model, p_step: "answer", p_in: u?.input_tokens ?? 0, p_out: u?.output_tokens ?? 0,

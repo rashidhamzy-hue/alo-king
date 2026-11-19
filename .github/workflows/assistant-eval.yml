@@ -1,0 +1,52 @@
+# AST1: the console assistant's eval on the real model: twenty founder questions on an invented day (evals/assistant), graded by code.
+# Spends money: only on request. Cost (COST1): every model call is counted in model_costs (workflow assistant-eval, on the staging database:
+# prices read from model_prices, the run's rows written by record_model_cost; nothing else there is touched) and the run stops at its cap,
+# max_usd (default 0.5). The questions run against PGlite in the runner, never against staging's data.
+# How to run: by hand (workflow_dispatch), or by committing evals/assistant/request.json ({"max_usd": 0.5}) to any branch.
+# The report (each question, its answer, the facts wrong, the kill-gate's verdict) is in the run summary. Never deploys anything.
+# Kill-gate: more than 2 facts wrong and the job fails; the session then leaves settings.assistant.enabled false (0262) and says why.
+name: assistant-eval
+on:
+  workflow_dispatch:
+    inputs:
+      max_usd: { description: "Dollar cap for the run's model calls", type: string, default: "0.5" }
+  push:
+    paths: [evals/assistant/request.json]
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: assistant-eval-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      MODEL_COST_CAP_USD: ${{ inputs.max_usd || '0.5' }}
+      MODEL_COST_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      ALO_LIVE_EVAL: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: The cap
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            cap=$(node -e 'const r=require("./evals/assistant/request.json"); console.log(r.max_usd ?? "")')
+            [[ "$cap" =~ ^[0-9]+(\.[0-9]+)?$ ]] && echo "MODEL_COST_CAP_USD=$cap" >> "$GITHUB_ENV"
+          fi
+          echo "- cost cap: USD ${MODEL_COST_CAP_USD}" >> "$GITHUB_STEP_SUMMARY"
+      - name: The free eval first (scripted model)
+        run: npx vitest run evals/assistant/test
+      - name: The live eval (real model)
+        run: npx vitest run evals/assistant/live.assistant.test.ts
+      - name: Report
+        if: always()
+        run: |
+          if [ -f evals/assistant/results/live.txt ]; then { echo '```'; cat evals/assistant/results/live.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; cat evals/assistant/results/live.txt; fi
+          node -e 'const v=require("./evals/assistant/results/live.json").verdict; console.log(JSON.stringify(v)); if(!v.passes_gate){console.log("KILL-GATE: the panel stays off"); process.exit(1)}'

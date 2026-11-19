@@ -2465,3 +2465,19 @@ No customer message changed. The page's words in `apps/console/src/pages/weights
 | أُلغي. أُضيف ${usd(r.credit_usd)} إلى رصيد الزبون. | Cancelled. ${usd(r.credit_usd)} went to the customer's credit. | not yet |
 | أُلغي. يُبلَّغ الزبون. | Cancelled. The customer is told. | not yet |
 | أُلغي. دُفع ${usd(terms.paid_usd)}: أعده من صفحة الاسترداد. | Cancelled. ${usd(terms.paid_usd)} was paid: give it back on the Refunds page. | not yet |
+
+## AST1, the console assistant (console, staff-facing, written by a model; 19 November 2026)
+The assistant's own answers are written by the model at the time of asking, in the language of the question; they are not listed here. The
+nightly digest's Arabic text is written the same way (claude-haiku-5-5). The fixed words of the panel, the page, Today's card and Settings:
+
+| Arabic | English | Read |
+|---|---|---|
+| المساعد · يجيب من تقارير للقراءة فقط ولا يتصرّف أبداً: كل تغيير يبقى زراً في صفحته. | Assistant · Answers from read-only reports and never acts: every change stays a button on its own page. | not yet |
+| ما المتأخر الآن؟ · أي مطعم كان الأبطأ اليوم؟ · ما الذي يجب أن أصلحه أولاً؟ | What's late right now? · Which restaurant was slowest today? · What should I fix first? | not yet |
+| سؤالك · اسأل عن الطلبات، الأماكن، المناديب، المخزون… · اسأل · أقرأ البيانات… · المحادثة كاملة | Your question · Ask about orders, places, riders, stock… · Ask · Reading the data… · The whole conversation | not yet |
+| يجيب من تقارير للقراءة فقط، بكلمات بسيطة، ولا يغيّر شيئاً أبداً: كل تغيير يبقى زراً في صفحته. كل رقم يأتي من البيانات التي قرأها لتلك الإجابة. | It answers from read-only reports, in plain words, and never changes anything: every change stays a button on its own page. Every number comes from the data it read for that answer. | not yet |
+| انتهت ميزانية المساعد لليوم، فتوقّف حتى الغد. يستطيع المدير تغيير السقف في الإعدادات. · …لهذا الشهر، فتوقّف حتى الشهر القادم… | Today's assistant budget is used up, so it has stopped until tomorrow. The admin can change the cap in Settings. · …this month's… until next month… | not yet |
+| المساعد متوقّف. · لم أستطع الإجابة بأرقام من البيانات وحدها، لذلك لا أعرض تخميناً. اسأل بشكل أضيق، أو افتح الصفحة. · لم يُجب المساعد. حاول مجدداً بعد دقيقة. | The assistant is off. · I could not answer this with figures from the data alone, so I am not showing a guess. Ask more narrowly, or open the page. · The assistant did not answer. Try again in a minute. | not yet |
+| المساعد غير موصول: لا يملك الكونسول مفتاح النموذج. · المصروف اليوم · هذا الشهر | The assistant is not connected: the console has no model key. · Spent today · this month | not yet |
+| خلاصة اليوم · خلاصة يوم {day} · اسأل المساعد · حُفظت الأرقام، لكن تعذّر التحقق من النص مقابلها، لذلك لا يُعرض. اسأل المساعد عن ذلك اليوم. | The day's digest · Digest of {day} · Ask the assistant · The figures were saved, but the text could not be checked against them, so it is not shown. Ask the assistant about that day. | not yet |
+| مساعد الكونسول يجيب عن الأسئلة · يقرأ ولا يتصرّف أبداً. عند الإيقاف: تقول اللوحة إنه متوقّف. · المساعد: الإنفاق في اليوم / في الشهر · عند تجاوزه يتوقّف المساعد حتى الغد / حتى الشهر القادم. | The console assistant answers questions · It reads and never acts. Off: the panel says it is off. · Assistant: spend per day / per month · Over it, the assistant stops until tomorrow / next month. | not yet |
