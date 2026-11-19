@@ -77,6 +77,18 @@ reading or prompt code changed, so no language gate and no simulation ran (rule 
 
 Mostly the stylesheet and the fonts; the food pages load no picture.
 
+## On staging (after the merge, 19 November)
+Merged as [rashidhamzy-hue/alo-king#138](https://github.com/rashidhamzy-hue/alo-king/pull/138) on the founder's "go" (CI green on the head and on
+`main`). `deploy-staging` from `main`: run 44478115516, green (0252 applied; 172 migrations recorded). The web deploy and smoke test: run
+44478324022, green, with WEB4b's new checks. Read on staging afterwards (read only):
+- **Rider shifts** 09:00–15:00 and 15:00–21:00; four Settings-log rows with the founder's reason; the four edges editable on the Settings page.
+- **Search**: «لبن» finds AK-0041, 0048, 0050, 0052, 0056, 0057 (no Halloum); «ماي» the four waters (no tea); "asir" the juices (no bread);
+  "mee" the waters (no noodles); «حلوم» still Halloum (AK-0044, AK-0060); «مايسترو» the tea. The seven words are in `search_word_drops`.
+- **Feed JPEGs**: 229 public pictures; the `catalog-jpegs` workflow, started once by hand from `main` (run 44481560575; hourly after that),
+  makes their JPEGs at 1.5 to 3.5 s each (25 made in its first two minutes; what one run leaves, the next hourly run makes). A made copy is
+  public, `image/jpeg`, 1000 × 1000, no metadata; the largest of the first 25 is 136 KB, the average about 82 KB.
+- Not this session's: an `images` import run at 07:36 (release `pictures-2`) failed because the release has no `product_images` folder.
+
 ## Not proven (only a live account or a person can)
 - A real place: none is approved yet (FD1's founder steps); the test kitchen stands in. A tester's own phone signing in on the site and
   tapping Confirm on WhatsApp for a web food card (the card is the same `web_card_requests` path as WEB2's grocery cards).
