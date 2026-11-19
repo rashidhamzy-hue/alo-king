@@ -478,7 +478,7 @@ begin
 end $$;
 
 -- ---------- the role's rights, and nothing else ----------
-do $$ declare t text; f text;
+do $$ declare t text; f text; r text;
   tabs text[] := array['orders', 'order_events', 'place_calls', 'place_call_log', 'sources', 'villages', 'zones', 'parties', 'settings', 'deliveries',
     'delivery_stops', 'driver_shifts', 'ledger_entries', 'ledger_accounts', 'fx_rates', 'stock_levels', 'stock_lots', 'products', 'receiving_lines',
     'purchase_orders', 'temperature_readings', 'product_images', 'price_basis_checks', 'demand_signals', 'handoffs', 'conversations', 'complaint_cases',
@@ -496,6 +496,10 @@ begin
   foreach t in array tabs loop
     if to_regclass('public.' || t) is null then continue; end if;
     execute format('grant select on table %I to assistant_reader', t);
+    -- A row policy makes any leftover client grant reach rows, so the client roles lose every grant on these tables (they never had a use).
+    foreach r in array array['anon', 'authenticated', 'web_channel'] loop
+      if exists (select 1 from pg_roles where rolname = r) then execute format('revoke all on table %I from %I', t, r); end if;
+    end loop;
     execute format('drop policy if exists assistant_read on %I', t);
     execute format('create policy assistant_read on %I for select to assistant_reader using (true)', t);
   end loop;
