@@ -166,7 +166,7 @@ describe("3 fetch: links with a browser, files from the private bucket", () => {
     expect(uploads.length).toBe(3);
     for (const u of uploads) expect(u).toMatch(new RegExp(`^menus/${place}/pages/2026-11-19/[0-9a-f]{32}\\.jpg$`));
     const pages = await db.all(`select m.kind, p.title, p.status, p.shot_path is not null as shot from menu_source_pages p join menu_sources m on m.id = p.menu_source_id
-                                 where p.source_id = $1 and m.kind in ('link', 'docx', 'sheet') order by m.added_at, p.position`, [place]);
+                                 where p.source_id = $1 and m.kind in ('link', 'docx', 'sheet') order by m.added_at, (m.file_name like '%.csv'), p.position`, [place]);   // AUTO1: two sources added in the same instant (a flake)
     expect(pages).toEqual([
       { kind: "link", title: "Start page", status: "skipped", shot: true }, { kind: "link", title: "SANDWICHES / سندويشات", status: "waiting", shot: true },
       { kind: "link", title: "OFFERS / عروضات", status: "skipped", shot: true },

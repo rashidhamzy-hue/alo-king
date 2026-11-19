@@ -13,7 +13,17 @@ const Currency = z.enum(["USD", "LBP"]).nullable().describe("USD for $, USD or a
 const Name = { name_ar: z.string().nullable().describe("The name in Arabic, as printed (or your Arabic rendering if only English is printed; then set translated to 'ar')"),
                name_en: z.string().nullable().describe("The name in English or Latin letters, as printed (or your English rendering if only Arabic is printed; then set translated to 'en')") };
 
+// AUTO1: the place's own details, when the source shows them (proposed; a person applies them with one tap).
+const PlaceDetails = z.object({
+  hours_text: z.string().nullable().optional().describe("The opening hours exactly as printed (for example 'Daily 10am-11pm, closed Monday'), or null"),
+  open: z.string().nullable().optional().describe("The opening time as HH:MM (24 h) when the hours are the same every day, or null"),
+  close: z.string().nullable().optional().describe("The closing time as HH:MM (24 h), or null"),
+  days_off: z.array(z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])).optional().describe("Days the place says it is closed; empty if none"),
+  phone_text: z.string().nullable().optional().describe("The place's own phone number exactly as printed (for orders or delivery), or null. Never a person's private number"),
+}).nullable().optional().describe("Only what the source prints about the place itself: its opening hours and its phone. Null when it shows neither");
+
 export const MenuReading = z.object({
+  place: PlaceDetails,
   sections: z.array(z.object({
     name_ar: z.string().nullable().describe("The section heading in Arabic, as printed, or null"),
     name_en: z.string().nullable().describe("The section heading in English, as printed, or null"),
@@ -61,7 +71,38 @@ const PROMPT = "You read a photo of a Lebanese restaurant's printed menu for the
   "where the same dish is printed on separate lines that differ only by a size word, give it once with those sizes. A price range (5-7) is never one price: " +
   "turn it into sizes only when the source names the sizes; otherwise set price null, price_clear false and flag price_range. " +
   "Copy the description printed under a dish exactly into description (the place's words; never add one). " +
-  "Flag anything cut off, blurred or unclear and say what in flag_note; never fill a gap with a guess. Copy the source line(s) of each dish into source_text.";
+  "Flag anything cut off, blurred or unclear and say what in flag_note; never fill a gap with a guess. Copy the source line(s) of each dish into source_text. " +
+  // AUTO1
+  "If the source prints the place's own opening hours or phone number, give them in place (as printed, and the hours as HH:MM when they are the same every day); otherwise place is null.";
 
 export const menuTool = (): Anthropic.Tool => TOOL;
+
+// AUTO1: the second, independent reading of a photo, a PDF or a screenshot: dish names and the prices printed beside them, nothing else, and
+// no sight of the first reading. The database compares the two (record_menu_second_reading); a dish is approved by the rule only when they agree.
+export const PriceReading = z.object({
+  items: z.array(z.object({
+    ...Name,
+    prices: z.array(z.number()).describe("Every price printed for this dish, as numbers exactly as printed (one per size); empty if none"),
+  })),
+});
+export type PriceReading = z.infer<typeof PriceReading>;
+const PRICE_TOOL: Anthropic.Tool = {
+  name: "record_prices",
+  description: "Record every dish on this menu with the price(s) printed for it. Copy names and prices exactly; never guess a price.",
+  input_schema: (() => { const { $schema: _d, ...s } = z.toJSONSchema(PriceReading, { io: "input" }) as Record<string, unknown>; return s as Anthropic.Tool["input_schema"]; })(),
+};
+const PRICE_PROMPT = "You list the dishes and their printed prices on a restaurant menu, for a second check of another reading you do not see. " +
+  "For every dish give its name as printed (Arabic in name_ar, Latin letters in name_en; null for a language not printed) and every price printed for it, " +
+  "as numbers exactly as printed (450,000 is 450000; $5.5 is 5.5; one price per size). A range (5-7) is two prices. Never estimate or round a price, never add a dish that is not printed.";
+export const priceTool = (): Anthropic.Tool => PRICE_TOOL;
+export const pricePrompt = (): string => PRICE_PROMPT;
+
+/** A phone number as printed on a Lebanese menu, in E.164 (+961...), or null when it is not one. */
+export function lebanesePhone(printed: string | null | undefined): string | null {
+  const d = String(printed ?? "").replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/\D/g, "");
+  if (/^(00)?961\d{7,8}$/.test(d)) return "+" + d.replace(/^00/, "");
+  if (/^0[1-9]\d{6}$/.test(d)) return "+961" + d.slice(1);
+  if (/^(3\d{6}|(70|71|76|78|79|81)\d{6})$/.test(d)) return "+961" + d;
+  return null;
+}
 export const menuPrompt = (): string => PROMPT;

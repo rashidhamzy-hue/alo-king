@@ -11,6 +11,7 @@ import { act, html, id, render, text, UserError, type Ctx, type Section } from "
 import { DbError, isMissingFunction } from "../db";
 import { form, when } from "../html";
 import { LEADS } from "../roles";
+import { automationPart, undo as automationUndo, weekCheck } from "./automation";
 
 type Rule = { field: string; enabled: boolean; first_passed_at: string | null; disabled_at: string | null; disabled_reason: string | null; checks: string;
   applied: number; logged_rule_off: number; checked_right: number; checked_wrong: number };
@@ -41,7 +42,9 @@ async function page(c: Ctx) {
   }
   const pics = await Promise.all(o.spot_checks.map((s) => (s.picture?.media_path ? c.deps.media.sign(s.picture.media_path, 600) : Promise.resolve(null))));
   const reader = o.arabic_reader ?? {};
-  return render(c, "Automatic approvals", html`
+  const auto1 = await automationPart(c);
+  return render(c, "Automatic approvals", html`${auto1}
+<h2>Intake rules (I1)</h2>
 <p>A rule approves only what code can check, never on a model's confidence. Each rule starts <strong>off</strong>: while it is off it only logs what it would
 approve. Each day a random tenth of the log comes here for a spot check. When every check of a rule's first sample is right, that rule switches on; one wrong
 answer switches it off at once and undoes that approval. Two rules started on by decision (16 November): two published sources that agree exactly, and fields set
@@ -150,5 +153,8 @@ export const autoApprovalsSection: Section = {
     { method: "POST", path: "/auto-approvals/rule/:field", roles: LEADS, handler: rule },
     { method: "POST", path: "/auto-approvals/arabic", roles: LEADS, handler: arabic },
     { method: "POST", path: "/auto-approvals/retry/:id", roles: LEADS, handler: retry },
+    // AUTO1: undo one automatic decision; the week's check of one
+    { method: "POST", path: "/automation/undo/:id", roles: LEADS, handler: automationUndo },
+    { method: "POST", path: "/automation/check/:id", roles: LEADS, handler: weekCheck },
   ],
 };

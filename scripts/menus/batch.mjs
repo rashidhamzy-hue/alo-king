@@ -12,7 +12,7 @@
 // Everything outside the run is injected (rpc, download, fetch, prices), so the tests need no key and no network.
 import { CostMeter, costOfCall, priceFor, usageOf } from "../lib/model-cost.mjs";
 // Node 22.18 and later runs TypeScript with erasable types: the reader's form and prompt are the console's own (one copy).
-import { MenuReading, menuPrompt, menuTool } from "../../apps/console/src/menu-read.ts";
+import { MenuReading, menuPrompt, menuTool, PriceReading, pricePrompt, priceTool, lebanesePhone } from "../../apps/console/src/menu-read.ts";
 import { pdfPages } from "./extract.mjs";
 
 export const MAX_CAP_USD = 2;
@@ -20,6 +20,7 @@ export const API = "https://api.anthropic.com";
 const HALF = 0.5;                                  // the Batch API's price against the same call made one at a time
 const PER_IMAGE_TOKENS = 2600, FIXED_TOKENS = 2500, MAX_OUT = 8000;
 const PDF_PAGE_TOKENS = 3200, PDF_MAX_OUT = 16000, MAX_PDF_PAGES = 30;
+const PRICE_MAX_OUT = 4000;                         // AUTO1: the second reading lists names and prices only
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024, MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 /** The most one photo can cost: the photo at its largest, the prompt and tool, and the whole output allowance, at half price. */
@@ -50,6 +51,8 @@ async function pool(items, size, fn) {
 export const dishCount = (r) => (r?.sections ?? []).reduce((n, s) => n + (s.dishes ?? []).length, 0);
 /** The Batch API's id for a page (letters, digits, _ and -, at most 64). A photo keeps its own id (FD1). */
 export const pageCustomId = (pageId) => `pg_${pageId}`;
+/** AUTO1: the id of an item's second reading (prices only). */
+export const secondId = (custom) => `pc_${custom}`;
 
 /** The user turn of one request: the image, the PDF, or the text. */
 export function requestContent(item) {
@@ -64,7 +67,9 @@ export function requestContent(item) {
 
 /**
  * deps: { rpc(fn, args), download(path) -> {bytes, mime}, fetch, prices, model, apiKey, capUsd, runId, sleep(ms), log(s),
- *         limit?, resumeBatchIds?, dryRunPhotos?: [{photo_id, place, media_path, bytes, mime}], pollMs?, maxWaitMs?, concurrency? }
+ *         limit?, resumeBatchIds?, dryRunPhotos?: [{photo_id, place, media_path, bytes, mime}], pollMs?, maxWaitMs?, concurrency?,
+ *         secondReading? (AUTO1: a photo, a PDF and a screenshot are also read a second time, prices only, in the same batch, so the rule can
+ *         check the prices; off in a dry run) }
  */
 export async function runMenuRead(d) {
   const log = d.log ?? (() => {});
@@ -82,11 +87,16 @@ export async function runMenuRead(d) {
   const photoQueue = dry ? d.dryRunPhotos : ((await d.rpc("menu_reading_queue", { p_limit: d.limit ?? 200 })) ?? []);
   const pageQueue = dry ? [] : ((await d.rpc("menu_page_queue", { p_limit: d.limit ?? 200 })) ?? []);
   const items = [
-    ...photoQueue.map((x) => ({ kind: "photo", custom: String(x.photo_id), photo_id: x.photo_id, place: x.place, media_path: x.media_path, bytes: x.bytes, mime: x.mime })),
-    ...pageQueue.map((x) => ({ kind: "page", custom: pageCustomId(x.page_id), page_id: x.page_id, place: x.place, sourceKind: x.kind, title: x.title,
+    ...photoQueue.map((x) => ({ kind: "photo", custom: String(x.photo_id), photo_id: x.photo_id, source_id: x.source_id, place: x.place, media_path: x.media_path, bytes: x.bytes, mime: x.mime })),
+    ...pageQueue.map((x) => ({ kind: "page", custom: pageCustomId(x.page_id), page_id: x.page_id, source_id: x.source_id, place: x.place, sourceKind: x.kind, title: x.title,
                                body: x.body, shot_path: x.shot_path, doc_path: x.doc_path })),
   ];
   const byCustom = new Map(items.map((x) => [x.custom, x]));
+  const second = !dry && d.secondReading === true;
+  // AUTO1: a source with no text of its own (a photo, a PDF, a screenshot) is read twice; the second request's id is the first's with "pc_"
+  const needsSecond = (x) => second && (x.kind === "photo" || !!x.doc_path || (!x.body && !!x.shot_path));
+  for (const x of items) if (needsSecond(x)) byCustom.set(secondId(x.custom), { ...x, second: true });
+  const secondResults = [];
   const skipped = []; const failed = []; const readings = []; const batchIds = [...(d.resumeBatchIds ?? [])];
   const skip = (x, reason) => skipped.push(x.kind === "photo" ? { photo_id: x.photo_id, reason } : { page_id: x.page_id, reason });
   let selected = [];
@@ -119,7 +129,8 @@ export async function runMenuRead(d) {
     for (const f of fetched) {
       if (f.error) { skip(f.x, f.error); continue; }
       const x = f.x;
-      const e = x.kind === "photo" || x.shot ? estimatePhotoUsd(price) : x.doc ? estimatePdfUsd(price, x.pdfPages) : estimateTextUsd(price, (x.body ?? "").length);
+      let e = x.kind === "photo" || x.shot ? estimatePhotoUsd(price) : x.doc ? estimatePdfUsd(price, x.pdfPages) : estimateTextUsd(price, (x.body ?? "").length);
+      if (needsSecond(x)) e += x.doc ? estimatePdfUsd(price, x.pdfPages) : estimatePhotoUsd(price);   // the second reading costs at most as much again
       if (worst + e > d.capUsd) { skip(x, "cap"); meter.stoppedAtCap = true; continue; }
       worst += e; selected.push(x);
     }
@@ -129,6 +140,9 @@ export async function runMenuRead(d) {
     for (const x of selected) if (!/^[A-Za-z0-9_-]{1,64}$/.test(x.custom)) throw new Error(`a photo id the Batch API refuses: ${x.custom.slice(0, 40)}`);
     const requests = selected.map((x) => ({ custom_id: x.custom, params: { model: d.model, max_tokens: x.doc ? PDF_MAX_OUT : MAX_OUT, system, tools: [tool],
       tool_choice: { type: "tool", name: tool.name }, messages: [{ role: "user", content: requestContent(x) }] } }));
+    const ptool = priceTool(); const psystem = pricePrompt();
+    for (const x of selected) if (needsSecond(x)) requests.push({ custom_id: secondId(x.custom), params: { model: d.model, max_tokens: PRICE_MAX_OUT, system: psystem,
+      tools: [ptool], tool_choice: { type: "tool", name: ptool.name }, messages: [{ role: "user", content: requestContent(x) }] } });
     const max = d.maxBatchBytes ?? 150_000_000;
     const chunks = []; let cur = [], size = 0;
     for (const rq of requests) { const n = JSON.stringify(rq).length; if (cur.length && size + n > max) { chunks.push(cur); cur = []; size = 0; } cur.push(rq); size += n; }
@@ -141,7 +155,7 @@ export async function runMenuRead(d) {
   }
 
   // ---------- 3 wait for the batches, read the results ----------
-  const unfinished = [];
+  const unfinished = []; const recorded = new Set();
   let read = 0, pagesRead = 0, dishes = 0, usd = 0;
   for (const id of batchIds) {
     let info = null;
@@ -166,6 +180,12 @@ export async function runMenuRead(d) {
         meter.addLine({ model: d.model, step: dry ? "dry_run" : "batch_read", calls: 1, input_tokens: u.input, output_tokens: u.output, cache_read_tokens: u.cacheRead, cache_write_tokens: u.cacheWrite, web_searches: 0, usd: cost });
         usd += cost;
       }
+      if (x.second) {
+        const call = (result.message?.content ?? []).find((b) => b.type === "tool_use");
+        const ok = result.type === "succeeded" ? PriceReading.safeParse(call?.input) : { success: false };
+        if (ok.success && result.message?.stop_reason !== "max_tokens") secondResults.push({ x, items: ok.data.items });
+        continue;
+      }
       let parsed = null; let why = null;
       if (result.type !== "succeeded") why = `the batch ${result.type}`;
       else {
@@ -183,17 +203,35 @@ export async function runMenuRead(d) {
         failed.push(x.kind === "photo" ? { photo_id: x.photo_id, place: x.place, reason: why } : { page_id: x.page_id, place: x.place, title: x.title, reason: why });
         continue;
       }
-      if (!dry) await record(parsed);
+      if (!dry) {
+        await record(parsed);
+        recorded.add(x.custom);
+        // AUTO1: the place's hours and phone, when the source shows them: proposed for a person (never applied here)
+        const pl = parsed.place;
+        if (pl && x.source_id && (pl.open || pl.close || pl.phone_text || pl.hours_text)) {
+          await d.rpc("record_menu_place_details", { p_place: x.source_id, p_photo: x.kind === "photo" ? x.photo_id : null, p_page: x.kind === "page" ? x.page_id : null,
+            p_details: { ...pl, phone: lebanesePhone(pl.phone_text) }, p_by: reader }).catch(() => undefined);
+        }
+      }
       readings.push(x.kind === "photo" ? { photo_id: x.photo_id, place: x.place, reading: parsed } : { page_id: x.page_id, place: x.place, title: x.title, reading: parsed });
       if (x.kind === "photo") read++; else pagesRead++;
       dishes += dishCount(parsed);
     }
   }
   if (usd > d.capUsd) meter.stoppedAtCap = true;
+  // AUTO1: the second readings, once the first readings are in (the dishes they check exist only then)
+  const checks = { same: 0, mismatch: 0, not_found: 0 };
+  for (const { x, items: its } of secondResults) {
+    if (!recorded.has(x.custom)) continue;
+    const r = await d.rpc("record_menu_second_reading", { p_photo: x.kind === "photo" ? x.photo_id : null, p_page: x.kind === "page" ? x.page_id : null,
+      p_items: its, p_model: d.model, p_by: reader });
+    for (const k of Object.keys(checks)) checks[k] += r?.[k] ?? 0;
+  }
 
   // ---------- 4 the report ----------
   const lines = [`### Menu reading run ${d.runId}${dry ? " (dry run: nothing written but the cost)" : ""}`, "",
     `Photos read: ${read} of ${photoQueue.length} waiting; ${dishes} dish(es) proposed${dry ? "" : ", each waiting for a person on the Menus page"}. Batches: ${batchIds.length ? batchIds.join(", ") : "none"}. Model ${d.model}, half price. Spent USD ${usd.toFixed(4)} of a cap of USD ${d.capUsd}.`];
+  if (secondResults.length) lines.push(`Second readings (prices only, for the rule): ${checks.same} dish(es) the same, ${checks.mismatch} different, ${checks.not_found} not found.`);
   if (pageQueue.length) lines.push(`Source pages read (links, PDFs, pasted text, Word and Excel files): ${pagesRead} of ${pageQueue.length} waiting.`);
   if (skipped.length) lines.push(`Left for another run: ${count(skipped, (x) => x.reason === "cap")} for the cap, ${count(skipped, (x) => /unavailable/.test(x.reason))} could not be fetched, ${count(skipped, (x) => /too_large|too_many/.test(x.reason))} too large (a photo over 5 MB, a PDF over 20 MB or ${MAX_PDF_PAGES} pages).`);
   if (meter.stoppedAtCap && skipped.some((x) => x.reason === "cap")) lines.push("**The cap was reached: what is left is read by the next run.**");
@@ -204,5 +242,5 @@ export async function runMenuRead(d) {
   lines.push("", "| place | dishes proposed |", "|---|---|", ...Object.entries(byPlace).sort().map(([k, n]) => `| ${k} | ${n} |`), "");
   const summary = lines.join("\n");
   return { queued: items.length, selected: selected.length, read, pagesRead, dishes, failed, skipped, batches: batchIds, unfinished, usd, cap: d.capUsd,
-    cost: meter.toRecord(), meter, summary, readings };
+    cost: meter.toRecord(), meter, summary, readings, secondChecks: checks };
 }

@@ -234,6 +234,7 @@ describe("every model-calling entry point is metered", () => {
     ["evals/live/concierge.live.test.ts", /startMeter\(\{ workflow: "language-pack"/],
     ["scripts/label/read.mjs", /finishMeter\(out\.meter/],                                 // LB1: the batch reading run; its meter is built in batch.mjs (a library, below)
     ["scripts/menus/read.mjs", /finishMeter\(out\.meter/],                                 // FD1: the menu reading run; its meter is built in batch.mjs (a library, below)
+    ["scripts/images/photo-check.mjs", /finishMeter\(out\.meter/],                        // AUTO1: the picture check run; its meter is built in lib/photo-check.mjs (below)
     ["evals/search/live.search.test.ts", /startMeter\(\{ workflow: "search-eval"/],     // SR1: the reading before and after, the embeddings
   ];
   for (const [file, re] of metered) it(`${file} starts a meter and records the run`, () => {
@@ -269,6 +270,7 @@ describe("every model-calling entry point is metered", () => {
       "evals/sim/sim.live.test.ts", "evals/sim/test/guard.test.ts", "evals/sim/test/judge-basket-lb1.test.ts",           // LB1: a spy around the stand-in judge
       "scripts/label/batch.mjs",                                                                                        // LB1: the reading run's library: priced at half, recorded by read.mjs
       "scripts/menus/batch.mjs",                                                                                        // FD1: the menu reading run's library: priced at half, recorded by read.mjs
+      "scripts/images/lib/photo-check.mjs",                                                                             // AUTO1: the picture check's library: priced at half, recorded by photo-check.mjs
     ]);
     const entries = new Set(metered.map(([f]) => f));
     const callers = [...walk("scripts"), ...walk("evals")].filter((f) => /\.(mjs|ts|sh|js)$/.test(f)).filter((f) => /api\.anthropic\.com|@anthropic-ai\/sdk|messages\.create/.test(read(f)));

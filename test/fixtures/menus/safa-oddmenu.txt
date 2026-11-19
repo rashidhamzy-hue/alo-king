@@ -1,0 +1,86 @@
+# SHAWARMA/شاورما
+ساندويش شاورما دجاج صغير
+3.5
+$
+ساندويش شاورما لحمة صغير
+4.5
+$
+ساندويش شاورما دجاج كبير
+5
+$
+ساندويش شاورما لحمة كبير
+6
+$
+شاورما دجاج مقطع
+6
+$
+كيلو شاورما لحمة
+40
+$
+صحن شاورما دجاج
+7
+$
+# BURGERS / برغرز
+Mini Burger
+2mini burgers with potato
+7
+$
+برغر لحمة
+برغر لحم مع الكاتشب، سلطة الكولسلو، والبطاطا
+6.5
+$
+Safa Special Burger
+برغر مميز يتكون من قطعة لحم مشوي، طبقة من جبنة الموزاريلا، خس آيسبرغ الطازج، صلصة خاصة، شرائح البصل، والبندورة
+7.5
+$
+# PIZZA & PASTA
+Supreme
+A loaded delight with pepperoni, beef, fresh veggies, and melted mozzarella on a crispy crust
+12
+$
+Spicy Chicken Ranch
+Juicy grilled chicken, topped with cool ranch dressing,
+jalapeno, tomato and mushroom for a tantalizing
+12
+$
+Margherita
+Creamy mozzarella cheese on a crispy crust
+10
+$
+Vegeterian
+Fresh bell peppers, onions, mushrooms, and olives, perfectly complemented by tangy tomato sauce and melted cheese.
+10
+$
+Chicken Fettuccine Alfredo
+Tender pieces of grilled chicken, drenched in Alfredo
+sauce made with Parmesan cheese, butter, and
+7.5
+$
+# PLATES / صحون
+صحن سودة
+غرام 2oo
+200 غرام سودة مشوية مقدمة مع ثوم وكبيس
+8.5
+$
+# TAKE-OUT/ DINE-IN
+فروج فحم
+11–17
+$
+نصف فروج فحم
+6–11
+$
+# COLD BEVERAGES
+Pepsi Can
+1.5
+$
+Miranda Can
+1.5
+$
+Pepsi Plastic
+330ml
+1.11
+$
+Water
+Small
+0.28
+$
