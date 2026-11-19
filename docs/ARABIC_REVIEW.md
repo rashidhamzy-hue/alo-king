@@ -2480,4 +2480,9 @@ nightly digest's Arabic text is written the same way (claude-haiku-5-5). The fix
 | المساعد متوقّف. · لم أستطع الإجابة بأرقام من البيانات وحدها، لذلك لا أعرض تخميناً. اسأل بشكل أضيق، أو افتح الصفحة. · لم يُجب المساعد. حاول مجدداً بعد دقيقة. | The assistant is off. · I could not answer this with figures from the data alone, so I am not showing a guess. Ask more narrowly, or open the page. · The assistant did not answer. Try again in a minute. | not yet |
 | المساعد غير موصول: لا يملك الكونسول مفتاح النموذج. · المصروف اليوم · هذا الشهر | The assistant is not connected: the console has no model key. · Spent today · this month | not yet |
 | خلاصة اليوم · خلاصة يوم {day} · اسأل المساعد · حُفظت الأرقام، لكن تعذّر التحقق من النص مقابلها، لذلك لا يُعرض. اسأل المساعد عن ذلك اليوم. | The day's digest · Digest of {day} · Ask the assistant · The figures were saved, but the text could not be checked against them, so it is not shown. Ask the assistant about that day. | not yet |
-| مساعد الكونسول يجيب عن الأسئلة · يقرأ ولا يتصرّف أبداً. عند الإيقاف: تقول اللوحة إنه متوقّف. · المساعد: الإنفاق في اليوم / في الشهر · عند تجاوزه يتوقّف المساعد حتى الغد / حتى الشهر القادم. | The console assistant answers questions · It reads and never acts. Off: the panel says it is off. · Assistant: spend per day / per month · Over it, the assistant stops until tomorrow / next month. | not yet |
+| مساعد الكونسول يجيب عن الأسئلة | The console assistant answers questions | not yet |
+| يقرأ ولا يتصرّف أبداً. عند الإيقاف: تقول اللوحة إنه متوقّف. | It reads and never acts. Off: the panel says it is off. | not yet |
+| المساعد: الإنفاق في اليوم | Assistant: spend per day | not yet |
+| عند تجاوزه يتوقّف المساعد حتى الغد. | Over it, the assistant stops until tomorrow. | not yet |
+| المساعد: الإنفاق في الشهر | Assistant: spend per month | not yet |
+| عند تجاوزه يتوقّف المساعد حتى الشهر القادم. | Over it, the assistant stops until next month. | not yet |
