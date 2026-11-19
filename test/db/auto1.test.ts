@@ -65,7 +65,8 @@ describe("0 the rule and its switch, as data", () => {
   it("the founder's decision: both rules on, each with its version, approved by a person", async () => {
     expect(await db.rpc("automation_on", { p_kind: "dish" })).toBe(true);
     expect(await db.rpc("automation_on", { p_kind: "photo" })).toBe(true);
-    expect(await db.all(`select kind, version from automation_rules order by kind`)).toEqual([{ kind: "dish", version: "menu-dish-1" }, { kind: "photo", version: "photo-vision-1" }]);
+    expect(await db.all(`select kind, version from automation_rules order by kind`)).toEqual([{ kind: "dish", version: "menu-dish-1" }, { kind: "photo", version: "photo-vision-1" }, { kind: "photo", version: "photo-vision-2" }]);
+    expect(await db.rpc("automation_version", { p_kind: "photo" })).toBe("photo-vision-2");             // 0265: the marks read from evidence
     expect((await db.all(`select field from editable_settings where key = 'automation' order by field`)).map((r) => r.field)).toEqual(["dishes.enabled", "photos.enabled"]);
     expect(await db.one(`select is_blocked, display_name from parties where id = $1`, [auto])).toEqual({ is_blocked: true, display_name: "Automation (a rule a person approved)" });
     await fails(db.pg.query(`update parties set is_blocked = false where id = $1`, [auto]), /AUTOMATION_PARTY_LOCKED/);
@@ -231,14 +232,14 @@ describe("6 the place's hours and phone from the source", () => {
 });
 
 describe("7 photos: the database decides from the check's answer", () => {
-  let p1: string; let p2: string; let p3: string; let p4: string;
+  let p1: string; let p2: string; let p3: string; let p4: string; let p5: string;
   const img = async (product: string, n: number, status = "proposed") => (await db.one(
     `insert into product_images(product_id, status, source_kind, licence, media_path, sha256, width_px, height_px, bytes, source_note)
      values ($1, $2, 'founder_upload', 'founder_supplied', $3, $4, 1000, 1000, 50000, 'release pictures-test') returning id`, [product, status, `pictures/test/${n}.webp`, String(n).padStart(64, "0")])).id;
   const yes = (seen: string) => ({ seen, match: "yes" });
   beforeAll(async () => {
     const ps = await db.all(`select id from products where sku like 'AK-%' and is_active order by sku limit 5`);
-    [p1, p2, p3, p4] = ps.map((x) => x.id);
+    [p1, p2, p3, p4, p5] = ps.map((x) => x.id);
   });
   it("all four match with high confidence: approved by the automation party; the earlier picture superseded", async () => {
     const old = await img(p1, 1, "approved");
@@ -258,16 +259,30 @@ describe("7 photos: the database decides from the check's answer", () => {
     const i = await img(p2, 3);
     expect(await db.rpc("record_photo_check", { p_image: i, p_mode: "decide", p_model: MODEL, p_result: { verdict: "mismatch", confidence: 0.95, brand: { seen: "Masafi", match: "no" }, product_type: yes("water"), size: yes("1.5 L"), flavour: { match: "n/a" }, marks: [], reason: "shows Masafi, not Nejmeh" } }))
       .toMatchObject({ outcome: "rejected", reason: "shows Masafi, not Nejmeh" });
-    expect((await db.one(`select status, review_note from product_images where id = $1`, [i]))).toEqual({ status: "rejected", review_note: "automatic: rule photo-vision-1: shows Masafi, not Nejmeh" });
+    expect((await db.one(`select status, review_note from product_images where id = $1`, [i]))).toEqual({ status: "rejected", review_note: "automatic: rule photo-vision-2: shows Masafi, not Nejmeh" });
+    // 0265 (photo-vision-2): a mark counts only with evidence, and leaves the picture for a person; it never rejects by itself
     const j = await img(p2, 4);
-    expect(await db.rpc("record_photo_check", { p_image: j, p_mode: "decide", p_model: MODEL, p_result: { verdict: "match", confidence: 0.97, brand: yes("x"), product_type: yes("x"), size: yes("x"), flavour: yes("x"), marks: ["hebrew_text"], reason: "the right can, with Hebrew text on it" } }))
-      .toMatchObject({ outcome: "rejected" });
+    expect(await db.rpc("record_photo_check", { p_image: j, p_mode: "decide", p_model: MODEL, p_result: { verdict: "match", confidence: 0.97, brand: yes("x"), product_type: yes("x"), size: yes("x"), flavour: yes("x"), marks: ["hebrew_text"], evidence: { hebrew: "مياه" }, reason: "the right can" } }))
+      .toMatchObject({ outcome: "approved", marks: [] });                                                // Arabic is not Hebrew: no mark
+    const j2 = await img(p4, 41);
+    expect(await db.rpc("record_photo_check", { p_image: j2, p_mode: "decide", p_model: MODEL, p_result: { verdict: "match", confidence: 0.97, brand: yes("x"), product_type: yes("x"), size: yes("x"), flavour: yes("x"), marks: ["hebrew_text"], evidence: { hebrew: "מים מינרליים" }, reason: "the right bottle" } }))
+      .toMatchObject({ outcome: "left", marks: ["hebrew_text"] });
+    expect((await db.one(`select status from product_images where id = $1`, [j2])).status).toBe("proposed");
+    expect((await db.one(`select menu_text_claim('x') is not null r`)).r).toBe(true);
+    // the brand's own printed claim is no mark; an overlay's is; "organic" on an item that is not
+    const cnt = async (m: string[], ev: Record<string, unknown>, name = "Uno Juice Mango 1 L") => (await db.one(`select photo_marks_counted($1::text[], $2::jsonb, $3, 'Uno') r`, [`{${m.join(",")}}`, JSON.stringify(ev), name])).r;
+    expect(await cnt(["health_claim"], { claim: "No preservatives", claim_where: "pack" })).toEqual([]);
+    expect(await cnt(["health_claim"], { claim: "Boosts immunity!", claim_where: "overlay" })).toEqual(["health_claim"]);
+    expect(await cnt(["health_claim"], { claim: "Organic", claim_where: "pack" })).toEqual(["health_claim"]);
+    expect(await cnt(["health_claim"], { claim: "Organic", claim_where: "pack" }, "Organic mango juice")).toEqual([]);
+    expect(await cnt(["other_shop_branding", "price_tag"], { shop: "Uno", price: "" })).toEqual([]);
+    expect(await cnt(["other_shop_branding", "price_tag"], { shop: "Spinneys", price: "3.5$" })).toEqual(["other_shop_branding", "price_tag"]);
     const k = await img(p3, 5);
     expect(await db.rpc("record_photo_check", { p_image: k, p_mode: "decide", p_model: MODEL, p_result: { verdict: "mismatch", confidence: 0.93, brand: yes("Pepsi"), product_type: yes("cola"), size: { seen: "24-can tray", match: "no" }, flavour: { match: "n/a" }, marks: [], reason: "24-can tray, product is one can" } }))
       .toMatchObject({ outcome: "rejected", reason: "24-can tray, product is one can" });
   });
   it("anything uncertain stays for a person, marked needs review with the check's words", async () => {
-    const i = await img(p4, 6);
+    const i = await img(p5, 6);
     expect(await db.rpc("record_photo_check", { p_image: i, p_mode: "decide", p_model: MODEL, p_result: { verdict: "match", confidence: 0.7, brand: yes("x"), product_type: yes("x"), size: { seen: null, match: "unsure" }, flavour: { match: "n/a" }, marks: [], reason: "the size is not readable" } }))
       .toMatchObject({ outcome: "left" });
     expect(await db.one(`select status, needs_review, check_notes from product_images where id = $1`, [i])).toEqual({ status: "proposed", needs_review: true, check_notes: ["vision check: the size is not readable"] });
@@ -305,7 +320,7 @@ describe("7 photos: the database decides from the check's answer", () => {
 describe("8 the day's list and the weekly kill-gate", () => {
   it("today's list: every automatic decision, with undo state; read only", async () => {
     const t = await db.rpc("automation_today", {});
-    expect(t.counts).toMatchObject({ dishes_approved: 17, photos_approved: 1, photos_rejected: 3, menus_stamped: 1, undone: 3 });
+    expect(t.counts).toMatchObject({ dishes_approved: 17, photos_approved: 2, photos_rejected: 2, menus_stamped: 1, undone: 3 });
     expect(t.decisions.find((d: any) => d.title.startsWith("Water"))).toMatchObject({ undone: true, undone_by: "Lead AUTO1" });
   });
   it("a sample of last week's decisions; more than one wrong switches the rule off with its reason; each wrong one undone", async () => {

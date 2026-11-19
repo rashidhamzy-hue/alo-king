@@ -2513,7 +2513,7 @@ Model-written; not yet read by an Arabic reader. Console only (staff), never cus
 | الأطباق لا تُقبل بالقاعدة: كل طبق ينتظر شخصاً | Dishes are not approved by rule: every dish waits for a person | not yet |
 | الصور لا تُقرَّر بالقاعدة: كل صورة تنتظر شخصاً | Pictures are not decided by rule: every picture waits for a person | not yet |
 | اعرف السبب | See why | not yet |
-| الأطباق تُقبل بالقاعدة (menu-dish-1) / الصور تُقرَّر بالقاعدة (photo-vision-1) | Dishes approved by rule / Pictures decided by rule (the Settings page) | not yet |
+| الأطباق تُقبل بالقاعدة (menu-dish-1) / الصور تُقرَّر بالقاعدة (photo-vision-2) | Dishes approved by rule / Pictures decided by rule (the Settings page) | not yet |
 | قارن بالمصدر في صفحة القوائم. | Compare with the source on the Menus page. | not yet |
 | ${n(k.dishes_approved)} طبق، ${n(k.photos_approved)} صورة مقبولة، ${n(k.photos_rejected)} صورة مرفوضة، ${n(k.menus_stamped)} قائمة مختومة | ${n(k.dishes_approved)} dish(es), ${n(k.photos_approved)} picture(s) approved, ${n(k.photos_rejected)} picture(s) rejected, ${n(k.menus_stamped)} menu(s) stamped | not yet |
 |  (${n(k.undone)} تم التراجع عنها) |  (${n(k.undone)} undone) | not yet |
