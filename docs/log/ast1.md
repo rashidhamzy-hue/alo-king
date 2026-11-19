@@ -63,6 +63,8 @@ What the answers showed beyond the grade (read from the run's report, kept as fo
   said 11 (the invented day has a digest for the 17th but no orders), and said so plainly instead of choosing one. Honest. It also showed
   that `money`'s cash to collect and riders' cash are "now", whatever day is asked: a follow-up should say so in the tool's result.
 - The model called riders "he" and "she" from their names. A follow-up line in the prompt: refer to people by name.
+- After the run only grants changed in 0261 (client roles lose their grants on the tables given a read policy, for the permission
+  check on real Postgres), and `enabled` in 0262: no tool's output, prompt or turn code changed.
 - One answer linked to Sentry's own page; the link check keeps only console pages, so its words stayed and the address went.
 
 ## What only a live account can prove
