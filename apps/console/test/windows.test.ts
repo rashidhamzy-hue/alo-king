@@ -10,7 +10,7 @@ afterAll(() => vi.unstubAllGlobals());       // one rig for the file: Kapso's st
 beforeAll(async () => { r = await rig(); village = await openShop(r.db); }, 120_000);
 
 const ALL_DAYS = { wd_1: 1, wd_2: 1, wd_3: 1, wd_4: 1, wd_5: 1, wd_6: 1, wd_7: 1 };
-const MORNING = { name: "Morning", ...ALL_DAYS, starts: "08:00", ends: "10:00", capacity: 5, order_by_min: 120, fresh_order_by_min: 720, zone: "", calendar_kind: "", active: 1 };
+const MORNING = { name: "Morning", ...ALL_DAYS, starts: "10:00", ends: "12:00", capacity: 5, order_by_min: 120, fresh_order_by_min: 720, zone: "", calendar_kind: "", active: 1 };
 const offered = async () => (await r.db.rpc("open_delivery_windows", { p_village: village, p_fresh: false, p_limit: 20 })) as any[];
 const tomorrow = async () => (await r.db.one(`select ((now() at time zone 'Asia/Beirut')::date + 1)::text as d`)).d as string;
 const slotsOf = async (plan: string) => r.db.all(`select id, slot_date::text as d, capacity, closed from delivery_slots where plan_id = $1 and slot_date >= (now() at time zone 'Asia/Beirut')::date + 2 order by starts_at`, [plan]);
@@ -52,13 +52,13 @@ describe("Windows and calendar", () => {
     const res = await b.post("/windows/plan", MORNING);
     expect(flashOf(res.text)).toMatch(/^Added “Morning”\. [5-8] windows ahead from it\.$/);
     expect(res.text).toContain("Mon Tue Wed Thu Fri Sat Sun");
-    expect(res.text).toContain("08:00–10:00");
+    expect(res.text).toContain("10:00–12:00");
     const plan = await r.db.one(`select id, weekdays, capacity, created_by from delivery_window_plans where name = 'Morning'`);
     expect(plan).toMatchObject({ weekdays: [1, 2, 3, 4, 5, 6, 7], capacity: 5, created_by: lead.partyId });
     const open = await offered();
     expect(open.length).toBeGreaterThan(0);
-    expect(open[0]).toMatchObject({ starts: "08:00", ends: "10:00", free: 5 });   // B1f: inside a rider shift (06:00 had none)
-    expect(res.text).toContain(`${open[0].date} 08:00–10:00`);                                // the schedule on the page shows the same window
+    expect(open[0]).toMatchObject({ starts: "10:00", ends: "12:00", free: 5 });   // inside a rider shift (B1f; WEB4b 0252: the shifts start at 09:00)
+    expect(res.text).toContain(`${open[0].date} 10:00–12:00`);                                // the schedule on the page shows the same window
 
     // change it: the slots nobody holds are rebuilt with the new capacity
     const after = await b.post("/windows/plan", { ...MORNING, plan: plan.id, capacity: 3 });
@@ -95,10 +95,10 @@ describe("Windows and calendar", () => {
     await b.signIn(admin);
     await b.get("/windows");
     const other = await r.db.one(`select z.id from zones z where z.id is distinct from (select zone_id from villages where id = $1) limit 1`, [village]);
-    expect(flashOf((await b.post("/windows/plan", { ...MORNING, name: "Other zone only", starts: "09:00", ends: "10:00", zone: other.id })).text)).toMatch(/^Added/);
+    expect(flashOf((await b.post("/windows/plan", { ...MORNING, name: "Other zone only", starts: "13:00", ends: "14:00", zone: other.id })).text)).toMatch(/^Added/);
     const times = (await offered()).map((w) => w.starts);
-    expect(times).toContain("08:00");
-    expect(times).not.toContain("09:00");
+    expect(times).toContain("10:00");
+    expect(times).not.toContain("13:00");
     await r.db.pg.query(`delete from delivery_window_plans where name = 'Other zone only'`);
   });
 
@@ -164,7 +164,7 @@ describe("Windows and calendar", () => {
     expect(flashOf((await b.post(`/windows/order/${o.id}/reschedule`, { slot: d.id, reason: "" })).text)).toBe("Write the reason for the move.");
     expect(await slotOfOrder(o.id)).toBe(c.id);
     const moved = await b.post(`/windows/order/${o.id}/reschedule`, { slot: d.id, reason: "van is late", tell: "مرحبا، نقلنا طلبك إلى موعد آخر", _key: "move-key-0001" });
-    expect(flashOf(moved.text)).toMatch(new RegExp(`^${o.code} moved to \\w{3} ${d.d} 08:00–10:00\\. The customer was told\\.$`));
+    expect(flashOf(moved.text)).toMatch(new RegExp(`^${o.code} moved to \\w{3} ${d.d} 10:00–12:00\\. The customer was told\\.$`));
     expect(await slotOfOrder(o.id)).toBe(d.id);
     expect(await r.db.one(`select actor, actor_id, reason from slot_changes where order_id = $1`, [o.id])).toEqual({ actor: "ops", actor_id: lead.partyId, reason: "van is late" });
     const sent = r.kapso.filter((k) => k.url.includes("PN_CUSTOMER") && k.body?.text?.body === "مرحبا، نقلنا طلبك إلى موعد آخر");
