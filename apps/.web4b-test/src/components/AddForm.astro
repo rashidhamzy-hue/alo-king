@@ -1,6 +1,0 @@
----
-// WEB4a: the one "Add to basket" form of a page of reference cards (components/ref/Product.tsx): each card's button belongs to it (form="ak-add")
-// and posts "sku:price" with no script; /cart/line comes back to this page with "Added to your basket".
-const here = `${Astro.url.pathname}${Astro.url.search.replace(/[?&](added|v)=[^&]*/g, "").replace(/^&/, "?")}`;
----
-<form id="ak-add" method="post" action="/cart/line" hidden><input type="hidden" name="add" value="1"><input type="hidden" name="back" value={here}></form>

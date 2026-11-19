@@ -1,9 +1,0 @@
----
-// WEB2: what a page of product cards draws once, so each card stays light (docs/WEBSITE.md: a page under 100 KB with its fonts): the one
-// "Add to basket" form every card's button belongs to (it posts the card's `sku` with no script and comes back to this page), and the
-// icons the cards repeat, drawn once and referenced. Put it once on a page that shows Card.astro.
-import { iconSprite } from "@ak/ui/components";
-const here = `${Astro.url.pathname}${Astro.url.search.replace(/[?&]added=[^&]*/g, "").replace(/^&/, "?")}`;
----
-<form id="ak-add" method="post" action="/cart/line" hidden><input type="hidden" name="add" value="1"><input type="hidden" name="back" value={here}></form>
-<Fragment set:html={iconSprite(["image", "plus"]).s} />
