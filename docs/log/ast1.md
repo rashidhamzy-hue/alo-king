@@ -67,6 +67,20 @@ What the answers showed beyond the grade (read from the run's report, kept as fo
   check on real Postgres), and `enabled` in 0262: no tool's output, prompt or turn code changed.
 - One answer linked to Sentry's own page; the link check keeps only console pages, so its words stayed and the address went.
 
+**A second, unplanned live run.** Merging the pull request brought `evals/assistant/request.json` into `main`, and that push started the
+`assistant-eval` workflow again (run 44587542367, on `main` at 14b8b71). It scored the same: **0 of 39 facts wrong**, USD 0.1169. The two
+runs together cost **USD 0.234**, against the session's cap of 0.50 for one run. The request file only starts a run when it changes, so it
+will not run again unless someone edits it on purpose.
+
+## On staging (19 November, from `main` at 14b8b71)
+- deploy-staging run 44587667140: 0261 and 0262 applied (178 of 178 migrations recorded); the permission check on staging itself:
+  "assistant_reader holds SELECT only and owns every assistant_* function"; the staging checks green.
+- console run 44587667086: the console Worker deployed with the model key (`ANTHROPIC_API_KEY`), the live smoke test green.
+- The follow-up pull request adds to that smoke test: an ops lead's Today has the panel, `/assistant` says it is on and takes questions
+  (no question is asked, so no model spend), and a picker is refused `/assistant`.
+- Screens: Console, **Screens**, chip **ast1** (the `screens` run 44579541993: the panel beside Today and `/assistant` on a phone and a
+  laptop, light and dark, Arabic and English).
+
 ## What only a live account can prove
 - The panel answering on staging with staging's own data (the eval uses an invented day in the runner, never staging's data).
 - Sentry's issues: needs the founder's read-only token (STATUS action p). GitHub's failed runs: needs a read-only token (action r).
