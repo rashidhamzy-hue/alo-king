@@ -293,9 +293,9 @@ describe("6 approval made fast, and still per dish", () => {
 
   it("a price to confirm cannot be approved until it is typed; sizes are typed one each; a praised description must change", async () => {
     const kibbeh = (await row("Fried kibbeh")).id;
-    await fails(db.rpc("review_menu_dish", { p_dish: kibbeh, p_by: lead, p_approve: true }), /PRICE_TO_CONFIRM/);
+    await fails(db.rpc("review_menu_dish", { p_dish: kibbeh, p_by: lead, p_approve: true }), /PRICE_REQUIRED/);
     const burger = (await row("Burger with cheese, lettuce and tom")).id;
-    await fails(db.rpc("review_menu_dish", { p_dish: burger, p_by: lead, p_approve: true, p_edit: { name_en: "Cheeseburger" } }), /PRICE_TO_CONFIRM/);
+    await fails(db.rpc("review_menu_dish", { p_dish: burger, p_by: lead, p_approve: true, p_edit: { name_en: "Cheeseburger" } }), /PRICE_REQUIRED/);
     expect((await db.rpc("review_menu_dish", { p_dish: kibbeh, p_by: lead, p_approve: true, p_edit: { price: 5 } })).price_usd).toBe(5);
     // a sized row with the reader's doubt: every size typed
     const s = await db.rpc("add_menu_source", { p_place: place, p_kind: "text", p_by: lead, p_detail: { body: "Shawarma small 3 large 5 (blurred)" } });

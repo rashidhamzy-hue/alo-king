@@ -83,7 +83,7 @@ describe("approval made fast", () => {
     const kibbeh = (await r.db.one(`select id from menu_dish_proposals where name_en = 'Fried kibbeh'`)).id;
     expect(flashOf((await b.post(`/menus/${src}/section`, { ids: kibbeh })).text)).toBe("Approved 0. 1 changed since the page was shown: check them one by one.");
     expect(flashOf((await b.post(`/menus/dish/${kibbeh}`, { source: src, decision: "approve", name_ar: "كبة مقلية", name_en: "Fried kibbeh", section_en: "Starters", price: "", typed: "1", currency: "" })).text))
-      .toBe("The source does not show this price clearly. Type the price as printed (or each size's), then approve.");
+      .toBe("Type the price as printed and choose USD or LBP.");
     expect(flashOf((await b.post(`/menus/dish/${kibbeh}`, { source: src, decision: "approve", name_ar: "كبة مقلية", name_en: "Fried kibbeh", section_en: "Starters", price: "5", typed: "1", currency: "USD" })).text)).toBe("Approved at $5.00 today.");
     page = (await b.get(`/menus/${src}`)).text;
     expect(page).toContain("Nothing to check.");

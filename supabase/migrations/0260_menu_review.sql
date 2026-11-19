@@ -271,13 +271,14 @@ begin
   end if;
   v_price := case when v_e ? 'price' then nullif(v_e->>'price', '')::numeric else d.price end;
   v_typed := coalesce(v_e ? 'price' and nullif(v_e->>'price', '') is not null, false) or coalesce(jsonb_typeof(v_e->'size_prices') = 'array', false);
-  if d.price_status = 'to_confirm' and not v_typed then
-    raise exception 'PRICE_TO_CONFIRM: the source does not show this price clearly; type it as printed (or each size''s) before approving';
-  end if;
   v_cur := coalesce(case when v_e ? 'currency' then menu_currency(v_e->'currency') end, d.currency,
                     (select s->>'currency' from jsonb_array_elements(v_sizes) s where s->>'currency' is not null limit 1));
   v_base := coalesce(v_price, (select min((s->>'price')::numeric) from jsonb_array_elements(v_sizes) s where s->>'price' is not null));
   if v_base is null or v_base <= 0 or v_cur is null then raise exception 'PRICE_REQUIRED: type the price as printed, and whether it is USD or LBP'; end if;
+  -- a price the source does not show clearly is never approved as read: the person types it (or each size's)
+  if d.price_status = 'to_confirm' and not v_typed then
+    raise exception 'PRICE_TO_CONFIRM: the source does not show this price clearly; type it as printed (or each size''s) before approving';
+  end if;
   v_usd := menu_usd(v_base, v_cur);
   -- the dish on sale it was matched with when read (a re-import); else the same names (FD1's rule): price and options replaced, product kept
   v_prod := d.matched_product_id;
