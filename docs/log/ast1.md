@@ -54,7 +54,16 @@ build made are `docs/DECISIONS.md`, "AST1, the console assistant, 19 November 20
 - `npm run typecheck`, `npm test`, `npm run check:personal-data` (gitleaks 8.21.2), the repository hygiene check: see the pull request.
 
 ## The live run (once, at the end)
-LIVE_RESULT
+**assistant-eval run 44575163810** (19 November 2026, on this branch at 4a883e7, cap USD 0.50): **20 questions, 39 facts, 0 wrong,
+no tool missing, no forbidden word, every answer in the right language: the kill-gate passes**, so 0262 sets `settings.assistant.enabled`
+**true**. 38 calls to claude-sonnet-5-5, **USD 0.1172** in all (input 19,908, output 4,990, cache read 116,402, cache write 6,341 tokens;
+recorded in `model_costs` on staging, workflow `assistant-eval`), about USD 0.006 a question; 1 to 5 seconds each.
+What the answers showed beyond the grade (read from the run's report, kept as follow-ups, not changed after the run):
+- "What happened yesterday?": the model also read the orders and money tools for the 17th, found no orders that day where the digest
+  said 11 (the invented day has a digest for the 17th but no orders), and said so plainly instead of choosing one. Honest. It also showed
+  that `money`'s cash to collect and riders' cash are "now", whatever day is asked: a follow-up should say so in the tool's result.
+- The model called riders "he" and "she" from their names. A follow-up line in the prompt: refer to people by name.
+- One answer linked to Sentry's own page; the link check keeps only console pages, so its words stayed and the address went.
 
 ## What only a live account can prove
 - The panel answering on staging with staging's own data (the eval uses an invented day in the runner, never staging's data).

@@ -103,9 +103,9 @@ describe("read-only, enforced by Postgres", () => {
 });
 
 describe("digest, settings, cost and log (0262)", () => {
-  it("settings.assistant: off by default here, caps 0.50 a day and 10 a month, editable on the Settings page", async () => {
+  it("settings.assistant: on (the live eval passed), caps 0.50 a day and 10 a month, editable on the Settings page", async () => {
     const s = await db.rpc("ast_spend", { p_now: now });
-    expect(s).toMatchObject({ daily_cap_usd: 0.5, monthly_cap_usd: 10, model: "claude-sonnet-5-5", digest_model: "claude-haiku-5-5", max_tool_rounds: 4 });
+    expect(s).toMatchObject({ enabled: true, daily_cap_usd: 0.5, monthly_cap_usd: 10, model: "claude-sonnet-5-5", digest_model: "claude-haiku-5-5", max_tool_rounds: 4 });
     const fields = await db.all<any>(`select field from editable_settings where key = 'assistant' order by field`);
     expect(fields.map((f) => f.field)).toEqual(["daily_cap_usd", "enabled", "monthly_cap_usd"]);
   });

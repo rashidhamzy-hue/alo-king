@@ -1,6 +1,7 @@
 -- 0262 (session AST1): the assistant's daily digest, its settings, what it spends and what it answered.
 --
---   settings.assistant      enabled (the panel answers only when true), daily_cap_usd 0.50, monthly_cap_usd 10 (both counted in model_costs,
+--   settings.assistant      enabled (the panel answers only when true; true because the one live eval passed its kill-gate, 0 of 39 facts
+--                           wrong, run 44575163810: docs/log/ast1.md), daily_cap_usd 0.50, monthly_cap_usd 10 (both counted in model_costs,
 --                           workflows 'assistant' and 'assistant-digest'), model claude-sonnet-5-5, digest_model claude-haiku-5-5,
 --                           max_tool_rounds 4. The three first are on the Settings page (admin). Over a cap the panel says so and stops.
 --   assistant_digests       one row per Beirut day: the facts (from assistant_digest_facts, numbers only from the tools of 0261) and the short
@@ -16,7 +17,7 @@
 -- Worker (service role) may call them.
 
 insert into settings(key, value) values
-  ('assistant', '{"enabled": false, "daily_cap_usd": 0.5, "monthly_cap_usd": 10, "model": "claude-sonnet-5-5", "digest_model": "claude-haiku-5-5", "max_tool_rounds": 4}')
+  ('assistant', '{"enabled": true, "daily_cap_usd": 0.5, "monthly_cap_usd": 10, "model": "claude-sonnet-5-5", "digest_model": "claude-haiku-5-5", "max_tool_rounds": 4}')
 on conflict (key) do nothing;
 
 insert into editable_settings(key, field, kind, min_value, max_value, max_len, choices, two_person, two_person_when) values
