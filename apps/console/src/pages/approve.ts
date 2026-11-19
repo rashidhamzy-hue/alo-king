@@ -1,3 +1,8 @@
+// CON1: the one Approvals inbox (docs/DECISIONS.md, "CON1, a simple console, 19 November 2026"). Eight kinds, each with its count, one card
+// at a time: Names, Photos, Label readings, Dishes (FD1's menus), Places (approve_merchant), Second approvals (price, rate, settings, a
+// large transfer), Refunds (above the limit) and Auto-approvals (the day's spot checks). Every card posts to the route its page already has
+// (/names, /pictures, /label-queue, /menus/dish, /places/<id>/approve, /approvals, /auto-approvals/check) with `return_to`, so every SQL
+// function, role and refusal stands. The older list pages live here as "view=list" (app.ts drawOlder) and their addresses move here (MOVED).
 // UX2b: Approve (the reference's `/ops/approve`): one card at a time, for everything that waits for a decision from a person.
 // Four tabs, each with its count: Names, Pictures, Label readings (LB1's queue, in its order: allergens, halal and certificates, warnings,
 // disagreements, the rest), and Second approvals (refunds, price changes, the LBP rate and the settings that are two-person).
@@ -9,8 +14,7 @@
 //     back). A picture, a label reading, a payment or a refund is not undoable here, and says so.
 //   * No swipe decides anything: buttons, and the keys a (approve), r (reject, which asks for a reason) and the arrow or space to skip.
 //   * Unknown is never safe (invariant 15): an allergen, halal or warning row asks for a tick that the person looked at the label photo.
-import { html, render, type Ctx, type Section } from "../app";
-import { badgeText, buildNav } from "../nav";
+import { drawOlder, html, redirect, render, type Ctx, type Section } from "../app";
 import { form, usd, when } from "../html";
 import { pick, t, type Lang } from "../i18n";
 import { LEADS } from "../roles";
@@ -22,9 +26,16 @@ import { ar as arSpan, diff, drifted, withSize, type Live, type Proposal } from 
 import { KIND as APPROVAL_KIND, type Approval } from "./approvals";
 import { settingWords } from "./settingmeta";
 
-const TABS = ["names", "pictures", "labels", "money"] as const;
+const TABS = ["names", "photos", "labels", "dishes", "places", "second", "refunds", "auto"] as const;
 type Tab = (typeof TABS)[number];
-const LEGACY: Record<Tab, string> = { names: "/names", pictures: "/pictures", labels: "/label-queue", money: "/approvals" };
+/** Older addresses of a kind (a bookmark, a page that sends here): Pictures is now Photos, and the second approvals were "money". */
+const ALIAS: Record<string, Tab> = { pictures: "photos", money: "second" };
+/** Each kind as a list: drawn here from its older page (view=list), or the page that owns it (Photos, Menus, Places). */
+const LEGACY: Record<Tab, string> = { names: "/approve?tab=names&view=list", photos: "/photos", labels: "/approve?tab=labels&view=list", dishes: "/menus", places: "/places",
+  second: "/approve?tab=second&view=list", refunds: "/approve?tab=refunds&view=list", auto: "/approve?tab=auto&view=list" };
+/** The older list page drawn for "view=list", or the page a kind's list lives on. */
+const LIST_ROUTE: Record<Tab, { draw?: string; go?: string }> = { names: { draw: "/names" }, photos: { go: "/photos" }, labels: { draw: "/label-queue" }, dishes: { go: "/menus" },
+  places: { go: "/places" }, second: { draw: "/approvals" }, refunds: { draw: "/approvals" }, auto: { draw: "/auto-approvals" } };
 
 type Loaded = { count: number; error?: boolean };
 const num = (v: unknown) => Number(v);
@@ -42,6 +53,27 @@ async function labelsQueue(c: Ctx): Promise<LabelRow[]> {
 }
 async function moneyQueue(c: Ctx): Promise<Approval[]> {
   return c.deps.db.rows<Approval>("pending_approvals", { where: { status: "pending" }, order: [{ col: "requested_at" }], limit: 100 });
+}
+type PlaceRow = { source_id: string; name: string; village_en: string | null; village_ar: string | null; visibility: string; approved: boolean; owner_on_file: boolean;
+  menu_checked_on: string | null; photos_waiting: number; dishes_waiting: number; dishes: number };
+type Named = { name_ar: string | null; name_en: string | null };
+type DishRow = Named & { id: string; photo_id: string; section_ar: string | null; section_en: string | null; price: number | string | null; currency: string | null;
+  price_text: string | null; sizes: unknown[] | null; options: unknown[] | null; addons: unknown[] | null; name_claim: boolean; place: string; source_id: string; photo_path: string | null };
+async function placesQueue(c: Ctx): Promise<PlaceRow[]> {
+  return ((await c.deps.db.rpc<PlaceRow[] | null>("places_console", {})) ?? []);
+}
+/** Every dish waiting for a person, place by place (FD1's menu_console, read as the Menus page reads it). At most 12 places a view. */
+async function dishesQueue(c: Ctx, places: PlaceRow[]): Promise<DishRow[]> {
+  const waiting = places.filter((p) => Number(p.dishes_waiting) > 0).slice(0, 12);
+  const menus = await Promise.all(waiting.map(async (p) => ({ p, m: await c.deps.db.rpc<{ photos?: { photo_id: string; media_path: string }[]; waiting?: Omit<DishRow, "place" | "source_id" | "photo_path">[] } | null>("menu_console", { p_source: p.source_id }) })));
+  return menus.flatMap(({ p, m }) => (m?.waiting ?? []).map((d) => ({ ...d, place: p.name, source_id: p.source_id, photo_path: m?.photos?.find((x) => x.photo_id === d.photo_id)?.media_path ?? null })));
+}
+type SpotCheck = { check_id: string; sample_day: string; field: string; applied: boolean; sku: string; name_en: string; name_ar: string | null; brand: string | null;
+  checks: Record<string, boolean> | null; picture: { media_path: string; source_kind: string; status: string } | null;
+  name: { name_en: string; size_en: string | null; name_ar: string | null; size_ar: string | null; current_name_en: string } | null;
+  fact: { attribute: string; text?: string | null; values?: Record<string, unknown> | null } | null };
+async function autoQueue(c: Ctx): Promise<SpotCheck[]> {
+  return ((await c.deps.db.rpc<{ spot_checks?: SpotCheck[] } | null>("auto_approvals_overview", { p_limit: 60 }))?.spot_checks ?? []);
 }
 const safely = async <T,>(f: () => Promise<T>, none: T): Promise<{ v: T; error: boolean }> => { try { return { v: await f(), error: false }; } catch { return { v: none, error: true }; } };
 
@@ -104,8 +136,8 @@ async function picturesCard(c: Ctx, n: number, rows: Img[]) {
   const L = c.lang;
   const r = rows[n]!;
   const link = await c.deps.media.sign(r.media_path, 600);
-  return html`<article class="ak-card ak-approve-card" data-card="pictures">
-<header class="head"><p><strong>${badge(pick(L, "Picture", "صورة"), "gold", "approve")} <bdi>${r.name_en}</bdi></strong>${r.name_ar ? html` · <bdi lang="ar">${r.name_ar}</bdi>` : ""}</p>
+  return html`<article class="ak-card ak-approve-card" data-card="photos">
+<header class="head"><p><strong>${badge(pick(L, "Photo", "صورة"), "gold", "approve")} <bdi>${r.name_en}</bdi></strong>${r.name_ar ? html` · <bdi lang="ar">${r.name_ar}</bdi>` : ""}</p>
 <p class="muted"><bdi>${r.sku ?? ""}</bdi> · ${r.brand ?? pick(L, "no brand", "بلا علامة")} · ${r.sell_unit}${r.barcode ? html` · ${pick(L, "barcode", "الباركود")} <bdi>${r.barcode}</bdi>` : ""}</p></header>
 <div class="ak-compare ak-compare--photo"><div class="ak-photo">${link ? html`<a href="${link}" target="_blank" rel="noopener"><img class="proof" src="${link}" alt="${pick(L, "Proposed picture of", "الصورة المقترحة لـ")} ${r.name_en}"></a>` : html`<p class="note">${pick(L, "Picture not available.", "الصورة غير متاحة.")}</p>`}
 <p class="muted">${r.width_px ?? "?"} × ${r.height_px ?? "?"} px${r.bytes ? `, ${Math.round(r.bytes / 1024)} KB` : ""}</p></div>
@@ -114,10 +146,10 @@ async function picturesCard(c: Ctx, n: number, rows: Img[]) {
 <dt>${pick(L, "Fetched", "جُلبت")}</dt><dd>${when(r.fetched_at)}</dd></dl></div>
 ${r.customer_visible ? "" : html`<p class="note">${icon("alert")} <strong>${pick(L, "Never shown to customers", "لا تُعرض للزبائن أبداً")}</strong> ${pick(L, "(licence unknown): approving keeps it only as a guide for the intake photo.", "(الترخيص غير معروف): الموافقة تبقيها دليلاً لصورة الإدخال فقط.")}</p>`}
 <p class="muted">${pick(L, "Approve only if the picture shows exactly this item: same brand, product and size, one pack, plain background, no price tag, shop logo or text on top.", "وافق فقط إن كانت الصورة تُظهر هذا الصنف تماماً: العلامة والمنتج والحجم نفسها، عبوة واحدة، خلفية سادة، بلا بطاقة سعر أو شعار متجر أو كتابة فوقها.")}</p>
-${form(c.f, `/pictures/${r.image_id}`, html`${back("pictures", n)}<div class="actions-row">${button({ label: pick(L, "Approve", "وافق"), variant: "gold", icon: "check", name: "decision", value: "approve", attrs: { "data-key": "a" } })}</div>
-<p class="muted">${pick(L, "A picture's approval cannot be undone from here: it replaces the earlier picture. A wrong one is rejected on the Pictures page.", "لا يمكن التراجع عن الموافقة على صورة من هنا: فهي تحلّ محل الصورة السابقة. الصورة الخاطئة تُرفض في صفحة الصور.")}</p>`)}
-${rejectForm(c, `/pictures/${r.image_id}`, "pictures", n)}
-</article>${list(L, "pictures")}`;
+${form(c.f, `/pictures/${r.image_id}`, html`${back("photos", n)}<div class="actions-row">${button({ label: pick(L, "Approve", "وافق"), variant: "gold", icon: "check", name: "decision", value: "approve", attrs: { "data-key": "a" } })}</div>
+<p class="muted">${pick(L, "A picture's approval cannot be undone from here: it replaces the earlier picture. A wrong one is withdrawn on the Photos page (Approved).", "لا يمكن التراجع عن الموافقة على صورة من هنا: فهي تحلّ محل الصورة السابقة. الصورة الخاطئة تُسحب في صفحة الصور (المعتمدة).")}</p>`)}
+${rejectForm(c, `/pictures/${r.image_id}`, "photos", n)}
+</article>${list(L, "photos")}`;
 }
 
 // ---------- Label readings (LB1's order of one sitting) ----------
@@ -159,7 +191,7 @@ const KIND_AR: Record<string, string> = { price: "سعر", refund: "استردا
 type Limits = { price_change_pct?: number; refund_usd?: number; fx_rate_second_person?: boolean } | null;
 const sign = (v: number) => `${v > 0 ? "+" : ""}${(Math.round(v * 10) / 10).toString()}%`;
 
-async function moneyCard(c: Ctx, n: number, rows: Approval[]) {
+async function moneyCard(c: Ctx, n: number, rows: Approval[], tab: "second" | "refunds") {
   const L = c.lang;
   const a = rows[n]!;
   const { db } = c.deps;
@@ -200,49 +232,149 @@ async function moneyCard(c: Ctx, n: number, rows: Approval[]) {
 <p>${icon("check")} <strong>${pick(L, "Asked by", "طلبها")} ${by}</strong></p>
 <p>${mine ? html`${icon("clock")} <strong>${pick(L, "Waiting for someone else: the person who asked can never approve.", "بانتظار شخص آخر: من طلبها لا يستطيع الموافقة أبداً.")}</strong>` : html`${icon("approve")} <strong>${pick(L, "Needs you as the second person.", "تحتاجك كشخص ثانٍ.")}</strong>`}</p>
 <p class="muted">${rule}</p></div>
-${mine ? "" : form(c.f, `/approvals/${a.id}/approve`, html`${back("money", n)}<div class="actions-row">${button({ label: pick(L, "Approve: make the change", "وافق: نفّذ التغيير"), variant: "gold", icon: "check", attrs: { "data-key": "a" } })}</div>
+${mine ? "" : form(c.f, `/approvals/${a.id}/approve`, html`${back(tab, n)}<div class="actions-row">${button({ label: pick(L, "Approve: make the change", "وافق: نفّذ التغيير"), variant: "gold", icon: "check", attrs: { "data-key": "a" } })}</div>
 <p class="muted">${pick(L, "Approving makes the change as it was asked, in the asker's name. Money and settings are not undone from here.", "الموافقة تنفّذ التغيير كما طُلب، باسم من طلبه. لا يُتراجع عن المال والإعدادات من هنا.")}</p>`)}
-${form(c.f, `/approvals/${a.id}/reject`, html`${back("money", n)}
+${form(c.f, `/approvals/${a.id}/reject`, html`${back(tab, n)}
 ${input({ name: "note", label: mine ? pick(L, "Why (optional)", "السبب (اختياري)") : pick(L, "Reason (needed to reject)", "السبب (مطلوب للرفض)"), maxlength: 200, required: !mine, attrs: { "data-key": "reason" } })}
 <div class="actions-row">${button({ label: mine ? pick(L, "Withdraw my request", "اسحب طلبي") : pick(L, "Reject", "ارفض"), variant: "danger", icon: "close", attrs: { "data-key": "r" } })}</div>`, { cls: "ak-reject" })}
-</article>${list(L, "money")}`;
+</article>${list(L, tab)}`;
+}
+
+// ---------- Dishes (FD1): a dish the menu reading proposed, beside its menu photo ----------
+const nameOf = (n: Named, L: Lang) => (L === "ar" ? n.name_ar ?? n.name_en : n.name_en ?? n.name_ar) ?? "";
+async function dishCard(c: Ctx, n: number, rows: DishRow[]) {
+  const L = c.lang;
+  const d = rows[n]!;
+  const photo = d.photo_path ? await c.deps.media.sign(d.photo_path, 600) : null;
+  const price = d.price !== null && d.price !== undefined ? `${Number(d.price).toLocaleString("en-US")} ${d.currency ?? ""}`.trim() : d.price_text ?? pick(L, "no price read", "لم يُقرأ سعر");
+  const hidden = html`<input type="hidden" name="source" value="${d.source_id}">${back("dishes", n)}`;
+  return html`<article class="ak-card ak-approve-card" data-card="dishes">
+<header class="head"><p>${badge(pick(L, "Dish", "طبق"), "gold", "food")} <strong><bdi>${d.place}</bdi></strong></p></header>
+<div class="ak-compare ak-compare--photo"><div class="ak-photo">${photo ? html`<a href="${photo}" target="_blank" rel="noopener"><img class="proof" src="${photo}" alt="${pick(L, "Menu photo", "صورة القائمة")}"></a>` : html`<p class="note">${pick(L, "Menu photo not available.", "صورة القائمة غير متاحة.")}</p>`}</div>
+<dl class="ak-facts"><dt>${pick(L, "Arabic name", "الاسم بالعربية")}</dt><dd><bdi lang="ar">${d.name_ar ?? ""}</bdi></dd>
+<dt>${pick(L, "English name", "الاسم بالإنجليزية")}</dt><dd><bdi>${d.name_en ?? ""}</bdi></dd>
+<dt>${pick(L, "Section", "القسم")}</dt><dd><bdi>${(L === "ar" ? d.section_ar ?? d.section_en : d.section_en ?? d.section_ar) ?? ""}</bdi></dd>
+<dt>${pick(L, "Price as printed", "السعر كما هو مطبوع")}</dt><dd><bdi>${price}</bdi></dd>
+<dt>${pick(L, "Sizes, choices, add-ons", "الأحجام والخيارات والإضافات")}</dt><dd>${(d.sizes ?? []).length} · ${(d.options ?? []).length} · ${(d.addons ?? []).length}</dd></dl></div>
+${d.name_claim ? html`<p class="note">${icon("alert")} ${pick(L, "The name praises the dish or makes a health claim: correct it on the Menus page first (the database refuses it as it is).", "الاسم يمدح الطبق أو يدّعي فائدة صحية: صحّحه في صفحة القوائم أولاً (ترفضه قاعدة البيانات كما هو).")}</p>` : ""}
+${form(c.f, `/menus/dish/${d.id}`, html`${hidden}<input type="hidden" name="decision" value="approve"><div class="actions-row">${button({ label: pick(L, "Approve as read", "وافق كما قُرئ"), variant: "gold", icon: "check", attrs: { "data-key": "a" } })}</div>
+<p class="muted">${pick(L, "To correct a name or the price first, open the place's menu: ", "لتصحيح الاسم أو السعر أولاً افتح قائمة المكان: ")}<a href="/menus/${d.source_id}">${pick(L, "the Menus page", "صفحة القوائم")}</a>.</p>`)}
+${form(c.f, `/menus/dish/${d.id}`, html`${hidden}<input type="hidden" name="decision" value="reject">
+${input({ name: "note", label: pick(L, "Reason (needed to reject)", "السبب (مطلوب للرفض)"), maxlength: 200, required: true, attrs: { "data-key": "reason", minlength: "3" } })}
+<div class="actions-row">${button({ label: pick(L, "Reject", "ارفض"), variant: "danger", icon: "close", attrs: { "data-key": "r" } })}</div>`, { cls: "ak-reject" })}
+</article>${list(L, "dishes")}`;
+}
+
+// ---------- Places (FD1): a place made from a listing, not yet approved by approve_merchant() ----------
+function placeCard(c: Ctx, n: number, rows: PlaceRow[]) {
+  const L = c.lang;
+  const p = rows[n]!;
+  const yes = (v: boolean) => (v ? pick(L, "yes", "نعم") : pick(L, "not yet", "ليس بعد"));
+  return html`<article class="ak-card ak-approve-card" data-card="places">
+<header class="head"><p>${badge(pick(L, "Place", "مكان"), "gold", "store")} <strong><bdi>${p.name}</bdi></strong> · ${(L === "ar" ? p.village_ar ?? p.village_en : p.village_en) ?? ""}</p></header>
+<dl class="ak-facts"><dt>${pick(L, "Menu checked", "فُحصت القائمة")}</dt><dd>${p.menu_checked_on ?? pick(L, "not yet", "ليس بعد")}</dd>
+<dt>${pick(L, "Dishes on sale, waiting", "أطباق للبيع، بالانتظار")}</dt><dd>${p.dishes} · ${p.dishes_waiting}</dd>
+<dt>${pick(L, "Menu photos waiting for the reading", "صور قائمة بانتظار القراءة")}</dt><dd>${p.photos_waiting}</dd>
+<dt>${pick(L, "Visibility", "الظهور")}</dt><dd>${p.visibility}</dd>
+<dt>${pick(L, "Owner's claim on file", "مطالبة المالك في الملف")}</dt><dd>${yes(p.owner_on_file)}</dd></dl>
+<p class="muted">${pick(L, "A place is orderable only through this approval, and only by those its visibility allows. The database refuses it while a photo or a dish waits, or before the menu is stamped as checked.", "لا يمكن الطلب من مكان إلا بهذه الموافقة، ولمن يسمح لهم ظهوره فقط. ترفضها قاعدة البيانات ما دامت صورة أو طبق بالانتظار، أو قبل ختم القائمة كمفحوصة.")}</p>
+${form(c.f, `/places/${p.source_id}/approve`, html`${back("places", n)}<div class="actions-row">${button({ label: pick(L, "Approve the place", "وافق على المكان"), variant: "gold", icon: "check", attrs: { "data-key": "a" } })}
+${button({ label: pick(L, "Open the place", "افتح المكان"), href: `/places/${p.source_id}`, variant: "soft", icon: "store" })}</div>`)}
+</article>${list(L, "places")}`;
+}
+
+// ---------- Auto-approvals (I1): the day's spot checks, one at a time ----------
+const words = (k: string) => k.replace(/_/g, " ");
+async function autoCard(c: Ctx, n: number, rows: SpotCheck[]) {
+  const L = c.lang;
+  const s = rows[n]!;
+  const pic = s.picture?.media_path ? await c.deps.media.sign(s.picture.media_path, 600) : null;
+  return html`<article class="ak-card ak-approve-card" data-card="auto">
+<header class="head"><p>${badge(pick(L, "Spot check", "فحص عيّنة"), "gold", "shield")} ${words(s.field)} · <span class="muted">${s.applied ? pick(L, "approved by the rule", "وافقت عليه القاعدة") : pick(L, "the rule was off: it would have approved this", "القاعدة متوقفة: كانت ستوافق على هذا")} · ${s.sample_day}</span></p>
+<p><strong><bdi>${s.name_en}</bdi></strong>${s.name_ar ? html` · <bdi lang="ar">${s.name_ar}</bdi>` : ""} <span class="muted"><bdi>${s.sku}</bdi> · ${s.brand ?? pick(L, "no brand", "بلا علامة")}</span></p></header>
+${pic ? html`<div class="ak-photo"><a href="${pic}" target="_blank" rel="noopener"><img class="proof" src="${pic}" alt="${s.name_en}"></a></div>` : ""}
+${s.name ? html`<p>${pick(L, "Proposed", "المقترح")}: <strong><bdi>${[s.name.name_en, s.name.size_en].filter(Boolean).join(" ")}</bdi></strong>${s.name.name_ar ? html` · <bdi lang="ar">${[s.name.name_ar, s.name.size_ar].filter(Boolean).join(" ")}</bdi>` : ""} <span class="muted">(${pick(L, "was", "كان")} <bdi>${s.name.current_name_en}</bdi>)</span></p>` : ""}
+${s.fact ? html`<p>${words(s.fact.attribute)}: <bdi>${s.fact.text ?? (s.fact.values ? Object.entries(s.fact.values).map(([k, v]) => `${words(k)} ${String(v)}`).join(", ") : "")}</bdi></p>` : ""}
+<p class="muted">${pick(L, "Checks passed:", "الفحوص الناجحة:")} ${Object.keys(s.checks ?? {}).map(words).join(", ")}</p>
+${form(c.f, `/auto-approvals/check/${s.check_id}`, html`${back("auto", n)}<div class="actions-row">${button({ label: pick(L, "Right", "صحيح"), variant: "gold", icon: "check", name: "verdict", value: "correct", attrs: { "data-key": "a" } })}</div>
+<p class="muted">${pick(L, "Right on a rule's first sample switches it on; one wrong switches it off and undoes that approval.", "«صحيح» على أول عيّنة لقاعدة يشغّلها؛ و«خطأ» واحد يوقفها ويتراجع عن تلك الموافقة.")}</p>`)}
+${form(c.f, `/auto-approvals/check/${s.check_id}`, html`${back("auto", n)}
+${input({ name: "note", label: pick(L, "What is wrong (needed for wrong)", "ما الخطأ (مطلوب عند «خطأ»)"), maxlength: 300, required: true, attrs: { "data-key": "reason" } })}
+<div class="actions-row">${button({ label: pick(L, "Wrong", "خطأ"), variant: "danger", icon: "close", name: "verdict", value: "wrong", attrs: { "data-key": "r" } })}</div>`, { cls: "ak-reject" })}
+</article>${list(L, "auto")}`;
+}
+
+/** CON1: what waits in each kind, for Today and the inbox's tabs. A kind whose read fails counts 0 and says so on its tab. */
+export async function approvalCounts(c: Ctx): Promise<Record<Tab, number>> {
+  const q = await queues(c);
+  return Object.fromEntries(TABS.map((k) => [k, q[k].v.length])) as Record<Tab, number>;
+}
+async function queues(c: Ctx) {
+  const [names, photos, labels, money, places, auto] = await Promise.all([
+    safely(async () => (await namesQueue(c)).rows, [] as Proposal[]), safely(() => picturesQueue(c), [] as Img[]),
+    safely(() => labelsQueue(c), [] as LabelRow[]), safely(() => moneyQueue(c), [] as Approval[]),
+    safely(() => placesQueue(c), [] as PlaceRow[]), safely(() => autoQueue(c), [] as SpotCheck[]),
+  ]);
+  const dishes = await safely(() => dishesQueue(c, places.v), [] as DishRow[]);
+  return {
+    names, photos, labels, dishes, auto,
+    places: { v: places.v.filter((p) => !p.approved), error: places.error },
+    second: { v: money.v.filter((a) => a.kind !== "refund"), error: money.error },
+    refunds: { v: money.v.filter((a) => a.kind === "refund"), error: money.error },
+  };
 }
 
 // ---------- the page ----------
+const KIND_LABEL: Record<Tab, [string, string]> = { names: ["Names", "الأسماء"], photos: ["Photos", "الصور"], labels: ["Label readings", "قراءات الملصقات"], dishes: ["Dishes", "الأطباق"],
+  places: ["Places", "الأماكن"], second: ["Second approvals", "الموافقات الثانية"], refunds: ["Refunds", "المبالغ المستردة"], auto: ["Auto-approvals", "الموافقات التلقائية"] };
+const kindLabel = (L: Lang, k: Tab) => pick(L, KIND_LABEL[k][0], KIND_LABEL[k][1]);
+const tabOf = (asked: string | null): Tab | null => (asked && (TABS as readonly string[]).includes(asked) ? (asked as Tab) : asked && ALIAS[asked] ? ALIAS[asked]! : null);
+
+/** The inbox's tabs, with the count of each kind: also drawn above an older list page shown here. */
+function kindTabs(L: Lang, current: Tab, counts: Record<Tab, number>, list = false) {
+  return html`${tabs(TABS.map((x) => ({ label: kindLabel(L, x), href: list && x === current ? href(x) : href(x), current: x === current, count: counts[x] })), t(L, "nav_approvals"))}`;
+}
+
 async function page(c: Ctx) {
   const L = c.lang;
-  const [names, pictures, labels, money] = await Promise.all([
-    safely(() => namesQueue(c), { rows: [] as Proposal[], live: new Map<string, Live>() }), safely(() => picturesQueue(c), [] as Img[]),
-    safely(() => labelsQueue(c), [] as LabelRow[]), safely(() => moneyQueue(c), [] as Approval[]),
-  ]);
-  const counts: Record<Tab, number> = { names: names.v.rows.length, pictures: pictures.v.length, labels: labels.v.length, money: money.v.length };
-  const asked = c.url.searchParams.get("tab") ?? "";
-  const tab: Tab = (TABS as readonly string[]).includes(asked) ? (asked as Tab) : TABS.find((x) => counts[x] > 0) ?? "names";
+  const asked = tabOf(c.url.searchParams.get("tab"));
+  // An older list page, drawn here (view=list), or the page that owns a kind's list.
+  if (asked && c.url.searchParams.get("view") === "list") {
+    const r = LIST_ROUTE[asked];
+    if (r.go) return redirect(r.go);
+    const q = await queues(c);
+    const counts = Object.fromEntries(TABS.map((k) => [k, q[k].v.length])) as Record<Tab, number>;
+    return drawOlder(c, r.draw!, html`${kindTabs(L, asked, counts, true)}<p class="muted ak-approve-foot"><a href="${href(asked)}">${pick(L, "Back to one card at a time", "عودة إلى بطاقة واحدة في كل مرة")}</a></p>`);
+  }
+  const q = await queues(c);
+  const counts = Object.fromEntries(TABS.map((k) => [k, q[k].v.length])) as Record<Tab, number>;
+  const tab: Tab = asked ?? TABS.find((x) => counts[x] > 0) ?? "names";
   const total = counts[tab];
   const n = total === 0 ? 0 : Math.min(total - 1, Math.max(0, Math.floor(Number(c.url.searchParams.get("n"))) || 0));
-  const label: Record<Tab, string> = { names: pick(L, "Names", "الأسماء"), pictures: pick(L, "Pictures", "الصور"), labels: pick(L, "Label readings", "قراءات الملصقات"), money: pick(L, "Second approvals", "الموافقات الثانية") };
-  const failed = { names: names.error, pictures: pictures.error, labels: labels.error, money: money.error }[tab];
+  const failed = q[tab].error;
   let card: Raw;
   if (failed) card = html`<p class="note">${icon("alert")} ${pick(L, "This list is not available yet: the database is missing a part of it.", "هذه القائمة غير متاحة بعد: قاعدة البيانات ينقصها جزء منها.")}</p>`;
   else if (total === 0) card = noMore(L, tab, pick(L, "Nothing waits here.", "لا شيء ينتظر هنا."));
-  else if (tab === "names") card = await namesCard(c, n, names.v);
-  else if (tab === "pictures") card = await picturesCard(c, n, pictures.v);
-  else if (tab === "labels") card = await labelsCard(c, n, labels.v, labels.v[n]!.group);
-  else card = await moneyCard(c, n, money.v);
-  const more = buildNav(c.sections, c.staff.role, L, c.url.pathname, c.badges).groups.find((g) => g.id === "approve");
-  return render(c, t(L, "nav_approve"), html`<div data-approve>
-<p class="muted">${pick(L, "One card at a time. Nothing is decided by moving between cards, and nothing is decided by a swipe.", "بطاقة واحدة في كل مرة. لا يُقرَّر شيء بالتنقل بين البطاقات، ولا بالسحب.")}
-${pick(L, " Keys: a approves, r rejects (it asks for a reason), the arrow or space skips.", " المفاتيح: a للموافقة، r للرفض (يطلب سبباً)، السهم أو المسافة للتخطي.")}</p>
-${tabs(TABS.map((x) => ({ label: label[x], href: href(x), current: x === tab, count: counts[x] })), t(L, "nav_approve"))}
+  else if (tab === "names") card = await namesCard(c, n, { rows: q.names.v });
+  else if (tab === "photos") card = await picturesCard(c, n, q.photos.v);
+  else if (tab === "labels") card = await labelsCard(c, n, q.labels.v, q.labels.v[n]!.group);
+  else if (tab === "dishes") card = await dishCard(c, n, q.dishes.v);
+  else if (tab === "places") card = placeCard(c, n, q.places.v);
+  else if (tab === "auto") card = await autoCard(c, n, q.auto.v);
+  else card = await moneyCard(c, n, q[tab].v, tab);
+  const waiting = TABS.reduce((a, k) => a + counts[k], 0);
+  return render(c, t(L, "nav_approvals"), html`<div data-approve>
+<p><strong>${pick(L, `${waiting} waiting for a person`, `${waiting} بانتظار شخص`)}</strong>.
+ <span class="muted">${pick(L, "One card at a time. Nothing is decided by moving between cards, and nothing is decided by a swipe.", "بطاقة واحدة في كل مرة. لا يُقرَّر شيء بالتنقل بين البطاقات، ولا بالسحب.")}
+${pick(L, " Keys: a approves, r rejects (it asks for a reason), the arrow or space skips.", " المفاتيح: a للموافقة، r للرفض (يطلب سبباً)، السهم أو المسافة للتخطي.")}</span></p>
+${kindTabs(L, tab, counts)}
 ${total > 0 && !failed ? stepper(L, tab, n, total) : ""}
 ${card}
-<h2>${pick(L, "Approval pages as lists", "صفحات الموافقات كقوائم")}</h2>
-${more && more.links.filter((l) => l.href !== "/approve").length ? html`<ul class="hub">${more.links.filter((l) => l.href !== "/approve").map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${l.badge > 0 ? html` <span class="badge">${badgeText(l.badge)}</span>` : ""}</a></li>`)}</ul>` : html`<p class="muted">${t(L, "hub_empty")}</p>`}
 </div>`, { translated: true });
 }
 
 export const approveSection: Section = {
-  // The page the phone's Approve and the sidebar group open; its older list pages stay under the Approve group.
-  nav: { href: "/approve", label: "Approve", roles: LEADS },
+  // CON1: the one Approvals inbox; the older list pages are drawn here (view=list) and their addresses move here (app.ts, MOVED).
+  nav: { href: "/approve", label: "Approvals", roles: LEADS },
   routes: [{ method: "GET", path: "/approve", roles: LEADS, handler: page }],
 };

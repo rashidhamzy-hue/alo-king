@@ -2338,3 +2338,130 @@ No customer message changed. The page's words in `apps/console/src/pages/weights
 | سعرنا هو: للعلبة / للكيلو · كيف تعرف (فاتورة، ميزان، كرتونة) · احفظ الجواب | Our price is: for the pack / per kg · How you know (invoice, scale, tray) · Save the answer | not yet |
 | حُفظ: السعر للكيلو؛ تقول الصفحات الآن «بالكيلو». · حُفظ: السعر للعلبة. | Saved: the price is per kg; the pages now say "per kg". · Saved: the price is for the pack. | not yet |
 | كل منتج أدناه يُباع بالعلبة، لكن لا وزن معتمداً للعلبة بعد، أو قد يكون سعر المورّد للكيلو لا للعلبة… | Each item below is sold by the pack, but no pack weight is approved yet, or the supplier's price may be per kg… | not yet |
+
+## CON1, the console's map, Today and the Approvals inbox (console, staff-facing, written by a model; 19 November 2026)
+| Arabic | English | Read |
+|---|---|---|
+| الموافقات · المنتجات · الأشخاص · كل الأقسام · متقدّم · أنت وهذا الهاتف · إعداداتك · المستودع | Approvals · Products · People · Every section · Advanced · You and this phone · Your settings · The hub | not yet |
+| المساعد · قريباً · مكان محجوز لمساعد الموظفين (جلسة AST1). سيجيب عن الأسئلة من تقارير للقراءة فقط ولن يتصرّف أبداً… | Assistant · Coming soon · A place kept for the staff assistant (session AST1)… never act… | not yet |
+| يحتاج انتباهك · أرقام اليوم · متوسط وقت قبول المطعم · المزيد عن اليوم: اللوحة الحيّة والمناديب والصندوق | Needs attention · Today's numbers · Average restaurant acceptance time · More of today: the live board, the riders, the drawer | not yet |
+| {code} تجاوز وقته الموعود بـ {n} د · {place} لم يُجب على الاتصال المسبق للطلب {code} · {place} وُجد مغلقاً اليوم · {code} ينتظر تأكيد الزبون | {code} is {n} min past its promised time · {place} has not answered the call ahead for {code} · {place} was found closed today · {code} waits for the customer's Confirm | not yet |
+| افتح الطلب · اتصل بالمكان · استلم النقد · افتح المكان · أجب · وافق · اعرض المخزون · افتح Sentry | Open the order · Call the place · Take a cash drop · Open the place · Answer · Approve · See stock · Open Sentry | not yet |
+| الأسماء · الصور · قراءات الملصقات · الأطباق · الأماكن · الموافقات الثانية · المبالغ المستردة · الموافقات التلقائية | Names · Photos · Label readings · Dishes · Places · Second approvals · Refunds · Auto-approvals | not yet |
+| وافق كما قُرئ · وافق على المكان · صحيح · خطأ · عودة إلى بطاقة واحدة في كل مرة | Approve as read · Approve the place · Right · Wrong · Back to one card at a time | not yet |
+| ١ التقدّم · ٢ التصوير · ٣ الموافقة على القراءات · ٤ المعلومات الغذائية · ٥ الجاهزية · عمل الملصقات | 1 Progress · 2 Photograph · 3 Approve readings · 4 Food facts · 5 Readiness · Label work | not yet |
+| البقالة · الأكل · بقالة أو أكل · الاثنان · كقائمة (المعتمدة والمرفوضة) | Groceries · Food · Groceries or food · Both · As a list (approved, rejected) | not yet |
+
+### CON1, every new line word for word (the cards, Today, Photos, More, Orders)
+| Arabic | English | Read |
+|---|---|---|
+| لا يمكن التراجع عن الموافقة على صورة من هنا: فهي تحلّ محل الصورة السابقة. الصورة الخاطئة تُسحب في صفحة الصور (المعتمدة). | A picture's approval cannot be undone from here: it replaces the earlier picture. A wrong one is withdrawn on the Photos page (Approved). | not yet |
+| لم يُقرأ سعر | no price read | not yet |
+| صورة القائمة | Menu photo | not yet |
+| صورة القائمة غير متاحة. | Menu photo not available. | not yet |
+| الأحجام والخيارات والإضافات | Sizes, choices, add-ons | not yet |
+| الاسم يمدح الطبق أو يدّعي فائدة صحية: صحّحه في صفحة القوائم أولاً (ترفضه قاعدة البيانات كما هو). | The name praises the dish or makes a health claim: correct it on the Menus page first (the database refuses it as it is). | not yet |
+| لتصحيح الاسم أو السعر أولاً افتح قائمة المكان:  | To correct a name or the price first, open the place's menu:  | not yet |
+| صفحة القوائم | the Menus page | not yet |
+| أطباق للبيع، بالانتظار | Dishes on sale, waiting | not yet |
+| صور قائمة بانتظار القراءة | Menu photos waiting for the reading | not yet |
+| الظهور | Visibility | not yet |
+| مطالبة المالك في الملف | Owner's claim on file | not yet |
+| لا يمكن الطلب من مكان إلا بهذه الموافقة، ولمن يسمح لهم ظهوره فقط. ترفضها قاعدة البيانات ما دامت صورة أو طبق بالانتظار، أو قبل ختم القائمة كمفحوصة. | A place is orderable only through this approval, and only by those its visibility allows. The database refuses it while a photo or a dish waits, or before the menu is stamped as checked. | not yet |
+| فحص عيّنة | Spot check | not yet |
+| وافقت عليه القاعدة | approved by the rule | not yet |
+| القاعدة متوقفة: كانت ستوافق على هذا | the rule was off: it would have approved this | not yet |
+| الفحوص الناجحة: | Checks passed: | not yet |
+| «صحيح» على أول عيّنة لقاعدة يشغّلها؛ و«خطأ» واحد يوقفها ويتراجع عن تلك الموافقة. | Right on a rule's first sample switches it on; one wrong switches it off and undoes that approval. | not yet |
+| ما الخطأ (مطلوب عند «خطأ») | What is wrong (needed for wrong) | not yet |
+| ${waiting} بانتظار شخص | ${waiting} waiting for a person | not yet |
+| تشبه صورة صنف آخر: ${rest("duplicate:")}. تأكد أنها ليست العبوة الخطأ. | Looks like the picture of another item: ${rest("duplicate:")}. Check it is not the wrong pack. | not yet |
+| الخلفية ليست بيضاء (${rest("background:")}). | The background is not white (${rest("background:")}). | not yet |
+| المنتج صغير داخل المربع (${rest("fill:")}). | The product is small in the square (${rest("fill:")}). | not yet |
+| الصورة صغيرة (${rest("small:")}). | The picture is small (${rest("small:")}). | not yet |
+| الملف ثقيل (${rest("heavy:")}). | The file is heavy (${rest("heavy:")}). | not yet |
+| جهّزها نصّ المؤسس لشخص يحكم عليها. | The founder's script packaged it for a person to judge. | not yet |
+| تقرير الجلب يصنّفها «${rest("report status:")}». | The fetch report marks it "${rest("report status:")}". | not yet |
+| ملاحظة: ${rest("note:")}. | Note: ${rest("note:")}. | not yet |
+| لكل صنف صورة بانتظار القرار أو معتمدة. | Every stocked item has a picture waiting or approved. | not yet |
+| لا صورة لـ ${items.length} صنفاً. كل واحد منها «يحتاج صورة»: صورة الواجهة في يوم الملصقات تغلقه (المخزون، صور يوم الملصقات). | ${items.length} items have no picture. Each is marked "needs a photo": the front photo on label day closes it (Stock, Label day photos). | not yet |
+| افتح صفحة يوم الملصقات | Open the label day page | not yet |
+| يحتاج صورة | needs a photo | not yet |
+| (رُفضت صورة سابقة) | (a picture was rejected before) | not yet |
+| تحتاج مراجعة | Needs review | not yet |
+| أعدها | Bring back | not yet |
+| ملاحظة (السبب)، اختيارية | Note (why), optional | not yet |
+| لماذا تحتاج نظرة ثانية | Why it needs a second look | not yet |
+| وافق فقط إن كانت الصورة تُظهر هذا الصنف تماماً: العلامة والمنتج والحجم نفسها، عبوة واحدة، خلفية سادة، بلا بطاقة سعر أو شعار أو كتابة. | Approve only if the picture shows exactly this item: same brand, product and size, one pack, plain background, no price tag, logo or text. | not yet |
+| بعد الموافقة تظهر للزبائن. | After approval it shows to customers. | not yet |
+| ترخيصها ليس مما يجوز عرضه للزبائن: الموافقة تبقيها دليلاً فقط. | Its licence is not one customers may see: approving keeps it as a guide only. | not yet |
+| المصدر:  | Source:  | not yet |
+| الصورة ${n + 1} من ${total} | Picture ${n + 1} of ${total} | not yet |
+| تحتاج صورة | Needs a photo | not yet |
+| قائمة الصور غير متاحة بعد: قاعدة البيانات ينقصها جزء منها. | The picture queue is not available yet: the database is missing a part of it. | not yet |
+| لا شيء مؤجَّل. | Nothing is put aside. | not yet |
+| لا شيء يحتاج مراجعة. | Nothing needs review. | not yet |
+| لا صور بانتظار القرار. | No pictures are waiting. | not yet |
+| ${waiting} صورة للموافقة | ${waiting} pictures to approve | not yet |
+| ، منها ${counts.review} تحتاج مراجعة | , ${counts.review} of them need review | not yet |
+| لا يظهر شيء في الموقع أو واتساب حتى توافق عليه. المفاتيح: a للموافقة، r للرفض، l للتأجيل، والأسهم للتنقل. | Nothing shows on the website or WhatsApp until you approve it. Keys: a approves, r rejects, l puts it aside, the arrows move. | not yet |
+| تفضّل قائمة، أو تريد سحب صورة معتمدة؟  | Prefer a list, or want to withdraw an approved picture?  | not yet |
+| الصور كقائمة | Photos as a list | not yet |
+| عن أمس، بالساعات نفسها | vs yesterday, same hours | not yet |
+| عن اليوم نفسه الأسبوع الماضي | vs the same day last week | not yet |
+| الأيام السبعة قبل اليوم | The seven days before today | not yet |
+| لا توصيل بعد اليوم | No delivery yet today | not yet |
+| المبيعات، البضاعة فقط | Sales, goods only | not yet |
+| سُلّم ضمن وقت المنطقة | Delivered within the zone time | not yet |
+| نقطة | points | not yet |
+| ${k.today.onTime} من ${k.today.delivered} توصيل | ${k.today.onTime} of ${k.today.delivered} deliveries | not yet |
+| متوسط وقت التوصيل | Average delivery time | not yet |
+| من تأكيد الزبون إلى الباب | from the customer's confirmation to the door | not yet |
+| كلفة الذكاء الاصطناعي لكل طلب | AI cost per order | not yet |
+| عن أمس | vs yesterday | not yet |
+| استثناءات مفتوحة | Open exceptions | not yet |
+| الأقدم أولاً، في الأسفل | oldest first, below | not yet |
+| ${o.short_code} تجاوز وقته الموعود بـ ${o.lateBy} د | ${o.short_code} is ${o.lateBy} min past its promised time | not yet |
+| ${inbox.lateCases} زبون ينتظر شخصاً منذ وقت طويل | ${inbox.lateCases} customer(s) waiting too long for a person | not yet |
+| ${k.place} لم يُجب على الاتصال المسبق للطلب ${k.short_code} | ${k.place} has not answered the call ahead for ${k.short_code} | not yet |
+| بالانتظار منذ ${m(minutesSince(k.created_at, now) ?? 0)} | waiting ${m(minutesSince(k.created_at, now) ?? 0)} | not yet |
+| ${r.name} يحمل ${usd(r.exposure)}: فوق سقف النقد ${hard ? "الصارم" : "المرن"} | ${r.name} holds ${usd(r.exposure)}: over the ${hard ? "hard" : "soft"} cash cap | not yet |
+| المرن ${usd(d.cap.soft)}، الصارم ${usd(d.cap.hard)} | soft ${usd(d.cap.soft)}, hard ${usd(d.cap.hard)} | not yet |
+| ${p.name} وُجد مغلقاً اليوم | ${p.name} was found closed today | not yet |
+| لا يمكن الطلب منه بقية اليوم | not orderable for the rest of the day | not yet |
+| ${o.short_code} ينتظر تأكيد الزبون | ${o.short_code} waits for the customer's Confirm | not yet |
+| منذ ${m(o.age)} · ${usd(o.total_usd)} | for ${m(o.age)} · ${usd(o.total_usd)} | not yet |
+| ${a.errors.count} خطأ في آخر 24 ساعة | ${a.errors.count} errors in the last 24 hours | not yet |
+| بحسب Sentry | counted by Sentry | not yet |
+| ${waiting} موافقة بالانتظار | ${waiting} approvals waiting | not yet |
+| ${a.stock.low} صنفاً ينفد قريباً، ${a.stock.out} نافداً | ${a.stock.low} items running low, ${a.stock.out} out | not yet |
+| الأخطاء في آخر 24 ساعة: Sentry غير موصول باللوحة بعد. | Errors in the last 24 hours: Sentry is not connected to the console yet. | not yet |
+| الأخطاء في آخر 24 ساعة: لم يُجب Sentry. | Errors in the last 24 hours: Sentry did not answer. | not yet |
+| لا خطأ في آخر 24 ساعة (Sentry). | No error in the last 24 hours (Sentry). | not yet |
+| ${accept.n} طلب أكل، من الاتصال المسبق إلى «قُبل» | ${accept.n} food orders, from the call ahead to "accepted" | not yet |
+| لم يُقبل طلب أكل بعد اليوم | no food order accepted yet today | not yet |
+| نقد المستودع | Hub money | not yet |
+| تأخير | late | not yet |
+| د تأخير | min late | not yet |
+| المُغلقة والمُلغاة: منذ منتصف الليل بتوقيت بيروت | closed and cancelled: since midnight, Beirut | not yet |
+| لا طلبات مفتوحة. | No open orders. | not yet |
+| ${usd(r.exposure)} من السقف الصارم ${usd(d.cap.hard)} | ${usd(r.exposure)} of the ${usd(d.cap.hard)} hard cap | not yet |
+| التعرض | Exposure | not yet |
+| النقد المحتفظ به | Cash held | not yet |
+| التعرض هو النقد المحتفظ به مضافاً إليه النقد المنتظر تحصيله من المهام المقبولة. العلامة المتقطعة هي السقف المرن والمتصلة هي السقف الصارم. ترفض قاعدة البيانات أي مهمة تتجاوز السقف الصارم | Exposure is the cash held plus cash still to collect on accepted jobs. The dashed mark is the soft cap, the solid one the hard cap. The database refuses a job that would pass the hard cap | not yet |
+| طرق العرض | Views | not yet |
+| كل الطلبات المفتوحة | every open order | not yet |
+| الأعمدة | Columns | not yet |
+| المعروض: ${rows.length} | ${rows.length} shown | not yet |
+| تنزيل CSV | Download as CSV | not yet |
+| البحث يعرض أول 100 نتيجة: أضف تصفية لتضييقها. | The search shows its first 100 matches: add a filter to narrow it. | not yet |
+| طلبات أقدم | Older orders | not yet |
+| المعروض أول ${PAGE}: رتّب حسب الوقت لتصفّح البقية. | The first ${PAGE} are shown: sort by time to page through the rest. | not yet |
+| افتح كصفحة | Open as a page | not yet |
+| الرمز مطلوب عند الباب${h.attempts ? ` (${h.attempts} خاطئة من ${h.max})` : ""} | code needed at the door${h.attempts ? ` (${h.attempts} wrong of ${h.max})` : ""} | not yet |
+| بقشيش | tip | not yet |
+| اكتب سبب الإلغاء. | Write why you cancel it. | not yet |
+| لم يعد ممكناً إلغاء هذا الطلب من هنا. | This order can no longer be cancelled here. | not yet |
+| أُلغي. أُضيف ${usd(r.credit_usd)} إلى رصيد الزبون. | Cancelled. ${usd(r.credit_usd)} went to the customer's credit. | not yet |
+| أُلغي. يُبلَّغ الزبون. | Cancelled. The customer is told. | not yet |
+| أُلغي. دُفع ${usd(terms.paid_usd)}: أعده من صفحة الاسترداد. | Cancelled. ${usd(terms.paid_usd)} was paid: give it back on the Refunds page. | not yet |

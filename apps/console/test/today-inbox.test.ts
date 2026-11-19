@@ -1,4 +1,5 @@
-// Today as an exception inbox (session D5): what needs a person comes first, oldest first, each with its one action; a quiet day says so.
+// Today as an exception inbox (session D5): what needs a person comes first, each with its one action; a quiet day says so.
+// CON1: Today is "needs attention", most urgent first: high-priority exceptions before the others, each kind oldest first.
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { flashOf, rig, type Rig } from "./kit";
 
@@ -8,10 +9,18 @@ beforeAll(async () => { r = await rig(); }, 120_000);
 const raise = (kind: string, ref: string, detail: object = {}) => r.db.rpc("raise_ops_exception", { p_kind: kind, p_ref: ref, p_detail: detail });
 
 describe("Today", () => {
-  it("on a quiet day says so, in green, and has an empty inbox", async () => {
+  it("on a day with no order, exception or customer waiting, lists only what waits behind the scenes (approvals, stock), and says so in green when nothing does", async () => {
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
-    expect(page).toContain("Nothing needs you."); expect(page).toContain('class="summary-ok"'); expect(page).toContain("All quiet");
+    expect(page).toContain("Needs attention"); expect(page).not.toContain("past its promised time"); expect(page).not.toContain('class="tag high"');
+    expect(page).toMatch(/\d+ approvals waiting/);                                                 // the 282 proposed names of the seed wait for a person
+    // nothing waiting anywhere: the green line
+    await r.db.pg.query(`delete from product_name_proposals where status = 'proposed'`);
+    await r.db.pg.query(`delete from product_images where status = 'proposed'`);
+    await r.db.pg.query(`update stock_levels set on_hand = 500, reorder_point = 0`);
+    const quiet = (await b.get("/")).text;
+    expect(quiet).not.toContain("approvals waiting"); expect(quiet).not.toContain("running low");
+    expect(quiet).toContain('class="summary-ok"'); expect(quiet).toContain("All quiet");
   });
 
   it("lists exceptions oldest first, high priority marked, each with its one action and the two buttons", async () => {
@@ -19,13 +28,13 @@ describe("Today", () => {
     await r.db.pg.query(`update ops_exceptions set created_at = now() - interval '50 minutes' where id = $1`, [a]);
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
-    expect(page).toContain("Needs you now (3)"); expect(page).not.toContain("All quiet");
+    expect(page).toContain("Needs attention"); expect(page).not.toContain("All quiet");
     const list = page.slice(page.indexOf("<main"));                                               // DS1: the bell in the header names the high-priority ones too
     const at = (s: string) => list.indexOf(s);
-    expect(at("A shelf count is needed")).toBeLessThan(at("Allergen complaint"));                // oldest first
-    expect(page).toMatch(/Allergen complaint<\/strong> <span class="tag high">high priority<\/span>/);
-    expect(page).not.toMatch(/A shelf count is needed<\/strong> <span class="tag high"/);
-    expect(page).toContain('href="/cases">Open the case'); expect(page).toContain('href="/orders/AK-4001">Open the order'); expect(page).toContain('href="/catalog">Open the catalog');
+    expect(at("Allergen complaint")).toBeLessThan(at("A shelf count is needed"));                // CON1: the high-priority one first, though younger
+    expect(page).toMatch(/Allergen complaint<\/strong><br><span class="muted"><span class="tag high">high priority<\/span>/);
+    expect(page).not.toMatch(/A shelf count is needed<\/strong><br><span class="muted"><span class="tag high"/);
+    expect(page).toMatch(/href="\/cases">[\s\S]{0,400}?Open the case/); expect(page).toMatch(/href="\/orders\/AK-4001">[\s\S]{0,400}?Open the order/); expect(page).toMatch(/href="\/catalog">[\s\S]{0,400}?Open the catalog/);
     expect(page).toContain("I&#39;m on it"); expect(page).toContain('name="back" value="/"');
     expect(page).toMatch(/50 min/);
   });
@@ -54,9 +63,10 @@ describe("Today", () => {
     const lead = await r.staff("admin", "Rasheed"); const b = r.browser(); await b.signIn(lead);
     await b.get("/lang?to=ar&next=/");
     const page = (await b.get("/")).text;
-    expect(page).toContain("يحتاج إليك الآن"); expect(page).toContain("إثبات دفع بالانتظار"); expect(page).toContain('<html lang="ar" dir="rtl">');
+    expect(page).toContain("يحتاج انتباهك"); expect(page).toContain("إثبات دفع بالانتظار"); expect(page).toContain('<html lang="ar" dir="rtl">');
     const p = await r.staff("picker", "Pia"); const pb = r.browser(); await pb.signIn(p);
-    const pp = (await pb.get("/")).text;
-    expect(pp).not.toContain("Needs you now"); expect(pp).not.toContain("A payment proof waits");
+    const pp = await pb.get("/");
+    expect(pp.status).toBe(303); expect(pp.location).toBe("/pick");                          // CON1: a picker's Today is the pick queue
+    expect((await pb.get("/pick")).text).not.toContain("A payment proof waits");
   });
 });

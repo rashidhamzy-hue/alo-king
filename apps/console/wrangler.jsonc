@@ -18,7 +18,7 @@
       "workers_dev": true,
       "observability": { "enabled": true },
       "triggers": { "crons": ["40 19 * * *", "*/2 * * * *"] },
-      "vars": { "ENVIRONMENT": "staging", "SENTRY_DSN": "https://a8adb1e4ba4769f28df5e5dc24d7576f@o4512423714488320.ingest.de.sentry.io/4512423723728976", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5" }
+      "vars": { "ENVIRONMENT": "staging", "SENTRY_DSN": "https://a8adb1e4ba4769f28df5e5dc24d7576f@o4512423714488320.ingest.de.sentry.io/4512423723728976", "SENTRY_ORG": "alo-king", "SENTRY_API": "https://de.sentry.io", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5" }
     },
     "production": {
       "name": "alo-king-console",

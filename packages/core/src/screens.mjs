@@ -46,7 +46,7 @@ export function planPrune(existing, incoming) {
 
 // WEB4b: the reference's food screens had no kitchens (docs/log/ds2.md), so each food page sits beside the reference's nearest screen.
 const ALIAS = { rider: "join-rider", vendor: "for-vendors", "food-list": "aisles", "food-place": "aisle", "food-basket": "cart", "food-switch": "cart", "food-checkout": "checkout" };
-const PREFIXES = ["console", "web4b", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
+const PREFIXES = ["console", "con1", "web4b", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
 /**
  * The reference screen for a page: `ref-ops-<page>` or `ref-web-<page>` for the same width class (390 beside 390; 1280 and 1440 beside 1280).
  * The page's name is read without its session prefix and shortened from the end until a reference of that name exists

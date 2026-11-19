@@ -35,6 +35,32 @@ export interface Env {
   VAPID_SUBJECT?: string;
   /** OPS1: Sentry. A public client key (a Worker variable, not a secret). Absent (production until A3, local, tests), nothing is sent. */
   SENTRY_DSN?: string;
+  /**
+   * CON1: Today's "errors in the last 24 hours". A Sentry auth token with the read-only scopes `event:read` and `org:read` (a Worker secret),
+   * and the organisation and its region's API (Worker variables). Absent, Today says Sentry is not connected; nothing else changes.
+   */
+  SENTRY_READ_TOKEN?: string;
+  SENTRY_ORG?: string;
+  SENTRY_API?: string;
+}
+
+/** CON1: the count of error events in the last 24 hours (this environment), read from Sentry's events API; null if Sentry did not answer in 4 s. */
+export function sentryErrors(env: Pick<Env, "SENTRY_READ_TOKEN" | "SENTRY_ORG" | "SENTRY_API" | "ENVIRONMENT">, fetcher: typeof fetch = fetch) {
+  const org = env.SENTRY_ORG ?? "";
+  if (!env.SENTRY_READ_TOKEN || !/^[a-z0-9-]{1,60}$/.test(org)) return undefined;
+  const api = /^https:\/\/[a-z0-9.-]+\.sentry\.io$/.test(env.SENTRY_API ?? "") ? env.SENTRY_API! : "https://de.sentry.io";
+  const query = `event.type:error${env.ENVIRONMENT ? ` environment:${env.ENVIRONMENT}` : ""}`;
+  const link = `https://${org}.sentry.io/issues/?statsPeriod=24h&query=${encodeURIComponent(env.ENVIRONMENT ? `environment:${env.ENVIRONMENT}` : "")}`;
+  return async (): Promise<{ count: number; link: string } | null> => {
+    try {
+      const u = `${api}/api/0/organizations/${org}/events/?field=count()&dataset=errors&statsPeriod=24h&query=${encodeURIComponent(query)}`;
+      const r = await fetcher(u, { headers: { authorization: `Bearer ${env.SENTRY_READ_TOKEN}` }, signal: AbortSignal.timeout(4000) });
+      if (!r.ok) return null;
+      const body = (await r.json()) as { data?: Record<string, unknown>[] };
+      const n = Number(body.data?.[0]?.["count()"]);
+      return Number.isFinite(n) ? { count: n, link } : null;
+    } catch { return null; }
+  };
 }
 
 // OPS1: errors and failed runs to Sentry, scrubbed like the gateway's (packages/core/src/scrub.ts). Tagged service=console so they are told
@@ -63,6 +89,7 @@ export function depsFor(env: Env): Deps {
     environment: env.ENVIRONMENT || "development",
     supabaseUrl: env.SUPABASE_URL,
     now: () => new Date(),
+    ...(sentryErrors(env) ? { errorsLast24h: sentryErrors(env)! } : {}),
     ...(pushConfigured(env) ? { pushPublicKey: env.VAPID_PUBLIC_KEY!, pushTest: (partyId: string) => pushTestAlert(db, env, partyId, new Date()) } : {}),
     ...(env.ANTHROPIC_API_KEY ? { readLabel: labelReader({ apiKey: env.ANTHROPIC_API_KEY, model: env.MODEL_FAST || "claude-haiku-5-5" }), labelModel: env.MODEL_FAST || "claude-haiku-5-5" } : {}),
   };

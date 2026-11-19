@@ -43,9 +43,9 @@ describe("the queue page", () => {
   });
   it("is in the Approve group of the menu for a lead, and not for a picker", async () => {
     const lead = await who("ops_lead", "Maya nav");
-    expect((await lead.b.get("/approve")).text).toContain('href="/label-queue"');
+    expect((await lead.b.get("/approve")).text).toContain('href="/approve?tab=labels"');          // CON1: a kind of the one Approvals inbox
     const picker = await who("picker", "Pia nav");
-    expect((await picker.b.get("/approve")).text).not.toContain('href="/label-queue"');
+    expect((await picker.b.get("/pick")).text).not.toContain('href="/approve');
   });
   it("in Arabic: the groups and the buttons", async () => {
     const lead = await who("ops_lead", "Maya ar"); lead.b.cookies.set("ak_lang", "ar");

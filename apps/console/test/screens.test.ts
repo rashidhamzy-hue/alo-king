@@ -83,9 +83,12 @@ describe("Screens", () => {
     expect(down.text).not.toContain("storage_503");
   });
 
-  it("is in the menu (the Settings group, and More), in Arabic as «الشاشات», and has no inline style or script", async () => {
+  it("is in the menu (Settings, Advanced, on More), in Arabic as «الشاشات», and has no inline style or script; a picker opens it by its address", async () => {
     withScreens(async () => PATHS);
-    const b = r.browser(); await b.signIn(await r.staff("picker"));
+    const p = r.browser(); await p.signIn(await r.staff("picker"));
+    expect((await p.get("/screens")).status).toBe(200);                                 // CON1: a picker sees Pick and Stock only; the page stays open to them
+    expect((await p.get("/more")).text).not.toContain('href="/screens"');
+    const b = r.browser(); await b.signIn(await r.staff("ops_lead"));
     const res = await b.get("/more");
     expect(res.text).toContain('href="/screens"');
     expect(res.text).not.toMatch(/\sstyle="/);

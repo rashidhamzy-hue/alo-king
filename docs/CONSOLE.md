@@ -28,6 +28,18 @@ Today (four link tiles), Inbox (the escalation steps and "I'm on it"), Orders (t
 ## Approve, Intake, Money, Settings and Riders on the design system, 17 November (session UX2b)
 **Approve** (`/approve`) is one card at a time, in four tabs (Names, Pictures, Label readings in LB1's order, Second approvals); each card posts to the route the older list page already has, so every SQL function, role and refusal stands, and the person comes back to the next card. The two-person rule is on the card; Undo is offered only after approving a name. **Intake** is one frame of four tabs (Progress, Photograph, Label approvals, Readiness): the board, `sell_requires_label` read only with the steps to turn it on, and sellable, fact-complete and label-ready per template. **Money** has four tabs (Ledger, To confirm, Cash drops at `/money/drops`, Refunds) over the same functions. **Settings** (`/settings`, admin only) changes a setting only through `change_setting()` (0231), logs who, when and why, and sends the two-person rules to the Approve page. **Riders** (`/riders`) is the roster: shifts, cash against the caps, written terms on file (0232); no rating. Details, tests and what is not proven: `docs/log/ux2b.md`.
 
+## A simple console, 19 November (session CON1)
+**This section wins over the page lists below where they differ** (`docs/DECISIONS.md`, "CON1, a simple console, 19 November 2026").
+Seven sections: **Today** (needs attention, then today's four numbers; the Inbox), **Orders** (groceries and food, Food calls, Pick, Rider jobs),
+**Approvals** (one inbox, eight kinds, one card at a time), **Products** (Catalogue, Photos, Label work, Readiness, Search words, Weights),
+**Stock** (counts, purchase orders, receiving, bins, label day photos, temperature log, returns), **People** (riders and applicants, staff,
+places and testers, food places, menus), **Money** (ledger, to confirm, refunds, day open and close). **Settings** sits behind the person's
+name (`/more#settings`), with **Advanced** (screens, templates, zones and the hub, windows, exchange rate, design components). A picker sees
+Pick and Stock only. Merged: Pictures and the component gallery into Photos (the gallery is now Design components, Advanced); names, label
+approvals, second approvals and auto-approvals into the Approvals inbox; intake, food facts and the label queue into Label work. Every older
+address answers 301 to the page it moved into and keeps working. A button on every page and a panel from 1280 px keep a place for AST1's
+assistant ("coming soon"). Details and tests: `docs/log/con1.md`.
+
 ## What never changes
 - The browser never holds a database key; the acting person comes from the session; every action is logged before it runs and
   does not run if the log cannot be written; the console has no insert, update or delete of its own (`no-direct-writes.test.ts`).

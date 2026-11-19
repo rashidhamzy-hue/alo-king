@@ -3,6 +3,8 @@
 // Everything is in the address, so a filter is a link that can be saved or sent, and the server does the work (no script needed).
 // One order reads as a story: who, what, in which order things happened, what was said around it, what was paid and refunded.
 // On a wide screen it opens in a drawer beside the list (the same address with `open=`); on a phone it is its own page.
+// CON1: groceries and food together, filterable by kind ("Groceries" or "Food": a food order is one with a call ahead, FD2's place_calls);
+// a food order carries a "Food" mark in the list.
 // Read-only, except two buttons that file an eval case through file_order_eval_case() (0159): "wrong product" and "bot at fault".
 // They change nothing on the order. The customer's phone is searched but never shown; a voice note is shown as "[audio]", never its words.
 // Not here because nothing in the database gives it to this page yet (listed in docs/HANDOFF.md, DS1): a filter by rider, saved
@@ -41,12 +43,13 @@ const PAGE = 50, MAX = 500;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 export const statusTone = (s: string): Tone => (s === "closed" ? "ok" : s === "cancelled" || s === "failed_delivery" ? "danger" : s === "delivered" || s === "awaiting_payment" ? "warn" : "neutral");
 
-interface Filters { q: string; status: string; channel: string; payment: string; village: string; from: string; to: string; sort: keyof typeof SORTS; dir: "asc" | "desc"; cols: Col[]; before: string; open: string }
+const KINDS = ["grocery", "food"] as const;
+interface Filters { kind: "" | (typeof KINDS)[number]; q: string; status: string; channel: string; payment: string; village: string; from: string; to: string; sort: keyof typeof SORTS; dir: "asc" | "desc"; cols: Col[]; before: string; open: string }
 function readFilters(u: URL): Filters {
   const g = (k: string) => (u.searchParams.get(k) ?? "").trim();
   const one = <T extends string>(v: string, allowed: readonly T[]): T | "" => ((allowed as readonly string[]).includes(v) ? (v as T) : "");
   const cols = u.searchParams.getAll("col").filter((x): x is Col => (COLS as readonly string[]).includes(x));
-  return { q: g("q").slice(0, 60), status: one(g("status"), [...STATUSES, "open"] as string[]), channel: one(g("channel"), CHANNELS), payment: one(g("payment"), PAYMENTS),
+  return { kind: one(g("kind"), KINDS), q: g("q").slice(0, 60), status: one(g("status"), [...STATUSES, "open"] as string[]), channel: one(g("channel"), CHANNELS), payment: one(g("payment"), PAYMENTS),
     village: UUID.test(g("village")) ? g("village") : "", from: DAY.test(g("from")) ? g("from") : "", to: DAY.test(g("to")) ? g("to") : "",
     sort: (one(g("sort"), Object.keys(SORTS) as (keyof typeof SORTS)[]) || "created_at") as keyof typeof SORTS, dir: g("dir") === "asc" ? "asc" : "desc",
     cols: cols.length ? cols : [...COLS], before: /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(g("before")) ? g("before") : "", open: g("open").slice(0, 40) };
@@ -55,7 +58,7 @@ function readFilters(u: URL): Filters {
 function address(f: Filters, change: Partial<Filters> = {}, path = "/orders"): string {
   const x = { ...f, ...change };
   const p = new URLSearchParams();
-  for (const k of ["q", "status", "channel", "payment", "village", "from", "to", "before", "open"] as const) if (x[k]) p.set(k, x[k]);
+  for (const k of ["kind", "q", "status", "channel", "payment", "village", "from", "to", "before", "open"] as const) if (x[k]) p.set(k, x[k]);
   if (x.sort !== "created_at" || x.dir !== "desc") { p.set("sort", x.sort); p.set("dir", x.dir); }
   if (x.cols.length !== COLS.length) for (const col of x.cols) p.append("col", col);
   const qs = p.toString();
@@ -65,15 +68,21 @@ function address(f: Filters, change: Partial<Filters> = {}, path = "/orders"): s
 const dayStart = (day: string) => beirutMidnight(new Date(`${day}T12:00:00Z`));
 
 /** The rows for these filters, newest first unless sorted otherwise, and whether older ones exist. With words typed, the database's own search (0159) finds the orders and the other filters narrow them. */
-async function findRows(c: Ctx, f: Filters, limit: number): Promise<{ rows: Row[]; more: boolean }> {
+/** The orders that are food orders (each has its call ahead, FD2). A database without place_calls yet has none. */
+export async function foodOrderIds(c: Ctx): Promise<Set<string>> {
+  try { return new Set((await c.deps.db.rows<{ order_id: string }>("place_calls", { select: "order_id", limit: 5000 })).map((r) => r.order_id)); }
+  catch { return new Set(); }
+}
+async function findRows(c: Ctx, f: Filters, limit: number, food: Set<string>): Promise<{ rows: Row[]; more: boolean }> {
   const { db } = c.deps;
+  const kindOk = (id: string) => !f.kind || (f.kind === "food") === food.has(id);
   const statusIn = f.status === "open" ? [...ACTIVE] : f.status ? [f.status] : null;
   const from = f.from ? dayStart(f.from).getTime() : null, to = f.to ? dayStart(f.to).getTime() + 86_400_000 : null;
   if (f.q) {
     const found = await db.rpc<Row[]>("search_orders", { p_q: f.q, p_limit: 100 });
     let village: string | null = null;
     if (f.village) village = (await db.rows<{ name_en: string }>("villages", { select: "name_en", where: { id: f.village }, limit: 1 }))[0]?.name_en ?? "\u0000";
-    const rows = found.filter((o) => (!statusIn || statusIn.includes(o.status as never)) && (!f.channel || o.channel === f.channel) && (!f.payment || o.payment_method === f.payment)
+    const rows = found.filter((o) => kindOk(o.id) && (!statusIn || statusIn.includes(o.status as never)) && (!f.channel || o.channel === f.channel) && (!f.payment || o.payment_method === f.payment)
       && (village === null || o.village_name === village) && (from === null || new Date(o.created_at).getTime() >= from) && (to === null || new Date(o.created_at).getTime() < to));
     const key = SORTS[f.sort];
     if (f.sort !== "created_at" || f.dir !== "desc") rows.sort((a, b) => { const x = key === "total_usd" ? Number(a.total_usd) - Number(b.total_usd) : String(a[key]).localeCompare(String(b[key])); return f.dir === "asc" ? x : -x; });
@@ -84,6 +93,7 @@ async function findRows(c: Ctx, f: Filters, limit: number): Promise<{ rows: Row[
   if (f.channel) where.channel = f.channel;
   if (f.payment) where.payment_method = f.payment;
   if (f.village) where.village_id = f.village;
+  if (f.kind === "food") where.id = { in: [...food] };
   // The reader takes one bound per column. Newest first, the upper bound (the page point or the last day) goes to the database and the
   // first day is cut here, which is exact because everything after it is older. Sorted another way, one bound goes to the database and
   // the rest is cut here over up to 500 rows.
@@ -92,8 +102,8 @@ async function findRows(c: Ctx, f: Filters, limit: number): Promise<{ rows: Row[
   if (upper !== null && (byTime || from === null)) where.created_at = { lt: new Date(upper).toISOString() };
   else if (from !== null) where.created_at = { gte: new Date(from).toISOString() };
   const got = await db.rows<Order>("orders", { select: "id,short_code,status,created_at,total_usd,payment_method,channel,customer_id,village_id", where: where as never,
-    order: [{ col: SORTS[f.sort], desc: f.dir === "desc" }, ...(f.sort === "created_at" ? [] : [{ col: "created_at", desc: true }])], limit: (byTime && from === null ? limit : MAX) + 1 });
-  const within = got.filter((o) => { const made = new Date(o.created_at).getTime(); return (from === null || made >= from) && (upper === null || made < upper); });
+    order: [{ col: SORTS[f.sort], desc: f.dir === "desc" }, ...(f.sort === "created_at" ? [] : [{ col: "created_at", desc: true }])], limit: (byTime && from === null && f.kind !== "grocery" ? limit : MAX) + 1 });
+  const within = got.filter((o) => { const made = new Date(o.created_at).getTime(); return kindOk(o.id) && (from === null || made >= from) && (upper === null || made < upper); });
   const page = within.slice(0, limit);
   const [names, villages] = await Promise.all([
     page.length ? db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: [...new Set(page.map((o) => o.customer_id))] } } }) : Promise.resolve([]),
@@ -110,13 +120,14 @@ async function search(c: Ctx) {
   const L = c.lang;
   const f = readFilters(c.url);
   const { db } = c.deps;
-  const [{ rows, more }, villages] = await Promise.all([findRows(c, f, PAGE), db.rows<{ id: string; name_en: string }>("villages", { select: "id,name_en", order: [{ col: "name_en" }] }).catch(() => [])]);
+  const food = await foodOrderIds(c);
+  const [{ rows, more }, villages] = await Promise.all([findRows(c, f, PAGE, food), db.rows<{ id: string; name_en: string }>("villages", { select: "id,name_en", order: [{ col: "name_en" }] }).catch(() => [])]);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(c.deps.now());
-  const blank: Filters = { ...f, q: "", status: "", channel: "", payment: "", village: "", from: "", to: "", before: "", open: "" };
+  const blank: Filters = { ...f, kind: "", q: "", status: "", channel: "", payment: "", village: "", from: "", to: "", before: "", open: "" };
   const plain = (x: Filters): Filters => ({ ...x, before: "", open: "", sort: "created_at", dir: "desc", cols: [...COLS] });
   const active = (x: Partial<Filters>) => address({ ...plain(blank), ...x }) === address(plain(f));
   // Views: filters that are asked for every day, as links. A view of your own is the address itself: bookmark it or send it.
-  const views: [string, string, Partial<Filters>][] = [["Latest", "الأحدث", {}], ["Open now", "المفتوحة الآن", { status: "open" }], ["Today", "اليوم", { from: today }],
+  const views: [string, string, Partial<Filters>][] = [["Latest", "الأحدث", {}], ["Groceries", "البقالة", { kind: "grocery" }], ["Food", "الأكل", { kind: "food" }], ["Open now", "المفتوحة الآن", { status: "open" }], ["Today", "اليوم", { from: today }],
     ["Delivered, not paid", "سُلّم ولم يُدفع", { status: "delivered" }], ["Waiting for a transfer", "بانتظار تحويل", { status: "awaiting_payment" }], ["Failed deliveries", "فشل التوصيل", { status: "failed_delivery" }]];
   const sortable = (col: keyof typeof SORTS): Pick<Column, "sortHref" | "sorted"> => ({
     sortHref: address(f, { sort: col, dir: f.sort === col && f.dir === "desc" ? "asc" : "desc", before: "", open: "" }),
@@ -133,6 +144,7 @@ async function search(c: Ctx) {
 ${chips(views.map(([en, ar, x]) => ({ label: pick(L, en, ar), href: address(blank, x), current: active(x) })), pick(L, "Views", "طرق العرض"))}
 <form method="get" action="/orders" class="ak-filters">
 <label class="ak-field ak-field--grow"><span>${t(L, "orders_find")}</span><input class="ak-input" name="q" value="${f.q}" placeholder="${t(L, "orders_ph")}" maxlength="60" enterkeyhint="search"></label>
+${select({ name: "kind", label: pick(L, "Groceries or food", "بقالة أو أكل"), value: f.kind, options: [{ value: "", label: pick(L, "Both", "الاثنان") }, { value: "grocery", label: pick(L, "Groceries", "البقالة") }, { value: "food", label: pick(L, "Food", "الأكل") }] })}
 ${sel("status", pick(L, "Status", "الحالة"), ["open", ...STATUSES], (v) => (v === "open" ? pick(L, "every open order", "كل الطلبات المفتوحة") : statusWord(L, v)))}
 ${sel("channel", t(L, "channel"), CHANNELS)}${sel("payment", t(L, "payment"), PAYMENTS)}
 ${select({ name: "village", label: t(L, "village"), value: f.village, options: [{ value: "", label: pick(L, "Any", "الكل") }, ...villages.map((v) => ({ value: v.id, label: v.name_en }))] })}
@@ -141,10 +153,10 @@ ${f.sort !== "created_at" || f.dir !== "desc" ? html`<input type="hidden" name="
 <details class="ak-field"><summary>${pick(L, "Columns", "الأعمدة")}</summary>${COLS.map((col) => html`<label><input type="checkbox" name="col" value="${col}"${f.cols.includes(col) ? html` checked` : ""}> ${colLabel(L, col)}</label> `)}</details>
 <button>${pick(L, "Show", "اعرض")}</button></form>
 <div class="with-drawer"${opened ? html` data-open` : ""}><div>
-<div class="ak-table-foot"><span>${f.q ? t(L, "orders_found", { n: rows.length, q: f.q }) : f.status || f.channel || f.payment || f.village || f.from || f.to || f.before ? pick(L, `${rows.length} shown`, `المعروض: ${rows.length}`) : t(L, "orders_recent")}</span>
+<div class="ak-table-foot"><span>${f.q ? t(L, "orders_found", { n: rows.length, q: f.q }) : f.kind || f.status || f.channel || f.payment || f.village || f.from || f.to || f.before ? pick(L, `${rows.length} shown`, `المعروض: ${rows.length}`) : t(L, "orders_recent")}</span>
 ${button({ label: pick(L, "Download as CSV", "تنزيل CSV"), href: address(f, { before: "", open: "" }, "/orders.csv"), icon: "download", variant: "ghost" })}</div>
 ${dataTable({ caption: t(L, "orders_title"), columns, empty: empty({ title: t(L, "orders_none"), icon: "search" }),
-    rows: rows.map((o) => ({ selected: opened?.o.id === o.id, cells: [html`<a href="/orders/${o.id}" data-drawer="${address(f, { open: o.id })}"><strong>${o.short_code}</strong></a>`, ...f.cols.map((col) => cell(o, col))] })) })}
+    rows: rows.map((o) => ({ selected: opened?.o.id === o.id, cells: [html`<a href="/orders/${o.id}" data-drawer="${address(f, { open: o.id })}"><strong>${o.short_code}</strong></a>${food.has(o.id) ? html` ${badge(pick(L, "Food", "أكل"), "gold", "food")}` : ""}`, ...f.cols.map((col) => cell(o, col))] })) })}
 <div class="ak-table-foot"><span>${f.q && rows.length >= 100 ? pick(L, "The search shows its first 100 matches: add a filter to narrow it.", "البحث يعرض أول 100 نتيجة: أضف تصفية لتضييقها.") : ""}</span>
 ${more && last && f.sort === "created_at" && f.dir === "desc" ? button({ label: pick(L, "Older orders", "طلبات أقدم"), href: address(f, { before: new Date(last.created_at).toISOString(), open: "" }), icon: "chevron" }) : more ? html`<span>${pick(L, `The first ${PAGE} are shown: sort by time to page through the rest.`, `المعروض أول ${PAGE}: رتّب حسب الوقت لتصفّح البقية.`)}</span>` : ""}</div></div>
 ${opened ? drawer({ id: "order", title: opened.o.short_code, closeHref: address(f, { open: "" }), closeLabel: pick(L, "Close", "إغلاق"),
@@ -156,7 +168,7 @@ async function csv(c: Ctx) {
   const f = readFilters(c.url);
   try { await audit(c.deps, c.staff, { action: "orders_export", phase: "event", args: { q: f.q ? "yes" : "", status: f.status, channel: f.channel, payment: f.payment, village: f.village, from: f.from, to: f.to } }); }
   catch { return new Response("Not done: the action log could not be written. Try again in a minute.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } }); }
-  const { rows } = await findRows(c, { ...f, before: "" }, MAX);
+  const { rows } = await findRows(c, { ...f, before: "" }, MAX, await foodOrderIds(c));
   // A cell that a spreadsheet would run as a formula is written as text.
   const cell = (v: unknown) => { let x = String(v ?? ""); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
   const lines = [["order", "status", "customer", "village", "total_usd", "payment", "channel", "placed_utc"], ...rows.map((o) => [o.short_code, o.status, o.customer_name, o.village_name, Number(o.total_usd).toFixed(2), o.payment_method, o.channel, new Date(o.created_at).toISOString()])];

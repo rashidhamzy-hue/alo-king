@@ -9,7 +9,7 @@ a rule or a setting value, change its row here in the same pull request. `CLAUDE
 Abbreviations in "Set by": D12 = `DECISIONS.md` "Decisions (12 November 2026)" and its confirmed rows; R4 = "Founder answers, 14 November"; F15 =
 "Founder decisions, 15 November 2026"; F15b = "Founder decisions, 15 November 2026 (later)"; C15 = "Coordinator decisions, 15 November 2026, 13:30"; F16 and C16 = the 16 November sections; DS = "Design
 reference, 17 November 2026"; CFG = its "settings" section; LV = "Listings before they sign"; SELL = "nothing packaged sells before its label"; WEB2,
-UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"**; FD1 = "FD1, the friends' test food: places and menus, 18 November 2026"; FD2 = "FD2, ordering food from places, 18 November 2026"; MENU2 = "MENU2, menus from any source, 19 November 2026"; WEB4b = "WEB4b, the website's food pages and three small fixes, 19 November 2026".
+UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"**; FD1 = "FD1, the friends' test food: places and menus, 18 November 2026"; FD2 = "FD2, ordering food from places, 18 November 2026"; MENU2 = "MENU2, menus from any source, 19 November 2026"; WEB4b = "WEB4b, the website's food pages and three small fixes, 19 November 2026"; CON1 = "CON1, a simple console, 19 November 2026".
 
 ## Money, riders and cash
 | Rule or setting | Value | Set by |
@@ -35,7 +35,7 @@ UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"*
 ## Two-person rule and approvals
 | Rule or setting | Value | Set by |
 |---|---|---|
-| Who approves | The person who asked can never approve their own request. Hussein is the second approver for the founder's own refunds and price changes | C11 / R4 8; D2 |
+| Who approves | The person who asked can never approve their own request (SQL, `SAME_PERSON`). **Bassem** is the second approver for the founder's own two-person changes: any admin or ops lead other than the one who asked. Hussein is no longer involved | C11 / R4 8; D2; **CON1 13** |
 | Refund limit (`approvals.refund_usd`) | **10 USD** (a larger refund waits for a second person) | CFG 4 (was 20) |
 | Price-change limit (`approvals.price_change_pct`) | 10 % | CFG 4 |
 | The two-person list (rows of `editable_settings`; change the rows to change the list) | A change to either limit above; switching the LBP second-person rule **off**; a change to the **cash caps** (soft may not exceed hard); **`sell_requires_label` switched on**. Switching a stricter value on, or `sell_requires_label` off, is immediate | UX2b 2 |
@@ -132,11 +132,13 @@ UX2b, UX3, WH1a = their sections; **F18 = "Founder decisions, 18 November 2026"*
 | Category photos | The reference's Unsplash list on our 15 codes (two swapped for unbranded ones), WebP on this site, never hotlinked, lazy below the fold, credited on How it works | WEB4a 8 |
 | Switches | Ask Alo King (WEB3), Send home (SH1) and public restaurant pages take the design behind their switches; they stay off. The home page's Ask strip is behind **`settings.web.ask_alo_king`** (absent = off; when on, its prompts open the WhatsApp chat: one assistant, invariant 21) | F18 2; WEB4a 7 |
 | Console | **Unchanged: no React, HTML functions** (`packages/ui` for both apps; Astro on the website) (decision 11 of F15). Brand: ink `#0E0F12`, gold `#C9A227`, gold-deep `#8A6A12`, paper `#FAF8F3`, green `#14663B` only for "available" and "done"; WhatsApp green only on WhatsApp actions; IBM Plex Sans, self-hosted | F15 11; DS 1 |
+| The console's map (CON1) | **Seven sections**: Today, Orders, Approvals, Products, Stock, People, Money; **Settings behind the person's name** (`/more#settings`), rarely used tools under **Advanced** (Screens, Templates, Zones and the hub, Windows, Exchange rate, Design components). **A picker sees Pick and Stock only**; an ops lead the seven; the admin everything. One Photos page, one Approvals inbox (eight kinds, one card at a time), one label-work flow (`/labels`). **An older address answers 301 to the page it moved into** and keeps working (`app.ts` `MOVED`). Today is "needs attention", most urgent first, then orders, sales, average delivery time and average restaurant acceptance time; a call ahead unanswered after **10 minutes** is listed (`CALL_AHEAD_MIN`, code). A place is kept on every page for AST1's assistant ("coming soon") | CON1 1 to 12 |
 | Staff-screen rules | Every tap target at least 44 px; no swipe decides anything; a reversible action shows a toast with Undo instead of "are you sure" (undo only where the database can take it back: a name); a timer always carries words and an icon | DS 4; UX2b 7 |
 | Statuses | The database's ids stay; one label table maps them (staff and customer words, Arabic and English) | DS 2 |
 | Website sessions (`web`) | Signed-in 90 days, anonymous 30; the order link is signed, 7 days, at most 48 h after the order ended; link code 10 min | WEB2 5; *setting* |
 | Join pages (`join`) | 3 applications per session a day, 30 an hour in all; an application is a row and a staff case, never a rider and never a merchant; accepting a rider sends nothing | UX3 1 to 9 |
 | Aisle | 24 cards a page; Arabic pages use the small "figures" font | WEB2 6, 7 |
+| Sentry on Today | The errors of the last 24 hours, this environment, read with a **read-only** token (`SENTRY_READ_TOKEN`, Worker secret; `SENTRY_ORG` alo-king, `SENTRY_API` https://de.sentry.io, Worker variables); absent, Today says "not connected" | CON1 10 |
 | Screenshots | Never in the repository. Private bucket `screens` (10 MB per file); the `screens` workflow shoots and uploads; the console's **Screens** page (any staff role) lists them by session beside the reference's screen; the latest set per page is kept | F18 7 |
 
 ## Model spend and tests

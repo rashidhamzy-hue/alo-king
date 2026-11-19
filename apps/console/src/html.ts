@@ -65,18 +65,20 @@ export function page(opts: PageOpts): Response {
   // The sidebar: a group with one page is a link; a group with several opens to show them, and is open when you are in it.
   // DS2 (the design reference): the sidebar is the full height of the window on ink, with the crown and the signed-in role at its head.
   const brand = html`<a class="side-brand" href="/">${crown({ tone: "on-gold" })}<span><b>${t(lang, "app_name")}</b>${opts.staff ? html`<small>${opts.staff.role.replace("_", " ")}</small>` : ""}</span></a>`;
-  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${brand}${nav.groups.map((g) => g.links.length === 1 && g.id !== "approve" && g.id !== "stock"
+  const aside = nav ? html`<aside class="sidebar" aria-label="${t(lang, "all_pages")}">${brand}${nav.groups.map((g) => g.links.length === 1
     ? html`<a href="${g.links[0]!.href}"${cur(g.current)}>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}</a>`
     : html`<details${g.current ? new Raw(" open") : ""}><summary>${icon(g.icon)}<span>${g.heading}</span>${badge(g.badge)}${icon("chevron", { flip: true, cls: "chev" })}</summary>
 ${g.links.map((l) => html`<a href="${l.href}"${cur(l.current)}><span>${l.label}</span>${badge(l.badge)}</a>`)}</details>`)}</aside>` : "";
   const bottom = nav ? html`<nav class="bottom-nav" aria-label="${t(lang, "main_menu")}">${nav.bottom.map((l) => html`<a href="${l.href}"${cur(l.current)}><span class="ic">${icon(l.icon)}</span><span>${l.label}</span>${badge(l.badge)}</a>`)}</nav>` : "";
   const commands: Command[] = nav ? [
     ...nav.groups.flatMap((g) => g.links.map((l) => ({ label: l.label, href: l.href, hint: g.links.length > 1 ? g.heading ?? undefined : undefined, icon: g.icon }))),
+    ...nav.advanced.filter((l) => l.href !== "/components" || opts.environment !== "production").map((l) => ({ label: l.label, href: l.href, hint: t(lang, "advanced_h"), icon: "settings" as const })),
     { label: t(lang, "nav_more"), href: "/more", icon: "menu" as const },
   ] : [];
   const tools = nav ? html`<a class="tool search" href="/more" data-open-cmdk aria-keyshortcuts="Control+K">${icon("search")}<span class="lbl">${t(lang, "cmd_open")}</span><kbd>Ctrl K</kbd></a>
 ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), items: opts.bell.items, empty: t(lang, "bell_empty"), allHref: "/exceptions", allLabel: t(lang, "bell_all") }) : ""}` : "";
-  const who = opts.staff ? html`<div class="who"><span class="name">${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span>
+  // CON1: Settings sits behind the person's name (the "Settings" part of /more: Settings for the admin, Advanced, and this phone's own choices).
+  const who = opts.staff ? html`<div class="who"><a class="name-link" href="/more#settings" title="${t(lang, "your_settings")}">${icon("settings")}<span class="name">${opts.staff.name} (${opts.staff.role.replace("_", " ")})</span></a>
 <form method="post" action="/sign-out"><input type="hidden" name="_csrf" value="${opts.staff.csrf}"><button aria-label="${t(lang, "sign_out")}" title="${t(lang, "sign_out")}">${icon("signout", { flip: true })}</button></form></div>` : "";
   const banner = opts.environment === "production" ? "" : html`<div class="env">${previewNotice(t(lang, "test_data", { env: opts.environment.toUpperCase() }))}</div>`;
   // A toast: what happened, in words; with Undo (a small form that posts to the action's own way back) only where the database can take it back.
@@ -97,8 +99,20 @@ ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), 
 <title>${opts.title} · ${t(lang, "app_name")}</title><link rel="stylesheet" href="/console.css"></head>
 <body><a class="skip" href="#main">${t(lang, "skip")}</a>
 <div class="${nav ? "shell" : "shell shell--bare"}">${aside}<div class="col">${banner}<header class="top"><a class="ak-logo" href="/">${crown({ tone: "on-ink" })}<strong>${t(lang, "app_name")}</strong></a>${tools}${who}</header>
-<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div></div>${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
+<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${nav ? assistantPanel(lang) : ""}</div>${nav ? assistantButton(lang) : ""}${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
   return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
+/**
+ * CON1: the place kept for the staff assistant that session AST1 adds (invariant 21: it may answer from read-only reports and never acts).
+ * A button on every page (above the phone's bar; it opens /assistant) and, on a wide screen, a panel beside the page. Today both say "coming soon".
+ */
+export function assistantButton(lang: Lang): Raw {
+  return html`<a class="ak-assistant-btn" href="/assistant" aria-label="${t(lang, "assistant")}: ${t(lang, "assistant_soon")}">${icon("chat")}<span>${t(lang, "assistant")}</span></a>`;
+}
+export function assistantPanel(lang: Lang): Raw {
+  return html`<aside class="ak-assistant" aria-label="${t(lang, "assistant")}" data-assistant="AST1"><h2>${icon("chat")}<span>${t(lang, "assistant")}</span></h2>
+<p class="ak-assistant-soon">${t(lang, "assistant_soon")}</p><p class="muted">${t(lang, "assistant_note")}</p></aside>`;
 }
 
 /** The browser's own chrome (the status bar of the installed app): the brand's ink, in both themes. From tokens.css. */

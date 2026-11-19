@@ -4,8 +4,9 @@
 // with no picture at all, by aisle; the front photo on label day closes each one).
 // Nothing here decides anything itself: Approve and Reject call review_product_image() (0050), Later calls defer_product_image() (0242).
 // A picture shows to customers only once approved, and only if its licence is one a customer may see (product_image_licence_usable).
-// The older pages stay: Approve > Pictures (one card at a time with the rest of the queue) and /pictures (the list, approved and rejected too).
-import { act, html, id, render, returnTo, text, UserError, type Ctx, type Section } from "../app";
+// CON1: the one Photos page. Pictures (/pictures: the list, approved and rejected too, where an approved picture is withdrawn) is drawn here
+// as the "As a list" tab (f=list), and /pictures and /gallery move here (app.ts, MOVED). The Approvals inbox's Photos cards are the same queue.
+import { act, drawOlder, html, id, render, returnTo, text, UserError, type Ctx, type Section } from "../app";
 import { form } from "../html";
 import { pick, type Lang } from "../i18n";
 import { LEADS } from "../roles";
@@ -92,8 +93,16 @@ ${info.length ? html`<p class="muted">${info.map((x) => x.text).join(" ")}</p>` 
 </article>`;
 }
 
+/** The tab bar of the Photos page, with "As a list" (the older Pictures page: approved, rejected, withdrawing) at its end. */
+function photoTabs(L: Lang, f: Filter | "list", counts: Partial<Record<Filter, number>>) {
+  const label: Record<Filter, string> = { all: pick(L, "To approve", "للموافقة"), review: pick(L, "Needs review", "تحتاج مراجعة"), later: pick(L, "Later", "لاحقاً"), missing: pick(L, "Needs a photo", "تحتاج صورة") };
+  return tabs([...FILTERS.map((x) => ({ label: label[x], href: href(x), current: x === f, count: counts[x] })),
+    { label: pick(L, "As a list (approved, rejected)", "كقائمة (المعتمدة والمرفوضة)"), href: "/photos?f=list", current: f === "list" }], pick(L, "Photos", "الصور"));
+}
+
 async function page(c: Ctx) {
   const L = c.lang;
+  if (c.url.searchParams.get("f") === "list") return drawOlder(c, "/pictures", photoTabs(L, "list", {}));
   const asked = c.url.searchParams.get("f") ?? "";
   const f: Filter = (FILTERS as readonly string[]).includes(asked) ? (asked as Filter) : "all";
   let q: Awaited<ReturnType<typeof load>> | null = null; let failed = false;
@@ -101,7 +110,6 @@ async function page(c: Ctx) {
   const missing = await loadMissing(c).catch(() => [] as Missing[]);
   const counts: Record<Filter, number> = { all: q?.all.length ?? 0, review: q?.review.length ?? 0, later: q?.later.length ?? 0, missing: missing.length };
   const waiting = q?.rows.length ?? 0;
-  const label: Record<Filter, string> = { all: pick(L, "To approve", "للموافقة"), review: pick(L, "Needs review", "تحتاج مراجعة"), later: pick(L, "Later", "لاحقاً"), missing: pick(L, "Needs a photo", "تحتاج صورة") };
   const list = f === "missing" ? [] : q?.[f] ?? [];
   const total = list.length;
   const n = total === 0 ? 0 : Math.min(total - 1, Math.max(0, Math.floor(Number(c.url.searchParams.get("n"))) || 0));
@@ -113,9 +121,9 @@ async function page(c: Ctx) {
   return render(c, pick(L, "Photos", "الصور"), html`<div data-approve>
 <p><strong>${pick(L, `${waiting} pictures to approve`, `${waiting} صورة للموافقة`)}</strong>${counts.review ? pick(L, `, ${counts.review} of them need review`, `، منها ${counts.review} تحتاج مراجعة`) : ""}.
  <span class="muted">${pick(L, "Nothing shows on the website or WhatsApp until you approve it. Keys: a approves, r rejects, l puts it aside, the arrows move.", "لا يظهر شيء في الموقع أو واتساب حتى توافق عليه. المفاتيح: a للموافقة، r للرفض، l للتأجيل، والأسهم للتنقل.")}</span></p>
-${tabs(FILTERS.map((x) => ({ label: label[x], href: href(x), current: x === f, count: counts[x] })), pick(L, "Photos", "الصور"))}
+${photoTabs(L, f, counts)}
 ${body}
-<p class="muted ak-approve-foot">${pick(L, "Prefer a list, or want to withdraw an approved picture? ", "تفضّل قائمة، أو تريد سحب صورة معتمدة؟ ")}<a href="/pictures">${pick(L, "Pictures as a list", "الصور كقائمة")}</a></p>
+<p class="muted ak-approve-foot">${pick(L, "Prefer a list, or want to withdraw an approved picture? ", "تفضّل قائمة، أو تريد سحب صورة معتمدة؟ ")}<a href="/photos?f=list">${pick(L, "Photos as a list", "الصور كقائمة")}</a></p>
 </div>`, { translated: true });
 }
 
