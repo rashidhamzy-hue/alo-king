@@ -39,15 +39,18 @@ lock() {
 trap lock EXIT
 res=$(printf '%s' "$pw" | curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -c "$jar" -X POST --data-urlencode "email=$email" --data-urlencode "password@-" "$u/sign-in")
 expect "real sign-in (picker)" "303 $u/" "$res"
-page=$(curl -sS -b "$jar" "$u/")
+# CON1: a picker's Today is the pick queue ("/" answers 303 to /pick): follow it, as a browser does.
+expect "a picker's Today" "303 $u/pick" "$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -b "$jar" "$u/")"
+page=$(curl -sS -b "$jar" "$u/pick")
 grep -q "Console smoke check" <<<"$page" || { echo "FAIL: signed-in page does not show the staff name"; exit 1; }
 echo "signed-in page shows the staff name"
-for p in /payments /riders /pictures /names /readiness /windows; do expect "picker opens $p" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
+# -L: an older address (/pictures, /names) answers 301 to the page it moved into (CON1); the role is checked there.
+for p in /payments /riders /pictures /names /readiness /windows; do expect "picker opens $p" 403 "$(curl -sS -L -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
 for p in /returns /catalog; do expect "picker opens $p" 200 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
 echo "- Smoke test passed on $u: health, signed-out redirect, cross-site refusal, wrong password, a real sign-in, picker roles enforced" >> "$SUMMARY"
 
 # 5.15: does this console read labels? (the ANTHROPIC_API_KEY Worker secret; the intake page says which)
-intake=$(curl -sS -b "$jar" "$u/intake" || true)
+intake=$(curl -sS -L -b "$jar" "$u/intake" || true)
 if grep -q "and read the label" <<<"$intake"; then reader="on (the model reads label photos)"; else reader="off (no model key: typed by hand)"; fi
 echo "label reader: $reader"; echo "- Label reader: $reader" >> "$SUMMARY"
 
@@ -59,7 +62,7 @@ sweep() {
   local role=$1; shift
   for p in "$@"; do
     local out; out=$(mktemp)
-    local code; code=$(curl -sS -o "$out" -w '%{http_code}' -b "$jar" "$u$p" || true)
+    local code; code=$(curl -sS -L -o "$out" -w '%{http_code}' -b "$jar" "$u$p" || true)   # -L: follows a moved address (CON1) and a picker's Today
     local said; said=$(grep -o 'class="flash err">[^<]*' "$out" | head -1 | sed 's/^class="flash err">//' || true)
     local res
     if [ "$code" = 200 ] && [ -z "$said" ]; then res="works"; else res="FAILS: HTTP $code${said:+, \"$said\"}"; echo "::warning::$p ($role) $res"; fi
