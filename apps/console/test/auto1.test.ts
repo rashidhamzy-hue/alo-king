@@ -65,7 +65,7 @@ describe("approvals by rule on the console", () => {
     const ab = r.browser(); await ab.signIn(admin);
     const settings = (await ab.get("/settings")).text;
     expect(settings).toMatch(/Dishes approved by rule \(menu-dish-1\)/);
-    expect(settings).toMatch(/Pictures decided by rule \(photo-vision-1\)/);
+    expect(settings).toMatch(/Pictures decided by rule \(photo-vision-2\)/);
   });
 
   it("the place's page: prices to confirm with its phone; the hours and phone read from the menu, applied in one tap", async () => {

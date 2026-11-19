@@ -63,7 +63,8 @@ describe("the picture check run", () => {
     expect(cleanAnswer({ verdict: "yes" })).toBeNull();
     expect(cleanAnswer({ verdict: "match", confidence: 7, brand: { match: "maybe" }, marks: ["hebrew_text", "rude"], reason: "  x  " }))
       .toMatchObject({ confidence: 1, brand: { match: "unsure" }, product_type: { match: "unsure" }, marks: ["hebrew_text"], reason: "x" });
-    expect(Object.keys(CHECK_TOOL.input_schema.properties)).toEqual(["verdict", "confidence", "brand", "product_type", "size", "flavour", "marks", "reason"]);
+    expect(Object.keys(CHECK_TOOL.input_schema.properties)).toEqual(["verdict", "confidence", "brand", "product_type", "size", "flavour", "marks", "evidence", "reason"]);
+    expect(cleanAnswer({ verdict: "match", evidence: { hebrew: " מים ", claim_where: "nowhere" } }).evidence).toEqual({ hebrew: "מים", claim: null, claim_where: null, shop: null, price: null });
   });
   it("queues the front photo, checks every waiting picture in one batch, and the database decides", async () => {
     const api = fakeApi((id, text) => {
@@ -79,7 +80,7 @@ describe("the picture check run", () => {
     expect(api.posted[0].params.messages[0].content[0].source).toMatchObject({ type: "base64", media_type: "image/jpeg" });
     expect(out.outcomes).toEqual({ approved: 1, rejected: 1, left: 1 });
     expect(out.failed).toEqual([{ sku: sku.p2, mode: "decide", reason: "the batch errored" }]);
-    expect((await db.one(`select status, review_note from product_images where id = $1`, [img[sku.p1!]]))).toEqual({ status: "rejected", review_note: "automatic: rule photo-vision-1: shows Masafi, not Nejmeh" });
+    expect((await db.one(`select status, review_note from product_images where id = $1`, [img[sku.p1!]]))).toEqual({ status: "rejected", review_note: "automatic: rule photo-vision-2: shows Masafi, not Nejmeh" });
     expect((await db.one(`select status from product_images where id = $1`, [img[sku.p2!]])).status).toBe("proposed");          // an unusable answer changes nothing
     expect((await db.one(`select status, needs_review from product_images where media_path like 'labels/%'`))).toEqual({ status: "proposed", needs_review: true });
     expect(out.summary).toMatch(/Decided: \*\*1 approved automatically, 1 rejected with the reason, 1 left for a person\*\*/);
