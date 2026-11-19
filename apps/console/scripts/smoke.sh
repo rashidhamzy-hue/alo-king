@@ -40,7 +40,10 @@ trap lock EXIT
 res=$(printf '%s' "$pw" | curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -c "$jar" -X POST --data-urlencode "email=$email" --data-urlencode "password@-" "$u/sign-in")
 expect "real sign-in (picker)" "303 $u/" "$res"
 # CON1: a picker's Today is the pick queue ("/" answers 303 to /pick): follow it, as a browser does.
-expect "a picker's Today" "303 $u/pick" "$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -b "$jar" "$u/")"
+# A new Worker version reaches every Cloudflare location within seconds, not at once: right after the deploy step "/" can still come from the
+# version before (it answered 200 here once, run 44512173942). Ask again for up to a minute before calling it a failure.
+today=""; for _ in $(seq 1 12); do today=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -b "$jar" "$u/"); [ "$today" = "303 $u/pick" ] && break; sleep 5; done
+expect "a picker's Today" "303 $u/pick" "$today"
 page=$(curl -sS -b "$jar" "$u/pick")
 grep -q "Console smoke check" <<<"$page" || { echo "FAIL: signed-in page does not show the staff name"; exit 1; }
 echo "signed-in page shows the staff name"
