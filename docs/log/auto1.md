@@ -54,7 +54,26 @@ the prompt gave). No new agent; no write to orders, payments, stock or the ledge
   repository hygiene check pass. Locally every suite passes but `test/pg` (no pgvector in this container); CI runs it.
 
 ## On staging
-See "Live run" (filled after the merge and the deploy).
+- **0263 and 0264** applied by deploy-staging run 44581961448 (from `main` at a3a864c, the merge of #145; green). Read on staging afterwards:
+  `automation_rules` dish `menu-dish-1` and photo `photo-vision-1`; `settings.automation` both on, sample 50, at most 1 wrong.
+- **The dish rule on Safa's real menu (read only, nothing changed)**: `menu_rule_view` over Safa's 136 proposals as if waiting again. The rule
+  would have approved **105**; the founder had approved **all 105** of them (**0 disagreements**). Of the 15 more he approved, the rule would
+  have left 15 for him: 3 flagged "other" (Crispy Meal, Nuggets Meal, Sujuk), 2 unclear names (Protein Plate, Souda Plate) and **10 whose
+  price it could not find on the dish's own line** (the reader's name differs from the printed line: Chinese chicken, Vegetarian, Chinese
+  meat, Kibbeh bil siniyye, the two smoked-rice taouk, Vegetable Rolls, Chicken Rolls, Taouk bil fakhara, Chicken Alfredo): misses on the
+  safe side. The 16 ranges he rejected: never the rule's.
+- **The live picture check, rule `photo-vision-1`** (run [44582994731](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44582994731),
+  mode both, cap USD 1): no picture waited (release `pictures-2` never reached staging: its zip has neither folder the import reads and no
+  report; `pictures-3` was imported and decided by the founder), no front photo exists yet, so it re-checked the **246 approved pictures**:
+  **USD 0.0622** for 246 calls (claude-haiku-5-5, half price; in `model_costs`). It agreed on 18, was unsure on 38 and "disagreed" on 190,
+  almost all from the marks: **Hebrew text on 103** (Arabic read as Hebrew; once with its own reason saying "not Hebrew"), **a health claim on
+  89** (the brand's own printed "low fat", "no preservatives"), another shop's branding 44, a price tag 33; fields: size 63, brand 27, flavour
+  17, product type 7. **Had it been deciding, most good pictures would have been rejected.** Nothing was changed (a re-check records only).
+  So the rule was corrected before any picture arrived: **`photo-vision-2` (0265)**, marks only with evidence code checks, a mark leaves the
+  picture for a person and never rejects (DECISIONS row 19).
+- Real catches in that run worth the founder's eye (the re-check list below, after `photo-vision-2`): AK-0099 Mamig's garlic shows
+  GoldAlex; AK-0038 Hawa Chicken shows Tanmiah; AK-0238 Foody's peas a 4-pack; AK-0149 Ülker Albeni a multipack box; AK-0283 Gipsy a
+  three-pack bundle.
 
 ## Not proven (only a live account or a person can)
 - The second reading and the place's details read by the live model: the reading run's code is tested against a scripted model; no menu
