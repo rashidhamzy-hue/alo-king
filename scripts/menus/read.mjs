@@ -84,7 +84,7 @@ if (fetchOnly) process.exit(0);
 let out;
 try {
   const prices = await loadPrices(conn);
-  out = await runMenuRead({ rpc, download, fetch, prices, model, apiKey, capUsd, limit, resumeBatchIds, runId, dryRunPhotos: dry ? fixtures() : undefined, log: (s) => console.log(s) });
+  out = await runMenuRead({ rpc, download, fetch, prices, model, apiKey, capUsd, limit, resumeBatchIds, runId, dryRunPhotos: dry ? fixtures() : undefined, secondReading: !dry, log: (s) => console.log(s) });
 } catch (e) {
   console.error(`::error::the menu reading run stopped: ${String(e.message).slice(0, 300)}`);
   process.exit(1);
@@ -98,6 +98,18 @@ if (dry) for (const r of out.readings) console.log(`\n#### ${r.place}\n` + JSON.
 out.meter.conn = conn;
 await finishMeter(out.meter, { env, conn });
 if (out.unfinished.length) console.log(`::warning::${out.unfinished.length} batch(es) were still processing; run again with batch_ids`);
+
+// ---------- 2b AUTO1: the rule approves what it can check (settings.automation.dishes; a person approved rule menu-dish-1) ----------
+if (!dry) {
+  try {
+    const a = await rpc("automation_run_dishes", {});
+    summary(a.enabled
+      ? `### Approved by rule ${a.version}\n\n${a.approved} dish(es) approved automatically (Console, Approvals, "Approved automatically today", each with Undo); ${a.left_for_a_person} left for a person; ${a.stamped} menu(s) stamped checked.${a.errors ? ` ${a.errors} refused by the database (left for a person).` : ""}\n`
+      : "### Approval by rule is switched off (Settings, automation.dishes.enabled): every dish waits for a person.\n");
+  } catch (e) {
+    console.error(`::warning::the rule could not run: ${String(e.message).slice(0, 200)}; every dish waits for a person`);
+  }
+}
 
 // ---------- 3 what waits for a person, per place (a menu is a place's public offer: dish names and prices, never a person's data) ----------
 if (!dry) {

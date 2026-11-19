@@ -2465,3 +2465,33 @@ No customer message changed. The page's words in `apps/console/src/pages/weights
 | أُلغي. أُضيف ${usd(r.credit_usd)} إلى رصيد الزبون. | Cancelled. ${usd(r.credit_usd)} went to the customer's credit. | not yet |
 | أُلغي. يُبلَّغ الزبون. | Cancelled. The customer is told. | not yet |
 | أُلغي. دُفع ${usd(terms.paid_usd)}: أعده من صفحة الاسترداد. | Cancelled. ${usd(terms.paid_usd)} was paid: give it back on the Refunds page. | not yet |
+
+## AUTO1 (19 November 2026): approvals by rule
+Model-written; not yet read by an Arabic reader. Console only (staff), never customer-facing.
+
+| Arabic | English | Read |
+|---|---|---|
+| تمت الموافقة عليه تلقائياً اليوم | Approved automatically today | not yet |
+| يمكن التراجع عن كل واحد بنقرة. | Each can be undone in one tap. | not yet |
+| الأطباق لا تُقبل بالقاعدة الآن | Dishes are not approved by rule now | not yet |
+| الصور لا تُقرَّر بالقاعدة الآن | Pictures are not decided by rule now | not yet |
+| فحص أسبوعي | Weekly check | not yet |
+| طبق وافقت عليه القاعدة | A dish approved by the rule | not yet |
+| صورة رفضتها القاعدة / صورة وافقت عليها القاعدة | A picture rejected / approved by the rule | not yet |
+| «خطأ» يتراجع عنه فوراً. أكثر من خطأ واحد في عيّنة الأسبوع يوقف القاعدة، وتقول صفحة اليوم السبب. | Wrong undoes it at once. More than one wrong in a week's sample switches the rule off, and Today says why. | not yet |
+| موافقة بقاعدة وافق عليها شخص | Approved by a rule a person approved | not yet |
+| قرار المؤسس في 19 تشرين الثاني: شخص يوافق على القاعدة، والقاعدة توافق على الصنف. … | The founder's decision of 19 November: a person approves the rule; the rule approves the item. … | not yet |
+| أطباق القوائم / صور المنتجات | Dishes from menus / Product pictures | not yet |
+| تعمل / متوقفة | on / off | not yet |
+| تراجع | Undo | not yet |
+| فحوص هذا الأسبوع | This week's checks | not yet |
+| إعادة فحص الصور المقبولة | Re-check of approved pictures | not yet |
+| أسعار للتأكيد | Prices to confirm | not yet |
+| القائمة لا تُظهر سعراً واحداً واضحاً لهذه. اتصل بالمكان … ثم اكتب كل سعر في صفحة القوائم. | The menu does not show one clear price for these. Call the place … then type each price on the Menus page. | not yet |
+| مقروء من القائمة | Read from the menu | not yet |
+| استعمل هذه / غير صحيح | Use these / Not right | not yet |
+| أصبحت الساعات والهاتف من القائمة للمكان. | The hours and phone from the menu are now the place's. | not yet |
+| الأطباق لا تُقبل بالقاعدة: كل طبق ينتظر شخصاً | Dishes are not approved by rule: every dish waits for a person | not yet |
+| الصور لا تُقرَّر بالقاعدة: كل صورة تنتظر شخصاً | Pictures are not decided by rule: every picture waits for a person | not yet |
+| اعرف السبب | See why | not yet |
+| الأطباق تُقبل بالقاعدة (menu-dish-1) / الصور تُقرَّر بالقاعدة (photo-vision-1) | Dishes approved by rule / Pictures decided by rule (the Settings page) | not yet |

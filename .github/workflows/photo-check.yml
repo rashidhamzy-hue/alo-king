@@ -1,0 +1,75 @@
+# Session AUTO1 (docs/DECISIONS.md, "AUTO1, approvals by rule, 19 November 2026"): the picture check of rule photo-vision-1, on STAGING.
+# The founder's decision of 19 November: "a person approves the rule; the rule approves the item". Each picture waiting in Console, Photos (the
+# founder's imports) and each label day front photo (queued here first, as our own photo) is shown to MODEL_FAST (claude-haiku-5-5) beside the
+# item's own record, through the Anthropic Message Batches API at half price. The model only says what it sees, field by field; the DATABASE
+# decides (record_photo_check, 0264): approved, rejected with the exact reason, or left in Photos for a person. Never approved: Hebrew text, a
+# health or organic claim, another shop's branding, a price tag. Every decision is listed in Approvals, "Approved automatically today", with Undo.
+# mode recheck: the pictures already approved are checked once more and only RECORDED (never changed); the summary lists the disagreements.
+# Money: capped at USD 1 a run (the input is clamped to 1; the worst case is estimated first), recorded in model_costs (COST1).
+# Every three hours in the day (Beirut) it decides what waits; with nothing waiting it spends nothing. By hand for a re-check.
+# Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+name: photo-check
+on:
+  schedule: [{ cron: "37 5-17/3 * * *" }]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "decide (pictures waiting), recheck (approved ones: recorded only), or both"
+        type: choice
+        options: [decide, recheck, both]
+        default: decide
+      max_usd:
+        description: "Dollar cap for this run (at most 1)"
+        type: string
+        default: "1"
+      limit:
+        description: "Only the first N pictures of each kind (empty = all)"
+        type: string
+        default: ""
+      fronts:
+        description: "Queue the label day's front photos first (decide)"
+        type: boolean
+        default: true
+      batch_ids:
+        description: "Pick up batches already sent, comma-separated (msgbatch_...), instead of sending new ones"
+        type: string
+        default: ""
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: photo-check
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Main only
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::photo-check runs from main only (staging must have migration 0264)"; exit 1; fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Tests (the rule against the real migrations; the run against a scripted Batch API)
+        run: npx vitest run test/db/auto1.test.ts test/db/auto1-photos.test.ts
+      - name: Check the pictures
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAX_USD: ${{ inputs.max_usd || '1' }}
+          MODE: ${{ inputs.mode || 'decide' }}
+          LIMIT: ${{ inputs.limit }}
+          FRONTS: ${{ github.event_name == 'schedule' && 'true' || inputs.fronts }}
+          BATCH_IDS: ${{ inputs.batch_ids }}
+          RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          OUT_DIR: out/photo-check
+        run: |
+          export MODEL_FAST="$(node scripts/ci/wrangler-var.mjs MODEL_FAST)"
+          node scripts/images/photo-check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: photo-check, path: out/photo-check, retention-days: 30, if-no-files-found: ignore }

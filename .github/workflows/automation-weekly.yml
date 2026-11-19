@@ -1,0 +1,25 @@
+# Session AUTO1: the weekly kill-gate of the approval rules (docs/DECISIONS.md, "AUTO1, approvals by rule, 19 November 2026").
+# Every Monday: a random sample of last week's automatic decisions (50 of each kind, dishes and pictures; fewer when there were fewer) goes to
+# Console, Approvals, Auto-approvals (automation_weekly_sample, 0264). A person marks each right or wrong; more than one wrong in a week's sample
+# switches that rule off by itself, and Today says why. Calling it twice in a week does nothing. No model, no cost.
+name: automation-weekly
+on:
+  schedule: [{ cron: "23 5 * * 1" }]     # Mondays 05:23 UTC (08:23 in Beirut)
+  workflow_dispatch: {}
+permissions: { contents: read }
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sample last week's automatic decisions
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          out=$(curl -sS --fail-with-body -X POST "$SUPABASE_URL/rest/v1/rpc/automation_weekly_sample" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" -H "authorization: Bearer $SUPABASE_SERVICE_KEY" -H "content-type: application/json" -d '{}')
+          echo "### Weekly sample of automatic decisions" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; echo "$out" >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "$out"

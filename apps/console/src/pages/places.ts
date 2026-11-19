@@ -136,7 +136,23 @@ ${(["off", "testers", "public"] as const).map((v) => html`<label class="ak-check
   const approve = p.approved ? html`<p>${badge(pick(L, "Approved", "موافق عليه"), "ok")} ${p.approved_at ? when(p.approved_at) : ""}. ${pick(L, "Orderable for its visibility only.", "يمكن الطلب منه حسب رؤيته فقط.")}</p>`
     : html`<p class="muted">${pick(L, "Approving needs approved dishes and the \"menu checked\" stamp. No commission and no terms: Alo King buys at the counter.", "الموافقة تحتاج أطباقاً موافقاً عليها وختم \"فُحصت القائمة\". لا عمولة ولا شروط: ألو كينغ يشتري على الصندوق.")}</p>
 ${form(c.f, `/places/${src}/approve`, html`<button class="ak-btn ak-btn--primary">${pick(L, "Approve the place", "وافق على المكان")}</button>`)}`;
+  // AUTO1: the prices only the place can confirm (a range, no price), with its phone; the hours and phone read from its menu, for one tap
+  const toConfirm = await c.deps.db.rpc<{ phone: string | null; dishes: { dish_id: string; name_ar: string | null; name_en: string | null; section: string | null; price_text: string | null; note: string | null }[] } | null>("menu_prices_to_confirm", { p_place: src }).catch(() => null);
+  const proposed = await c.deps.db.rpc<{ id: string; hours: { open: string; close: string; days_off: string[] } | null; hours_text: string | null; phone: string | null; phone_text: string | null; created_at: string }[] | null>("place_detail_waiting", { p_place: src }).catch(() => null);
+  const auto1 = html`${toConfirm && toConfirm.dishes.length ? html`<h2 id="prices-to-confirm">${pick(L, "Prices to confirm", "أسعار للتأكيد")} (${toConfirm.dishes.length})</h2>
+<p>${pick(L, "The menu does not show one clear price for these. Call the place", "القائمة لا تُظهر سعراً واحداً واضحاً لهذه. اتصل بالمكان")}${toConfirm.phone ? html` (<a href="tel:${toConfirm.phone}"><bdi>${toConfirm.phone}</bdi></a>)` : pick(L, " (no phone on file)", " (لا هاتف مسجّل)")},
+ ${pick(L, "then type each price on the Menus page.", "ثم اكتب كل سعر في صفحة القوائم.")}</p>
+${dataTable({ caption: pick(L, "Prices to confirm", "أسعار للتأكيد"), columns: [{ label: pick(L, "Dish", "الطبق") }, { label: pick(L, "Section", "القسم") }, { label: pick(L, "Shown on the menu", "الظاهر في القائمة") }],
+  rows: toConfirm.dishes.map((d) => ({ cells: [html`<bdi>${d.name_ar ?? d.name_en ?? ""}</bdi>${d.name_ar && d.name_en ? html` <span class="muted"><bdi>${d.name_en}</bdi></span>` : ""}`, html`<bdi>${d.section ?? ""}</bdi>`,
+    html`<bdi>${d.price_text || pick(L, "no price", "لا سعر")}</bdi>${d.note ? html`<br><small class="muted"><bdi>${d.note}</bdi></small>` : ""}`] })) })}
+<p><a href="/menus/${src}">${pick(L, "Type the prices on the Menus page", "اكتب الأسعار في صفحة القوائم")}</a></p>` : ""}
+${(proposed ?? []).map((x) => html`<h2>${pick(L, "Read from the menu", "مقروء من القائمة")}</h2>
+<p>${x.hours ? html`${pick(L, "Hours", "الساعات")}: <strong><bdi>${x.hours.open}–${x.hours.close}</bdi></strong>${x.hours.days_off.length ? html` · ${pick(L, "closed", "مغلق")} <bdi>${x.hours.days_off.join(", ")}</bdi>` : ""}${x.hours_text ? html` <span class="muted">(«<bdi>${x.hours_text}</bdi>»)</span>` : ""}<br>` : ""}
+${x.phone ? html`${pick(L, "Phone", "الهاتف")}: <strong><bdi>${x.phone}</bdi></strong>${x.phone_text ? html` <span class="muted">(«<bdi>${x.phone_text}</bdi>»)</span>` : ""}` : ""}</p>
+<div class="actions-row">${form(c.f, `/places/${src}/read-details/${x.id}`, html`<input type="hidden" name="use" value="yes"><button class="ak-btn ak-btn--primary">${pick(L, "Use these", "استعمل هذه")}</button>`)}
+${form(c.f, `/places/${src}/read-details/${x.id}`, html`<input type="hidden" name="use" value="no"><button class="ak-btn ak-btn--soft">${pick(L, "Not right", "غير صحيح")}</button>`)}</div>`)}`;
   return render(c, p.name, html`<p><a href="/places">${pick(L, "All places", "كل الأماكن")}</a></p>
+${auto1}
 <p>${visBadge(p.visibility, L)} ${state(p, L)} · <bdi>${p.listing_id}</bdi>${p.maps_url ? html` · <a href="${p.maps_url}" rel="noopener">${pick(L, "map", "الخريطة")}</a>` : ""} · <a href="/menus/${src}">${pick(L, "Menu", "القائمة")} (${p.dishes})</a></p>
 <h2>${pick(L, "Visibility", "الرؤية")}</h2>${visForm}
 <h2>${pick(L, "Approval", "الموافقة")}</h2>${approve}
@@ -146,6 +162,17 @@ ${villageSelect(L, villages, p.village_id)}
 ${hoursFields(L, p.hours, p.prep_minutes)}
 <label class="ak-field"><span>${pick(L, "Other names customers use for it, separated by commas (the chat finds the place by these too)", "أسماء أخرى يستعملها الزبائن له، تفصل بينها فواصل (المحادثة تجد المكان بها أيضاً)")}</span><input class="ak-input" name="aliases" value="${(p.aliases ?? []).join(", ")}" maxlength="400"></label>
 <button class="ak-btn ak-btn--primary">${pick(L, "Save the details", "احفظ التفاصيل")}</button>`)}`, { translated: true });
+}
+
+// AUTO1: the hours and phone read from the menu, applied (through set_place_details, as this person) or put aside, in one tap.
+async function readDetails(c: Ctx) {
+  const L = c.lang; const src = id(c, "source"); const pid = id(c, "id");
+  const use = c.form.use === "yes";
+  return act(c, use ? "place_read_details_use" : "place_read_details_dismiss", { source: src, proposal: pid }, async () => {
+    const r = await c.deps.db.rpc<{ status: string; already?: boolean }>("use_place_detail_proposal", { p_id: pid, p_by: c.staff.partyId, p_use: use });
+    if (r.already) return pick(L, "Already decided.", "تم القرار سابقاً.");
+    return use ? pick(L, "The hours and phone from the menu are now the place's.", "أصبحت الساعات والهاتف من القائمة للمكان.") : pick(L, "Put aside.", "تم تجاهلها.");
+  }, `/places/${src}`);
 }
 
 async function create(c: Ctx) {
@@ -208,5 +235,6 @@ export const placesSection: Section = {
     { method: "POST", path: "/places/:source/details", roles: LEADS, handler: details },
     { method: "POST", path: "/places/:source/visibility", roles: LEADS, handler: visibility },
     { method: "POST", path: "/places/:source/approve", roles: LEADS, handler: approve },
+    { method: "POST", path: "/places/:source/read-details/:id", roles: LEADS, handler: readDetails },
   ],
 };
