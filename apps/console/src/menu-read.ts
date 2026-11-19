@@ -2,7 +2,8 @@
 // (scripts/menus/batch.mjs) sends each menu photo with this prompt and tool through the Message Batches API; record_menu_reading() (0246)
 // keeps only names, sections, prices, sizes, options and add-ons, as PROPOSALS that a person approves dish by dish on the console's Menus
 // page. It reads only what is printed. It never reads or guesses a food fact (allergens, diet, halal, sugar, spice: those are "declared by
-// the vendor" or "not confirmed yet", invariant 15), never writes a description, and never rates or praises (invariant 14).
+// the vendor" or "not confirmed yet", invariant 15), never writes a description of its own (MENU2: it copies the one printed, kept for the
+// person checking and never read as a food fact), and never rates or praises (invariant 14).
 // Prices are copied as printed, with their currency: USD or LBP. Where the menu does not show which, the currency is left empty and the
 // person checking decides (a dish with no price or no currency cannot be approved without one, 0246).
 import type Anthropic from "@anthropic-ai/sdk";
@@ -30,6 +31,14 @@ export const MenuReading = z.object({
         choices: z.array(z.object({ ...Name, price_delta: z.number().nullable().describe("The extra price printed for this choice, in the dish's currency; 0 or null if none") })),
       })).describe("Printed choices (bread, sauce, spice level as a CHOICE the menu offers); empty if none"),
       addons: z.array(z.object({ ...Name, price: z.number().nullable(), currency: Currency })).describe("Printed extras with their prices (extra cheese, extra garlic); empty if none"),
+      // MENU2 (0260): the description as printed, the source line, the reader's own doubts. All optional, so FD1's readings still fit.
+      description: z.string().nullable().optional().describe("The dish's description exactly as printed under its name (the place's own words), or null. Never write one yourself"),
+      price_clear: z.boolean().optional().describe("False when the price is not printed clearly (blurred, cut off, hand-corrected, a range you could not turn into sizes, or you are not sure which price belongs to this dish)"),
+      flags: z.array(z.enum(["cut_off", "unclear_name", "unclear_price", "price_range", "unclear_section", "other"])).optional()
+        .describe("Your doubts about this row: cut_off (the name, description or price is cut off), unclear_name, unclear_price, price_range (a range printed as the price), unclear_section, other. Empty when the row is clear"),
+      flag_note: z.string().nullable().optional().describe("One short sentence saying what is unclear, when flags is not empty"),
+      source_text: z.string().nullable().optional().describe("The line(s) of the source this dish was read from, copied exactly (name and price), at most 300 characters"),
+      page: z.number().int().nullable().optional().describe("For a PDF: the page number the dish is on"),
     })),
   })),
 });
@@ -44,8 +53,15 @@ const PROMPT = "You read a photo of a Lebanese restaurant's printed menu for the
   "Report only what is printed: section headings, dish names, prices with their currency, sizes, choices and extras with their prices. " +
   "Give each dish's name in Arabic and in English: copy what is printed, and where only one language is printed, write the other yourself and say which in 'translated'. " +
   "Every name_ar (dishes, sizes, choices, extras, sections) is in Arabic letters and every name_en in Latin letters: never copy an English word into name_ar. " +
-  "Never write a description, an ingredient, an allergen, a diet, halal, sugar or spice fact, a health claim, a rating or praise: none of that is read from a menu. " +
-  "Never invent or estimate a price: a dish with no printed price has price null. Keep the menu's order.";
+  "Never write a description of your own, an ingredient list, an allergen, a diet, halal, sugar or spice fact, a health claim, a rating or praise: none of that is read from a menu. " +
+  "Never invent or estimate a price: a dish with no printed price has price null. Keep the menu's order. " +
+  // MENU2: sources other than a photo, sizes, and doubts
+  "The source may be a photo, a PDF, a web page's text, pasted text, or a Word or Excel file's text: read it the same way. " +
+  "A dish printed in sizes (small/large, صغير/كبير, sandwich/plate, half/whole, 1 kg) is ONE dish with sizes, each with its own printed price: " +
+  "where the same dish is printed on separate lines that differ only by a size word, give it once with those sizes. A price range (5-7) is never one price: " +
+  "turn it into sizes only when the source names the sizes; otherwise set price null, price_clear false and flag price_range. " +
+  "Copy the description printed under a dish exactly into description (the place's words; never add one). " +
+  "Flag anything cut off, blurred or unclear and say what in flag_note; never fill a gap with a guess. Copy the source line(s) of each dish into source_text.";
 
 export const menuTool = (): Anthropic.Tool => TOOL;
 export const menuPrompt = (): string => PROMPT;

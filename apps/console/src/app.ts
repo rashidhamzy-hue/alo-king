@@ -204,6 +204,16 @@ export function explain(e: unknown): string {
       [/^DISH_ALREADY_REVIEWED/, "That dish was already decided."],
       [/^DISH_NOT_FOUND/, "That dish was not found."],
       [/^NO_FX_RATE/, "Record today's lira rate (Money, Rate) before approving a lira price."],
+      // MENU2: menus from any source (0259, 0260)
+      [/^PRICE_TO_CONFIRM/, "The source does not show this price clearly. Type the price as printed (or each size's), then approve."],
+      [/^SIZE_PRICES/, "Type one price for each size."],
+      [/^DISH_DESCRIPTION_CLAIM/, "A description says what is in the dish, never how good or healthy it is. Change it, then approve."],
+      [/^MENU_LINK_INVALID/, "Give the full address of a public web page (https://...)."],
+      [/^MENU_TEXT_SHORT/, "Paste the menu's text: at least a dish and its price."],
+      [/^MENU_TEXT_LONG/, "At most 60,000 characters at a time: paste the rest as a second text."],
+      [/^MENU_SOURCE_KIND/, "A menu file is a photo, a PDF, a Word file (.docx), an Excel file (.xlsx) or a CSV file."],
+      [/^MENU_SOURCES_UNREAD/, "A menu source is still waiting for the reading run."],
+      [/^NOTHING_CHOSEN/, "No dish to approve in that section."],
     ];
     for (const [re, say] of known) { const hit = re.exec(m); if (hit) return say.replace(/\$(\d)/g, (_, i) => hit[Number(i)] ?? ""); }
     return `The database refused: ${m}`;
