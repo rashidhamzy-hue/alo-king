@@ -1,4 +1,4 @@
-# Session AUTO1 (docs/DECISIONS.md, "AUTO1, approvals by rule, 19 November 2026"): the picture check of rule photo-vision-1, on STAGING.
+# Session AUTO1 (docs/DECISIONS.md, "AUTO1, approvals by rule, 19 November 2026"): the picture check of rule photo-vision-2, on STAGING.
 # The founder's decision of 19 November: "a person approves the rule; the rule approves the item". Each picture waiting in Console, Photos (the
 # founder's imports) and each label day front photo (queued here first, as our own photo) is shown to MODEL_FAST (claude-haiku-5-5) beside the
 # item's own record, through the Anthropic Message Batches API at half price. The model only says what it sees, field by field; the DATABASE
