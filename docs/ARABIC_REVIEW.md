@@ -2150,6 +2150,25 @@ Written by a model; **not yet read by an Arabic reader**. The "Add a menu" box, 
 | menus | Word file | ملف Word | |
 | menus | Excel or CSV file | ملف Excel أو CSV | |
 
+
+AUTO1 additions to the place's page (prices to confirm, the hours and phone read from the menu):
+
+| Arabic | English | Read |
+|---|---|---|
+| أسعار للتأكيد | Prices to confirm | not yet |
+| القائمة لا تُظهر سعراً واحداً واضحاً لهذه. اتصل بالمكان | The menu does not show one clear price for these. Call the place | not yet |
+|  (لا هاتف مسجّل) |  (no phone on file) | not yet |
+| ثم اكتب كل سعر في صفحة القوائم. | then type each price on the Menus page. | not yet |
+| الظاهر في القائمة | Shown on the menu | not yet |
+| اكتب الأسعار في صفحة القوائم | Type the prices on the Menus page | not yet |
+| مقروء من القائمة | Read from the menu | not yet |
+| الساعات | Hours | not yet |
+| مغلق | closed | not yet |
+| استعمل هذه | Use these | not yet |
+| غير صحيح | Not right | not yet |
+| تم القرار سابقاً. | Already decided. | not yet |
+| أصبحت الساعات والهاتف من القائمة للمكان. | The hours and phone from the menu are now the place's. | not yet |
+| تم تجاهلها. | Put aside. | not yet |
 ## CX2 stage 2, the customer messages in the approved layout (18 November 2026)
 
 The founder approved the redesign (`docs/MESSAGES.md`) with five changes; these are the Arabic lines as the code now writes them (sample values: AK-1234, لبنة, 08:00). Same meaning as the lines above; new are the bold headings, the emojis at the start of a line, « · » before an amount, and the words of the approved proposal. Every other customer line is in `packages/agents/test/__snapshots__/messages.ar.md`.
@@ -2486,3 +2505,50 @@ nightly digest's Arabic text is written the same way (claude-haiku-5-5). The fix
 | عند تجاوزه يتوقّف المساعد حتى الغد. | Over it, the assistant stops until tomorrow. | not yet |
 | المساعد: الإنفاق في الشهر | Assistant: spend per month | not yet |
 | عند تجاوزه يتوقّف المساعد حتى الشهر القادم. | Over it, the assistant stops until next month. | not yet |
+## AUTO1 (19 November 2026): approvals by rule
+Model-written; not yet read by an Arabic reader. Console only (staff), never customer-facing.
+
+| Arabic | English | Read |
+|---|---|---|
+| تمت الموافقة عليه تلقائياً اليوم | Approved automatically today | not yet |
+| يمكن التراجع عن كل واحد بنقرة. | Each can be undone in one tap. | not yet |
+| الأطباق لا تُقبل بالقاعدة الآن | Dishes are not approved by rule now | not yet |
+| الصور لا تُقرَّر بالقاعدة الآن | Pictures are not decided by rule now | not yet |
+| فحص أسبوعي | Weekly check | not yet |
+| طبق وافقت عليه القاعدة | A dish approved by the rule | not yet |
+| صورة رفضتها القاعدة / صورة وافقت عليها القاعدة | A picture rejected / approved by the rule | not yet |
+| «خطأ» يتراجع عنه فوراً. أكثر من خطأ واحد في عيّنة الأسبوع يوقف القاعدة، وتقول صفحة اليوم السبب. | Wrong undoes it at once. More than one wrong in a week's sample switches the rule off, and Today says why. | not yet |
+| موافقة بقاعدة وافق عليها شخص | Approved by a rule a person approved | not yet |
+| قرار المؤسس في 19 تشرين الثاني: شخص يوافق على القاعدة، والقاعدة توافق على الصنف. … | The founder's decision of 19 November: a person approves the rule; the rule approves the item. … | not yet |
+| أطباق القوائم / صور المنتجات | Dishes from menus / Product pictures | not yet |
+| تعمل / متوقفة | on / off | not yet |
+| تراجع | Undo | not yet |
+| فحوص هذا الأسبوع | This week's checks | not yet |
+| إعادة فحص الصور المقبولة | Re-check of approved pictures | not yet |
+| أسعار للتأكيد | Prices to confirm | not yet |
+| القائمة لا تُظهر سعراً واحداً واضحاً لهذه. اتصل بالمكان … ثم اكتب كل سعر في صفحة القوائم. | The menu does not show one clear price for these. Call the place … then type each price on the Menus page. | not yet |
+| مقروء من القائمة | Read from the menu | not yet |
+| استعمل هذه / غير صحيح | Use these / Not right | not yet |
+| أصبحت الساعات والهاتف من القائمة للمكان. | The hours and phone from the menu are now the place's. | not yet |
+| الأطباق لا تُقبل بالقاعدة: كل طبق ينتظر شخصاً | Dishes are not approved by rule: every dish waits for a person | not yet |
+| الصور لا تُقرَّر بالقاعدة: كل صورة تنتظر شخصاً | Pictures are not decided by rule: every picture waits for a person | not yet |
+| اعرف السبب | See why | not yet |
+| الأطباق تُقبل بالقاعدة (menu-dish-1) / الصور تُقرَّر بالقاعدة (photo-vision-1) | Dishes approved by rule / Pictures decided by rule (the Settings page) | not yet |
+| قارن بالمصدر في صفحة القوائم. | Compare with the source on the Menus page. | not yet |
+| ${n(k.dishes_approved)} طبق، ${n(k.photos_approved)} صورة مقبولة، ${n(k.photos_rejected)} صورة مرفوضة، ${n(k.menus_stamped)} قائمة مختومة | ${n(k.dishes_approved)} dish(es), ${n(k.photos_approved)} picture(s) approved, ${n(k.photos_rejected)} picture(s) rejected, ${n(k.menus_stamped)} menu(s) stamped | not yet |
+|  (${n(k.undone)} تم التراجع عنها) |  (${n(k.undone)} undone) | not yet |
+| مفعّل: الطبق النظيف الذي يوجد كل سعر له في نص القائمة، أو تعيده قراءة ثانية، يُقبل تلقائياً، مسجّلاً وقابلاً للتراجع (الموافقات، الموافقات التلقائية). الأسعار للتأكيد وكل ما عليه علامة يبقى لشخص. | On: a clean dish whose every price is found in the menu's text, or given again by a second reading, is approved automatically, recorded and undoable (Approvals, Auto-approvals). Prices to confirm and anything flagged still come to a person. | not yet |
+| مفعّل: الصورة التي يؤكد فحص الرؤية علامتها ومنتجها وحجمها ونكهتها تُقبل؛ عدم التطابق الواضح يُرفض مع سببه؛ وكل ما هو غير مؤكد يأتي لشخص. | On: a picture whose brand, product, size and flavour a vision check confirms is approved; a clear mismatch is rejected with its reason; anything uncertain comes to a person. | not yet |
+| الموافقة بالقاعدة ليست في قاعدة البيانات بعد (0263 و0264). | Approval by rule is not on this database yet (migrations 0263 and 0264). | not yet |
+| قرار المؤسس في 19 تشرين الثاني: شخص يوافق على القاعدة، والقاعدة توافق على الصنف. كل قرار تلقائي مسجّل مع قاعدته ونسختها، ويمكن التراجع عنه بنقرة. | The founder's decision of 19 November: a person approves the rule; the rule approves the item. Every automatic decision is recorded with its rule and version, and can be undone in one tap. | not yet |
+| تُشغَّل أو توقَف من صفحة الإعدادات (المدير). | Switched on or off on the Settings page (admin). | not yet |
+| لا شيء بالقاعدة: سعر للتأكيد، اسم غير واضح، تغيير سعر أو حذف عند إعادة الاستيراد، مسببات الحساسية وقراءات الملصقات، صورة فيها كتابة عبرية أو ادعاء صحي أو علامة متجر آخر أو بطاقة سعر. الظهور والموافقة على مكان تبقى لشخص. | Never by rule: a price to confirm, an unclear name, a price change or removal on re-import, allergens and label readings, a picture with Hebrew text, a health claim, another shop's branding or a price tag. Visibility and approving a place stay a person's. | not yet |
+| تمت الموافقة تلقائياً | Approved automatically | not yet |
+| لم تقرّر القاعدة شيئاً في هذا اليوم. | Nothing decided by a rule on this day. | not yet |
+| تم التراجع | undone | not yet |
+| يوم آخر | Another day | not yet |
+| كل إثنين تأتي هنا 50 من قرارات الأسبوع الماضي التلقائية من كل نوع، بطاقة بطاقة (الموافقات، الموافقات التلقائية). الخاطئ يُتراجع عنه فوراً؛ وأكثر من خطأ واحد يوقف تلك القاعدة، وتقول صفحة اليوم السبب. | Each Monday 50 of last week's automatic decisions of each kind come here, one card at a time (Approvals, Auto-approvals). A wrong one is undone at once; more than one wrong switches that rule off, and Today says why. | not yet |
+| فُحصت ${rech.checked}: ${rech.agrees} متفقة، ${rech.disagrees} مختلفة، ${rech.unsure} غير متأكدة. لم يتغير شيء؛ اسحب الصورة من صفحة الصور إن كانت خاطئة. | ${rech.checked} checked: ${rech.agrees} agree, ${rech.disagrees} disagree, ${rech.unsure} unsure. Nothing was changed; withdraw a picture on Photos if it is wrong. | not yet |
+| يقول الفحص | The check says | not yet |
+| مختلف | disagrees | not yet |
+| غير متأكد | unsure | not yet |

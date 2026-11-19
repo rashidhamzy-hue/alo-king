@@ -4,7 +4,7 @@ Session AST1 (Opus 5.5). Prompt: the coordinator's (one assistant on every conso
 of Alo King and answers in plain words, Arabic or English, like a sharp operations manager; it never changes anything). The choices the
 build made are `docs/DECISIONS.md`, "AST1, the console assistant, 19 November 2026" (13 rows; nobody was asked). Migrations **0261** and
 **0262**. No new agent that acts, no new way to send, no WhatsApp; no write to an order, payment, stock level or ledger entry
-(invariants 1, 3, 19, 21). Kabsi not touched. AUTO1's files not touched (none had reached `main` when this was merged).
+(invariants 1, 3, 19, 21). Kabsi not touched. AUTO1's files not touched; AUTO1 merged first (0263, 0264), and the approvals tool also reads its `automation_today()` (what its rules approved today, counts only).
 
 ## Built
 1. **Read-only tools, enforced by Postgres** (0261). A role `assistant_reader` (no login, no attribute) holds SELECT on the tables its

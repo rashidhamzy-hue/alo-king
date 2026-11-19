@@ -81,9 +81,18 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "approvals",
-    description: "Approvals waiting for a person, by kind (names, photos, label readings, dishes, places, second approvals, refunds, auto-approval spot checks), and what was approved automatically today.",
+    description: "Approvals waiting for a person, by kind (names, photos, label readings, dishes, places, second approvals, refunds, auto-approval spot checks), and what was approved automatically today (the older auto-approvals, and the dishes and pictures approved by rule).",
     input_schema: obj(), roles: LEADS,
-    run: (e) => e.db.rpc("assistant_approvals", { p_now: e.now.toISOString() }),
+    run: async (e) => {
+      const base = await e.db.rpc<Record<string, unknown>>("assistant_approvals", { p_now: e.now.toISOString() });
+      // AUTO1 (0263, 0264): what its rules approved today, from its own read function, when the database has it (the counts only).
+      let byRule: unknown = undefined;
+      try {
+        const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(e.now);
+        byRule = (await e.db.rpc<{ counts?: unknown } | null>("automation_today", { p_day: day }))?.counts ?? undefined;
+      } catch { /* AUTO1 not on this database */ }
+      return byRule === undefined ? base : { ...base, approved_by_rule_today: byRule };
+    },
   },
   {
     name: "money",

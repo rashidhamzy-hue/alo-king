@@ -72,8 +72,17 @@ type SpotCheck = { check_id: string; sample_day: string; field: string; applied:
   checks: Record<string, boolean> | null; picture: { media_path: string; source_kind: string; status: string } | null;
   name: { name_en: string; size_en: string | null; name_ar: string | null; size_ar: string | null; current_name_en: string } | null;
   fact: { attribute: string; text?: string | null; values?: Record<string, unknown> | null } | null };
-async function autoQueue(c: Ctx): Promise<SpotCheck[]> {
-  return ((await c.deps.db.rpc<{ spot_checks?: SpotCheck[] } | null>("auto_approvals_overview", { p_limit: 60 }))?.spot_checks ?? []);
+/** AUTO1: a decision of an approval rule, sampled for the week's check (automation_overview, 0264). */
+export type WeekCheck = { check_id: string; kind: "dish" | "photo"; week: string; decision_id: string; action: string; title: string; reason: string; version: string;
+  at: string; target_id: string; product_id: string | null; media_path: string | null; place: string | null };
+type AutoItem = { spot?: SpotCheck; week?: WeekCheck };
+async function autoQueue(c: Ctx): Promise<AutoItem[]> {
+  // the week's checks of the AUTO1 rules first (they keep each rule on), then I1's daily spot checks; either may be missing on an older database
+  const [week, spot] = await Promise.all([
+    c.deps.db.rpc<{ checks?: WeekCheck[] } | null>("automation_overview", { p_limit: 60 }).then((o) => o?.checks ?? []).catch(() => [] as WeekCheck[]),
+    c.deps.db.rpc<{ spot_checks?: SpotCheck[] } | null>("auto_approvals_overview", { p_limit: 60 }).then((o) => o?.spot_checks ?? []),
+  ]);
+  return [...week.map((w) => ({ week: w })), ...spot.map((x) => ({ spot: x }))];
 }
 const safely = async <T,>(f: () => Promise<T>, none: T): Promise<{ v: T; error: boolean }> => { try { return { v: await f(), error: false }; } catch { return { v: none, error: true }; } };
 
@@ -285,9 +294,28 @@ ${button({ label: pick(L, "Open the place", "افتح المكان"), href: `/pl
 
 // ---------- Auto-approvals (I1): the day's spot checks, one at a time ----------
 const words = (k: string) => k.replace(/_/g, " ");
-async function autoCard(c: Ctx, n: number, rows: SpotCheck[]) {
+async function weekCard(c: Ctx, n: number, w: WeekCheck) {
   const L = c.lang;
-  const s = rows[n]!;
+  const pic = w.kind === "photo" && w.media_path ? await c.deps.media.sign(w.media_path, 600) : null;
+  const what = w.kind === "dish" ? pick(L, "A dish approved by the rule", "طبق وافقت عليه القاعدة")
+    : w.action === "rejected" ? pick(L, "A picture rejected by the rule", "صورة رفضتها القاعدة") : pick(L, "A picture approved by the rule", "صورة وافقت عليها القاعدة");
+  return html`<article class="ak-card ak-approve-card" data-card="auto-week">
+<header class="head"><p>${badge(pick(L, "Weekly check", "فحص أسبوعي"), "gold", "shield")} ${what} · <span class="muted"><bdi>${w.version}</bdi> · ${pick(L, "week of", "أسبوع")} ${w.week}</span></p>
+<p><strong><bdi>${w.title}</bdi></strong>${w.place ? html` <span class="muted">· <bdi>${w.place}</bdi></span>` : ""}</p></header>
+${pic ? html`<div class="ak-photo"><a href="${pic}" target="_blank" rel="noopener"><img class="proof" src="${pic}" alt="${w.title}"></a></div>` : ""}
+<p>${pick(L, "Why:", "السبب:")} <bdi>${w.reason}</bdi></p>
+${w.kind === "dish" && w.place ? html`<p class="muted">${pick(L, "Compare with the source on the Menus page.", "قارن بالمصدر في صفحة القوائم.")}</p>` : ""}
+${form(c.f, `/automation/check/${w.check_id}`, html`${back("auto", n)}<div class="actions-row">${button({ label: pick(L, "Right", "صحيح"), variant: "gold", icon: "check", name: "verdict", value: "correct", attrs: { "data-key": "a" } })}</div>
+<p class="muted">${pick(L, "Wrong undoes it at once. More than one wrong in a week's sample switches the rule off, and Today says why.", "«خطأ» يتراجع عنه فوراً. أكثر من خطأ واحد في عيّنة الأسبوع يوقف القاعدة، وتقول صفحة اليوم السبب.")}</p>`)}
+${form(c.f, `/automation/check/${w.check_id}`, html`${back("auto", n)}
+${input({ name: "note", label: pick(L, "What is wrong (needed for wrong)", "ما الخطأ (مطلوب عند «خطأ»)"), maxlength: 300, required: true, attrs: { "data-key": "reason" } })}
+<div class="actions-row">${button({ label: pick(L, "Wrong", "خطأ"), variant: "danger", icon: "close", name: "verdict", value: "wrong", attrs: { "data-key": "r" } })}</div>`, { cls: "ak-reject" })}
+</article>${list(L, "auto")}`;
+}
+async function autoCard(c: Ctx, n: number, rows: AutoItem[]) {
+  const L = c.lang;
+  if (rows[n]!.week) return weekCard(c, n, rows[n]!.week!);
+  const s = rows[n]!.spot!;
   const pic = s.picture?.media_path ? await c.deps.media.sign(s.picture.media_path, 600) : null;
   return html`<article class="ak-card ak-approve-card" data-card="auto">
 <header class="head"><p>${badge(pick(L, "Spot check", "فحص عيّنة"), "gold", "shield")} ${words(s.field)} · <span class="muted">${s.applied ? pick(L, "approved by the rule", "وافقت عليه القاعدة") : pick(L, "the rule was off: it would have approved this", "القاعدة متوقفة: كانت ستوافق على هذا")} · ${s.sample_day}</span></p>
@@ -313,7 +341,7 @@ async function queues(c: Ctx) {
   const [names, photos, labels, money, places, auto] = await Promise.all([
     safely(async () => (await namesQueue(c)).rows, [] as Proposal[]), safely(() => picturesQueue(c), [] as Img[]),
     safely(() => labelsQueue(c), [] as LabelRow[]), safely(() => moneyQueue(c), [] as Approval[]),
-    safely(() => placesQueue(c), [] as PlaceRow[]), safely(() => autoQueue(c), [] as SpotCheck[]),
+    safely(() => placesQueue(c), [] as PlaceRow[]), safely(() => autoQueue(c), [] as AutoItem[]),
   ]);
   const dishes = await safely(() => dishesQueue(c, places.v), [] as DishRow[]);
   return {
@@ -334,6 +362,25 @@ const tabOf = (asked: string | null): Tab | null => (asked && (TABS as readonly 
 function kindTabs(L: Lang, current: Tab, counts: Record<Tab, number>, list = false) {
   return html`${tabs(TABS.map((x) => ({ label: kindLabel(L, x), href: list && x === current ? href(x) : href(x), current: x === current, count: counts[x] })), t(L, "nav_approvals"))}`;
 }
+
+/** AUTO1: what the approval rules decided today, in one line, with the way to see and undo each; and a rule the weekly check switched off. */
+async function automaticToday(c: Ctx): Promise<Raw | string> {
+  const L = c.lang;
+  const o = await c.deps.db.rpc<AutomationOverview | null>("automation_overview", { p_limit: 0 }).catch(() => null);
+  if (!o) return "";
+  const k = o.today?.counts ?? {};
+  const n = (x: number | undefined) => Number(x ?? 0);
+  const off = (["dish", "photo"] as const).filter((x) => !o.rules?.[x]?.enabled);
+  return html`<p class="ak-auto-today"><a href="/approve?tab=auto&view=list#automatic-today">${icon("shield")} ${pick(L, "Approved automatically today", "تمت الموافقة عليه تلقائياً اليوم")}</a>:
+ ${pick(L, `${n(k.dishes_approved)} dish(es), ${n(k.photos_approved)} picture(s) approved, ${n(k.photos_rejected)} picture(s) rejected, ${n(k.menus_stamped)} menu(s) stamped`,
+        `${n(k.dishes_approved)} طبق، ${n(k.photos_approved)} صورة مقبولة، ${n(k.photos_rejected)} صورة مرفوضة، ${n(k.menus_stamped)} قائمة مختومة`)}${n(k.undone) ? pick(L, ` (${n(k.undone)} undone)`, ` (${n(k.undone)} تم التراجع عنها)`) : ""}.
+ <span class="muted">${pick(L, "Each can be undone in one tap.", "يمكن التراجع عن كل واحد بنقرة.")}</span></p>
+${off.map((x) => html`<p class="note">${icon("alert")} ${x === "dish" ? pick(L, "Dishes are not approved by rule now", "الأطباق لا تُقبل بالقاعدة الآن") : pick(L, "Pictures are not decided by rule now", "الصور لا تُقرَّر بالقاعدة الآن")}${o.rules?.[x]?.off_reason ? html`: <bdi>${o.rules[x]!.off_reason}</bdi>` : ""}</p>`)}`;
+}
+export type AutomationOverview = { rules?: Partial<Record<"dish" | "photo", { enabled: boolean; version: string; off_reason: string | null; off_at: string | null }>>;
+  checks?: WeekCheck[]; checks_waiting?: number;
+  today?: { day: string; counts?: Partial<Record<"dishes_approved" | "photos_approved" | "photos_rejected" | "menus_stamped" | "undone", number>>;
+    decisions?: { id: string; kind: string; action: string; version: string; title: string; reason: string; place: string | null; at: string; undone: boolean; undone_by: string | null }[] } };
 
 async function page(c: Ctx) {
   const L = c.lang;
@@ -367,6 +414,7 @@ async function page(c: Ctx) {
 <p><strong>${pick(L, `${waiting} waiting for a person`, `${waiting} بانتظار شخص`)}</strong>.
  <span class="muted">${pick(L, "One card at a time. Nothing is decided by moving between cards, and nothing is decided by a swipe.", "بطاقة واحدة في كل مرة. لا يُقرَّر شيء بالتنقل بين البطاقات، ولا بالسحب.")}
 ${pick(L, " Keys: a approves, r rejects (it asks for a reason), the arrow or space skips.", " المفاتيح: a للموافقة، r للرفض (يطلب سبباً)، السهم أو المسافة للتخطي.")}</span></p>
+${await automaticToday(c)}
 ${kindTabs(L, tab, counts)}
 ${total > 0 && !failed ? stepper(L, tab, n, total) : ""}
 ${card}

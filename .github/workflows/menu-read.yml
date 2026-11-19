@@ -12,6 +12,10 @@
 # obeyed, one fetch per page, never a sign-in; each page's text kept and its screenshot stored privately), a Word file and an Excel or CSV
 # file (their text taken out). Pasted text and PDFs need no fetch. Then photos and source pages are read in ONE batch under the one cap.
 # place + link: add that link for that place first (as the menu reading party: adding something to read approves nothing).
+# AUTO1 (19 November 2026, "a person approves the rule; the rule approves the item"): a photo, a PDF and a screenshot are also read a second
+# time in the same batch (names and prices only, no sight of the first reading); then automation_run_dishes (0263) approves every clean dish
+# whose prices are verified (in the source text, or by the two readings agreeing), fixes praise words and cut-off descriptions first, and stamps
+# a menu once nothing waits. Prices to confirm and anything flagged wait for a person. The place's hours and phone, when printed, are proposed.
 # Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
 name: menu-read
 on:
@@ -80,7 +84,7 @@ jobs:
       - name: Tests (the run against a scripted Batch API, the cap, the failures; MENU2's sources, crawl on a saved JavaScript menu page, review)
         env:
           MENU_BROWSER_REQUIRED: ${{ inputs.dry_run && '0' || '1' }}
-        run: npx vitest run test/db/menu-read-fd1.test.ts test/db/menu2-sources.test.ts test/db/menu2-crawl.test.ts
+        run: npx vitest run test/db/menu-read-fd1.test.ts test/db/menu2-sources.test.ts test/db/menu2-crawl.test.ts test/db/auto1.test.ts test/db/auto1-reading.test.ts
       - name: Read the menus
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

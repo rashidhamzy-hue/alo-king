@@ -204,7 +204,7 @@ async function attentionData(c: Ctx) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(now);
   const since = beirutMidnight(now);
   const yesterday = beirutMidnight(new Date(since.getTime() - 12 * 3600_000));
-  const [calls, closed, approvals, stock, errors, accepted] = await Promise.all([
+  const [calls, closed, approvals, stock, errors, accepted, automation] = await Promise.all([
     quiet(async () => ((await db.rpc<{ call_id: string; short_code: string; place: string; status: string; created_at: string }[] | null>("food_calls_console", {})) ?? []), []),
     quiet(() => db.rows<{ id: string; name: string }>("sources", { select: "id,name", where: { closed_on: today }, limit: 50 }), []),
     quiet(() => approvalCounts(c), null),
@@ -222,6 +222,8 @@ async function attentionData(c: Ctx) {
     }, null),
     c.deps.errorsLast24h ? c.deps.errorsLast24h().catch(() => null) : Promise.resolve(undefined),
     quiet(() => db.rows<{ created_at: string; accepted_at: string }>("place_calls", { select: "created_at,accepted_at", where: { accepted_at: { gte: yesterday.toISOString() } }, limit: 2000 }), []),
+    // AUTO1: an approval rule the weekly check switched off, and why
+    quiet(() => db.rpc<{ rules?: Partial<Record<"dish" | "photo", { enabled: boolean; off_reason: string | null }>> } | null>("automation_overview", { p_limit: 0 }), null),
   ]);
   const minutes = (r: { created_at: string; accepted_at: string }) => (new Date(r.accepted_at).getTime() - new Date(r.created_at).getTime()) / 60000;
   const avg = (rows: { created_at: string; accepted_at: string }[]) => (rows.length ? rows.reduce((a, r) => a + minutes(r), 0) / rows.length : null);
@@ -230,7 +232,7 @@ async function attentionData(c: Ctx) {
   // Yesterday up to the same time of day, so the comparison is fair.
   const elapsed = now.getTime() - since.getTime();
   const acceptYesterday = accepted.filter((r) => !isToday(r) && new Date(r.accepted_at).getTime() < yesterday.getTime() + elapsed);
-  return { calls, closed, approvals, stock, errors, accept: { today: avg(acceptToday), yesterday: avg(acceptYesterday), n: acceptToday.length } };
+  return { calls, closed, approvals, stock, errors, automation, accept: { today: avg(acceptToday), yesterday: avg(acceptYesterday), n: acceptToday.length } };
 }
 
 function attentionList(c: Ctx, d: Awaited<ReturnType<typeof todayData>>, inbox: Awaited<ReturnType<typeof inboxData>>, a: Awaited<ReturnType<typeof attentionData>>): Attention[] {
@@ -263,6 +265,16 @@ ${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back
   // 6. places found closed today (the call ahead said so)
   for (const p of a.closed) items.push({ rank: 6, age: 0, tone: "warn", icon: "store", title: pick(L, `${p.name} was found closed today`, `${p.name} وُجد مغلقاً اليوم`),
     detail: pick(L, "not orderable for the rest of the day", "لا يمكن الطلب منه بقية اليوم"), href: `/places/${p.id}`, cta: pick(L, "Open the place", "افتح المكان") });
+  // 6b. AUTO1: an approval rule that is off, with the reason (the weekly check switches one off by itself; a person switches it on again)
+  for (const k of ["dish", "photo"] as const) {
+    const r = a.automation?.rules?.[k];
+    if (!r || r.enabled) continue;
+    items.push({ rank: 6, age: 0, tone: "warn", icon: "shield",
+      title: k === "dish" ? pick(L, "Dishes are not approved by rule: every dish waits for a person", "الأطباق لا تُقبل بالقاعدة: كل طبق ينتظر شخصاً")
+        : pick(L, "Pictures are not decided by rule: every picture waits for a person", "الصور لا تُقرَّر بالقاعدة: كل صورة تنتظر شخصاً"),
+      detail: r.off_reason ? html`<bdi>${r.off_reason}</bdi>` : pick(L, "switched off on the Settings page", "أوقفت من صفحة الإعدادات"),
+      href: "/approve?tab=auto&view=list", cta: pick(L, "See why", "اعرف السبب") });
+  }
   // 7. orders waiting for the customer's own Confirm (the agent can never confirm)
   for (const o of d.orders.filter((x) => x.status === "awaiting_confirmation")) items.push({ rank: 7, age: o.age, tone: "neutral", icon: "hourglass",
     title: pick(L, `${o.short_code} waits for the customer's Confirm`, `${o.short_code} ينتظر تأكيد الزبون`), detail: pick(L, `for ${m(o.age)} · ${usd(o.total_usd)}`, `منذ ${m(o.age)} · ${usd(o.total_usd)}`),
@@ -277,7 +289,7 @@ ${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back
   const ap = a.approvals; const waiting = ap ? Object.values(ap).reduce((x, y) => x + y, 0) : 0;
   if (ap && waiting) {
     const KIND: Record<string, [string, string]> = { names: ["names", "أسماء"], photos: ["photos", "صور"], labels: ["label readings", "قراءات ملصقات"], dishes: ["dishes", "أطباق"], places: ["places", "أماكن"],
-      second: ["second approvals", "موافقات ثانية"], refunds: ["refunds", "استردادات"], auto: ["spot checks", "فحوص عيّنات"] };
+      second: ["second approvals", "موافقات ثانية"], refunds: ["refunds", "استردادات"], auto: ["checks of automatic approvals", "فحوص الموافقات التلقائية"] };
     const first = Object.entries(ap).find(([, v]) => v > 0)![0];
     items.push({ rank: 12, age: waiting, tone: "neutral", icon: "approve", title: pick(L, `${waiting} approvals waiting`, `${waiting} موافقة بالانتظار`),
       detail: Object.entries(ap).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${pick(L, KIND[k]![0], KIND[k]![1])}`).join(" · "), href: `/approve?tab=${first}`, cta: pick(L, "Approve", "وافق") });

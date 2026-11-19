@@ -165,6 +165,16 @@ describe("the nightly digest", () => {
   });
 });
 
+describe("AUTO1's approvals by rule", () => {
+  it("the approvals tool adds what AUTO1's rules approved today, from its own read function", async () => {
+    const { runTool } = await import("../src/assistant/tools");
+    const r1 = await runTool({ db: r.deps.db, now: NOW, role: "ops_lead" }, "approvals", {});
+    expect(r1.ok).toBe(true);
+    expect((r1.result as any).waiting.names).toBe(282);
+    expect((r1.result as any).approved_by_rule_today).toMatchObject({ dishes_approved: 0, photos_approved: 0 });
+  });
+});
+
 describe("the two outside reads", () => {
   it("Sentry: with the read-only token, the count and the top issues; a failure is null (unknown, never 0); absent without a token", async () => {
     const seen: string[] = [];
