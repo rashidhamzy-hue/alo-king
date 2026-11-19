@@ -77,5 +77,14 @@ sweep() {
 sweep picker / /day-open /receiving /food-facts /intake /returns /catalog
 sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "ops_lead"}' >/dev/null
 sweep ops_lead /day-open /refunds /cases /approvals /money /day-close /receiving /food-facts /intake /search-words /payments /riders /exceptions /fx /zones /merchants /pictures /names /readiness /windows
+# AST1: the assistant, as an ops lead: the panel on Today, and its page says whether it is on and connected. Nothing is asked (no model call).
+lead_today=$(curl -sS -L -b "$jar" "$u/" || true)
+grep -q 'data-assistant="AST1"' <<<"$lead_today" || { echo "FAIL: an ops lead's Today has no assistant panel"; exit 1; }
+ast=$(curl -sS -b "$jar" "$u/assistant" || true)
+grep -q "never changes anything" <<<"$ast" || { echo "FAIL: /assistant did not open for an ops lead"; exit 1; }
+if grep -q "not connected" <<<"$ast"; then aststate="not connected (no model key)"; elif grep -q "The assistant is off" <<<"$ast"; then aststate="off (settings.assistant.enabled)";
+elif grep -q "budget is used up" <<<"$ast"; then aststate="over its cap"; elif grep -q 'class="ak-ask"' <<<"$ast"; then aststate="on: the panel and /assistant take questions"; else aststate="unknown"; fi
+echo "assistant: $aststate"; echo "- Assistant (AST1): $aststate" >> "$SUMMARY"
 sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "picker"}' >/dev/null
+expect "picker: no assistant" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u/assistant")"
 expect "picker again: opens /money" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u/money")"
