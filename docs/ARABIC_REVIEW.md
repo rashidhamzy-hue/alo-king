@@ -2266,3 +2266,16 @@ No customer message changed. The page's words in `apps/console/src/pages/weights
 | سعرنا هو: للعلبة / للكيلو · كيف تعرف (فاتورة، ميزان، كرتونة) · احفظ الجواب | Our price is: for the pack / per kg · How you know (invoice, scale, tray) · Save the answer | not yet |
 | حُفظ: السعر للكيلو؛ تقول الصفحات الآن «بالكيلو». · حُفظ: السعر للعلبة. | Saved: the price is per kg; the pages now say "per kg". · Saved: the price is for the pack. | not yet |
 | كل منتج أدناه يُباع بالعلبة، لكن لا وزن معتمداً للعلبة بعد، أو قد يكون سعر المورّد للكيلو لا للعلبة… | Each item below is sold by the pack, but no pack weight is approved yet, or the supplier's price may be per kg… | not yet |
+
+## CON1, the console's map, Today and the Approvals inbox (console, staff-facing, written by a model; 19 November 2026)
+| Arabic | English | Read |
+|---|---|---|
+| الموافقات · المنتجات · الأشخاص · كل الأقسام · متقدّم · أنت وهذا الهاتف · إعداداتك · المستودع | Approvals · Products · People · Every section · Advanced · You and this phone · Your settings · The hub | not yet |
+| المساعد · قريباً · مكان محجوز لمساعد الموظفين (جلسة AST1). سيجيب عن الأسئلة من تقارير للقراءة فقط ولن يتصرّف أبداً… | Assistant · Coming soon · A place kept for the staff assistant (session AST1)… never act… | not yet |
+| يحتاج انتباهك · أرقام اليوم · متوسط وقت قبول المطعم · المزيد عن اليوم: اللوحة الحيّة والمناديب والصندوق | Needs attention · Today's numbers · Average restaurant acceptance time · More of today: the live board, the riders, the drawer | not yet |
+| {code} تجاوز وقته الموعود بـ {n} د · {place} لم يُجب على الاتصال المسبق للطلب {code} · {place} وُجد مغلقاً اليوم · {code} ينتظر تأكيد الزبون | {code} is {n} min past its promised time · {place} has not answered the call ahead for {code} · {place} was found closed today · {code} waits for the customer's Confirm | not yet |
+| افتح الطلب · اتصل بالمكان · استلم النقد · افتح المكان · أجب · وافق · اعرض المخزون · افتح Sentry | Open the order · Call the place · Take a cash drop · Open the place · Answer · Approve · See stock · Open Sentry | not yet |
+| الأسماء · الصور · قراءات الملصقات · الأطباق · الأماكن · الموافقات الثانية · المبالغ المستردة · الموافقات التلقائية | Names · Photos · Label readings · Dishes · Places · Second approvals · Refunds · Auto-approvals | not yet |
+| وافق كما قُرئ · وافق على المكان · صحيح · خطأ · عودة إلى بطاقة واحدة في كل مرة | Approve as read · Approve the place · Right · Wrong · Back to one card at a time | not yet |
+| ١ التقدّم · ٢ التصوير · ٣ الموافقة على القراءات · ٤ المعلومات الغذائية · ٥ الجاهزية · عمل الملصقات | 1 Progress · 2 Photograph · 3 Approve readings · 4 Food facts · 5 Readiness · Label work | not yet |
+| البقالة · الأكل · بقالة أو أكل · الاثنان · كقائمة (المعتمدة والمرفوضة) | Groceries · Food · Groceries or food · Both · As a list (approved, rejected) | not yet |

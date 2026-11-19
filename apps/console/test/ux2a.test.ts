@@ -23,8 +23,9 @@ describe("Today: four tiles, each one link", () => {
     expect(page).toContain('id="at-risk"');
     expect(page).toContain("Waiting on customer"); expect(page).toContain("To pick");                                                       // the board has the reference's columns
     const picker = await who("picker", "Pia");
-    const pp = (await picker.b.get("/")).text;
-    expect(tile(pp, "Orders waiting")).toBe("/pick"); expect(tile(pp, "Late")).toBe("#at-risk"); expect(tile(pp, "Cash held")).toBeUndefined(); expect(tile(pp, "Cases open")).toBeUndefined();
+    // CON1: a picker sees Pick and Stock only; their Today is the pick queue.
+    const pp = await picker.b.get("/");
+    expect(pp.status).toBe(303); expect(pp.location).toBe("/pick");
     const ar = await who("admin", "Rasheed"); await ar.b.get("/lang?to=ar&next=/");
     const arp = (await ar.b.get("/")).text;
     expect(arp).toContain("طلبات بانتظارنا"); expect(arp).toContain("حالات مفتوحة");

@@ -119,7 +119,7 @@ ${hoursFields(L, null, 20)}
         p.menu_checked_on ? when(p.menu_checked_on) : html`<a href="/menus/${p.source_id}">${pick(L, "not yet", "ليس بعد")}</a>`, state(p, L)] })),
       empty: empty({ title: pick(L, "No place yet.", "لا مكان بعد."), text: pick(L, "Make one from its listing: New place.", "اصنع واحداً من إدراجه: مكان جديد."), icon: "store" }) });
   }
-  return render(c, pick(L, "Places", "الأماكن"), html`<h1>${pick(L, "Places", "الأماكن")}</h1>${intro}${nav}${body}`, { translated: true });
+  return render(c, pick(L, "Places", "الأماكن"), html`${intro}${nav}${body}`, { translated: true });
 }
 
 async function one(c: Ctx) {
@@ -136,7 +136,7 @@ ${(["off", "testers", "public"] as const).map((v) => html`<label class="ak-check
   const approve = p.approved ? html`<p>${badge(pick(L, "Approved", "موافق عليه"), "ok")} ${p.approved_at ? when(p.approved_at) : ""}. ${pick(L, "Orderable for its visibility only.", "يمكن الطلب منه حسب رؤيته فقط.")}</p>`
     : html`<p class="muted">${pick(L, "Approving needs approved dishes and the \"menu checked\" stamp. No commission and no terms: Alo King buys at the counter.", "الموافقة تحتاج أطباقاً موافقاً عليها وختم \"فُحصت القائمة\". لا عمولة ولا شروط: ألو كينغ يشتري على الصندوق.")}</p>
 ${form(c.f, `/places/${src}/approve`, html`<button class="ak-btn ak-btn--primary">${pick(L, "Approve the place", "وافق على المكان")}</button>`)}`;
-  return render(c, p.name, html`<p><a href="/places">${pick(L, "All places", "كل الأماكن")}</a></p><h1>${p.name}</h1>
+  return render(c, p.name, html`<p><a href="/places">${pick(L, "All places", "كل الأماكن")}</a></p>
 <p>${visBadge(p.visibility, L)} ${state(p, L)} · <bdi>${p.listing_id}</bdi>${p.maps_url ? html` · <a href="${p.maps_url}" rel="noopener">${pick(L, "map", "الخريطة")}</a>` : ""} · <a href="/menus/${src}">${pick(L, "Menu", "القائمة")} (${p.dishes})</a></p>
 <h2>${pick(L, "Visibility", "الرؤية")}</h2>${visForm}
 <h2>${pick(L, "Approval", "الموافقة")}</h2>${approve}

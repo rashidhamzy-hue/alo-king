@@ -194,7 +194,12 @@ export class Browser {
     if (method === "GET") { this.last = text; this.lastPath = path; const m = /name="_csrf" value="([^"]+)"/.exec(text); if (m) this.csrf = m[1]!; }
     return { status: res.status, location: res.headers.get("location"), text, headers: res.headers };
   }
-  get(path: string) { return this.go("GET", path); }
+  /** A page, as a browser opens it. CON1: an older address that moved (301) is followed to the page it moved into, as a browser does. */
+  async get(path: string) {
+    let r = await this.go("GET", path);
+    for (let hops = 0; r.status === 301 && r.location && hops < 3; hops++) r = await this.go("GET", r.location);
+    return r;
+  }
   /** Posts a form with the page's CSRF token, then follows the redirect (as a browser does) and returns that page. */
   async post(path: string, fields: Record<string, string | number> = {}, opts: { csrf?: string; follow?: boolean; headers?: Record<string, string> } = {}) {
     const body = new URLSearchParams({ _csrf: opts.csrf ?? this.csrf, _key: crypto.randomUUID(), ...Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, String(v)])) });
@@ -215,7 +220,8 @@ export class Browser {
   async signIn(who: { email: string; password: string }) {
     await this.get("/sign-in");
     const r = await this.post("/sign-in", { email: who.email, password: who.password });
-    return r;
+    // CON1: a picker's Today is the pick queue ("/" sends them there), as a browser follows it.
+    return r.status === 303 && r.location ? this.get(r.location) : r;
   }
 }
 

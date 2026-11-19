@@ -5,18 +5,20 @@ import { rig, type Rig } from "./kit";
 
 let r: Rig;
 const who = async (role: "admin" | "ops_lead" | "picker", name: string, lang = "en") => { const w = await r.staff(role, name); const b = r.browser(); await b.signIn(w); b.cookies.set("ak_lang", lang); return { ...w, b }; };
-const tabs = (html: string) => [...html.matchAll(/<a[^>]*href="(\/intake|\/capture|\/label-queue|\/readiness)"[^>]*class="ak-tab[^"]*"|<a class="ak-tab[^"]*"[^>]*href="(\/intake|\/capture|\/label-queue|\/readiness)"/g)].map((m) => m[1] ?? m[2]);
+const tabs = (html: string) => [...html.matchAll(/<a class="ak-tab[^"]*" href="([^"]+)"/g)].map((m) => m[1]);
 
 beforeAll(async () => { r = await rig(); }, 120_000);
 
 describe("the tab bar", () => {
-  it("a picker sees Progress and Photograph; a lead and the admin see all four, on every Intake page", async () => {
+  it("CON1: one label-work flow; a picker photographs with no tab bar; a lead and the admin see the five steps on every page of it", async () => {
     const p = await who("picker", "Pia");
-    for (const path of ["/intake", "/capture"]) { const t = (await p.b.get(path)).text; expect(t, path).toContain('href="/capture"'); expect(t, path).toContain('href="/intake"'); expect(t).not.toMatch(/ak-tab[^>]*>[^<]*Label approvals/); }
+    for (const path of ["/labels", "/capture"]) expect(tabs((await p.b.get(path)).text), path).toEqual([]);
     const lead = await who("ops_lead", "Maya");
-    for (const path of ["/intake", "/capture", "/label-queue", "/readiness"]) {
+    for (const path of ["/intake", "/labels", "/capture", "/label-queue", "/food-facts", "/readiness"]) {
       const t = (await lead.b.get(path)).text;
-      for (const label of ["Progress", "Photograph", "Label approvals", "Readiness"]) expect(t, `${path} ${label}`).toContain(label);
+      const flow = ["/labels", "/capture", "/approve?tab=labels", "/labels?step=facts", "/readiness"], got = tabs(t);
+      const at = got.indexOf("/labels"); expect(got.slice(at, at + 5), path).toEqual(flow);           // the flow's bar (the queue's page sits under the inbox's kinds; Readiness has its filters)
+      for (const label of ["Progress", "Photograph", "Approve readings", "Food facts", "Readiness"]) expect(t, `${path} ${label}`).toContain(label);
     }
   });
   it("marks the page you are on", async () => {

@@ -13,17 +13,22 @@ beforeAll(async () => { r = await rig(); village = await openShop(r.db); }, 120_
 const lead = async (role: "admin" | "ops_lead" | "picker" = "ops_lead", name = "Maya") => { const who = await r.staff(role, name); const b = r.browser(); await b.signIn(who); return { ...who, b }; };
 
 describe("the shell", () => {
-  it("groups the pages as section A says, hides Vendors from every menu, and keeps its route", async () => {
+  it("groups the pages in CON1's seven sections, hides Vendors from every menu, and keeps its route", async () => {
     const { b } = await lead("admin", "Rasheed");
     const page = (await b.get("/")).text;
     const side = /<aside class="sidebar"[\s\S]*?<\/aside>/.exec(page)![0];
     const heads = [...side.matchAll(/<(?:summary|a href="[^"]+"[^>]*)>(?:<svg[\s\S]*?<\/svg>)<span>([^<]+)<\/span>/g)].map((m) => m[1]);
-    expect(heads).toEqual(["Today", "Inbox", "Orders", "Approve", "Stock", "Money", "Riders", "Settings"]);
-    for (const [group, href] of [["Money", "/payments"], ["Riders", "/riders"], ["Money", "/refunds"], ["Settings", "/staff"], ["Settings", "/templates"], ["Settings", "/zones"], ["Stock", "/readiness"], ["Approve", "/names"]] as const) {
+    expect(heads).toEqual(["Today", "Orders", "Approvals", "Products", "Stock", "People", "Money"]);
+    for (const [group, href] of [["Money", "/payments"], ["People", "/riders"], ["Money", "/refunds"], ["People", "/staff"], ["Products", "/readiness"], ["Products", "/photos"], ["Today", "/inbox"], ["Orders", "/food"], ["Stock", "/capture"]] as const) {
       const block = side.split("<details").find((x) => x.includes(`<span>${group}</span>`))!;
       expect(block, `${href} under ${group}`).toContain(`href="${href}"`);
     }
-    expect(page).not.toContain('href="/merchants"'); expect((await b.get("/more")).text).not.toContain('href="/merchants"');
+    // Settings and the rarely used tools are behind the name (/more), never in the sidebar
+    for (const href of ["/settings", "/templates", "/zones", "/windows", "/fx", "/screens"]) expect(side, href).not.toContain(`href="${href}"`);
+    const more = (await b.get("/more")).text;
+    for (const href of ["/settings", "/templates", "/zones", "/windows", "/fx", "/screens", "/components"]) expect(more, href).toContain(`href="${href}"`);
+    expect(page).toContain('href="/more#settings"');
+    expect(page).not.toContain('href="/merchants"'); expect(more).not.toContain('href="/merchants"');
     expect((await b.get("/merchants")).status).toBe(200);
     // the group you are in is open and marked; the pages merged into Today and the Inbox keep them current
     expect(/<details open><summary>(?:<svg[\s\S]*?<\/svg>)<span>Money<\/span>/.test((await b.get("/payments")).text)).toBe(true);
@@ -36,11 +41,11 @@ describe("the shell", () => {
     const page = (await b.get("/")).text;
     const bar = /<dialog class="ak-cmdk"[\s\S]*?<\/dialog>/.exec(page)![0];
     expect(bar).toContain('action="/go"'); expect(bar).toContain('name="q"');
-    for (const href of ["/", "/inbox", "/orders", "/payments", "/names", "/catalog", "/templates", "/more"]) expect(bar, href).toContain(`<a href="${href}">`);
+    for (const href of ["/", "/inbox", "/orders", "/payments", "/approve", "/catalog", "/templates", "/more"]) expect(bar, href).toContain(`<a href="${href}">`);
     expect(bar).not.toContain('href="/staff"');                                   // admin only
     expect(page).toContain("data-open-cmdk");
     const p = await lead("picker", "Pia");
-    const pbar = /<dialog class="ak-cmdk"[\s\S]*?<\/dialog>/.exec((await p.b.get("/")).text)![0];
+    const pbar = /<dialog class="ak-cmdk"[\s\S]*?<\/dialog>/.exec((await p.b.get("/pick")).text)![0];
     expect(pbar).toContain('action="/go"'); expect(pbar).not.toContain("/orders"); expect(pbar).not.toContain("/payments");
   });
 
@@ -88,20 +93,22 @@ describe("the shell", () => {
     expect(css).toContain("/fonts/plex-arabic-600.woff2");
   });
 
-  it("shows the gallery on staging and in tests, in both languages, and never in production", async () => {
-    const { b } = await lead();
-    const g = await b.get("/gallery");
+  it("shows the design components (once /gallery) on staging and in tests, in both languages, and never in production; /gallery is Photos now", async () => {
+    const { b } = await lead("admin", "Rasheed");
+    const moved = await (b as any).go("GET", "/gallery");
+    expect(moved.status).toBe(301); expect(moved.location).toBe("/photos");
+    const g = await b.get("/components");
     expect(g.status).toBe(200); expect(g.text).toContain("The crown"); expect(g.text).toContain("Measured contrast"); expect(g.text).not.toMatch(/\sstyle="/);
     await b.get("/lang?to=ar&next=/");
-    expect((await b.get("/gallery")).text).toContain("التاج");
+    expect((await b.get("/components")).text).toContain("التاج");
     await b.get("/lang?to=en&next=/");
-    expect((await b.get("/more")).text).toContain('href="/gallery"');
+    expect((await b.get("/more")).text).toContain('href="/components"');
     const prod = { ...r.deps, environment: "production" };
     const pb = r.browser(); pb.cookies = b.cookies;
-    const res = await handle(new Request("https://console.test/gallery", { headers: { cookie: [...b.cookies].map(([k, v]) => `${k}=${v}`).join("; ") } }), prod, registry);
+    const res = await handle(new Request("https://console.test/components", { headers: { cookie: [...b.cookies].map(([k, v]) => `${k}=${v}`).join("; ") } }), prod, registry);
     expect(res.status).toBe(404);
     const more = await handle(new Request("https://console.test/more", { headers: { cookie: [...b.cookies].map(([k, v]) => `${k}=${v}`).join("; ") } }), prod, registry);
-    expect(await more.text()).not.toContain('href="/gallery"');
+    expect(await more.text()).not.toContain('href="/components"');
   });
 });
 
@@ -134,8 +141,8 @@ describe("Today's tiles", () => {
     // riders against the caps as a bar that says what it draws; a picker sees no money tiles
     expect(page).toMatch(/class="ak-bar[^"]*" role="img" aria-label="\$[\d.]+ of the \$[\d.]+ hard cap"/);
     const p = await lead("picker", "Pia");
-    const pp = (await p.b.get("/")).text;
-    expect(pp).not.toContain("Sales, goods only"); expect(pp).toContain('class="ak-board"');
+    const pp = await p.b.get("/");
+    expect(pp.status).toBe(303); expect(pp.location).toBe("/pick");                        // CON1: a picker's Today is the pick queue: no money tiles
   });
 });
 

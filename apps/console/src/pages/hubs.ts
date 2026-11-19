@@ -15,26 +15,38 @@ function links(g: NavGroup | undefined, lang: Lang): Raw {
   if (!g || g.links.length === 0) return html`<p class="muted">${t(lang, "hub_empty")}</p>`;
   return html`<ul class="hub">${g.links.map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${badge(l.badge)}</a></li>`)}</ul>`;
 }
-const groupOf = (c: Ctx, id: string) => buildNav(c.sections, c.staff.role, c.lang, c.url.pathname, c.badges).groups.find((g) => g.id === id);
 
 async function more(c: Ctx) {
   const L = c.lang;
   const push = LEADS.includes(c.staff.role) ? pushBox(c) : html`<p class="muted">${t(L, "push_leads_only")}</p>`;
-  // Every group that has no place of its own in the bottom bar is listed here, so a phone reaches every page in two taps.
+  // CON1: every section the role has (a phone reaches every page in two taps), then Settings (behind the person's name): the admin's Settings,
+  // the rarely used tools under Advanced, and this phone's own choices.
   const nav = buildNav(c.sections, c.staff.role, L, c.url.pathname, c.badges);
-  const inBar = new Set(nav.bottom.map((b) => b.href));
-  const here = nav.groups.filter((g) => !["today", "inbox", "orders"].includes(g.id) && !(g.hubHref && inBar.has(g.hubHref)));
+  const settings = nav.advanced.filter((l) => l.href === "/settings");
+  const advanced = nav.advanced.filter((l) => l.href !== "/settings" && !(l.href === "/components" && c.deps.environment === "production"));
+  const hub = c.sections.some((s) => s.nav.href === "/zones" && s.nav.roles.includes(c.staff.role));
   const theme = (to: "auto" | "light" | "dark", key: "theme_auto" | "theme_light" | "theme_dark") => html`<a href="/theme?to=${to}&amp;next=/more"${c.theme === to ? html` aria-current="true"` : ""}>${t(L, key)}</a>`;
   return render(c, t(L, "nav_more"), html`<p class="muted">${t(L, "hub_more_intro")}</p>
-${here.map((g) => html`<h2>${g.heading}</h2>${links(g, L)}`)}
-<h2>${t(L, "language")}</h2>
+<h2>${t(L, "all_sections")}</h2>
+${nav.groups.map((g) => html`<h3 id="${g.id}">${g.heading}</h3>${links(g, L)}`)}
+<h2 id="settings">${t(L, "g_settings")}</h2>
+${settings.length ? html`<ul class="hub">${settings.map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${badge(l.badge)}</a></li>`)}</ul>` : ""}
+${advanced.length ? html`<h3 id="advanced">${t(L, "advanced_h")}</h3><p class="muted">${t(L, "advanced_intro")}</p>
+<ul class="hub">${advanced.map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${badge(l.badge)}</a></li>`)}${hub ? html`<li><a href="/zones#hub"><span>${t(L, "hub_h")}</span></a></li>` : ""}</ul>` : ""}
+<h3 id="you">${t(L, "you_h")}</h3>
+<h4>${t(L, "language")}</h4>
 <p class="chips"><a href="/lang?to=en&amp;next=/more"${L === "en" ? html` aria-current="true"` : ""}>${t("en", "lang_en")}</a><a href="/lang?to=ar&amp;next=/more"${L === "ar" ? html` aria-current="true"` : ""}>${t("ar", "lang_ar")}</a></p>
 <p class="muted">${t(L, "lang_note")}</p>
-<h2>${t(L, "theme_h")}</h2>
+<h4>${t(L, "theme_h")}</h4>
 <p class="chips">${theme("auto", "theme_auto")}${theme("light", "theme_light")}${theme("dark", "theme_dark")}</p>
-<h2>${t(L, "push_h")}</h2>${push}
-<h2>${t(L, "install_h")}</h2><p><a class="btn" href="/install">${t(L, "install_link")}</a></p>
-${c.deps.environment === "production" ? "" : html`<p><a class="btn" href="/gallery">${t(L, "gallery_link")}</a></p>`}`, { translated: true });
+<h4>${t(L, "push_h")}</h4>${push}
+<h4>${t(L, "install_h")}</h4><p><a class="btn" href="/install">${t(L, "install_link")}</a></p>`, { translated: true });
+}
+
+/** CON1: the place kept for the staff assistant (session AST1). Nothing is asked or answered here yet. */
+async function assistant(c: Ctx) {
+  const L = c.lang;
+  return render(c, t(L, "assistant"), html`<div class="ak-card"><p><strong>${t(L, "assistant_soon")}</strong></p><p>${t(L, "assistant_note")}</p></div>`, { translated: true });
 }
 
 function pushBox(c: Ctx): Raw {
@@ -95,6 +107,7 @@ export const hubsSection: Section = {
   routes: [
     { method: "GET", path: "/more", roles: ALL, handler: more },
     { method: "GET", path: "/install", roles: ALL, handler: install },
+    { method: "GET", path: "/assistant", roles: ALL, handler: assistant },
     { method: "POST", path: "/push/subscribe", roles: LEADS, handler: subscribe },
     { method: "POST", path: "/push/unsubscribe", roles: LEADS, handler: unsubscribe },
     { method: "POST", path: "/push/test", roles: LEADS, handler: pushTest },

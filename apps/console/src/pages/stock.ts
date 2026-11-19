@@ -126,7 +126,7 @@ ${tabs([{ label: pick(L, "Needs a look", "يحتاج نظرة"), href: "/stock",
 <button>${pick(L, "Search", "بحث")}</button></form>
 ${body}
 <h2>${pick(L, "More stock pages", "صفحات مخزون أخرى")}</h2>
-${nav && nav.links.length ? html`<ul class="hub">${nav.links.map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${l.badge > 0 ? html` <span class="badge">${l.badge}</span>` : ""}</a></li>`)}</ul>` : html`<p class="muted">${t(L, "hub_empty")}</p>`}`, { translated: true });
+${nav && nav.links.filter((l) => l.href !== "/stock").length ? html`<ul class="hub">${nav.links.filter((l) => l.href !== "/stock").map((l) => html`<li><a href="${l.href}"><span>${l.label}</span>${l.badge > 0 ? html` <span class="badge">${l.badge}</span>` : ""}</a></li>`)}</ul>` : html`<p class="muted">${t(L, "hub_empty")}</p>`}`, { translated: true });
 }
 
 async function count(c: Ctx) {
@@ -177,7 +177,7 @@ async function writeOff(c: Ctx) {
 
 export const stockSection: Section = {
   // No menu entry of its own: the phone bar and the Stock group link to it.
-  nav: { href: "/stock", label: "Stock", roles: [] },
+  nav: { href: "/stock", label: "Stock counts", roles: ALL },
   routes: [
     { method: "GET", path: "/stock", roles: ALL, handler: stockPage },
     { method: "POST", path: "/stock/:product/count", roles: ALL, handler: count },

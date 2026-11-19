@@ -1,3 +1,8 @@
+// CON1 (docs/DECISIONS.md, "CON1, a simple console, 19 November 2026"): Today is "needs attention", most urgent first, each item with one tap to act:
+// orders past their promised time; customers waiting for a person; food places that have not answered the call ahead within 10 minutes;
+// high-priority exceptions; riders over the hard, then the soft cash cap; places found closed today; orders waiting for the customer's own
+// Confirm; the other open exceptions; errors in the last 24 hours (Sentry); approvals waiting; low stock. Then today's numbers: orders, sales,
+// average delivery time, average restaurant acceptance time. The live board, the riders and the drawer follow, folded. A picker's Today is Pick.
 // 3.2 Today (redesigned in D5, drawn again in DS1; docs/strategy/05, section A): KPI tiles with their comparisons; what needs a
 // person first, oldest first, each with its one action; orders late or at risk; the live board of open orders by status with a
 // timer against each promise; riders with cash against the caps as bars; the drawer; and a short green summary when the day is quiet.
@@ -5,12 +10,13 @@
 // "Late" is measured against the zone's ETA from the database (zones.base_eta_minutes), never a number in code (invariant 13).
 // A figure with no source in the database is not shown at all (contribution, reply time, missing-item rate, message cost): they
 // are listed for session AN1 in docs/HANDOFF.md, DS1. The delivery fee and tips are the rider's, so "Sales" is goods only (invariant 10).
-import { html, render, type Ctx, type Section } from "../app";
+import { html, redirect, render, type Ctx, type Section } from "../app";
+import { approvalCounts } from "./approve";
 import { form, lbp, minutesSince, money, usd, when } from "../html";
 import { pick, t } from "../i18n";
 import { kindCta, kindHref, kindName } from "../kinds";
 import { ALL, LEADS } from "../roles";
-import { badge, icon, kpiTile, kpis, limitBar, tabs, tileLink, timerChip, timerState, type Compare, type KpiOpts } from "@ak/ui/components";
+import { badge, button, icon, kpiTile, kpis, limitBar, tabs, tileLink, timerChip, timerState, type Compare, type IconName, type KpiOpts } from "@ak/ui/components";
 import { statusLabel } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
 
@@ -172,6 +178,138 @@ function kpiTiles(c: Ctx, k: NonNullable<Awaited<ReturnType<typeof kpiData>>>, o
   return kpis(tiles.map(kpiTile));
 }
 
+// ---------- CON1: needs attention ----------
+/** A food place that has not answered the call ahead after this many minutes is listed (CON1, 3). */
+export const CALL_AHEAD_MIN = 10;
+type Attention = { rank: number; age: number; tone: "danger" | "warn" | "neutral"; icon: IconName; title: string; detail?: string | Raw; href: string; cta: string; extra?: Raw };
+
+/** The reads behind the list. Each is on its own: a read that fails costs its line, never the page. */
+async function attentionData(c: Ctx) {
+  const { db } = c.deps;
+  const now = c.deps.now();
+  const quiet = async <T,>(f: () => Promise<T>, none: T) => { try { return await f(); } catch { return none; } };
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(now);
+  const since = beirutMidnight(now);
+  const yesterday = beirutMidnight(new Date(since.getTime() - 12 * 3600_000));
+  const [calls, closed, approvals, stock, errors, accepted] = await Promise.all([
+    quiet(async () => ((await db.rpc<{ call_id: string; short_code: string; place: string; status: string; created_at: string }[] | null>("food_calls_console", {})) ?? []), []),
+    quiet(() => db.rows<{ id: string; name: string }>("sources", { select: "id,name", where: { closed_on: today }, limit: 50 }), []),
+    quiet(() => approvalCounts(c), null),
+    quiet(async () => {
+      const hubs = await db.rows<{ id: string }>("sources", { select: "id", where: { kind: "dark_store" }, limit: 1 });
+      if (!hubs[0]) return { low: 0, out: 0 };
+      const [levels, products] = await Promise.all([
+        db.rows<{ product_id: string; on_hand: number | string; reserved: number | string; reorder_point: number | string }>("stock_levels", { select: "product_id,on_hand,reserved,reorder_point", where: { source_id: hubs[0].id }, limit: 5000 }),
+        db.rows<{ id: string }>("products", { select: "id", where: { is_active: true, owner_source_id: null }, limit: 5000 }),
+      ]);
+      const active = new Set(products.map((p) => p.id));
+      let low = 0, out = 0;
+      for (const l of levels) { if (!active.has(l.product_id)) continue; const a = Number(l.on_hand) - Number(l.reserved); if (a <= 0) out++; else if (Number(l.reorder_point) > 0 && a <= Number(l.reorder_point)) low++; }
+      return { low, out };
+    }, null),
+    c.deps.errorsLast24h ? c.deps.errorsLast24h().catch(() => null) : Promise.resolve(undefined),
+    quiet(() => db.rows<{ created_at: string; accepted_at: string }>("place_calls", { select: "created_at,accepted_at", where: { accepted_at: { gte: yesterday.toISOString() } }, limit: 2000 }), []),
+  ]);
+  const minutes = (r: { created_at: string; accepted_at: string }) => (new Date(r.accepted_at).getTime() - new Date(r.created_at).getTime()) / 60000;
+  const avg = (rows: { created_at: string; accepted_at: string }[]) => (rows.length ? rows.reduce((a, r) => a + minutes(r), 0) / rows.length : null);
+  const isToday = (r: { accepted_at: string }) => new Date(r.accepted_at).getTime() >= since.getTime();
+  const acceptToday = accepted.filter(isToday);
+  // Yesterday up to the same time of day, so the comparison is fair.
+  const elapsed = now.getTime() - since.getTime();
+  const acceptYesterday = accepted.filter((r) => !isToday(r) && new Date(r.accepted_at).getTime() < yesterday.getTime() + elapsed);
+  return { calls, closed, approvals, stock, errors, accept: { today: avg(acceptToday), yesterday: avg(acceptYesterday), n: acceptToday.length } };
+}
+
+function attentionList(c: Ctx, d: Awaited<ReturnType<typeof todayData>>, inbox: Awaited<ReturnType<typeof inboxData>>, a: Awaited<ReturnType<typeof attentionData>>): Attention[] {
+  const L = c.lang;
+  const now = c.deps.now();
+  const items: Attention[] = [];
+  const m = (n: number) => `${n} ${t(L, "min")}`;
+  // 1. orders past their promised time (the zone's time, from the database)
+  for (const o of d.orders.filter((x) => (x.lateBy ?? 0) > 0)) items.push({ rank: 1, age: o.lateBy!, tone: "danger", icon: "clock",
+    title: pick(L, `${o.short_code} is ${o.lateBy} min past its promised time`, `${o.short_code} تجاوز وقته الموعود بـ ${o.lateBy} د`),
+    detail: html`${statusWord(L, o.status)} · ${o.villageName}${o.noRider ? html` · <strong>${pick(L, "no rider yet", "لا مندوب بعد")}</strong>` : ""}`, href: `/orders/${o.id}`, cta: pick(L, "Open the order", "افتح الطلب") });
+  // 2. customers waiting for a person, late first
+  if (inbox.lateCases) items.push({ rank: 2, age: 0, tone: "danger", icon: "inbox", title: pick(L, `${inbox.lateCases} customer(s) waiting too long for a person`, `${inbox.lateCases} زبون ينتظر شخصاً منذ وقت طويل`), href: "/inbox", cta: pick(L, "Answer", "أجب") });
+  // 3. food places that have not answered the call ahead within 10 minutes
+  for (const k of a.calls.filter((x) => x.status === "to_call" && (minutesSince(x.created_at, now) ?? 0) >= CALL_AHEAD_MIN)) items.push({ rank: 3, age: minutesSince(k.created_at, now) ?? 0, tone: "danger", icon: "phone",
+    title: pick(L, `${k.place} has not answered the call ahead for ${k.short_code}`, `${k.place} لم يُجب على الاتصال المسبق للطلب ${k.short_code}`),
+    detail: pick(L, `waiting ${m(minutesSince(k.created_at, now) ?? 0)}`, `بالانتظار منذ ${m(minutesSince(k.created_at, now) ?? 0)}`), href: "/food", cta: pick(L, "Call the place", "اتصل بالمكان") });
+  // 4. high-priority exceptions; the rest come later (8)
+  for (const e of inbox.excs) items.push({ rank: inbox.high.has(e.kind) ? 4 : 8, age: minutesSince(e.created_at, now) ?? 0, tone: inbox.high.has(e.kind) ? "danger" : "warn", icon: "alert",
+    title: kindName(e.kind, L), detail: html`${inbox.high.has(e.kind) ? html`<span class="tag high">${t(L, "high")}</span> ` : ""}${when(e.created_at)} · ${m(minutesSince(e.created_at, now) ?? 0)}${detailText(e.detail) ? html` · ${detailText(e.detail)}` : ""}${e.status === "acknowledged" ? html` · ${t(L, "being_handled")}` : ""}`,
+    href: kindHref(e), cta: kindCta(e.kind, L), extra: html`${e.status === "open" ? form(c.f, `/exceptions/${e.id}/acknowledged`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "im_on_it")}</button>`) : ""}
+${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "resolved")}</button>`)}` });
+  // 5. riders over the cash cap (the hard cap first; the database refuses a job past it)
+  for (const r of d.riders.filter((x) => d.cap.soft && x.exposure >= d.cap.soft)) {
+    const hard = d.cap.hard && r.exposure >= d.cap.hard;
+    items.push({ rank: hard ? 5 : 9, age: r.exposure, tone: hard ? "danger" : "warn", icon: "wallet",
+      title: pick(L, `${r.name} holds ${usd(r.exposure)}: over the ${hard ? "hard" : "soft"} cash cap`, `${r.name} يحمل ${usd(r.exposure)}: فوق سقف النقد ${hard ? "الصارم" : "المرن"}`),
+      detail: pick(L, `soft ${usd(d.cap.soft)}, hard ${usd(d.cap.hard)}`, `المرن ${usd(d.cap.soft)}، الصارم ${usd(d.cap.hard)}`), href: "/rider-jobs", cta: pick(L, "Take a cash drop", "استلم النقد") });
+  }
+  // 6. places found closed today (the call ahead said so)
+  for (const p of a.closed) items.push({ rank: 6, age: 0, tone: "warn", icon: "store", title: pick(L, `${p.name} was found closed today`, `${p.name} وُجد مغلقاً اليوم`),
+    detail: pick(L, "not orderable for the rest of the day", "لا يمكن الطلب منه بقية اليوم"), href: `/places/${p.id}`, cta: pick(L, "Open the place", "افتح المكان") });
+  // 7. orders waiting for the customer's own Confirm (the agent can never confirm)
+  for (const o of d.orders.filter((x) => x.status === "awaiting_confirmation")) items.push({ rank: 7, age: o.age, tone: "neutral", icon: "hourglass",
+    title: pick(L, `${o.short_code} waits for the customer's Confirm`, `${o.short_code} ينتظر تأكيد الزبون`), detail: pick(L, `for ${m(o.age)} · ${usd(o.total_usd)}`, `منذ ${m(o.age)} · ${usd(o.total_usd)}`),
+    href: `/orders/${o.id}`, cta: pick(L, "Open the order", "افتح الطلب") });
+  // 10. customers waiting for a person (not late)
+  const onTime = inbox.chats - inbox.lateCases;
+  if (onTime > 0) items.push({ rank: 10, age: 0, tone: "neutral", icon: "inbox", title: t(L, "chats_waiting", { n: onTime }), href: "/inbox", cta: pick(L, "Answer", "أجب") });
+  // 11. errors in the last 24 hours (Sentry)
+  if (a.errors && a.errors.count > 0) items.push({ rank: 11, age: a.errors.count, tone: "warn", icon: "warn", title: pick(L, `${a.errors.count} errors in the last 24 hours`, `${a.errors.count} خطأ في آخر 24 ساعة`),
+    detail: pick(L, "counted by Sentry", "بحسب Sentry"), href: a.errors.link, cta: pick(L, "Open Sentry", "افتح Sentry") });
+  // 12. approvals waiting, with the count of each kind
+  const ap = a.approvals; const waiting = ap ? Object.values(ap).reduce((x, y) => x + y, 0) : 0;
+  if (ap && waiting) {
+    const KIND: Record<string, [string, string]> = { names: ["names", "أسماء"], photos: ["photos", "صور"], labels: ["label readings", "قراءات ملصقات"], dishes: ["dishes", "أطباق"], places: ["places", "أماكن"],
+      second: ["second approvals", "موافقات ثانية"], refunds: ["refunds", "استردادات"], auto: ["spot checks", "فحوص عيّنات"] };
+    const first = Object.entries(ap).find(([, v]) => v > 0)![0];
+    items.push({ rank: 12, age: waiting, tone: "neutral", icon: "approve", title: pick(L, `${waiting} approvals waiting`, `${waiting} موافقة بالانتظار`),
+      detail: Object.entries(ap).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${pick(L, KIND[k]![0], KIND[k]![1])}`).join(" · "), href: `/approve?tab=${first}`, cta: pick(L, "Approve", "وافق") });
+  }
+  // 13. low stock
+  if (a.stock && (a.stock.low || a.stock.out)) items.push({ rank: 13, age: a.stock.out + a.stock.low, tone: "neutral", icon: "stock",
+    title: pick(L, `${a.stock.low} items running low, ${a.stock.out} out`, `${a.stock.low} صنفاً ينفد قريباً، ${a.stock.out} نافداً`), href: "/stock", cta: pick(L, "See stock", "اعرض المخزون") });
+  return items.sort((x, y) => x.rank - y.rank || y.age - x.age);
+}
+
+function attentionView(c: Ctx, items: Attention[], errors: { count: number; link: string } | null | undefined) {
+  const L = c.lang;
+  const sentry = errors === undefined ? pick(L, "Errors in the last 24 hours: Sentry is not connected to the console yet.", "الأخطاء في آخر 24 ساعة: Sentry غير موصول باللوحة بعد.")
+    : errors === null ? pick(L, "Errors in the last 24 hours: Sentry did not answer.", "الأخطاء في آخر 24 ساعة: لم يُجب Sentry.")
+    : errors.count === 0 ? pick(L, "No error in the last 24 hours (Sentry).", "لا خطأ في آخر 24 ساعة (Sentry).") : "";
+  return html`<section class="ak-attention" aria-labelledby="needs-h"><h2 id="needs-h">${pick(L, "Needs attention", "يحتاج انتباهك")}${items.length ? html` <span class="badge">${items.length}</span>` : ""}</h2>
+${items.length === 0 ? html`<p class="summary-ok">${icon("check")}<span>${t(L, "quiet_summary")}</span></p>` : html`<ol>${items.map((x) => html`<li class="ak-attn ak-attn--${x.tone}"><span class="ak-attn-ic">${icon(x.icon)}</span>
+<div class="ak-attn-body"><strong>${x.title}</strong>${x.detail ? html`<br><span class="muted">${x.detail}</span>` : ""}</div>
+<div class="ak-attn-act">${button({ label: x.cta, href: x.href, variant: x.tone === "danger" ? "primary" : "soft", icon: "chevron" })}${x.extra ?? ""}</div></li>`)}</ol>`}
+${sentry ? html`<p class="muted">${sentry}</p>` : ""}</section>`;
+}
+
+/** Today's numbers (CON1, 3): orders, sales (goods only), average delivery time, average restaurant acceptance time, with yesterday's same hours. */
+function todayNumbers(c: Ctx, k: Awaited<ReturnType<typeof kpiData>>, accept: { today: number | null; yesterday: number | null; n: number }) {
+  const L = c.lang;
+  const vsY = pick(L, "vs yesterday, same hours", "عن أمس، بالساعات نفسها");
+  const diff = (now: number | null, then: number | null, fmt: (n: number) => string, upIsGood: boolean): Compare[] => {
+    if (now === null || then === null) return [];
+    const x = now - then;
+    if (Math.abs(x) < 1e-9) return [{ label: vsY, text: pick(L, "same", "لا تغيير"), direction: "flat", good: null }];
+    return [{ label: vsY, text: `${x > 0 ? "+" : "−"}${fmt(Math.abs(x))}`, direction: x > 0 ? "up" : "down", good: x > 0 === upIsGood }];
+  };
+  const mins = (n: number) => `${Math.round(n)} ${t(L, "min")}`;
+  const avg = (f: DayFigures) => (f.delivered ? f.minutes / f.delivered : null);
+  const tiles: KpiOpts[] = [
+    { label: pick(L, "Orders", "الطلبات"), value: k ? String(k.today.orders) : "–", compare: k ? diff(k.today.orders, k.yesterday.orders, (n) => String(Math.round(n)), true) : [] },
+    { label: pick(L, "Sales, goods only", "المبيعات، البضاعة فقط"), value: k ? usd(k.today.sales) : "–", compare: k ? diff(k.today.sales, k.yesterday.sales, (n) => usd(n), true) : [] },
+    { label: pick(L, "Average delivery time", "متوسط وقت التوصيل"), value: k && avg(k.today) !== null ? mins(avg(k.today)!) : "–", compare: k ? diff(avg(k.today), avg(k.yesterday), mins, false) : [],
+      note: pick(L, "from the customer's confirmation to the door", "من تأكيد الزبون إلى الباب") },
+    { label: pick(L, "Average restaurant acceptance time", "متوسط وقت قبول المطعم"), value: accept.today === null ? "–" : mins(accept.today), compare: diff(accept.today, accept.yesterday, mins, false),
+      note: accept.n ? pick(L, `${accept.n} food orders, from the call ahead to "accepted"`, `${accept.n} طلب أكل، من الاتصال المسبق إلى «قُبل»`) : pick(L, "no food order accepted yet today", "لم يُقبل طلب أكل بعد اليوم") },
+  ];
+  return html`<h2>${pick(L, "Today's numbers", "أرقام اليوم")}</h2>${kpis(tiles.map(kpiTile))}`;
+}
+
 // ---------- the live board ----------
 const COLUMNS: { en: string; ar: string; statuses: string[] }[] = [
   { en: "Waiting on customer", ar: "بانتظار الزبون", statuses: ["awaiting_confirmation", "awaiting_payment"] },
@@ -185,7 +323,9 @@ const COLUMNS: { en: string; ar: string; statuses: string[] }[] = [
 async function today(c: Ctx) {
   const L = c.lang;
   const lead = LEADS.includes(c.staff.role);
-  const [d, inbox, k] = await Promise.all([todayData(c), lead ? inboxData(c) : Promise.resolve({ excs: [] as Exc[], chats: 0, lateCases: 0, high: new Set<string>() }), lead ? kpiData(c) : Promise.resolve(null)]);
+  // CON1: a picker sees Pick and Stock only; their Today is the pick queue.
+  if (!lead) return redirect("/pick");
+  const [d, inbox, k, a] = await Promise.all([todayData(c), inboxData(c), kpiData(c), attentionData(c)]);
   const now = c.deps.now();
   const word = (s: string) => statusWord(L, s);
   const statusOrder = [...ACTIVE, "closed", "cancelled"];
@@ -235,21 +375,15 @@ ${list.length === 0 ? html`<p class="none">${pick(L, "None", "لا شيء")}</p>
 <span class="sub">${col.statuses.length > 1 ? html`${word(o.status)} · ` : ""}${o.villageName} · ${money(o.total_usd)} · ${o.payment_method}${o.eta !== null ? html` · ${pick(L, "zone", "المنطقة")} ${o.eta} ${t(L, "min")}` : ""}</span>${o.noRider ? html`<span class="sub">${noRider}</span>` : ""}</li>`)}</ul>`}</section>`;
   })}</div>`;
 
+  const needs = attentionList(c, d, inbox, a);
   return render(c, t(L, "today_title"), html`
 <p class="live" data-live>${t(L, "updated_at", { time: clock })}</p>
+${attentionView(c, needs, a.errors)}
+${todayNumbers(c, k, a.accept)}
+<details class="ak-today-more"><summary>${pick(L, "More of today: the live board, the riders, the drawer", "المزيد عن اليوم: اللوحة الحيّة والمناديب والصندوق")}</summary>
 ${attention}
-${lead && k ? kpiTiles(c, k, inbox.chats, inbox.lateCases, inbox.excs.length) : ""}
-${lead ? html`${tabs([{ label: t(L, "tab_needs_you"), href: "/", current: true, count: inbox.excs.length }, { label: t(L, "tab_all_exceptions"), href: "/exceptions" }], t(L, "tab_all_exceptions"))}
-<h2>${t(L, "inbox_h")}${inbox.excs.length ? html` (${inbox.excs.length})` : ""}</h2>
-${inbox.excs.length === 0 && inbox.chats === 0 ? html`<p class="muted">${t(L, "nothing_needs")}</p>` : ""}
-${inbox.excs.length ? html`<ul class="inbox">${inbox.excs.map((e) => html`<li class="${inbox.high.has(e.kind) ? "high" : ""}">
-<strong>${kindName(e.kind, L)}</strong>${inbox.high.has(e.kind) ? html` <span class="tag high">${t(L, "high")}</span>` : ""}${e.status === "acknowledged" ? html` <span class="tag">${t(L, "being_handled")}</span>` : ""}
-<br><span class="muted">${when(e.created_at)} · ${minutesSince(e.created_at, now)} ${t(L, "min")}${detailText(e.detail) ? html` · ${detailText(e.detail)}` : ""}</span>
-<div class="actions"><a class="btn primary" href="${kindHref(e)}">${kindCta(e.kind, L)}</a>
-${e.status === "open" ? form(c.f, `/exceptions/${e.id}/acknowledged`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "im_on_it")}</button>`) : ""}
-${form(c.f, `/exceptions/${e.id}/resolved`, html`<input type="hidden" name="back" value="/"><button class="secondary">${t(L, "resolved")}</button>`)}</div></li>`)}</ul>` : ""}
-${inbox.chats ? html`<p><a class="btn" href="/inbox">${t(L, "chats_waiting", { n: inbox.chats })}</a></p>` : ""}` : ""}
-${quiet ? html`<p class="summary-ok">${icon("check")}<span>${t(L, "quiet_summary")}</span></p>` : ""}
+${k ? kpiTiles(c, k, inbox.chats, inbox.lateCases, inbox.excs.length) : ""}
+<p><a href="/exceptions">${t(L, "tab_all_exceptions")}</a>${inbox.chats ? html` · <a href="/inbox">${t(L, "chats_waiting", { n: inbox.chats })}</a>` : ""}</p>
 ${atRisk.length ? html`<h2 id="at-risk">${t(L, "at_risk_h")} (${atRisk.length})</h2><ul class="inbox">${atRisk.map((o) => html`<li class="${(o.lateBy ?? 0) > 0 ? "high" : ""}">
 <strong>${orderLink(o)}</strong> · ${word(o.status)}${(o.lateBy ?? 0) > 0 ? html` · <strong class="warn">${o.lateBy} ${pick(L, "min late", "د تأخير")}</strong>` : ""}${o.noRider ? html` · ${noRider}` : ""}
 <br><span class="muted">${o.villageName} · ${money(o.total_usd)} · ${o.payment_method}</span></li>`)}</ul>` : ""}
@@ -264,7 +398,7 @@ ${d.cap.hard ? limitBar({ value: r.exposure, soft: d.cap.soft || null, hard: d.c
 <span class="row"><span>${pick(L, "Exposure", "التعرض")} <strong>${money(r.exposure)}</strong>${d.cap.soft && r.exposure >= d.cap.soft ? html` <strong class="warn">${pick(L, "above the soft cap", "فوق السقف المرن")} (${usd(d.cap.soft)})</strong>` : ""}</span>
 <span class="muted">${pick(L, "Cash held", "النقد المحتفظ به")} ${money(r.usd, r.lbp ? ` + ${lbp(r.lbp)}` : "")}${r.lbp ? html` (${money(r.heldUsd)})` : ""}</span></span></li>`)}</ul>
 <p class="muted">${pick(L, "Exposure is the cash held plus cash still to collect on accepted jobs. The dashed mark is the soft cap, the solid one the hard cap. The database refuses a job that would pass the hard cap", "التعرض هو النقد المحتفظ به مضافاً إليه النقد المنتظر تحصيله من المهام المقبولة. العلامة المتقطعة هي السقف المرن والمتصلة هي السقف الصارم. ترفض قاعدة البيانات أي مهمة تتجاوز السقف الصارم")} (${usd(d.cap.hard)}).</p>`}
-${drawer}`, { translated: true });
+${drawer}</details>`, { translated: true });
 }
 
 export const todaySection: Section = {

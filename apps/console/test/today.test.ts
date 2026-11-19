@@ -21,9 +21,9 @@ describe("Today", () => {
     await r.db.pg.query(`update orders set confirmed_at = now() - make_interval(mins => $2::int), created_at = now() - make_interval(mins => $2::int) where id = $1`, [late.id, eta + 25]);
 
 
-    const picker = await r.staff("picker", "Pia");
+    const lead = await r.staff("ops_lead", "Pia");                 // CON1: a picker's Today is the pick queue; the board is a lead's
     const b = r.browser();
-    await b.signIn(picker);
+    await b.signIn(lead);
     const page = (await b.get("/")).text;
     const iLate = page.indexOf(late.code), iOn = page.indexOf(onTime.code);
     expect(iLate).toBeGreaterThan(0);

@@ -37,11 +37,16 @@ describe("who sees Approve, and the tabs", () => {
     expect((await lead.b.get("/approve")).status).toBe(200);
     expect((await admin.b.get("/approve")).status).toBe(200);
   });
-  it("shows the four tabs with their counts, and the older list pages as links", async () => {
+  it("shows the eight kinds with their counts (CON1), and the older list pages as links", async () => {
     const p = (await lead.b.get("/approve")).text;
-    for (const t of ["names", "pictures", "labels", "money"]) expect(tab(p, t), t).toBe(true);
+    for (const t of ["names", "photos", "labels", "dishes", "places", "second", "refunds", "auto"]) expect(tab(p, t), t).toBe(true);
     expect(p).toMatch(/Names[\s\S]{0,200}99\+/);                                  // the count badge reads 99+ above 99
-    expect(p).toContain('href="/label-queue"'); expect(p).toContain('href="/approvals"'); expect(p).toContain('href="/names"');
+    expect(p).toContain('href="/approve?tab=names&amp;view=list"');
+    for (const [old, list] of [["/names", "Names"], ["/label-queue", "Label approvals"], ["/approvals", "Second approvals"], ["/auto-approvals", "Automatic approvals"]] as const) {
+      const moved = await (lead.b as any).go("GET", old);
+      expect(moved.status, old).toBe(301); expect(moved.location, old).toMatch(/^\/approve\?tab=\w+&view=list$/);
+      expect((await lead.b.get(old)).status, `${old} reaches ${list}`).toBe(200);
+    }
     expect(p).not.toMatch(/<script(?![^>]*\bsrc=)|<style|\sstyle="/);
   });
   it("opens on the first tab that has something waiting, and clamps the card number", async () => {
@@ -148,7 +153,7 @@ describe("a second-approval card", () => {
   }, 120_000);
 
   it("shows who asked and says the person who asked can never approve: no Approve button for the asker, only Withdraw", async () => {
-    const mine = (await lead.b.get("/approve?tab=money")).text;                          // the oldest is Maya's own refund
+    const mine = (await lead.b.get("/approve?tab=refunds")).text;                        // CON1: refunds are their own kind; Maya's own refund
     expect(mine).toMatch(/Refund[\s\S]*\$25\.00/);
     expect(mine).toContain("Asked by Maya");
     expect(mine).toContain("the person who asked can never approve");
@@ -158,7 +163,7 @@ describe("a second-approval card", () => {
     expect(mine).toContain("Withdraw my request");
   });
   it("the second person sees the Approve button and the rule, and approving makes the refund and returns to the next card", async () => {
-    const p = (await admin.b.get("/approve?tab=money")).text;
+    const p = (await admin.b.get("/approve?tab=refunds")).text;
     expect(p).toContain(`action="/approvals/${refund}/approve"`);
     expect(p).toContain("Needs you as the second person.");
     const res = await admin.b.post(`/approvals/${refund}/approve`, { return_to: "/approve?tab=money" });

@@ -79,7 +79,7 @@ ${dataTable({ caption: pick(L, "Places", "الأماكن"),
       empty: empty({ title: pick(L, "No places match this.", "لا أماكن تطابق هذا."), icon: "search" }) })}
 ${found.length >= 50 ? html`<p class="muted">${pick(L, "The first 50 are shown: search by name or village to narrow it.", "تُعرض أول ٥٠: ابحث بالاسم أو القرية لتضييق النتائج.")}</p>` : ""}`;
   }
-  return render(c, pick(L, "Food places", "أماكن الطعام"), html`<h1>${pick(L, "Food places", "أماكن الطعام")}</h1>${intro}${nav}${body}`, { translated: true });
+  return render(c, pick(L, "Food places", "أماكن الطعام"), html`${intro}${nav}${body}`, { translated: true });
 }
 
 async function restore(c: Ctx) {

@@ -29,6 +29,19 @@ const D = {
   g_money: { en: "Money", ar: "المال" },
   g_riders: { en: "Riders", ar: "المناديب" },
   g_settings: { en: "Settings", ar: "الإعدادات" },
+  // CON1: the seven sections, Settings behind the name, the assistant's reserved place
+  nav_approvals: { en: "Approvals", ar: "الموافقات" },
+  g_products: { en: "Products", ar: "المنتجات" },
+  g_people: { en: "People", ar: "الأشخاص" },
+  all_sections: { en: "Every section", ar: "كل الأقسام" },
+  advanced_h: { en: "Advanced", ar: "متقدّم" },
+  advanced_intro: { en: "Tools that are rarely needed.", ar: "أدوات نادراً ما تُحتاج." },
+  you_h: { en: "You and this phone", ar: "أنت وهذا الهاتف" },
+  your_settings: { en: "Your settings", ar: "إعداداتك" },
+  hub_h: { en: "The hub", ar: "المستودع" },
+  assistant: { en: "Assistant", ar: "المساعد" },
+  assistant_soon: { en: "Coming soon", ar: "قريباً" },
+  assistant_note: { en: "A place kept for the staff assistant (session AST1). It will answer questions from read-only reports and will never act: every change stays a button on its own page.", ar: "مكان محجوز لمساعد الموظفين (جلسة AST1). سيجيب عن الأسئلة من تقارير للقراءة فقط ولن يتصرّف أبداً: كل تغيير يبقى زراً في صفحته." },
   // command bar, bell, theme
   cmd_open: { en: "Search or jump to", ar: "ابحث أو انتقل إلى" },
   cmd_label: { en: "Jump to a page or find an order", ar: "انتقل إلى صفحة أو ابحث عن طلب" },
@@ -55,7 +68,7 @@ const D = {
   // hubs
   hub_approve_intro: { en: "What waits for a decision from a person.", ar: "ما ينتظر قراراً من شخص." },
   hub_stock_intro: { en: "Shelves, deliveries in and returns.", ar: "الرفوف والبضاعة الواردة والمرتجعات." },
-  hub_more_intro: { en: "Money, settings, and what belongs to this phone.", ar: "المال والإعدادات وما يخص هذا الهاتف." },
+  hub_more_intro: { en: "Every section, Settings, and what belongs to this phone.", ar: "كل الأقسام والإعدادات وما يخص هذا الهاتف." },
   hub_empty: { en: "Nothing on this list is open to your role.", ar: "لا شيء في هذه القائمة متاح لدورك." },
   // language, install, push
   language: { en: "Language", ar: "اللغة" },
@@ -139,11 +152,12 @@ export function t(lang: Lang, key: Key, vars: Record<string, string | number> = 
 
 /** The page links' words by address, for the pages that were built before D5 (their own section labels stay English otherwise). */
 export const NAV_AR: Record<string, string> = {
-  "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور", "/photos": "الصور: موافقة سريعة",
+  "/": "اليوم", "/orders": "الطلبات", "/approvals": "الموافقات الثانية", "/names": "مراجعة الأسماء", "/readiness": "جاهزية المنتجات", "/pictures": "الصور", "/photos": "الصور",
   "/food-facts": "المعلومات الغذائية", "/search-words": "كلمات البحث", "/auto-approvals": "الموافقات التلقائية", "/intake": "إدخال الملصقات",
   "/catalog": "الكتالوج", "/receiving": "الاستلام", "/returns": "المرتجعات", "/refunds": "المبالغ المستردة", "/money": "المال", "/payments": "المدفوعات",
   "/fx": "سعر الصرف", "/approve": "الموافقات", "/settings": "الإعدادات", "/zones": "المناطق والرسوم", "/day-open": "فتح اليوم", "/day-close": "إغلاق اليوم", "/exceptions": "الاستثناءات والمحادثات", "/inbox": "الوارد",
   "/riders": "المناديب", "/pick": "قائمة التجهيز", "/rider-jobs": "مهام المناديب", "/rider-incidents": "حوادث المناديب", "/windows": "نوافذ التوصيل", "/cases": "الشكاوى", "/merchants": "المطاعم", "/staff": "الموظفون والصلاحيات", "/templates": "حالة قوالب الرسائل", "/capture": "تصوير الملصقات", "/label-queue": "موافقات الملصقات", "/listings": "أماكن الطعام", "/places": "الأماكن", "/menus": "القوائم", "/food": "الأكل",
+  "/labels": "عمل الملصقات", "/stock": "المخزون", "/components": "مكوّنات التصميم", "/assistant": "المساعد",
   "/purchase-orders": "طلبات الشراء", "/bins": "الرفوف", "/temperature": "سجل الحرارة", "/weights": "أوزان للتسجيل يوم الملصقات", "/screens": "الشاشات",
 };
 

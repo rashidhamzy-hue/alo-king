@@ -44,6 +44,11 @@ export interface Deps {
   pushPublicKey?: string;
   /** OPS1: one test alert to this staff member's own phones. Present when web push is set up. */
   pushTest?: (partyId: string) => Promise<{ subscribers: number; sent: number }>;
+  /**
+   * CON1: the errors of the last 24 hours, counted by Sentry (a read-only token as a Worker secret). Absent (no token, local, tests), Today says
+   * "not connected" instead of a number. A failed read is null: Today says the count could not be read, never 0.
+   */
+  errorsLast24h?: () => Promise<{ count: number; link: string } | null>;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
@@ -54,6 +59,8 @@ export interface Ctx {
   lang: Lang; badges: Record<string, number>;
   /** The appearance this person chose (a cookie), and the bell's items (the open high-priority exceptions; computed on a page view). */
   theme: Theme; bell: BellData;
+  /** CON1: a frame drawn above the page's own body (the tabs of the page a merged older page now lives in). Set by that page, read by render(). */
+  top?: Raw;
 }
 export type Handler = (c: Ctx) => Promise<Response>;
 export interface Route { method: "GET" | "POST"; path: string; roles: readonly Role[]; handler: Handler }
@@ -63,7 +70,8 @@ export interface Section { nav: { href: string; label: string; roles: readonly R
 /** `translated`: the body's words follow `c.lang` (Today, Orders, the hubs). Pages built before D5 are English and are marked as such in an Arabic shell. */
 export function render(c: Ctx, title: string, body: Raw | Raw[], opts: { translated?: boolean } = {}): Response {
   const nav = buildNav(c.sections, c.staff.role, c.lang, c.url.pathname.replace(/\/+$/, "") || "/", c.badges);
-  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body,
+  const framed = c.top ? html`${c.top}${body}` : body;
+  return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body: framed,
     theme: c.theme, bell: LEADS.includes(c.staff.role) ? c.bell : null, canSearchOrders: LEADS.includes(c.staff.role) }), c.deps);
 }
 
@@ -228,7 +236,44 @@ export function id(c: Ctx, field: string): string {
  */
 export function returnTo(c: Ctx, fallback: string): string {
   const v = c.form.return_to ?? "";
-  return /^\/approve\?tab=(names|pictures|labels|money)(&n=\d{1,4})?$/.test(v) || /^\/photos\?f=(all|review|later|missing)(&n=\d{1,4})?$/.test(v) ? v : fallback;
+  return /^\/approve\?tab=(names|pictures|photos|labels|money|second|refunds|dishes|places|auto)(&n=\d{1,4})?$/.test(v) || /^\/photos\?f=(all|review|later|missing)(&n=\d{1,4})?$/.test(v) ? v : fallback;
+}
+
+/**
+ * CON1: the console's older addresses that now live inside another page (docs/DECISIONS.md, "CON1, a simple console, 19 November 2026").
+ * A GET of one of these exact paths answers 301 with the new address, keeping its own query (a page number, a filter); its posts and its
+ * item pages (/intake/<id>, /food-facts/<id>) are unchanged. The new page draws the older page's own handler, so nothing that worked stops.
+ */
+export const MOVED: Record<string, string> = {
+  "/approvals": "/approve?tab=second&view=list",
+  "/names": "/approve?tab=names&view=list",
+  "/label-queue": "/approve?tab=labels&view=list",
+  "/auto-approvals": "/approve?tab=auto&view=list",
+  "/pictures": "/photos?f=list",
+  "/gallery": "/photos",
+  "/intake": "/labels",
+  "/food-facts": "/labels?step=facts",
+};
+/** The new address for an older one, with the older address's own query added (its keys win only where the new address has none). */
+export function movedTo(path: string, search: URLSearchParams): string | null {
+  const to = MOVED[path];
+  if (!to) return null;
+  const u = new URL(to, "https://console.invalid");
+  for (const [k, v] of search) if (!u.searchParams.has(k)) u.searchParams.append(k, v);
+  return u.pathname + (u.searchParams.size ? `?${u.searchParams.toString()}` : "");
+}
+/**
+ * CON1: draws an older page's own GET handler inside the page it moved into (the handler, its reads and its forms are unchanged). The older
+ * route's roles still decide: a role that could not open the older page cannot open it here either.
+ */
+export async function drawOlder(c: Ctx, path: string, top?: Raw): Promise<Response> {
+  const r = c.sections.flatMap((s) => s.routes).find((x) => x.method === "GET" && x.path === path);
+  if (!r) return render(c, "Not found", html`<p class="muted">That page is not part of this console.</p>`);
+  if (!r.roles.includes(c.staff.role)) {
+    const denied = render(c, "Not for your role", html`<p>Your role (${c.staff.role.replace("_", " ")}) cannot open this page.</p>`);
+    return new Response(denied.body, { status: 403, headers: denied.headers });
+  }
+  return r.handler(top ? { ...c, top } : c);
 }
 
 /**
@@ -237,7 +282,8 @@ export function returnTo(c: Ctx, fallback: string): string {
  */
 export async function act(c: Ctx, action: string, args: Record<string, unknown>, run: () => Promise<string>, back: string): Promise<Response> {
   const r = await attempt(c, action, args, run);
-  return flashRedirect(c.deps, back, r.logged ? r.msg : { err: "Not done: the action log could not be written. Try again in a minute." });
+  // CON1: a card of the Approvals inbox comes back to the next card (only an address of that inbox or of Photos is honoured; returnTo).
+  return flashRedirect(c.deps, returnTo(c, back), r.logged ? r.msg : { err: "Not done: the action log could not be written. Try again in a minute." });
 }
 
 /**
@@ -451,6 +497,9 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
   try { staff = await loadStaff(deps, session.p, session.u, session.n); }
   catch { return plain(deps, "Database unavailable", html`<p>The database did not answer. Try again in a minute.</p>`, null, lang); }
   if (!staff) return redirect("/sign-in", [clearCookie(SESSION_COOKIE)]);
+  // CON1: an older address that moved into another page (a bookmark, a link in a message, a form's way back).
+  const moved = method === "GET" ? movedTo(path, url.searchParams) : null;
+  if (moved) return new Response(null, { status: 301, headers: { location: moved, "cache-control": "no-store" } });
 
   if (method === "POST" && !same(form._csrf ?? "", staff.csrf)) return new Response("form expired: go back, reload and try again", { status: 403 });
   if (path === "/sign-out" && method === "POST") {

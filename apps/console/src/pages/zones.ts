@@ -20,7 +20,7 @@ async function page(c: Ctx) {
   const edit = ready && can(c, ADMIN);
   const zoneName = (z: string | null) => zones.find((x) => x.id === z)?.name ?? "—";
   return render(c, "Zones and fees", html`
-<p>Hub village: <strong>${villages.find((v) => v.id === hubVillage)?.name_en ?? "not set"}</strong>. The hub is not final: moving it is a data change (see BUILD_PLAN "Hub and zones").
+<p id="hub">Hub village: <strong>${villages.find((v) => v.id === hubVillage)?.name_en ?? "not set"}</strong>. The hub is not final: moving it is a data change (see BUILD_PLAN "Hub and zones").
 Served villages: ${villages.filter((v) => v.is_served).length} of ${villages.length}.</p>
 ${!ready ? html`<p class="note">Editing needs set_zone() and set_village(), not in the database yet (see docs/HANDOFF.md, Console).</p>`
   : !can(c, ADMIN) ? html`<p class="muted">Only the admin changes zones and fees.</p>` : ""}

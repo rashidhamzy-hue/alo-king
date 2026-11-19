@@ -77,30 +77,31 @@ describe("the shell", () => {
   });
 
   it("shows the phone bar of the role, with a badge on the places that have something waiting", async () => {
-    // DS2 (the design reference): admin Today, Orders, Inbox, Approve; lead Today, Orders, Inbox, Dispatch; picker Pick, Stock, Intake; More for all
+    // CON1: admin and lead Today, Orders, Approvals, Stock; picker Pick, Stock, Label photos; More for all (DS2 drew the first version)
     const bar = (page: string) => /<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(page)![0];
     const places = (page: string) => [...bar(page).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1]);
     const admin = await r.staff("admin", "Rasheed"); const a = r.browser(); await a.signIn(admin);
     const bottom = bar((await a.get("/")).text);
-    expect(places(bottom)).toEqual(["/", "/orders", "/inbox", "/approve", "/more"]);
+    expect(places(bottom)).toEqual(["/", "/orders", "/approve", "/stock", "/more"]);
     expect(bottom).toMatch(/href="\/approve"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);           // 282 names wait: capped at 99+
     const lead = await r.staff("ops_lead", "Maya"); const b = r.browser(); await b.signIn(lead);
     const page = (await b.get("/")).text;
-    expect(places(page)).toEqual(["/", "/orders", "/inbox", "/rider-jobs", "/more"]);
-    expect(bar(page)).toMatch(/href="\/more"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);              // a lead's approvals wait under More
-    expect(bar((await b.get("/rider-jobs")).text)).toMatch(/<a href="\/rider-jobs" aria-current="page">/);
+    expect(places(page)).toEqual(["/", "/orders", "/approve", "/stock", "/more"]);
+    expect(bar(page)).toMatch(/href="\/approve"[^>]*>[\s\S]*?<span class="badge">99\+<\/span>/);
+    expect(bar((await b.get("/rider-jobs")).text)).toMatch(/<a href="\/orders" aria-current="page">/);         // Dispatch is a page of Orders
     expect(bar((await b.get("/rider-jobs")).text)).not.toMatch(/<a href="\/more" aria-current="page">/);       // one place is current, never two
     expect(page).toContain('<aside class="sidebar"');                                                       // the wide-screen list is in the same page
     const picker = await r.staff("picker", "Pia"); const p = r.browser(); await p.signIn(picker);
-    const pp = (await p.get("/")).text;
+    const pp = (await p.get("/pick")).text;
     expect(places(pp)).toEqual(["/pick", "/stock", "/capture", "/more"]);       // D4b: the pick queue is a picker's main place; DS2: then Stock and Intake
     expect(pp).toContain('<a class="side-brand" href="/">');                                             // Today stays one tap away: the crown
     expect(bar((await p.get("/capture")).text)).toMatch(/<a href="\/capture" aria-current="page">/);
     expect(bar((await p.get("/pick")).text)).toMatch(/<a href="\/pick" aria-current="page">/);
     expect(pp).not.toContain('href="/orders"'); expect(pp).not.toContain('href="/names"'); expect(pp).not.toContain('href="/inbox"');
     expect((await p.get("/orders")).status).toBe(403);
+    // CON1: one Approvals inbox, with the count of each kind on its tab (the 282 proposed names of the seed)
     const hub = (await b.get("/approve")).text;
-    expect(hub).toContain('<a href="/names">'); expect(hub).toMatch(/href="\/names"><span>Names<\/span> <span class="badge">99\+/);
+    expect(hub).toMatch(/href="\/approve\?tab=names"[^>]*>Names<span class="ak-count">(282|99\+)</);
   });
 });
 

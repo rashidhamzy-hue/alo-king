@@ -133,7 +133,7 @@ ${balances.length ? balances.map((b) => balanceCard(c, b, signed)) : empty({ tit
   const intro = html`<p class="muted">${pick(L,
     "Food orders: call the place, record what it said; the customer is told each step in their language. A rider is offered the job only once the place took it. We never message a place's number: staff call it.",
     "طلبات الأكل: اتصل بالمكان وسجّل ما قاله؛ يُخبَر الزبون بكل خطوة بلغته. لا يُعرض الطلب على مندوب إلا بعد أن يقبله المكان. لا نراسل رقم أي مكان: الموظفون يتصلون.")}</p>`;
-  return render(c, pick(L, "Food", "الأكل"), html`<h1>${pick(L, "Food", "الأكل")}</h1>${intro}${nav}${body}`, { translated: true });
+  return render(c, pick(L, "Food", "الأكل"), html`${intro}${nav}${body}`, { translated: true });
 }
 
 // ---------- the customer's messages (packages/agents/src/food-notices.ts: the same words the simulated customers hear) ----------

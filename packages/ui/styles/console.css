@@ -214,5 +214,42 @@
   .cap-list a { display: inline-flex; align-items: center; min-block-size: var(--tap); font-weight: var(--ak-weight-strong); }
   .cap-list li[data-state="done"] a { color: var(--ak-muted); }
   .cap-find { display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: end; }
-  @media print { .bottom-nav, .sidebar, header.top, .env, .no-print { display: none; } body { background: #fff; } }
+  /* ---------- CON1: Settings behind the name; the assistant's reserved place; Today's "needs attention" ---------- */
+  header.top .who .name-link { display: inline-flex; align-items: center; gap: var(--ak-space-2); min-block-size: var(--tap); min-inline-size: var(--tap); justify-content: center; padding: 0 12px; border-radius: var(--ak-radius-full); background: var(--ak-surface-2); color: var(--ak-text); text-decoration: none; }
+  header.top .who .name-link:hover { filter: brightness(0.96); }
+  .ak-assistant-btn { position: fixed; inset-inline-end: var(--ak-space-4); inset-block-end: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + var(--ak-space-3)); z-index: 11; display: inline-flex; align-items: center; gap: var(--ak-space-2); min-block-size: var(--tap); min-inline-size: var(--tap); padding: 0 16px; border-radius: var(--ak-radius-full); background: var(--ak-ink); color: var(--ak-paper); text-decoration: none; font-weight: var(--ak-weight-strong); font-size: var(--ak-text-sm); box-shadow: var(--ak-shadow-2); }
+  .ak-assistant-btn .ak-icon { color: var(--ak-gold); }
+  .ak-assistant-btn span { display: none; }
+  .ak-assistant { display: none; }
+  .ak-assistant h2 { display: flex; align-items: center; gap: var(--ak-space-2); font-size: var(--ak-text-base, 1rem); margin: 0 0 var(--ak-space-2); }
+  .ak-assistant h2 .ak-icon { color: var(--ak-gold-deep); }
+  .ak-assistant-soon { display: inline-block; margin: 0 0 var(--ak-space-2); padding: 2px 10px; border-radius: var(--ak-radius-full); background: var(--ak-surface-2); font-weight: var(--ak-weight-strong); font-size: var(--ak-text-xs); }
+  main { padding-block-end: calc(var(--ak-space-7, 3rem) + var(--tap)); }
+  .ak-attention ol { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--ak-space-2); }
+  .ak-attn { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--ak-space-2) var(--ak-space-3); align-items: start; background: var(--ak-surface); border: 1px solid var(--ak-line); border-inline-start: 4px solid var(--ak-line); border-radius: var(--ak-radius-lg); padding: var(--ak-space-3) var(--ak-space-4); }
+  .ak-attn--danger { border-inline-start-color: var(--ak-danger); }
+  .ak-attn--warn { border-inline-start-color: var(--ak-warn); }
+  .ak-attn-ic { display: grid; place-items: center; inline-size: 2.25rem; block-size: 2.25rem; border-radius: var(--ak-radius-full); background: var(--ak-surface-2); }
+  .ak-attn--danger .ak-attn-ic { background: var(--ak-danger-bg); color: var(--ak-danger); }
+  .ak-attn--warn .ak-attn-ic { background: var(--ak-warn-bg); color: var(--ak-warn); }
+  .ak-attn-body { min-inline-size: 0; overflow-wrap: anywhere; }
+  .ak-attn-act { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--ak-space-2); align-items: center; }
+  .ak-attn-act form { margin: 0; }
+  .ak-today-more { margin-block-start: var(--ak-space-5); }
+  .ak-today-more > summary { min-block-size: var(--tap); display: flex; align-items: center; cursor: pointer; font-weight: var(--ak-weight-strong); }
+  @media (min-width: 700px) {
+    .ak-attn { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+    .ak-attn-act { grid-column: auto; justify-content: flex-end; }
+  }
+  @media (min-width: 900px) {
+    .ak-assistant-btn { inset-block-end: var(--ak-space-4); }
+    .ak-assistant-btn span { display: inline; }
+  }
+  @media (min-width: 1280px) {
+    .shell:not(.shell--bare) { grid-template-columns: var(--side-w) minmax(0, 1fr) 17rem; }
+    .ak-assistant { display: block; position: sticky; inset-block-start: 0; block-size: 100vh; block-size: 100dvh; overflow-y: auto; padding: var(--ak-space-5) var(--ak-space-4); background: var(--ak-surface); border-inline-start: 1px solid var(--ak-line); }
+    .ak-assistant-btn { display: none; }
+    main { padding-block-end: var(--ak-space-7, 3rem); }
+  }
+  @media print { .bottom-nav, .sidebar, header.top, .env, .no-print, .ak-assistant, .ak-assistant-btn { display: none; } body { background: #fff; } }
 }
