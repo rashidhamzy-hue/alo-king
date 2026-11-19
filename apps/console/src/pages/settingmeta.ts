@@ -20,6 +20,11 @@ export const GROUPS: Record<GroupId, { title: Words; note: Words }> = {
 export const META: Record<string, { group: GroupId; name: Words; unit?: Words; help?: Words }> = {
   "hours.open": { group: "hours", name: { en: "Opens", ar: "يفتح" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
   "hours.close": { group: "hours", name: { en: "Closes", ar: "يغلق" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
+  // WEB4b (0252): the rider shifts, one row of settings.join; a shift starts before it ends (checked in SQL). Windows are offered only inside them.
+  "join.rider.shifts.0.from": { group: "hours", name: { en: "Morning rider shift starts", ar: "تبدأ وردية المندوبين الصباحية" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
+  "join.rider.shifts.0.to": { group: "hours", name: { en: "Morning rider shift ends", ar: "تنتهي وردية المندوبين الصباحية" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
+  "join.rider.shifts.1.from": { group: "hours", name: { en: "Evening rider shift starts", ar: "تبدأ وردية المندوبين المسائية" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
+  "join.rider.shifts.1.to": { group: "hours", name: { en: "Evening rider shift ends", ar: "تنتهي وردية المندوبين المسائية" }, help: { en: "Beirut time.", ar: "بتوقيت بيروت." } },
   "min_order_usd.": { group: "hours", name: { en: "Minimum order", ar: "الحد الأدنى للطلب" }, unit: { en: "USD", ar: "دولار" } },
   "small_order_fee.below_subtotal_usd": { group: "fees", name: { en: "Small-order fee applies below", ar: "رسم الطلب الصغير ينطبق تحت" }, unit: { en: "USD of goods; 0 is off", ar: "دولار من المشتريات؛ 0 يعني معطّل" } },
   "small_order_fee.fee_usd": { group: "fees", name: { en: "Small-order fee", ar: "رسم الطلب الصغير" }, unit: { en: "USD", ar: "دولار" } },

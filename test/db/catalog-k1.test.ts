@@ -10,7 +10,8 @@ import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, use, type Sent } from "./flow-kit";
 import { supabaseOver } from "./supabase-shim";
 import { fakeStore } from "./public-store-kit";
-import { catalogFeed, FEED_COLUMNS, feedCsv } from "../../apps/gateway/src/catalog-feed";
+import { catalogFeed, FEED_COLUMNS, feedCsv, syncCatalogPictures } from "../../apps/gateway/src/catalog-feed";
+import { run as feedJpegPass } from "../../scripts/images/feed-jpegs.mjs";
 import { LIST_LIMITS, productListMessages } from "@ak/agents/catalog-messages";
 import { CART_TEXT } from "@ak/agents/cart";
 
@@ -105,6 +106,11 @@ describe("the feed (1.21 step 2)", () => {
     expect((await catalogFeed(req(), deps)).status).toBe(401);
     expect((await catalogFeed(req(`Basic ${btoa("meta:wrong")}`), deps)).status).toBe(401);
     expect((await catalogFeed(req(`Basic ${btoa("meta:pw")}`), { ...deps, password: undefined })).status).toBe(404);
+    // WEB4b: the copies are made (the gateway's minute), then the feed's JPEGs (the catalog-jpegs workflow's pass)
+    await syncCatalogPictures(shim.client, bucket.store);
+    await feedJpegPass({ store: { rpc: (fn: string, a?: Record<string, unknown>) => db.rpc(fn, a ?? {}), download: async (k: string) => bucket.media.get(k),
+      uploadPublic: async (k: string, d: string) => { bucket.catalog.set(k, { bytes: d, createdAt: new Date().toISOString() }); }, removePublic: async () => undefined },
+      convert: async (b: string) => ({ data: `jpeg of ${b}`, bytes: 80_000 }) });
     await db.pg.query(`update stock_levels set on_hand = reserved where product_id = $1`, [ids.coffee]);
     const res = await catalogFeed(req(`Basic ${btoa("meta:pw")}`), deps);
     await db.pg.query(`update stock_levels set on_hand = 500 where product_id = $1`, [ids.coffee]);
@@ -116,7 +122,7 @@ describe("the feed (1.21 step 2)", () => {
     expect(water).toContain(`${(await priceOf(SKUS.water)).toFixed(2)} USD`);
     expect(water).toContain("in stock");
     expect(water).toContain(`https://wa.me/96100000000?text=${SKUS.water}`);
-    expect(water).toMatch(/https:\/\/pub\.test\/storage\/v1\/object\/public\/catalog\/AK-0103-[0-9a-f-]{36}\.jpg/);
+    expect(water).toMatch(/https:\/\/pub\.test\/storage\/v1\/object\/public\/catalog\/AK-0103-[0-9a-f-]{36}\.feed\.jpg,/);   // WEB4b: the JPEG copy
     expect(water).not.toMatch(/signed|token|[?&]t=/);                      // nothing that expires
     expect(rows.find((r) => r.startsWith(SKUS.coffee + ","))).toContain("out of stock");
   });

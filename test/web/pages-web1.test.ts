@@ -1032,7 +1032,7 @@ describe("UX3: /join/rider and /for-vendors", () => {
     expect(m).toContain(`$${Number(caps.soft_usd).toFixed(2)}`); expect(m).toContain(`$${Number(caps.hard_usd).toFixed(2)}`);
     const fees = await db.one<any>(`select min(z.delivery_fee_usd) as lo, max(z.delivery_fee_usd) as hi from villages v join zones z on z.id = v.zone_id where v.is_served and z.is_active`);
     expect(m).toContain(`$${Number(fees.lo).toFixed(2)}`); expect(m).toContain(`$${Number(fees.hi).toFixed(2)}`);
-    expect(m).toContain("08:00–15:30"); expect(m).toContain("15:30–23:00");
+    expect(m).toContain("09:00–15:00"); expect(m).toContain("15:00–21:00");   // WEB4b (0252): the shifts match the hours
     expect(m).toMatch(/written terms/i);
     expect(m).toMatch(/never taken out of your (delivery )?fees, tips or earnings/i);          // invariant 10
     expect(m).toMatch(/never rated, scored or ranked/i);

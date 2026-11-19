@@ -44,8 +44,9 @@ export function planPrune(existing, incoming) {
   return existing.filter((p) => { const s = parseShot(p); return s && keys.has(s.key) && !keep.has(p); }).sort();
 }
 
-const ALIAS = { rider: "join-rider", vendor: "for-vendors" };
-const PREFIXES = ["console", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
+// WEB4b: the reference's food screens had no kitchens (docs/log/ds2.md), so each food page sits beside the reference's nearest screen.
+const ALIAS = { rider: "join-rider", vendor: "for-vendors", "food-list": "aisles", "food-place": "aisle", "food-basket": "cart", "food-switch": "cart", "food-checkout": "checkout" };
+const PREFIXES = ["console", "web4b", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];
 /**
  * The reference screen for a page: `ref-ops-<page>` or `ref-web-<page>` for the same width class (390 beside 390; 1280 and 1440 beside 1280).
  * The page's name is read without its session prefix and shortened from the end until a reference of that name exists
@@ -61,7 +62,7 @@ export function referenceFor(key, width, paths) {
   const first = parts[0];
   const prefix = PREFIXES.includes(first) ? first : null;
   const rest = prefix ? parts.slice(1) : parts;
-  const kinds = prefix === "console" ? ["ops"] : prefix === "web" || prefix === "web2" || prefix === "web4a" ? ["web"] : ["ops", "web"];
+  const kinds = prefix === "console" ? ["ops"] : prefix === "web" || prefix === "web2" || prefix === "web4a" || prefix === "web4b" ? ["web"] : ["ops", "web"];
   for (let n = rest.length; n >= 1; n--) {
     const slug = rest.slice(0, n).join("-");
     for (const k of kinds) for (const name of [slug, ALIAS[slug]].filter(Boolean)) {

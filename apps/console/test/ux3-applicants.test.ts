@@ -56,7 +56,7 @@ describe("the tab", () => {
     expect(flat).toContain("Nadim Applicant"); expect(flat).toContain("Somewhere Else"); expect(flat).toContain("Motorbike");
     expect(flat).toMatch(/Licence:\s*no/i);
     expect(flat).toContain("Tuesday"); expect(flat).toContain("Friday");
-    expect(flat).toContain("Morning"); expect(flat).toContain("08:00–15:30"); expect(flat).toContain("Evening"); expect(flat).toContain("15:30–23:00");   // the shifts are settings.join's
+    expect(flat).toContain("Morning"); expect(flat).toContain("09:00–15:00"); expect(flat).toContain("Evening"); expect(flat).toContain("15:00–21:00");   // the shifts are settings.join's (0252)
     expect(flat).toContain(a.phone);
     const caseId = (await r.db.one(`select case_id from join_applications where id = $1`, [a.id])).case_id;
     expect(t).toContain(`href="/inbox/${caseId}"`);
@@ -144,7 +144,7 @@ describe("Arabic", () => {
     const t = (await lead.b.get("/riders?tab=applicants")).text;
     expect(t).toMatch(/<html lang="ar" dir="rtl">/);
     for (const w of ["المتقدّمون", "قبول", "رفض", "رخصة", "دراجة نارية"]) expect(t, w).toContain(w);
-    expect(text(t)).toContain("08:00–15:30");
+    expect(text(t)).toContain("09:00–15:00");
     expect(t).not.toContain("المركز");
   });
 });

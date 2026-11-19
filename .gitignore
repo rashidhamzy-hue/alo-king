@@ -8,3 +8,5 @@ data/prospects/
 wrangler.staging-noqueue.json
 .tools/
 apps/.web2-test/
+apps/.web4b-test/
+apps/.web4b-shots/

@@ -50,6 +50,9 @@ describe("the reference beside a page", () => {
     expect(referenceFor("ux3-riders-applicants", "390", paths)?.key).toBe("ref-ops-riders");
     expect(referenceFor("web2-aisle-added", "390", paths)?.key).toBe("ref-web-aisle");
     expect(referenceFor("web-home-check", "390", paths)?.key).toBe("ref-web-home");
+    // WEB4b: the food pages beside the reference's nearest screens (its own food screens had no kitchens)
+    expect(referenceFor("web4b-food-place", "390", paths)?.key).toBe("ref-web-aisle");
+    expect(referenceFor("web4b-food-place-choose", "1440", paths)?.key).toBe("ref-web-aisle");
   });
   it("names the join pages by their reference's names", () => {
     expect(referenceFor("ux3-rider-applied", "390", paths)?.key).toBe("ref-web-join-rider");

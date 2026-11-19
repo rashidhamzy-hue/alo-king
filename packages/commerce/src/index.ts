@@ -326,6 +326,8 @@ export type WebOrdering = ReturnType<typeof webOrdering>;
 export interface FoodOption { id: string; name_en: string; name_ar: string | null; price_delta_usd: number }
 export interface FoodGroup { group_id: string; name_en: string; name_ar: string | null; required: boolean; min: number; max: number; options: FoodOption[] }
 export interface FoodDish { product_id: string; name_en: string; name_ar: string | null; price_usd: number; section: string | null; groups: FoodGroup[];
+  /** WEB4b (0252): the section's name as the approved menu printed it, in each language (either may be null). */
+  section_ar?: string | null; section_en?: string | null;
   /** Each food fact: declared by the place, or not confirmed yet (never "safe": invariant 15). */
   facts?: { attribute: string; status: "declared_by_vendor" | "not_confirmed"; value: string | null }[] }
 export interface OrderablePlace { source_id: string; name: string; village_en: string | null; village_ar: string | null; prep_minutes: number;
