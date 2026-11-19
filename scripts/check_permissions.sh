@@ -164,6 +164,27 @@ do $$ declare ok boolean; probe text; begin
   reset role;
   raise notice 'web_channel is refused staff and money functions, party-id functions and every table';
 end $$;
+-- assistant_reader (AST1, 0261 and 0262): the console assistant's read-only role. It may hold SELECT only (no write privilege on any table,
+-- no sequence, no attribute, no CREATE on the schema), every assistant_* function belongs to it (security definer, fixed path), and a write
+-- as the role is refused.
+do $$ declare t text; n int; begin
+  if not exists (select 1 from pg_roles where rolname = 'assistant_reader') then raise exception 'role assistant_reader is missing (migration 0261)'; end if;
+  select count(*) into n from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','p','v','m','f')
+     and (has_table_privilege('assistant_reader', c.oid, 'insert') or has_table_privilege('assistant_reader', c.oid, 'update')
+       or has_table_privilege('assistant_reader', c.oid, 'delete') or has_table_privilege('assistant_reader', c.oid, 'truncate'));
+  if n > 0 then raise exception 'assistant_reader holds % write privileges', n; end if;
+  if exists (select 1 from pg_roles where rolname = 'assistant_reader' and (rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolreplication or rolcanlogin)) then
+    raise exception 'assistant_reader has an attribute it must not have';
+  end if;
+  if has_schema_privilege('assistant_reader', 'public', 'create') then raise exception 'assistant_reader may create in public'; end if;
+  select string_agg(p.proname, ', ') into t from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'assistant\_%'
+     and (pg_get_userbyid(p.proowner) <> 'assistant_reader' or not p.prosecdef or p.proconfig is null);
+  if t is not null then raise exception 'assistant functions not owned by assistant_reader as security definer with a fixed path: %', t; end if;
+  select string_agg(p.proname, ', ') into t from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'assistant\_%'
+     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+  if t is not null then raise exception 'a client role may execute: %', t; end if;
+  raise notice 'assistant_reader holds SELECT only and owns every assistant_* function';
+end $$;
 begin;
 do $$ begin
   begin execute 'set role web_channel';

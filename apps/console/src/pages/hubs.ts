@@ -43,12 +43,6 @@ ${advanced.length ? html`<h3 id="advanced">${t(L, "advanced_h")}</h3><p class="m
 <h4>${t(L, "install_h")}</h4><p><a class="btn" href="/install">${t(L, "install_link")}</a></p>`, { translated: true });
 }
 
-/** CON1: the place kept for the staff assistant (session AST1). Nothing is asked or answered here yet. */
-async function assistant(c: Ctx) {
-  const L = c.lang;
-  return render(c, t(L, "assistant"), html`<div class="ak-card"><p><strong>${t(L, "assistant_soon")}</strong></p><p>${t(L, "assistant_note")}</p></div>`, { translated: true });
-}
-
 function pushBox(c: Ctx): Raw {
   const L = c.lang;
   const key = c.deps.pushPublicKey;
@@ -107,7 +101,6 @@ export const hubsSection: Section = {
   routes: [
     { method: "GET", path: "/more", roles: ALL, handler: more },
     { method: "GET", path: "/install", roles: ALL, handler: install },
-    { method: "GET", path: "/assistant", roles: ALL, handler: assistant },
     { method: "POST", path: "/push/subscribe", roles: LEADS, handler: subscribe },
     { method: "POST", path: "/push/unsubscribe", roles: LEADS, handler: unsubscribe },
     { method: "POST", path: "/push/test", roles: LEADS, handler: pushTest },

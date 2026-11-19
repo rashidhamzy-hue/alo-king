@@ -90,6 +90,8 @@ ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), 
   const theme = opts.theme && opts.theme !== "auto" ? new Raw(` data-theme="${opts.theme}"`) : "";
   const cmdk = nav ? commandBar({ id: "cmdk", label: t(lang, "cmd_label"), placeholder: t(lang, opts.canSearchOrders ? "cmd_ph" : "cmd_ph_pages"), commands,
     searchAction: "/go", searchName: "q", hint: t(lang, opts.canSearchOrders ? "cmd_hint" : "cmd_hint_pages") }) : "";
+  // AST1: the assistant, for leads only (a picker has none), on every page but its own.
+  const ask = !!(nav && opts.staff && (opts.staff.role === "admin" || opts.staff.role === "ops_lead") && opts.path !== "/assistant");
   const doc = html`<!doctype html><html lang="${lang}" dir="${dirOf(lang)}"${theme}><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="${THEME_COLOR}">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Alo King">
@@ -99,20 +101,28 @@ ${opts.bell ? bellPanel({ count: opts.bell.count, label: t(lang, "bell_label"), 
 <title>${opts.title} · ${t(lang, "app_name")}</title><link rel="stylesheet" href="/console.css"></head>
 <body><a class="skip" href="#main">${t(lang, "skip")}</a>
 <div class="${nav ? "shell" : "shell shell--bare"}">${aside}<div class="col">${banner}<header class="top"><a class="ak-logo" href="/">${crown({ tone: "on-ink" })}<strong>${t(lang, "app_name")}</strong></a>${tools}${who}</header>
-<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${nav ? assistantPanel(lang) : ""}</div>${nav ? assistantButton(lang) : ""}${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
+<main id="main"${mainAttrs}><h1>${opts.title}</h1>${flash}${opts.body}</main></div>${ask ? assistantPanel(lang, opts.staff!.csrf) : ""}</div>${ask ? assistantButton(lang) : ""}${bottom}${cmdk}<script src="/shell.js" defer></script></body></html>`;
   return new Response(doc.s, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
 /**
- * CON1: the place kept for the staff assistant that session AST1 adds (invariant 21: it may answer from read-only reports and never acts).
- * A button on every page (above the phone's bar; it opens /assistant) and, on a wide screen, a panel beside the page. Today both say "coming soon".
+ * AST1: the assistant (invariant 21: it answers from read-only reports and never acts). A button on every lead's page (above the phone's bar;
+ * it opens /assistant) and, on a wide screen, a panel beside the page with the starter questions and a question box. With the page script the
+ * answer appears in the panel; without it, the form posts and /assistant shows the conversation.
  */
 export function assistantButton(lang: Lang): Raw {
-  return html`<a class="ak-assistant-btn" href="/assistant" aria-label="${t(lang, "assistant")}: ${t(lang, "assistant_soon")}">${icon("chat")}<span>${t(lang, "assistant")}</span></a>`;
+  return html`<a class="ak-assistant-btn" href="/assistant" aria-label="${t(lang, "assistant")}">${icon("chat")}<span>${t(lang, "assistant")}</span></a>`;
 }
-export function assistantPanel(lang: Lang): Raw {
+const STARTERS = [["What's late right now?", "ما المتأخر الآن؟"], ["Which restaurant was slowest today?", "أي مطعم كان الأبطأ اليوم؟"], ["What should I fix first?", "ما الذي يجب أن أصلحه أولاً؟"]] as const;
+export function assistantPanel(lang: Lang, csrf: string): Raw {
+  const ar = lang === "ar";
+  const starter = (q: string) => html`<form method="post" action="/assistant" data-ask><input type="hidden" name="_csrf" value="${csrf}"><input type="hidden" name="q" value="${q}"><button class="ak-chip">${q}</button></form>`;
   return html`<aside class="ak-assistant" aria-label="${t(lang, "assistant")}" data-assistant="AST1"><h2>${icon("chat")}<span>${t(lang, "assistant")}</span></h2>
-<p class="ak-assistant-soon">${t(lang, "assistant_soon")}</p><p class="muted">${t(lang, "assistant_note")}</p></aside>`;
+<p class="muted">${t(lang, "assistant_note")}</p><ol class="ak-log" data-assistant-log aria-live="polite"></ol>
+<div class="ak-starters">${STARTERS.map(([en, a]) => starter(ar ? a : en))}</div>
+<form method="post" action="/assistant" class="ak-ask" data-ask><input type="hidden" name="_csrf" value="${csrf}"><label class="visually-hidden" for="ak-q-panel">${t(lang, "assistant_q")}</label>
+<textarea id="ak-q-panel" name="q" rows="2" maxlength="600" required placeholder="${t(lang, "assistant_ph")}"></textarea><button>${t(lang, "assistant_ask")}</button>
+<p class="muted ak-wait" data-ask-wait hidden>${t(lang, "assistant_wait")}</p></form><p><a href="/assistant">${t(lang, "assistant_all")}</a></p></aside>`;
 }
 
 /** The browser's own chrome (the status bar of the installed app): the brand's ink, in both themes. From tokens.css. */

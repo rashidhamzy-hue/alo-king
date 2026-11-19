@@ -49,6 +49,11 @@ export interface Deps {
    * "not connected" instead of a number. A failed read is null: Today says the count could not be read, never 0.
    */
   errorsLast24h?: () => Promise<{ count: number; link: string } | null>;
+  /** AST1: the assistant's model (the Messages API with the console's key). Absent (no key, most tests), the assistant says it is not connected. */
+  assistantModel?: import("./assistant/run").ModelFn;
+  /** AST1: the assistant's two outside reads, each with a read-only token. Absent: Sentry "not connected"; GitHub's tool not offered. */
+  assistantSentry?: () => Promise<import("./assistant/tools").SentryRead | null>;
+  assistantGithub?: () => Promise<import("./assistant/tools").GithubRead | null>;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
@@ -72,7 +77,7 @@ export function render(c: Ctx, title: string, body: Raw | Raw[], opts: { transla
   const nav = buildNav(c.sections, c.staff.role, c.lang, c.url.pathname.replace(/\/+$/, "") || "/", c.badges);
   const framed = c.top ? html`${c.top}${body}` : body;
   return withHeaders(page({ title, staff: { name: c.staff.name, role: c.staff.role, csrf: c.staff.csrf }, nav, lang: c.lang, translated: opts.translated ?? false, flash: c.flash, environment: c.deps.environment, body: framed,
-    theme: c.theme, bell: LEADS.includes(c.staff.role) ? c.bell : null, canSearchOrders: LEADS.includes(c.staff.role) }), c.deps);
+    theme: c.theme, bell: LEADS.includes(c.staff.role) ? c.bell : null, canSearchOrders: LEADS.includes(c.staff.role), path: c.url.pathname.replace(/\/+$/, "") || "/" }), c.deps);
 }
 
 /** WH1a: a page with no menu, in a language chosen for it (a purchase order printed in Arabic or English, whatever the staff member reads). */
