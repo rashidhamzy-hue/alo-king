@@ -31,6 +31,7 @@ jobs:
       tests: ${{ steps.f.outputs.tests }}
       pg: ${{ steps.f.outputs.pg }}
       fp: ${{ steps.f.outputs.fp }}
+      browser: ${{ steps.f.outputs.browser }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -47,12 +48,16 @@ jobs:
           # What the real-Postgres suites (test/pg) run or load, and what the permission check applies: SQL and the seeds, the suites,
           # the migration scripts, the Worker and the packages the Worker suite runs, the build files, and this workflow.
           PG_RE='^(supabase/|test/pg/|apps/gateway/|packages/|wrangler\.jsonc$|scripts/check_permissions\.sh$|scripts/ci/load-seeds\.sh$|scripts/backup/|package(-lock)?\.json$|vitest\.config\.ts$|tsconfig\.json$|\.github/workflows/ci\.yml$)'
+          # MENU2: the menu fetcher's browser test (Chromium on a saved JavaScript menu page) is required when the fetcher or its fixtures change
+          BROWSER_RE='^(scripts/menus/|test/fixtures/menus/|test/db/menu2-|package-lock\.json$)'
+          browser=true
           code=true; pg=true; why="no readable base: everything runs"
           if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
             git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/files.txt"
             code=false; pg=false; why="only docs and the cost model changed"
             if grep -Evq "$SAFE_RE" "$RUNNER_TEMP/files.txt"; then code=true; why="code changed"; fi
             if grep -Eq "$PG_RE" "$RUNNER_TEMP/files.txt"; then pg=true; fi
+            browser=false; if grep -Eq "$BROWSER_RE" "$RUNNER_TEMP/files.txt"; then browser=true; fi
             echo "$(wc -l < "$RUNNER_TEMP/files.txt") file(s) changed"; sed 's/^/  /' "$RUNNER_TEMP/files.txt" | head -40
           fi
           # Fingerprint of the code: object ids and paths of every tracked file except the docs paths.
@@ -65,7 +70,7 @@ jobs:
               if [ "${found:-0}" -gt 0 ] 2>/dev/null; then tests=false; why="this exact code already passed vitest ($n)"; break; fi
             done
           fi
-          echo "tests=$tests" >> "$GITHUB_OUTPUT"; echo "pg=$pg" >> "$GITHUB_OUTPUT"; echo "fp=$fp" >> "$GITHUB_OUTPUT"
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"; echo "pg=$pg" >> "$GITHUB_OUTPUT"; echo "fp=$fp" >> "$GITHUB_OUTPUT"; echo "browser=$browser" >> "$GITHUB_OUTPUT"
           echo "- changes: vitest=$tests, real-Postgres suites and permission check=$pg ($why)" >> "$GITHUB_STEP_SUMMARY"
 
   test:
@@ -90,6 +95,11 @@ jobs:
         run: |
           v=$(ls /usr/lib/postgresql | sort -n | tail -1)
           sudo apt-get update -qq && sudo apt-get install -y -qq "postgresql-$v-pgvector"
+      - name: Chromium for the menu fetcher's test (MENU2; only when the fetcher or its fixtures changed)
+        if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.browser == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          echo "MENU_BROWSER_REQUIRED=1" >> "$GITHUB_ENV"
       - name: vitest (all suites, the real-Postgres ones included)
         if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.pg == 'true'
         run: npx vitest run

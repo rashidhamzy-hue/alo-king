@@ -5,8 +5,13 @@
 # Money: capped at USD 2 (the input is clamped to 2; the worst case of the photos sent is estimated first, and no more are sent than the cap
 # allows; photos left over are read by the next run) and recorded in model_costs (COST1, migration 0139). Nothing about a photo is printed.
 # dry_run: reads the two invented menus in test/fixtures/menus/, writes nothing to the database but the cost, and prints what it read; it may
-# run from any branch. A real run is from main only: staging must already have migrations 0245 to 0247.
+# run from any branch. A real run is from main only: staging must already have migrations 0245 to 0247 (0259 and 0260 for MENU2's sources).
 # A batch that is still processing when the job ends keeps running at Anthropic; its id is printed, and a second run with batch_ids reads it.
+# MENU2 (19 November 2026): every other kind of menu source goes through the same run. Before the reading, the run FETCHES what staff added on
+# the Menus page: a link (a headless browser, Playwright's Chromium: the page, its section pages on the same site and its tabs, robots.txt
+# obeyed, one fetch per page, never a sign-in; each page's text kept and its screenshot stored privately), a Word file and an Excel or CSV
+# file (their text taken out). Pasted text and PDFs need no fetch. Then photos and source pages are read in ONE batch under the one cap.
+# place + link: add that link for that place first (as the menu reading party: adding something to read approves nothing).
 # Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
 name: menu-read
 on:
@@ -26,6 +31,22 @@ on:
         default: ""
       dry_run:
         description: "Read the two invented menus only (nothing written but the cost)"
+        type: boolean
+        default: false
+      place:
+        description: "MENU2: a place's id (from its Menus page address), to add the link below to (empty = none)"
+        type: string
+        default: ""
+      link:
+        description: "MENU2: the web address of that place's menu (https://...), fetched and read in this run (empty = none)"
+        type: string
+        default: ""
+      full_menu:
+        description: "MENU2: the link is the place's whole menu (a later import then shows the dishes it no longer has)"
+        type: boolean
+        default: true
+      fetch_only:
+        description: "MENU2: fetch links and files only, read nothing (no model call)"
         type: boolean
         default: false
 permissions: { contents: read }
@@ -53,8 +74,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Tests (the run against a scripted Batch API, the cap, the failures)
-        run: npx vitest run test/db/menu-read-fd1.test.ts
+      - name: Chromium for menu links (MENU2; the version the lockfile's Playwright expects)
+        if: ${{ !inputs.dry_run }}
+        run: npx playwright install --with-deps chromium
+      - name: Tests (the run against a scripted Batch API, the cap, the failures; MENU2's sources, crawl on a saved JavaScript menu page, review)
+        env:
+          MENU_BROWSER_REQUIRED: ${{ inputs.dry_run && '0' || '1' }}
+        run: npx vitest run test/db/menu-read-fd1.test.ts test/db/menu2-sources.test.ts test/db/menu2-crawl.test.ts
       - name: Read the menus
         env:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -65,6 +91,10 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           OUT_DIR: out/menus
+          PLACE: ${{ inputs.place }}
+          LINK: ${{ inputs.link }}
+          FULL_MENU: ${{ inputs.full_menu }}
+          FETCH_ONLY: ${{ inputs.fetch_only }}
         run: |
           export MODEL_FAST="$(node scripts/ci/wrangler-var.mjs MODEL_FAST)"
           node scripts/menus/read.mjs
