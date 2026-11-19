@@ -95,8 +95,16 @@ choice).
 The place stays **off** on staging (its visibility was not changed; the founder sets testers only when the menu is approved) and was not
 messaged. Nothing is on sale: every dish waits for a person.
 
+## On staging
+- 0259 and 0260 applied by deploy-staging run 44494071116 (from `main` at cf37003). That run then failed at the catalog bucket's name check,
+  which had failed every deploy since WEB4b's feed JPEG copies appeared (`<sku>-<image>.feed.jpg`), so the Worker deploy was skipped. Fixed
+  in #142 (the check accepts the feed copies; all 458 objects match). deploy-staging run 44499190711 from `main` at 19511de: green, Worker
+  included. The console (its own workflow) deployed the new Menus page at 09:12 UTC (console run 44494071137).
+- Safa Chicken's import (above) is on staging, waiting for approval.
+
 ## Not proven (only a live account or a person can)
-- The Menus page on staging with the new box: the Worker deploys only once #142 (the deploy fix) is merged; then `deploy-staging` runs.
+- The new Menus page clicked through by a person on staging (the console tests drive it end to end in the rig; nobody has signed in to the
+  staging console in this session).
 - A PDF, a Word, an Excel or a CSV file, and pasted text, read by the live model: only the scripted Batch API read them here (one live run
   allowed). The reader's prompt and form are the same for every kind.
 - Approving Safa's dishes, the stamp and `approve_merchant`: the founder's (below).
