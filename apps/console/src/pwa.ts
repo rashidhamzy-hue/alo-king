@@ -153,6 +153,17 @@ if(live){
     location.reload();
   },60000);
 }
+// AST1: the assistant's panel and page. A question posts in the background; the answer (drawn by the server) is added to the conversation.
+// Without this script the form posts and /assistant shows the conversation.
+Array.prototype.forEach.call(document.querySelectorAll?document.querySelectorAll("form[data-ask]"):[],function(f){
+  f.addEventListener("submit",function(e){
+    var box=f.closest(".ak-assistant,.ak-assistant-page"),log=box&&box.querySelector("[data-assistant-log]");if(!log)return;
+    e.preventDefault();var btn=f.querySelector("button"),wait=box.querySelector("[data-ask-wait]");if(btn)btn.disabled=true;if(wait)wait.hidden=false;
+    fetch("/assistant",{method:"POST",credentials:"same-origin",headers:{"x-ak-assistant":"1"},body:new URLSearchParams(new FormData(f))})
+      .then(function(r){return r.ok?r.text():"";}).then(function(t){if(t){log.insertAdjacentHTML("beforeend",t);var last=log.lastElementChild;if(last)last.scrollIntoView({block:"nearest"});var ta=f.querySelector("textarea");if(ta)ta.value="";}})
+      .catch(function(){}).then(function(){if(btn)btn.disabled=false;if(wait)wait.hidden=true;});
+  });
+});
 })();`;
 
 // ---------- the service worker ----------

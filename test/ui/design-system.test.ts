@@ -60,7 +60,8 @@ describe("generated files", () => {
     expect(UI_CSS).not.toMatch(/https?:\/\/(?!tailwindcss\.com)/);
     // UX2a raised this from 60,000 to 66,000: the link tile, the escalation steps, the picker's runner, Dispatch and Stock added 3.7 KB (the sheet is staff-only and compresses to about a fifth).
     // CON1 raised it to 70,000: Today's "needs attention" list, the assistant's button and panel, and the name's Settings link (about 3 KB).
-    expect(UI_CSS.length, "the console's sheet").toBeLessThan(70_000);
+    // AST1 raised it to 72,000: the assistant's chips, conversation, cost line and Today's digest card (about 1.3 KB).
+    expect(UI_CSS.length, "the console's sheet").toBeLessThan(72_000);
   });
   it("the fonts are four small WOFF2 files, the same bytes the website builds from, with their licence beside them", () => {
     expect(Object.keys(FONTS).sort()).toEqual(["plex-arabic-400.woff2", "plex-arabic-600.woff2", "plex-latin-400.woff2", "plex-latin-600.woff2"]);

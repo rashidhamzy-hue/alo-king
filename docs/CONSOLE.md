@@ -37,8 +37,8 @@ places and testers, food places, menus), **Money** (ledger, to confirm, refunds,
 name (`/more#settings`), with **Advanced** (screens, templates, zones and the hub, windows, exchange rate, design components). A picker sees
 Pick and Stock only. Merged: Pictures and the component gallery into Photos (the gallery is now Design components, Advanced); names, label
 approvals, second approvals and auto-approvals into the Approvals inbox; intake, food facts and the label queue into Label work. Every older
-address answers 301 to the page it moved into and keeps working. A button on every page and a panel from 1280 px keep a place for AST1's
-assistant ("coming soon"). Details and tests: `docs/log/con1.md`.
+address answers 301 to the page it moved into and keeps working. A button on every page and a panel from 1280 px hold AST1's
+assistant (for leads; a picker has none): it answers from read-only reports and never acts (`docs/log/ast1.md`). Details and tests: `docs/log/con1.md`.
 
 ## What never changes
 - The browser never holds a database key; the acting person comes from the session; every action is logged before it runs and
@@ -96,7 +96,7 @@ Status: **built** (exists and tested), **new**, **extend**. Class as in the syst
 | Page | Status | Notes | Session |
 | --- | --- | --- | --- |
 | Daily summary, Weekly report | new | SYSTEM_PLAN section 11; the daily summary is also the nightly message | AN1 |
-| Founder assistant | new | Admins only; read-only tools; every suggested change is a link to a form (conflict register C3) | AN1 |
+| Founder assistant | **built (AST1)** | Admin and ops lead (no money totals for the ops lead); read-only tools owned by a read-only role; every suggested change is a link to a form (conflict register C3) | AST1 |
 | What the system learned | new | The nightly note: new phrasings, misses, proposals waiting, the eval result | N2 |
 | Costs | new | AI and message cost per order (`ai_cost_daily`, `message_meter`) against the model | AN1 |
 | Customers | new | One customer's profile: places, history, stated restrictions, credit, feedback | AN1 |
