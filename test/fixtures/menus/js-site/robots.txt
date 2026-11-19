@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /p/example-grill/private-sec
+Disallow: /terms

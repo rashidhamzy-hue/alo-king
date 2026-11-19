@@ -67,7 +67,8 @@ describe("the reader's form", () => {
   it("asks for names, prices with their currency, sizes, options and add-ons, and never a food fact, a description or praise", () => {
     const schema = JSON.stringify(menuTool().input_schema);
     expect(schema).not.toMatch(/allergen|halal|vegan|vegetarian|calorie|descri(?!ption\b)|rating/i);
-    expect(menuPrompt()).toMatch(/Never write a description, an ingredient, an allergen, a diet, halal, sugar or spice fact, a health claim, a rating or praise/);
+    // MENU2: the description printed under a dish is copied for the person checking; the reader still writes none of its own
+    expect(menuPrompt()).toMatch(/Never write a description of your own, an ingredient list, an allergen, a diet, halal, sugar or spice fact, a health claim, a rating or praise/);
     expect(menuPrompt()).toMatch(/Never invent or estimate a price/);
     expect(MenuReading.safeParse(READING).success).toBe(true);
   });
@@ -88,7 +89,8 @@ describe("a run on three waiting photos: one read, one failed, one unreadable", 
     expect(rq.params.messages[0].content[0].source).toMatchObject({ type: "base64", media_type: "image/jpeg" });
     const rows = await db.all(`select name_en, price::text, currency, status, photo_id from menu_dish_proposals where source_id = $1 order by position`, [place]);
     expect(rows).toEqual([{ name_en: "Zaatar manousheh", price: "1.5", currency: "USD", status: "waiting", photo_id: photos[0] },
-                          { name_en: "Lahm bi ajine", price: null, currency: null, status: "waiting", photo_id: photos[0] }]);
+                          // MENU2 (0260): a dish priced by its sizes keeps the menu's currency (FD1 left it empty), so it can be approved in one press
+                          { name_en: "Lahm bi ajine", price: null, currency: "USD", status: "waiting", photo_id: photos[0] }]);
     const left = (await db.rpc("menu_reading_queue", { p_limit: 10 })).map((x: any) => x.photo_id).sort();
     expect(left).toEqual([photos[1], photos[2]].sort());
     expect((await db.one(`select failures, last_failure from menu_photos where id = $1`, [photos[2]]))).toMatchObject({ failures: 1, last_failure: expect.stringMatching(/unreadable/) });

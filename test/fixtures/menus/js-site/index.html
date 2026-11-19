@@ -1,0 +1,59 @@
+<!doctype html>
+<!-- MENU2 test fixture: a saved copy of a JavaScript menu page, invented (no real place, number or address). Same shape as the menu sites
+     staff link to: the menu is drawn by the script below, each section has its own page under the place's address, and a "Drinks" tab
+     shows more section links without leaving the page. Served by test/db/menu2-crawl.test.ts on 127.0.0.1 (any path falls back to this file). -->
+<html lang="ar"><head><meta charset="utf-8"><title>Example Grill House menu</title>
+<style>body{font-family:sans-serif;margin:0}main{padding:12px}.item{border-bottom:1px solid #ddd;padding:8px 0}.price b{font-size:18px}</style></head>
+<body><main id="app">Loading…</main>
+<script>
+var MENU = {
+  name: "Example Grill House", where: "Example village, Lebanon", blurb: "Example Grill House menu",
+  tabs: [
+    { label: "Food", sections: [
+      { id: "s-offers", title: "OFFERS / عروضات", items: [] },
+      { id: "s-sandwiches", title: "SANDWICHES / سندويشات", items: [
+        { name: "ساندويش طاووق صغير", price: "3" }, { name: "ساندويش طاووق كبير", price: "4.5" },
+        { name: "Falafel sandwich", desc: "Falafel, tahini, pickles and tom", price: "2.5" } ] },
+      { id: "s-grills", title: "GRILLS / مشاوي", items: [
+        { name: "شيش طاووق", desc: "صدر دجاج متبل مع البطاطا والثوم", price: "8" },
+        { name: "Mixed grill", desc: "Taouk, kafta and lamb with fries", price: "12 - 20" } ] },
+      { id: "private-sec", title: "STAFF ONLY", items: [ { name: "Staff meal", price: "1" } ] } ] },
+    { label: "Drinks", sections: [
+      { id: "s-cold", title: "COLD BEVERAGES", items: [ { name: "Cola can", price: "1.5" }, { name: "Water", sub: "Small", price: "0.5" } ] } ] }
+  ]
+};
+var BASE = "/p/example-grill";
+function el(tag, attrs, text) { var e = document.createElement(tag); for (var k in attrs || {}) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+function header(app) {
+  app.appendChild(el("h1", {}, MENU.name)); app.appendChild(el("p", {}, MENU.where)); app.appendChild(el("p", {}, MENU.blurb));
+  var nav = el("div", { "class": "menu-list" });
+  MENU.tabs.forEach(function (t, i) { var b = el("button", { "class": "menu__button" }, t.label); b.onclick = function () { showTab(i); }; nav.appendChild(b); });
+  app.appendChild(nav);
+}
+function footer(app) {
+  app.appendChild(el("a", { href: "/login" }, "Sign in"));
+  app.appendChild(el("a", { href: "https://social.example/example-grill" }, "Our page"));
+  app.appendChild(el("p", {}, "menus.example"));
+}
+var list;
+function showTab(i) {
+  list.innerHTML = "";
+  MENU.tabs[i].sections.forEach(function (s) { list.appendChild(el("a", { href: BASE + "/" + s.id, "class": "section-link" }, s.title)); list.appendChild(el("br")); });
+}
+function render() {
+  var app = document.getElementById("app"); app.innerHTML = ""; header(app);
+  var id = location.pathname.replace(BASE, "").replace(/^\/|\/$/g, "");
+  var sec = null; MENU.tabs.forEach(function (t) { t.sections.forEach(function (s) { if (s.id === id) sec = s; }); });
+  if (!sec) { list = el("div", { "class": "sections" }); app.appendChild(list); showTab(0); footer(app); return; }
+  app.appendChild(el("h2", {}, sec.title));
+  sec.items.forEach(function (it) {
+    var d = el("article", { "class": "item" }); d.appendChild(el("h3", {}, it.name));
+    if (it.sub) d.appendChild(el("p", {}, it.sub));
+    if (it.desc) d.appendChild(el("p", {}, it.desc));
+    var p = el("div", { "class": "price" }); p.appendChild(el("b", {}, it.price)); p.appendChild(el("span", {}, "$")); d.appendChild(p);
+    app.appendChild(d);
+  });
+  footer(app);
+}
+setTimeout(render, 50);
+</script></body></html>

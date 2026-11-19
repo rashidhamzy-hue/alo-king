@@ -2077,6 +2077,78 @@ names (`/places` «الأماكن», `/menus` «القوائم» in `NAV_AR`) an
 | places (lists) | Menus | القوائم | |
 | Places (FD2) | Other names customers use for it, separated by commas (the chat finds the place by these too) | أسماء أخرى يستعملها الزبائن له، تفصل بينها فواصل (المحادثة تجد المكان بها أيضاً) | |
 
+### MENU2 additions to the Menus page (19 November 2026)
+
+Written by a model; **not yet read by an Arabic reader**. The "Add a menu" box, the sources, the flags a reading puts on a dish, "approve all clean dishes in this section", and what a re-import shows. Same rules as above.
+
+| Page | English | Arabic | Reader's note |
+|---|---|---|---|
+| menus | Price changed (was ${before}) | تغيّر السعر (كان ${before}) | |
+| menus | the screenshot | لقطة الشاشة | |
+| menus | the PDF | ملف PDF | |
+| menus | the text | النص | |
+| menus | the web page | صفحة الويب | |
+| menus | No longer in the menu | لم يعد في القائمة | |
+| menus | price to confirm | السعر للتأكيد | |
+| menus | Price to confirm: type it from the source | السعر للتأكيد: اكتبه من المصدر | |
+| menus | Reader's note | ملاحظة القارئ | |
+| menus | Source line | سطر المصدر | |
+| menus | Description as printed | الوصف كما هو مطبوع | |
+| menus | This dish is on sale but the new menu no longer shows it. | هذا الطبق معروض لكن القائمة الجديدة لم تعد تذكره. | |
+| menus | Take it off sale | أوقف عرضه | |
+| menus | Why keep it on sale | لماذا يبقى معروضاً | |
+| menus | Keep it on sale | أبقه معروضاً | |
+| menus | Add a place's menu (photos, a PDF, a link, text, a Word or Excel file), run the reading, check every dish, then stamp the menu as checked. | أضف قائمة المكان (صور، PDF، رابط، نص، ملف Word أو Excel)، شغّل القراءة، راجع كل طبق، ثم اختم القائمة كمفحوصة. | |
+| menus | Could not be fetched: ${s.last_failure ?? ""} | تعذّر جلبه: ${s.last_failure ?? ""} | |
+| menus | Fetch failed ${s.failures}×: tried again by the next run | فشل الجلب ${s.failures} مرة: يُعاد في القراءة التالية | |
+| menus | ${s.pages_waiting} page(s) wait for the reading run | ${s.pages_waiting} صفحة بانتظار القراءة | |
+| menus | Add a menu | أضف قائمة | |
+| menus | Use whatever you have; several may be added for one place. Every dish still waits for a person here. | استعمل ما لديك؛ يمكن إضافة أكثر من مصدر للمكان نفسه. كل طبق ينتظر موافقة شخص هنا. | |
+| menus | A file: PDF, Word (.docx), Excel (.xlsx) or CSV (a photo works too) | ملف: PDF أو Word (.docx) أو Excel (.xlsx) أو CSV (والصورة أيضاً) | |
+| menus | A link to the menu's web page | رابط صفحة القائمة على الويب | |
+| menus | Or paste the menu's text | أو الصق نص القائمة | |
+| menus | This is the whole menu (a later import then shows what is gone) | هذه القائمة كاملة (فيُظهر الاستيراد اللاحق ما حُذف) | |
+| menus | Then: GitHub, Actions, menu-read, Run workflow, branch main. Links and files are fetched, then everything waiting is read. | ثم: GitHub، Actions، menu-read، Run workflow، الفرع main. تُجلب الروابط والملفات ثم يُقرأ كل ما ينتظر. | |
+| menus | Other sources | مصادر أخرى | |
+| menus | Source | المصدر | |
+| menus | Added | أضيف | |
+| menus | Pages | الصفحات | |
+| menus | whole menu | قائمة كاملة | |
+| menus | Pages kept but not read | صفحات محفوظة لم تُقرأ | |
+| menus | No section | بلا قسم | |
+| menus | Approve all ${clean.length} clean dish(es) in this section | وافق على كل الأطباق السليمة في هذا القسم (${clean.length}) | |
+| menus | Clear name and price, no flag. Each is recorded under your name. | اسم وسعر واضحان، بلا ملاحظة. يُسجَّل كل طبق باسمك. | |
+| menus | ${rest.length} to approve one by one: | ${rest.length} للموافقة واحداً واحداً: | |
+| menus | Sources | المصادر | |
+| menus | No menu added yet. | لم تُضف قائمة بعد. | |
+| menus | ${waitingPhotos + waitingSources} item(s) wait for the reading run: GitHub, Actions, menu-read, Run workflow, branch main. | ${waitingPhotos + waitingSources} عنصر بانتظار القراءة: GitHub، Actions، menu-read، Run workflow، الفرع main. | |
+| menus | This place already has dishes on sale: only what changed is listed (new, price changed, no longer in the menu). | لهذا المكان أطباق معروضة: تظهر هنا التغييرات فقط (جديد، تغيّر السعر، لم يعد في القائمة). | |
+| menus | ${m.unchanged} dish(es) read again unchanged: nothing to do. | ${m.unchanged} طبق قُرئ من جديد دون تغيير: لا شيء لفعله. | |
+| menus | The stamp waits until every photo and source is read and every dish is decided. | الختم ينتظر قراءة كل صورة ومصدر والبت في كل طبق. | |
+| menus | Choose a file, type a link or paste the text first. | اختر ملفاً أو اكتب رابطاً أو الصق النص أولاً. | |
+| menus | A menu file is a photo, a PDF, a Word file (.docx), an Excel file (.xlsx) or a CSV file. | ملف القائمة صورة أو PDF أو ملف Word (.docx) أو Excel (.xlsx) أو CSV. | |
+| menus | The file is larger than 8 MB. | الملف أكبر من 8 ميغابايت. | |
+| menus | Added ${n}. It waits for the reading run. | أضيف ${n}. ينتظر القراءة. | |
+| menus | ${again} was already added. | ${again} مضاف من قبل. | |
+| menus | Type one price for each size. | اكتب سعراً لكل حجم. | |
+| menus | Taken off sale. | أوقف عرضه. | |
+| menus | No dish to approve in that section. | لا طبق للموافقة في هذا القسم. | |
+| menus | Approved ${r.approved}. ${r.left} changed since the page was shown: check them one by one. | تمت الموافقة على ${r.approved}. ${r.left} تغيّر منذ عرض الصفحة: راجعها واحداً واحداً. | |
+| menus | Approved ${r.approved}. | تمت الموافقة على ${r.approved}. | |
+| menus | That page was not found. | لم يُعثر على هذه الصفحة. | |
+| menus | Source text | نص المصدر | |
+| menus | Back to the menu | العودة إلى القائمة | |
+| menus | Cut off in the source | مقطوع في المصدر | |
+| menus | Name unclear | الاسم غير واضح | |
+| menus | Price unclear | السعر غير واضح | |
+| menus | A price range, not one price | نطاق أسعار وليس سعراً واحداً | |
+| menus | Section unclear | القسم غير واضح | |
+| menus | Something unclear | أمر غير واضح | |
+| menus | The description praises or makes a health claim: change it | الوصف يمدح أو يدّعي فائدة صحية: غيّره | |
+| menus | Web page | صفحة ويب | |
+| menus | Pasted text | نص ملصوق | |
+| menus | Word file | ملف Word | |
+| menus | Excel or CSV file | ملف Excel أو CSV | |
 
 ## CX2 stage 2, the customer messages in the approved layout (18 November 2026)
 
