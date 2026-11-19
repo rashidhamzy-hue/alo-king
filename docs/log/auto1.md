@@ -3,8 +3,8 @@
 Session AUTO1 (Opus 5.5). Prompt: the coordinator's, carrying the **founder's decision of 19 November: "a person approves the rule; the rule
 approves the item"**. Decisions: `docs/DECISIONS.md`, "AUTO1, approvals by rule, 19 November 2026" (18 rows; nobody was asked). Rules:
 `docs/RULES.md` ("Approval by rule", "Dishes by rule", "Pictures by rule", the caps, the migrations). Migrations **0263 and 0264** (the numbers
-the prompt gave). No new agent; no write to orders, payments, stock or the ledger; no place opened; AST1's files untouched (it reads
-`automation_today()`). Kabsi was not touched. Pull request [rashidhamzy-hue/alo-king#145](https://github.com/rashidhamzy-hue/alo-king/pull/145).
+the prompt gave) and **0265** (the fix the live run showed; DECISIONS row 19). No new agent; no write to orders, payments, stock or the ledger; no place opened; AST1's files untouched (it reads
+`automation_today()`). Kabsi was not touched. Pull requests [rashidhamzy-hue/alo-king#145](https://github.com/rashidhamzy-hue/alo-king/pull/145) and [rashidhamzy-hue/alo-king#147](https://github.com/rashidhamzy-hue/alo-king/pull/147).
 
 ## Built
 1. **The rules as data** (0263, 0264): `automation_rules` (dish `menu-dish-1`, photo `photo-vision-1`, each with its words and the founder's
@@ -79,4 +79,18 @@ the prompt gave). No new agent; no write to orders, payments, stock or the ledge
 - The second reading and the place's details read by the live model: the reading run's code is tested against a scripted model; no menu
   waits on staging (Safa's was decided by the founder before this session), so no live menu run was made.
 - A label day front photo through the live check: none is on staging yet (the label day has not happened).
+- A new founder picture decided by rule on staging: none waited; the decision logic is tested, and the live model's answers are seen only in
+  the two re-checks (record only).
+- The weekly sample: its first Monday is 23 November (nothing was decided by rule before it, so the first sample may be empty).
 - The console pages on a phone by a person (the rig drives them end to end with invented data).
+
+## Founder actions (AUTO1)
+1. **Nothing to do for the rules to work.** From now: a menu read by `menu-read` approves its clean dishes whose prices it finds in the source
+   by itself (and stamps the menu once nothing waits); a picture imported or photographed on label day is checked every three hours and
+   approved, rejected with the reason, or left in Photos for you.
+2. **Every day, if you want**: Console, **Approvals**: the line "Approved automatically today" opens the list; **Undo** on any one.
+3. **Every Monday from 23 November**: Approvals, **Auto-approvals**: the week's sample (up to 50 dishes and 50 pictures), **Right** or
+   **Wrong** with what is wrong. Two wrong in a week switch that rule off; Today says why; switch it on again in **Settings** once the cause
+   is fixed.
+4. **The 27 pictures above**: decide each (withdraw, keep, or correct the item's name).
+5. **On a place's page**: "Prices to confirm" with the place's phone, and "Read from the menu" (hours and phone): **Use these** or **Not right**.
