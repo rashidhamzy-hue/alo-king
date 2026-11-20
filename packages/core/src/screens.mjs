@@ -45,24 +45,34 @@ export function planPrune(existing, incoming) {
 }
 
 /**
- * FIX2: the retention step (the `screens` workflow, after every upload, and by hand with action `retain`). `objects` are every image in the
- * bucket with its upload time: { path, at } (at: ISO time). Kept: the newest upload of each screen name in each session (chip), the name
- * being the file name without its extension, so `a-390.png` and a later `a-390.webp` are one screen; and everything uploaded within the
- * last `days` days. The rest is returned, to be deleted through the Storage API. Every chip keeps at least one file of every screen it had.
+ * The retention step (the `screens` workflow, after every upload, and by hand with action `retain`). `objects` are every image in the
+ * bucket with its upload time: { path, at } (at: ISO time).
+ * PERF1 (replaces FIX2's "and the last 7 days"): kept is the newest shot of each screen in each session (chip), a screen being the page a
+ * shot shows (parseShot's key: the file name without its width, language, theme or extension), so a chip keeps one shot of every page it
+ * had; of one upload, the phone width, Arabic and light are preferred. Everything uploaded within the last `hours` hours is also kept,
+ * so a session's own reviewer sees its whole set. The rest is returned, to be deleted through the Storage API. The design reference's
+ * own screens (ref-*) are always kept: the Screens page shows them beside every page.
  */
-export function planRetention(objects, now, days = 7) {
-  const since = now.getTime() - days * 86_400_000;
+export function planRetention(objects, now, hours = 24) {
+  const since = now.getTime() - hours * 3_600_000;
+  const score = (s) => (s.width === "390" ? 4 : 0) + (s.lang === "ar" ? 2 : 0) + (s.theme !== "dark" ? 1 : 0);
   const newest = new Map();
   for (const o of objects) {
     const s = parseShot(o.path);
-    if (!s) continue;
-    const name = `${s.session}/${s.file.replace(/\.[A-Za-z0-9]+$/, "")}`;
+    if (!s || s.ref) continue;
+    const name = `${s.session}/${s.key}`;
     const cur = newest.get(name);
-    if (!cur || Date.parse(o.at) > Date.parse(cur.at) || (Date.parse(o.at) === Date.parse(cur.at) && o.path > cur.path)) newest.set(name, o);
+    const t = Date.parse(o.at), ct = cur ? Date.parse(cur.o.at) : -Infinity;
+    // one upload writes its files within a minute: within it, the preferred shot; else the newer
+    if (!cur || t > ct + 60_000 || (Math.abs(t - ct) <= 60_000 && (score(s) > score(cur.s) || (score(s) === score(cur.s) && o.path > cur.o.path))))
+      newest.set(name, { o, s });
   }
-  const keep = new Set([...newest.values()].map((o) => o.path));
-  return objects.filter((o) => parseShot(o.path) && !keep.has(o.path) && !(Date.parse(o.at) >= since)).map((o) => o.path).sort();
+  const keep = new Set([...newest.values()].map((x) => x.o.path));
+  return objects.filter((o) => { const s = parseShot(o.path); return s && !s.ref && !keep.has(o.path) && !(Date.parse(o.at) >= since); }).map((o) => o.path).sort();
 }
+
+/** PERF1: a screenshot is stored as WebP: `a-390-ar.png` -> `a-390-ar.webp` (the Screens page reads either). */
+export const webpName = (path) => path.replace(/\.(png|jpe?g)$/i, ".webp");
 
 // WEB4b: the reference's food screens had no kitchens (docs/log/ds2.md), so each food page sits beside the reference's nearest screen.
 const ALIAS = { rider: "join-rider", vendor: "for-vendors", "food-list": "aisles", "food-place": "aisle", "food-basket": "cart", "food-switch": "cart", "food-checkout": "checkout" };

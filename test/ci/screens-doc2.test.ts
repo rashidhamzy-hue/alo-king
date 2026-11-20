@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { SESSION_ORDER, contentType, groupScreens, isImage, parseShot, planPrune, planRetention, referenceFor, safeScreenPath } from "../../packages/core/src/screens.mjs";
 // @ts-expect-error plain .mjs, no types
-import { filesOfDir, retain, retainLine, sessionsAtRef, uploadFiles } from "../../scripts/screens/run.mjs";
+import { filesOfDir, loadSharp, retain, retainLine, sessionsAtRef, toWebp, uploadFiles } from "../../scripts/screens/run.mjs";
 import { screensStore } from "../../scripts/screens/storage.mjs";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -97,6 +97,7 @@ function fakeStorage() {
       return new Response(JSON.stringify(out));
     }
     if (path.startsWith("/object/screens/") && init?.method === "POST") { objects.set(path.slice("/object/screens/".length), new Uint8Array(init.body as Uint8Array)); return new Response("{}"); }
+    if (path.startsWith("/object/screens/") && (init?.method ?? "GET") === "GET") { const k = path.slice("/object/screens/".length); return objects.has(k) ? new Response(objects.get(k)) : new Response("no", { status: 404 }); }
     if (path === "/object/screens" && init?.method === "DELETE") { for (const p of body.prefixes) objects.delete(p); return new Response("[]"); }
     if (path === "/object/sign/screens") return new Response(JSON.stringify(body.paths.map((p: string) => ({ path: p, signedURL: `/object/sign/screens/${p}?token=t` }))));
     if (path.startsWith("/object/sign/screens/")) { const k = path.slice("/object/sign/screens/".length); return objects.has(k) ? new Response(objects.get(k)) : new Response("no", { status: 404 }); }
@@ -146,29 +147,29 @@ describe("the move out of the repository", () => {
   });
 });
 
-// FIX2: the bucket held 681 files (165 MB) on 20 November and grew each session. After every upload (and by hand) it keeps the newest upload
-// of each screen name per session and everything of the last 7 days; the rest is deleted through the Storage API.
-describe("retention (FIX2)", () => {
+// FIX2 then PERF1: the bucket held 681 files (165 MB) on 20 November, every file the only one of its name, so FIX2's rule (the newest of
+// each file name and the last 7 days) freed nothing. PERF1 keeps the newest shot of each page per session (chip), and the last 24 hours;
+// what is left is stored as WebP at one pixel per CSS pixel.
+describe("retention (PERF1)", () => {
   const now = new Date("2026-11-30T12:00:00Z");
   const o = (path: string, at: string) => ({ path, at });
-  it("keeps the newest of each screen name per session and the last 7 days; deletes older copies of a name", () => {
+  it("keeps the newest shot of each page per session, preferring the phone, Arabic and light within one upload; every chip and page stays", () => {
     const objs = [
-      o("ds1/console-case-390.png", "2026-11-18T10:00:00Z"), o("ds1/console-case-390.webp", "2026-11-19T10:00:00Z"),   // one screen, two uploads: the older goes
-      o("ds1/console-inbox-390.webp", "2026-11-01T10:00:00Z"),                                                          // old, but the only one of its name: kept
-      o("web4a/home-390-ar.png", "2026-11-25T10:00:00Z"), o("web4a/home-390-ar.webp", "2026-11-26T10:00:00Z"),          // both within 7 days: kept
-      o("ds2/ref-ops-today-1280.webp", "2026-10-01T00:00:00Z"),                                                         // a reference screen: kept
-      o("ds1/console-case-1440.png", "2026-11-18T10:00:00Z"),                                                           // another width is another screen
+      o("ds1/console-case-390.png", "2026-11-18T10:00:00Z"), o("ds1/console-case-390.webp", "2026-11-19T10:00:00Z"),   // one page, two uploads: the older goes
+      o("ds1/console-case-1440.png", "2026-11-18T10:00:00Z"),                                                           // the same page at another width, older: goes
+      o("ds1/console-inbox-390.webp", "2026-11-01T10:00:00Z"),                                                          // old, but the only shot of its page: kept
+      o("web4a/home-1440-en.png", "2026-11-25T10:00:10Z"), o("web4a/home-390-ar.png", "2026-11-25T10:00:20Z"),          // one upload: the phone in Arabic is kept
+      o("web4a/home-390-ar-dark.png", "2026-11-25T10:00:30Z"), o("web4a/home-390-en.png", "2026-11-25T10:00:40Z"),
+      o("ds2/ref-ops-today-1280.webp", "2026-10-01T00:00:00Z"), o("ds2/ref-ops-today-390.webp", "2026-10-01T00:00:00Z"), // reference screens: always kept
+      o("con1/today-1440-en.png", "2026-11-30T01:00:00Z"), o("con1/today-390-en.png", "2026-11-30T01:00:01Z"),          // the last 24 hours: kept whole
     ];
-    expect(planRetention(objs, now)).toEqual(["ds1/console-case-390.png"]);
-    // every chip, every page and every reference screen is still there for the Screens page
-    const left = objs.map((x) => x.path).filter((p) => !planRetention(objs, now).includes(p));
+    const gone = planRetention(objs, now);
+    expect(gone).toEqual(["ds1/console-case-1440.png", "ds1/console-case-390.png", "web4a/home-1440-en.png", "web4a/home-390-ar-dark.png", "web4a/home-390-en.png"]);
+    const left = objs.map((x) => x.path).filter((p) => !gone.includes(p));
     expect(groupScreens(left).map((g: { session: string }) => g.session).sort()).toEqual(groupScreens(objs.map((x) => x.path)).map((g: { session: string }) => g.session).sort());
     expect(groupScreens(left).flatMap((g: { pages: { key: string }[] }) => g.pages.map((p) => p.key)).sort())
       .toEqual(groupScreens(objs.map((x) => x.path)).flatMap((g: { pages: { key: string }[] }) => g.pages.map((p) => p.key)).sort());
     expect(referenceFor("console-today", "1280", left)).not.toBeNull();
-  });
-  it("deletes nothing while every file is within the last 7 days (the bucket on 20 November)", () => {
-    expect(planRetention([o("cx2/a-390.png", "2026-11-18T00:00:00Z"), o("cx2/a-390.webp", "2026-11-19T00:00:00Z")], new Date("2026-11-20T06:00:00Z"))).toEqual([]);
   });
   it("runs through the Storage API (a DELETE with the paths), and reports the size before and after", async () => {
     const { objects, times, calls, store } = fakeStorage();
@@ -180,5 +181,29 @@ describe("retention (FIX2)", () => {
     expect(calls).toContain("DELETE /object/screens");
     expect([...objects.keys()].sort()).toEqual(["con1/today-390-en.webp", "ds1/console-case-390.webp"]);
     expect(retainLine(r)).toMatch(/before 3 files, 0\.0 MB, 2 sessions; deleted 1; after 2 files, 0\.0 MB, 2 sessions/);
+  });
+});
+
+describe.skipIf(!loadSharp())("WebP (PERF1)", () => {
+  const sharp = loadSharp();
+  const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#e0d8c8" } }).png().toBuffer();
+  it("a kept PNG becomes a WebP at one pixel per CSS pixel; the PNG goes; the Screens page still opens it", async () => {
+    const { objects, store } = fakeStorage();
+    objects.set("web4a/home-390-ar.png", new Uint8Array(await png(780, 2000)));
+    objects.set("ds2/ref-web-home-1280.webp", new Uint8Array(await sharp({ create: { width: 10, height: 10, channels: 3, background: "#fff" } }).webp().toBuffer()));
+    const r = await toWebp(store, sharp);
+    expect(r).toMatchObject({ done: 1, todo: 1, errors: [] });
+    expect([...objects.keys()].sort()).toEqual(["ds2/ref-web-home-1280.webp", "web4a/home-390-ar.webp"]);
+    const m = await sharp(Buffer.from(objects.get("web4a/home-390-ar.webp")!)).metadata();
+    expect([m.format, m.width, m.height]).toEqual(["webp", 390, 1000]);
+    expect(await store.open("web4a/home-390-ar.webp")).toBeGreaterThan(0);
+    expect(groupScreens(await store.list()).map((g: { session: string }) => g.session)).toEqual(["web4a"]);
+  });
+  it("an upload stores WebP: a PNG the test wrote is converted first, and still replaces the older shots of its page", async () => {
+    const { objects, store } = fakeStorage();
+    objects.set("wh1a/a-bins-390-ar.png", new Uint8Array(4));
+    const r = await uploadFiles(store, [{ path: "wh1b/a-bins-390-ar.png", bytes: await png(780, 400) }], sharp);
+    expect(r).toEqual({ uploaded: 1, removed: ["wh1a/a-bins-390-ar.png"] });
+    expect([...objects.keys()]).toEqual(["wh1b/a-bins-390-ar.webp"]);
   });
 });

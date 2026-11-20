@@ -45,5 +45,16 @@ export function pictureUrl(env: Pick<WebEnv, "SUPABASE_URL" | "PICTURE_TRANSFORM
     ? `${base}/storage/v1/render/image/public/catalog/${key}?width=${width}&resize=contain`
     : `${base}/storage/v1/object/public/catalog/${key}`;
 }
+/** PERF1: a picture as the cards draw it: the 400 px copy, a 400/800 srcset, its size. Before the copies are made, the original (as before). */
+export interface PictureSet { src: string; srcSet: string | null; width: number; height: number }
+export function pictureSet(env: Pick<WebEnv, "SUPABASE_URL" | "PICTURE_TRANSFORMS">, pic: { path: string; w400?: string | null; w800?: string | null; width_px?: number | null; height_px?: number | null }, want: 400 | 800): PictureSet {
+  if (pic.w400 && pic.w800) {
+    const a = pictureUrl(env, pic.w400), b = pictureUrl(env, pic.w800);
+    return want === 400 ? { src: a, srcSet: `${a} 400w, ${b} 800w`, width: 400, height: 400 } : { src: b, srcSet: `${a} 400w, ${b} 800w`, width: 800, height: 800 };
+  }
+  const one = want === 400 ? pic.w400 : pic.w800;
+  if (one) return { src: pictureUrl(env, one), srcSet: null, width: want, height: want };
+  return { src: pictureUrl(env, pic.path, want), srcSet: null, width: pic.width_px ?? want, height: pic.height_px ?? want };
+}
 /** The join pages (UX3): /join/rider and /for-vendors, as the same role. */
 export const joinFor = (env: WebEnv, fetchImpl?: typeof fetch) => webJoin(postgrestSource(env, fetchImpl));
