@@ -65,9 +65,14 @@ the first run failed one `test/pg` check (above), the third run was green (10 of
   **681 files, 165.1 MB, 16 sessions** (every file is from 18 or 19 November, inside the 7 days); all 681 open through a signed link, every
   chip present. The first deletions can come from 25 November; web4a's 82 full-page PNGs (94.8 MB) are most of the size.
 
+- **The probe after the deploy** (read 07:30 UTC): no probe message overnight after the deploy; its first at 07:17 UTC, just after opening;
+  test order **AK-1077** went card, confirm tap, confirmed, on the way, paid, **closed at 07:24**. Seen in passing, for a later session (not
+  this bundle's): that turn answered «ربطة خبز الفورنو» as "not carried", where on the 19th it found Al Forno's large bread; the order went on
+  without the bread. Inconsistent reading of the same words; it should become an `evals/` case in an ordering session.
+
 ## What only time on staging can prove
-- That the probe completes its order through a whole open day (the fix is tested against its three stalls; staging opened at 07:00 UTC on
-  the 20th, after the deploy). If it does not, ALO-KING-GATEWAY-3 reopens by itself.
+- That the probe completes its order through a whole open day (one order seen so far). If it stalls while open, ALO-KING-GATEWAY-3 reopens
+  by itself.
 - The first nightly digest from the cron (21:40 Beirut, 20 November).
 - The assistant's neutral wording and "as of now" with the real model (no live eval was run; scripted only).
 
