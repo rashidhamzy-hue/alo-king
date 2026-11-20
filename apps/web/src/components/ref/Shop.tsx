@@ -165,7 +165,7 @@ export function Aisle({ v }: { v: AisleView }) {
           {v.sections.map((s, i) => (
             <section key={i} className={i ? "pt-6" : ""}>
               {s.title && <h2 className="m-0 mb-3 text-xl font-bold">{s.title}</h2>}
-              <ProductGrid items={s.items} lang={l} />
+              <ProductGrid items={s.items} lang={l} eager={i === 0 ? 2 : 0} />
             </section>
           ))}
           {v.pager && (
@@ -185,7 +185,7 @@ export function Aisle({ v }: { v: AisleView }) {
 // ---------------------------------------------------------------- /p/<sku>
 export interface ProductPageView {
   f: FrameData; sku: string; name: string; altName: { text: string; lang: string } | null; brand: string | null;
-  aisle: { code: string; name: string }; card: CardData; picture: { src: string; width: number; height: number; credit: ReactNode } | null;
+  aisle: { code: string; name: string }; card: CardData; picture: { src: string; srcSet?: string | null; width: number; height: number; credit: ReactNode } | null;
   chips: string[]; priced: boolean; price: number; per: string | null; status: "in" | "out" | "soon";
   canAdd: boolean; addBack: string; ask: string | null; view: ProductView; creditOff: boolean; more: CardData[];
 }
@@ -203,7 +203,8 @@ export function ProductPage({ v }: { v: ProductPageView }) {
           <div className="lg:sticky lg:top-24">
             {v.picture
               ? <span className="relative block aspect-square overflow-hidden rounded-3xl bg-white">
-                  <img className="pic size-full object-contain p-6" src={v.picture.src} alt={v.name} width={v.picture.width} height={v.picture.height} decoding="async" fetchPriority="high" />
+                  <img className="pic size-full object-contain p-6" src={v.picture.src} srcSet={v.picture.srcSet ?? undefined} sizes={v.picture.srcSet ? "(min-width: 1024px) 50vw, 100vw" : undefined}
+                    alt={v.name} width={v.picture.width} height={v.picture.height} decoding="async" fetchPriority="high" />
                 </span>
               : <span role="img" aria-label={t(l, "no_picture")} className="block"><ProductVisual p={v.card} big /></span>}
             {v.picture?.credit && <p className="m-0 mt-2 text-xs text-muted-foreground">{v.picture.credit}</p>}
@@ -298,7 +299,7 @@ export function SearchResults({ v }: { v: SearchView }) {
             {v.facets.map((x) => <Chip key={x.href} href={x.href} current={x.current}>{x.label}</Chip>)}
           </div>
         )}
-        <ProductGrid items={v.results} lang={l} />
+        <ProductGrid items={v.results} lang={l} eager={2} />
         {v.credit && <p className="m-0 mt-4 text-xs text-muted-foreground">{v.credit}</p>}
       </>}
       {v.state === "none" && v.none && <div className="rounded-3xl bg-card p-5 shadow-card">

@@ -3,6 +3,9 @@
 # item) gets ONE 1000 x 1000 JPEG on white, under 150 KB, in the public `catalog` bucket at the path the database names; the feed links it
 # once it is recorded. A picture that stopped being public loses its JPEG here and on the gateway's next minute. Only the database's work
 # list is read (catalog_feed_jpeg_work): nothing proposed, rejected or withdrawn is ever made, and nothing else in `media` is read.
+# PERF1 (0267): the same pass makes the website's 400 px and 800 px WebP copies of each public picture (content-hashed names) and removes
+# those of a withdrawn picture; everything it uploads carries "public, max-age=31536000, immutable". `reheader` (by hand, once) uploads
+# every original copy and feed JPEG already in the bucket again with that header.
 # No model, no cost. Hourly (Meta reads the feed at most hourly), and by hand. Staging only until production exists (A3).
 # Secret used (a repository secret, never printed): SUPABASE_SERVICE_KEY.
 name: catalog-jpegs
@@ -14,6 +17,10 @@ on:
         description: Make at most N JPEGs this run (empty = all waiting)
         type: string
         default: ""
+      reheader:
+        description: Upload every original copy and feed JPEG again with the year-long cache header (PERF1, once)
+        type: boolean
+        default: false
 permissions: { contents: read }
 concurrency:
   group: catalog-jpegs
@@ -32,9 +39,10 @@ jobs:
         with: { node-version: 22 }
       - name: Install the picture tools (sharp lives in scripts/images only)
         run: npm ci --prefix scripts/images
-      - name: Make the waiting JPEGs, remove withdrawn ones
+      - name: Make the waiting JPEGs and website copies, remove withdrawn ones
         env:
           LIMIT: ${{ inputs.limit }}
+          REHEADER: ${{ inputs.reheader && '1' || '' }}
         run: |
           if [ -z "$SUPABASE_SERVICE_KEY" ]; then echo "SUPABASE_SERVICE_KEY is not set: nothing to do" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           node scripts/images/feed-jpegs.mjs

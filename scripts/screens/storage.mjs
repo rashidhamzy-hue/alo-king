@@ -46,6 +46,13 @@ export function screensStore({ url, key, fetchImpl = fetch }) {
       const res = await fetchImpl(`${api}/object/${BUCKET}/${path}`, { method: "POST", headers: { ...auth, "content-type": contentType, "x-upsert": "true" }, body });
       await json(res, `put ${path}`);
     },
+    /** PERF1: one object's bytes (service key), to convert it to WebP. */
+    async get(path) {
+      if (!safeScreenPath(path)) throw new Error(`bad path ${path}`);
+      const res = await fetchImpl(`${api}/object/${BUCKET}/${path}`, { headers: auth });
+      if (!res.ok) throw new Error(`get ${path}: HTTP ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    },
     async remove(paths) {
       for (let i = 0; i < paths.length; i += 100) {
         const res = await fetchImpl(`${api}/object/${BUCKET}`, { method: "DELETE", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify({ prefixes: paths.slice(i, i + 100) }) });

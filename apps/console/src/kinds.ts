@@ -26,7 +26,7 @@ export const KIND: Record<string, Info> = {
   agent_handoff: { en: "A chat was handed to a person", ar: "مُرّرت محادثة إلى شخص", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
   model_capacity: { en: "The AI model was unavailable: a chat was handed to a person", ar: "نموذج الذكاء الاصطناعي غير متاح: مُرّرت محادثة إلى شخص", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
   dead_letter: { en: "A customer message failed every retry", ar: "رسالة زبون فشلت كل المحاولات", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
-  "heartbeat:probe_stuck": { en: "The hourly test order is stuck", ar: "طلب التجربة كل ساعة واقف", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
+  "heartbeat:probe_stuck": { en: "The test order is stuck", ar: "طلب التجربة واقف", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   "heartbeat:inbound_silent": { en: "No customer message for hours", ar: "ما وصلت رسالة زبون من ساعات", href: () => "/exceptions", cta: { en: "Open exceptions", ar: "افتح الاستثناءات" } },
   model_account: { en: "The AI provider refused calls", ar: "مزوّد الذكاء الاصطناعي رفض الطلبات", href: () => "/exceptions", cta: { en: "Open chats", ar: "افتح المحادثات" } },
   // HO1: the case ladder (0136) and the 2-minute alarm; each opens the Inbox.

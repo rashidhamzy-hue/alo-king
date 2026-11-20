@@ -378,10 +378,14 @@ export function exceptionAlertText(x: ExceptionDue): string {
   return `🧯 حالة مفتوحة بحاجة لشخص: ${x.kind} (${x.ref.slice(0, 60)})`;
 }
 
+/** "كل ساعة", "كل 3 ساعات", "كل 90 دقيقة": the probe's period, for a staff alarm. */
+export const probeEvery = (min: number) => (min === 60 ? "كل ساعة" : min % 60 === 0 ? `كل ${min / 60} ساعات` : `كل ${min} دقيقة`);
+
 const ALARM_TEXT: Record<string, (d: Record<string, unknown>) => string> = {
   probe_stuck: (d) => `🧪 طلب التجربة #${d.order} واقف عند ${d.status} من ${d.minutes} دقيقة`
     + (d.riders_on_shift !== undefined ? ` (سائقين بالخدمة: ${d.riders_on_shift}، عندهم مجال للطلب: ${d.riders_with_room})` : ""),
-  probe_silent: () => `🧪 طلب التجربة كل ساعة ما عم ينعمل. الكرون أو مسار الرسائل معطّل`,
+  // PERF1: the probe orders every probe period (3 open hours on staging), and the message names it.
+  probe_silent: (d) => `🧪 طلب التجربة (${probeEvery(Number(d.every_minutes) || 60)}) ما عم ينعمل. الكرون أو مسار الرسائل معطّل`,
   inbound_silent: (d) => `📭 ما وصلت ولا رسالة من الزباين من ساعات (آخر وحدة ${String(d.last).slice(0, 16)}). ممكن الويبهوك واقف`,
   cron_gap: (d) => `⏱ الكرون غاب ${d.gap_minutes} دقيقة ورجع`,
 };

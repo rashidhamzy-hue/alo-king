@@ -9,7 +9,7 @@ import Unavailable from "../../components/Unavailable.astro";
 import AddForm from "../../components/AddForm.astro";
 import { ProductPage, type ProductPageView } from "../../components/ref/Shop";
 import { nameIn, t, unitLabel } from "../../lib/i18n";
-import { pictureUrl } from "../../lib/db";
+import { pictureSet } from "../../lib/db";
 import { productView } from "../../lib/product";
 import { productJsonLd } from "../../lib/jsonld";
 import { frameOf } from "../../lib/frame";
@@ -24,7 +24,9 @@ const ok = r && r.ok ? r : null;
 const view = ok ? productView(lang, ok) : null;
 const name = view ? view.name : t(lang, "not_found");
 const pic = ok?.picture ?? null;
-const imageUrl = pic ? pictureUrl(env, pic.path, 1200) : null;
+// PERF1: the page draws the 800 px copy (a 400/800 srcset); JSON-LD names the same 800 px file (the original before it is made).
+const shown = pic ? pictureSet(env, pic, 800) : null;
+const imageUrl = shown?.src ?? null;
 const ask = ok?.whatsapp ? ok.whatsapp.replaceAll("{sku}", encodeURIComponent(ok.product.sku)) : null;
 const jsonld = ok && view ? [productJsonLd(lang, ok, { origin: Astro.url.origin, imageUrl }, view)] : [];
 let f = null;
@@ -42,7 +44,7 @@ const pv: ProductPageView | null = ok && view && f ? {
   f, sku: ok.product.sku, name, altName: view.altName, brand: view.brand,
   aisle: { code: ok.category.code, name: nameIn(lang, ok.category.name_en, ok.category.name_ar) },
   card: { ...toCard(lang, env, { ...ok.product, picture: null, category_code: ok.category.code } as any, ok.category.code), tone: toneOf(ok.category.code) },
-  picture: pic && imageUrl ? { src: imageUrl, width: pic.width_px ?? 1200, height: pic.height_px ?? 1200, credit: pic.attribution ?? null } : null,
+  picture: pic && shown ? { src: shown.src, srcSet: shown.srcSet, width: shown.width, height: shown.height, credit: pic.attribution ?? null } : null,
   chips: [view.size, unit, view.gtin ? `${t(lang, "barcode")}: ${view.gtin}` : null].filter((x): x is string => !!x),
   priced: view.priced, price: view.price, per, status: view.comingSoon ? "soon" : view.inStock ? "in" : "out",
   canAdd: view.inStock && !view.comingSoon && view.priced, addBack: Astro.url.pathname, ask: ask && !view.comingSoon ? ask : null,
