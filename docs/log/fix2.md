@@ -51,8 +51,33 @@ No workflow uses `SENTRY_AUTH_TOKEN`, and a session cannot read the repository's
 row 7). Founder action: a Sentry token with `project:releases` as the repository secret `SENTRY_AUTH_TOKEN`; then a session adds the upload.
 
 ## Checks
-`npm run typecheck`, `npm test`, `npm run check:personal-data` (gitleaks 8.21.2) and the repository hygiene check: see "On staging" and the
-pull request.
+Locally: `npm run typecheck`, the personal-data guard (gitleaks 8.21.2) and the hygiene check pass; `npm test` 3508 passed (the 7 `test/pg`
+files need pgvector, which this container lacks). CI on [rashidhamzy-hue/alo-king#150](https://github.com/rashidhamzy-hue/alo-king/pull/150):
+the first run failed one `test/pg` check (above), the third run was green (10 of 10), and so was `main`'s CI after the merge (run 44689261092).
 
-## On staging
-(filled in after the merge and deploy)
+## On staging (20 November, from `main` at 8138bbd)
+- **deploy-staging run 44689343899** (green): 0266 applied, 180 migrations recorded. Read afterwards: `assistant_reader` may read
+  `dish_declarations`; `probe_due` orders only while open. **console run 44689343825** (green).
+- **The digest, once** (`assistant-digest` run 44689660516, for 19 November, the night that failed): row written, claude-haiku-5-5, one call,
+  **USD 0.0014** (in `model_costs`, workflow `assistant-digest`), English 373 and Arabic 381 characters, 3 fix candidates.
+- **Sentry**: ALO-KING-GATEWAY-8, -3 and -5 marked resolved, each with the reason. -3 and -5 reopen if the alarm fires again while open.
+- **Screens retention** (`screens` run 44689841667, action `retain`): before **681 files, 165.1 MB, 16 sessions**; deleted **0**; after
+  **681 files, 165.1 MB, 16 sessions** (every file is from 18 or 19 November, inside the 7 days); all 681 open through a signed link, every
+  chip present. The first deletions can come from 25 November; web4a's 82 full-page PNGs (94.8 MB) are most of the size.
+
+- **The probe after the deploy** (read 07:30 UTC): no probe message overnight after the deploy; its first at 07:17 UTC, just after opening;
+  test order **AK-1077** went card, confirm tap, confirmed, on the way, paid, **closed at 07:24**. Seen in passing, for a later session (not
+  this bundle's): that turn answered «ربطة خبز الفورنو» as "not carried", where on the 19th it found Al Forno's large bread; the order went on
+  without the bread. Inconsistent reading of the same words; it should become an `evals/` case in an ordering session.
+
+## What only time on staging can prove
+- That the probe completes its order through a whole open day (one order seen so far). If it stalls while open, ALO-KING-GATEWAY-3 reopens
+  by itself.
+- The first nightly digest from the cron (21:40 Beirut, 20 November).
+- The assistant's neutral wording and "as of now" with the real model (no live eval was run; scripted only).
+
+## Founder actions (FIX2)
+1. **Nothing needed** for items 1 to 4.
+2. **Optional, for readable Sentry traces**: sentry.io, Settings, Auth Tokens (organisation `alo-king`), a token with scope
+   `project:releases`; GitHub, the repository, Settings, Secrets and variables, Actions, **New repository secret** `SENTRY_AUTH_TOKEN`. Then
+   a session adds the source-map upload to the gateway and console deploys.
