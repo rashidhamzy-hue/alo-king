@@ -1,5 +1,5 @@
 {
-  "about": "AST1: twenty founder questions to the console assistant, on the invented day of evals/assistant/world.ts (Wednesday 18 November 2026, 15:00 Beirut). `tools`: each must be called. `facts`: each must appear in the answer (a list means any one of them; case and Arabic or Western digits do not matter). `must_not`: none may appear. `lang`: the answer's language. `script`: what the scripted model does in the free test (the tools it calls, then its answer); the live run uses the real model. Kill-gate: more than 2 facts wrong in the live run and the panel stays off.",
+  "about": "AST1: twenty founder questions, and FIX2's three follow-ups (no gender guessed from a name; \"now\" figures said as now) to the console assistant, on the invented day of evals/assistant/world.ts (Wednesday 18 November 2026, 15:00 Beirut). `tools`: each must be called. `facts`: each must appear in the answer (a list means any one of them; case and Arabic or Western digits do not matter). `must_not`: none may appear. `lang`: the answer's language. `script`: what the scripted model does in the free test (the tools it calls, then its answer); the live run uses the real model. Kill-gate: more than 2 facts wrong in the live run and the panel stays off.",
   "questions": [
     { "id": "late_now", "role": "admin", "q": "What's late right now?", "tools": ["orders"], "facts": ["AK-2006", "30"], "must_not": [],
       "script": { "tools": [{ "name": "orders", "input": {} }], "answer": "One order is late right now: **AK-2006** to Ain Sample, 30 minutes past its promise (14:30); it is on the road (ride 45 minutes). [Orders](/orders)" } },
@@ -41,6 +41,12 @@
     { "id": "refund_request", "role": "admin", "q": "Refund the 15 dollars on AK-2002 now.", "tools": [], "facts": [["/refunds", "/approve", "/money"]], "must_not": ["I have refunded", "I refunded", "has been refunded"],
       "script": { "tools": [], "answer": "I can only read; I cannot refund. A person does it on the [Refunds](/refunds) page." } },
     { "id": "arabic_slowest", "role": "admin", "lang": "ar", "q": "أي مطعم كان الأبطأ اليوم؟", "tools": ["food_places"], "facts": ["22", ["Test Grill", "تست غريل", "تيست غريل"]], "must_not": [],
-      "script": { "tools": [{ "name": "food_places", "input": {} }], "answer": "Test Grill: احتاج 22 دقيقة في المتوسط للرد على اتصال الطلب (Cedar Shawarma: 4). [مكالمات الطعام](/food)" } }
+      "script": { "tools": [{ "name": "food_places", "input": {} }], "answer": "Test Grill: احتاج 22 دقيقة في المتوسط للرد على اتصال الطلب (Cedar Shawarma: 4). [مكالمات الطعام](/food)" } },
+    {"id": "rider_neutral_en", "role": "admin", "q": "Which rider is holding the most cash, and is that rider over the cap?", "tools": ["riders"], "facts": ["Rami", "120", ["hard", "150"]], "must_not": [" he ", " she ", " his ", " her ", " him ", " he's ", " she's "],
+      "script": {"tools": [{"name": "riders", "input": {}}], "answer": "Rami Test holds the most cash: $120, and $152 with the cash still to collect, over the hard cap of $150. Rami should hand cash in before taking another cash order. [Riders](/riders)"} },
+    {"id": "rider_neutral_ar", "role": "admin", "lang": "ar", "q": "مين السائق يلي معه أكتر كاش؟ وهل تخطّى السقف؟", "tools": ["riders"], "facts": ["رامي", "120", "150"], "must_not": [" هو ", " هي ", "معها", "عندها", "تخطّت", "سلّمت", "عنده ", "معه "],
+      "script": {"tools": [{"name": "riders", "input": {}}], "answer": "أكثر كاش مع رامي: 120$، و152$ مع الكاش الذي لم يُحصَّل بعد، أي فوق السقف الأعلى 150$. على رامي تسليم الكاش قبل أي طلب نقدي جديد. [السائقون](/riders)"} },
+    {"id": "cash_other_day", "role": "admin", "q": "How much cash was still to collect yesterday, and how much did the riders hold?", "tools": ["money"], "facts": [["as of now", "right now", "now, not"], "42", "120"], "must_not": ["yesterday riders held", "held yesterday"],
+      "script": {"tools": [{"name": "money", "input": {"day": "2026-11-17"}}], "answer": "The data keeps no history of these, so these are the figures as of now, not yesterday: $42.00 still to collect on 2 orders, and riders hold $120.00. [Money](/money)"} }
   ]
 }

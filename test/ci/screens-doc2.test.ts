@@ -1,9 +1,9 @@
 // DOC2: how a screenshot's file name is read, what an upload replaces, which reference screen sits beside a page, and the one move out of the
 // repository (scripts/screens). Pure: a fake store stands in for Supabase Storage.
 import { describe, expect, it } from "vitest";
-import { SESSION_ORDER, contentType, groupScreens, isImage, parseShot, planPrune, referenceFor, safeScreenPath } from "../../packages/core/src/screens.mjs";
+import { SESSION_ORDER, contentType, groupScreens, isImage, parseShot, planPrune, planRetention, referenceFor, safeScreenPath } from "../../packages/core/src/screens.mjs";
 // @ts-expect-error plain .mjs, no types
-import { filesOfDir, sessionsAtRef, uploadFiles } from "../../scripts/screens/run.mjs";
+import { filesOfDir, retain, retainLine, sessionsAtRef, uploadFiles } from "../../scripts/screens/run.mjs";
 import { screensStore } from "../../scripts/screens/storage.mjs";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -84,6 +84,7 @@ describe("the Screens page's groups", () => {
 // A small stand-in for the bucket: the objects, and the four calls the store makes.
 function fakeStorage() {
   const objects = new Map<string, Uint8Array>();
+  const times = new Map<string, string>();
   const calls: string[] = [];
   const fetchImpl = (async (url: string, init?: RequestInit) => {
     const u = new URL(url); const path = u.pathname.replace("/storage/v1", "");
@@ -92,7 +93,7 @@ function fakeStorage() {
     if (path === "/object/list/screens") {
       const prefix: string = body.prefix; const out: Record<string, unknown>[] = [];
       if (!prefix) for (const s of new Set([...objects.keys()].map((k) => k.split("/")[0]))) out.push({ name: s, id: null });
-      else for (const k of objects.keys()) if (k.startsWith(prefix + "/")) out.push({ name: k.slice(prefix.length + 1), id: "x" });
+      else for (const k of objects.keys()) if (k.startsWith(prefix + "/")) out.push({ name: k.slice(prefix.length + 1), id: "x", updated_at: times.get(k) ?? "2026-11-20T00:00:00Z", metadata: { size: objects.get(k)!.byteLength } });
       return new Response(JSON.stringify(out));
     }
     if (path.startsWith("/object/screens/") && init?.method === "POST") { objects.set(path.slice("/object/screens/".length), new Uint8Array(init.body as Uint8Array)); return new Response("{}"); }
@@ -101,7 +102,7 @@ function fakeStorage() {
     if (path.startsWith("/object/sign/screens/")) { const k = path.slice("/object/sign/screens/".length); return objects.has(k) ? new Response(objects.get(k)) : new Response("no", { status: 404 }); }
     return new Response("?", { status: 500 });
   }) as unknown as typeof fetch;
-  return { objects, calls, store: screensStore({ url: "https://p.supabase.test", key: "service-key", fetchImpl }) };
+  return { objects, times, calls, store: screensStore({ url: "https://p.supabase.test", key: "service-key", fetchImpl }) };
 }
 
 describe("uploading", () => {
@@ -142,5 +143,42 @@ describe("the move out of the repository", () => {
     const git = (...a: string[]) => (a[0] === "ls-tree" ? Buffer.from(tree.join("\n")) : Buffer.from("b"));
     for (const s of sessionsAtRef("abc1234", git)) await uploadFiles(store, s.files.map((f: { path: string; read: () => Buffer }) => ({ path: f.path, bytes: f.read() })));
     expect([...objects.keys()].sort()).toEqual(["ds1/console-inbox-390.webp", "ds2/console-gallery-390-en.webp"]);
+  });
+});
+
+// FIX2: the bucket held 681 files (165 MB) on 20 November and grew each session. After every upload (and by hand) it keeps the newest upload
+// of each screen name per session and everything of the last 7 days; the rest is deleted through the Storage API.
+describe("retention (FIX2)", () => {
+  const now = new Date("2026-11-30T12:00:00Z");
+  const o = (path: string, at: string) => ({ path, at });
+  it("keeps the newest of each screen name per session and the last 7 days; deletes older copies of a name", () => {
+    const objs = [
+      o("ds1/console-case-390.png", "2026-11-18T10:00:00Z"), o("ds1/console-case-390.webp", "2026-11-19T10:00:00Z"),   // one screen, two uploads: the older goes
+      o("ds1/console-inbox-390.webp", "2026-11-01T10:00:00Z"),                                                          // old, but the only one of its name: kept
+      o("web4a/home-390-ar.png", "2026-11-25T10:00:00Z"), o("web4a/home-390-ar.webp", "2026-11-26T10:00:00Z"),          // both within 7 days: kept
+      o("ds2/ref-ops-today-1280.webp", "2026-10-01T00:00:00Z"),                                                         // a reference screen: kept
+      o("ds1/console-case-1440.png", "2026-11-18T10:00:00Z"),                                                           // another width is another screen
+    ];
+    expect(planRetention(objs, now)).toEqual(["ds1/console-case-390.png"]);
+    // every chip, every page and every reference screen is still there for the Screens page
+    const left = objs.map((x) => x.path).filter((p) => !planRetention(objs, now).includes(p));
+    expect(groupScreens(left).map((g: { session: string }) => g.session).sort()).toEqual(groupScreens(objs.map((x) => x.path)).map((g: { session: string }) => g.session).sort());
+    expect(groupScreens(left).flatMap((g: { pages: { key: string }[] }) => g.pages.map((p) => p.key)).sort())
+      .toEqual(groupScreens(objs.map((x) => x.path)).flatMap((g: { pages: { key: string }[] }) => g.pages.map((p) => p.key)).sort());
+    expect(referenceFor("console-today", "1280", left)).not.toBeNull();
+  });
+  it("deletes nothing while every file is within the last 7 days (the bucket on 20 November)", () => {
+    expect(planRetention([o("cx2/a-390.png", "2026-11-18T00:00:00Z"), o("cx2/a-390.webp", "2026-11-19T00:00:00Z")], new Date("2026-11-20T06:00:00Z"))).toEqual([]);
+  });
+  it("runs through the Storage API (a DELETE with the paths), and reports the size before and after", async () => {
+    const { objects, times, calls, store } = fakeStorage();
+    for (const [p, at, n] of [["ds1/console-case-390.png", "2026-11-18T10:00:00Z", 300], ["ds1/console-case-390.webp", "2026-11-19T10:00:00Z", 100], ["con1/today-390-en.webp", "2026-11-29T00:00:00Z", 50]] as const) {
+      objects.set(p, new Uint8Array(n)); times.set(p, at);
+    }
+    const r = await retain(store, now);
+    expect(r).toMatchObject({ removed: ["ds1/console-case-390.png"], before: { files: 3, bytes: 450, chips: 2 }, after: { files: 2, bytes: 150, chips: 2 } });
+    expect(calls).toContain("DELETE /object/screens");
+    expect([...objects.keys()].sort()).toEqual(["con1/today-390-en.webp", "ds1/console-case-390.webp"]);
+    expect(retainLine(r)).toMatch(/before 3 files, 0\.0 MB, 2 sessions; deleted 1; after 2 files, 0\.0 MB, 2 sessions/);
   });
 });

@@ -44,6 +44,26 @@ export function planPrune(existing, incoming) {
   return existing.filter((p) => { const s = parseShot(p); return s && keys.has(s.key) && !keep.has(p); }).sort();
 }
 
+/**
+ * FIX2: the retention step (the `screens` workflow, after every upload, and by hand with action `retain`). `objects` are every image in the
+ * bucket with its upload time: { path, at } (at: ISO time). Kept: the newest upload of each screen name in each session (chip), the name
+ * being the file name without its extension, so `a-390.png` and a later `a-390.webp` are one screen; and everything uploaded within the
+ * last `days` days. The rest is returned, to be deleted through the Storage API. Every chip keeps at least one file of every screen it had.
+ */
+export function planRetention(objects, now, days = 7) {
+  const since = now.getTime() - days * 86_400_000;
+  const newest = new Map();
+  for (const o of objects) {
+    const s = parseShot(o.path);
+    if (!s) continue;
+    const name = `${s.session}/${s.file.replace(/\.[A-Za-z0-9]+$/, "")}`;
+    const cur = newest.get(name);
+    if (!cur || Date.parse(o.at) > Date.parse(cur.at) || (Date.parse(o.at) === Date.parse(cur.at) && o.path > cur.path)) newest.set(name, o);
+  }
+  const keep = new Set([...newest.values()].map((o) => o.path));
+  return objects.filter((o) => parseShot(o.path) && !keep.has(o.path) && !(Date.parse(o.at) >= since)).map((o) => o.path).sort();
+}
+
 // WEB4b: the reference's food screens had no kitchens (docs/log/ds2.md), so each food page sits beside the reference's nearest screen.
 const ALIAS = { rider: "join-rider", vendor: "for-vendors", "food-list": "aisles", "food-place": "aisle", "food-basket": "cart", "food-switch": "cart", "food-checkout": "checkout" };
 const PREFIXES = ["console", "con1", "web4b", "web4a", "web2", "web", "ux2a", "ux2b", "ux3", "wh1a", "d4b", "ds1", "ds2", "lb1", "ld1", "lv1"];

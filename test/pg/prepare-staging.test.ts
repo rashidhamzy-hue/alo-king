@@ -34,6 +34,8 @@ run("staging preparation", () => {
     const [lead] = await sql`select count(*)::int n, bool_and(not exists (select 1 from party_identities i where i.party_id = p.id)) no_identity from parties p where p.is_probe and p.role = 'ops_lead'`;
     expect(lead).toEqual({ n: 1, no_identity: true });
     expect(((await sql`select probe_remit_cash() r`)[0]!.r as { riders: number }).riders).toBe(0);       // nothing held yet: the call works and does nothing
+    // FIX2 (0266): the probe orders only while the shop is open; open now for this check, whatever the hour CI runs at.
+    await sql`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}'::jsonb where key = 'hours'`;
     const [due] = await sql`select probe_due() d`;
     expect(due!.d).toMatchObject({ wa_user_id: "PR.0000000000000001" });
   });

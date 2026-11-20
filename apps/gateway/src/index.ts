@@ -426,11 +426,17 @@ export async function probeTick(deps: TurnDeps, env: Env): Promise<void> {
   if (pending.error) throw new Error(`probe_pending: ${pending.error.message}`);
   const { data: cfg } = await supa.rpc("setting", { p_key: "probe" });
   const pin = (cfg as { pin?: { lat: number; lng: number } | null } | null)?.pin ?? null;
-  for (const p of (pending.data as { key: string; line: Line; payload: Outbound; wa_user_id: string }[] | null) ?? []) {
-    const r = probeReply(p.payload);
+  // FIX2 (0266): every message of the last hour not answered yet, newest first. On each party's line the probe answers the newest one it
+  // can answer (a turn may send the pin request and then a "not found yet" line), and marks the others answered with nothing.
+  const answered = new Set<string>();
+  for (const p of (pending.data as { key: string; party_id: string; line: Line; payload: Outbound; wa_user_id: string }[] | null) ?? []) {
+    const who = `${p.party_id}:${p.line}`;
+    const r = answered.has(who) ? null : probeReply(p.payload);
     const { data: mine } = await supa.rpc("probe_answered", { p_key: p.key, p_action: r ? (r.kind === "tap" ? r.id : "pin") : "none" });
     if (!mine || !r || !p.wa_user_id) continue;                 // another cron run took it, or there is nothing to answer
-    const msg: ProbeMessage | null = r.kind === "tap" ? { type: "tap", id: r.id, title: r.title } : pin ? { type: "location", lat: pin.lat, lng: pin.lng } : null;
+    answered.add(who);
+    const msg: ProbeMessage | null = r.kind === "tap" ? { type: "tap", id: r.id, title: r.title, ...(r.list ? { list: true as const } : {}) }
+                                   : pin ? { type: "location", lat: pin.lat, lng: pin.lng } : null;
     if (msg) await injectProbe(supa, env, p.line, p.wa_user_id, msg);
   }
   // OPS1 (0140): the end of a rider's round. The probe riders collect cash on every order; without this their cash passed the soft cap

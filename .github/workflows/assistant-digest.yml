@@ -1,0 +1,32 @@
+# FIX2: the console assistant's nightly digest, once, by hand (the console's 21:40 cron is the usual way). Spends money: one or two calls to
+# claude-haiku-5-5, under settings.assistant's daily and monthly caps (over a cap nothing is written or spent), recorded in model_costs
+# (workflow assistant-digest) on the staging database. Writes one row of assistant_digests; sends nothing.
+# Repository secrets used (never printed): ANTHROPIC_API_KEY, SUPABASE_SERVICE_KEY (the same ones assistant-eval uses).
+name: assistant-digest
+on:
+  workflow_dispatch:
+    inputs:
+      day: { description: "The day (YYYY-MM-DD, Beirut); empty for today", type: string, required: false }
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: assistant-digest
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      DIGEST_DAY: ${{ inputs.day }}
+      ALO_DIGEST_ONCE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: The digest, once
+        run: npx vitest run scripts/assistant/digest-once.test.ts
