@@ -119,10 +119,22 @@ $$;
 create or replace function catalog_named_items(p_party uuid, p_words jsonb, p_line jsonb) returns jsonb
 language sql stable set search_path = public, pg_temp as $$
   with words as (select w from jsonb_array_elements_text(case when jsonb_typeof(p_words) = 'array' then p_words else '[]'::jsonb end) w),
+       said as (select distinct f from unnest(catalog_tokens(coalesce(p_line->>'raw', '') || ' ' || coalesce(p_line->>'query', ''))) t,
+                  unnest(catalog_token_forms(t)) f where not exists (select 1 from catalog_filler cf where cf.word = f)),
+       -- a brand the line names (every brand term whose words are all in the line), and the owners of the unexplained word's kind
+       brands as (select distinct o.brand from language_pack lp join products o on o.sku = lp.sku
+                   where lp.level = 'brand' and coalesce(btrim(o.brand), '') <> ''
+                     and exists (select 1 from words where words.w = any(lp.forms) or words.w in (select f from said))
+                     and lp.tokens <@ (select coalesce(array_agg(f), '{}') from said)),
+       hits as (
+         select p.id, true as by_brand from brands b join products p on p.is_active and p.brand = b.brand
+         union all
+         select o.id, false from words join language_pack lp on words.w = any(lp.forms) and lp.level = 'kind' join products o on o.sku = lp.sku and o.is_active),
+       -- a brand the customer named keeps only that brand's items («مرتديلا بقر مع زيتون من تنمية» is Tanmia's, never Al Mouna's, though
+       -- «بقر» and «زيتون» are Al Mouna's kind words too); the owners of a kind word count only when no brand was named
        named as (
-         select distinct p.id from words join language_pack lp on words.w = any(lp.forms) and lp.level in ('brand', 'kind')
-           join products o on o.sku = lp.sku
-           join products p on p.is_active and (p.sku = o.sku or (lp.level = 'brand' and coalesce(btrim(o.brand), '') <> '' and p.brand = o.brand))),
+         select distinct h.id from hits h
+          where h.by_brand or not exists (select 1 from hits b where b.by_brand)),
        -- the line's other words: what it is («خبز», «رب البندورة», «صدر دجاج»), without the named word and filler
        other as (select distinct f from unnest(catalog_tokens(coalesce(p_line->>'raw', '') || ' ' || coalesce(p_line->>'query', ''))) t,
                    unnest(catalog_token_forms(t)) f

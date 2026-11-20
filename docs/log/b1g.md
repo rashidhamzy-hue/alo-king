@@ -38,11 +38,11 @@ vinegar AK-0209, not on the two tomato pastes), «صدر دجاج التانمي
 
 ## 3. Eval cases first
 `evals/cases/b1g_brand_and_type.json` (staging's names and words for Al Forno, Yamama and Tanmia, exactly as read) and
-`test/db/b1g-brand-and-type.test.ts` (14 tests). Before 0268 (same file, `without: ["0268"]`) the fault shows as on staging: «خبز الفورنو»
+`test/db/b1g-brand-and-type.test.ts` (15 tests). Before 0268 (same file, `without: ["0268"]`) the fault shows as on staging: «خبز الفورنو»
 not found (`other_kind`), «خبز» offers no Al Forno, Yamama's paste and Tanmia's breast "not carried". The cases: the probe's two readings
 (AK-0080 chosen or first, every row Al Forno), "Al Forno bread", «خبز الفورنو», "al forno pita" (chosen), «خبز» alone (a question, every row
 bread, never "not carried"), «رب البندورة اليماما» (pantry: a Yamama tomato paste, never the vinegar or molasses), «صدر دجاج التانمية»
-(chicken: a Tanmia fillet, never the mortadella or luncheon). Seven failed before the fix.
+(chicken: a Tanmia fillet, never the mortadella or luncheon); added after the sim-test, «تلاتة مرتديلا بقر مع زيتون من تنمية» (cold cuts: Tanmia's mortadella with olives, never Al Mouna's). Seven failed before the fix (the eighth failed before its own fix).
 
 ## 4. The fix (0268)
 1. **A spelling of the brand belongs to every item of the brand.** A brand term is a spelling when every word's consonant skeleton
@@ -71,7 +71,14 @@ item. WEB4b's six refused brand words: Liban Lait four times on Halloum (brand L
 guard clean (the commit hook).
 
 ## The model runs (once each, at the end)
-RESULTS_PLACEHOLDER
+| Run | Result | Spend |
+|---|---|---|
+| Language gate, `language-pack` `after,live`, run [44804386000](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44804386000), claude-haiku-5-5, 990 cases | **holds**: wrong products **0** (precision 1.000), F1 **0.919** (B1f 0.919, CX2 0.911); Lebanese Arabic 0.921, Arabizi 0.894, English 0.975, mixed 0.943; the 0.13 demo right. The other live evals **103 of 103** | USD 0.22 (cap 5) |
+| Sim-test, limit 50, budget 2, repeats 0, run [44804389597](https://github.com/rashidhamzy-hue/alo-king/actions/runs/44804389597) | 50 run and judged, **26 passed** (B1f 27, CX2 23; the judge drifts by about 8 a run). Code-checked classes: **0 turn errors, 0 silences after a hand-off, 0 replies in another language, 0 message-rule breaks, 0 no-reply**. Judge: goal not reached 22, wrong product 14, repeated question 8, unnatural dialect 8, dead end 6, invented fact 3. Each "wrong product" read: quantities, edits, windows and the minimum-order loop, none a brand «which one?», **except sim-028** (below) | USD 1.20 (cap 2): Concierge 0.15, customer 0.61, judge 0.43 |
+
+Both were dispatched once, on the branch, after CI passed (commit aff7149).
+
+**What the sim-test showed, and the change after it.** sim-028 asked «تلاتة مرتديلا بقر مع زيتون من تنمية». On staging today (without 0268) that line is "not carried" (`other_kind`), the B1g fault in the cold-cuts aisle. Run locally with 0268 as dispatched, the «which one?» offered Al Mouna's mortadella *first* and Tanmia's second, because «بقر» and «زيتون» are Al Mouna's kind words too. Fixed before the merge, with a case first (`tanmia-mortadella-olives`: Tanmia's mortadella with olives offered, never Al Mouna's or a pepperoni): **a brand the line names keeps only that brand's items; the owners of a kind word count only when no brand is named.** (In the sim itself the kept-order path at night showed "pepperoni beef" for that line, the model's reading of a line the planner had refused; with 0268 the planner now answers it.) The gate and the sim were not run again for this narrowing (the prompt allows one of each): it touches only lines that were "not carried" before, and only makes their «which one?» smaller.
 
 ## On staging
 STAGING_PLACEHOLDER
