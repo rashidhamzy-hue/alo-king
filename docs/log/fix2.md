@@ -27,7 +27,7 @@ orders (AK-1074, AK-1075 in the day; AK-1076 at 17:07). Three stalls, each fixed
 -5 is `inbound_silent`: it fired at each opening after a quiet night. It now counts from the later of the last message and today's opening,
 as `probe_silent` does; six quiet open hours still fire it.
 Tests (`test/db/heartbeat.test.ts`, 4 new): the list answered and parsed as a real webhook; the pin answered with a later line after it; no
-order while closed; `inbound_silent` after a quiet night versus seven quiet open hours. The older heartbeat, alarm and B4 suites pass (30).
+order while closed; `inbound_silent` after a quiet night versus seven quiet open hours. The older heartbeat, alarm and B4 suites pass (30). `test/pg/prepare-staging.test.ts` asked for a probe order at whatever hour CI ran (it failed at 08:00 Beirut on the first CI run): it now opens the shop for that check.
 
 ## 3. The screens bucket's retention
 Read on staging (`storage.objects`, read only): **681 files, 165 MB, 16 sessions; every file from 18 or 19 November** (web4a alone 82
