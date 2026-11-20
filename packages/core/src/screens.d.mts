@@ -11,3 +11,4 @@ export function referenceFor(key: string, width: string | null, paths: string[])
 export interface PageGroup { key: string; shots: Shot[]; widths: string[] }
 export function groupScreens(paths: string[]): { session: string; pages: PageGroup[] }[];
 export const referencePaths: (paths: string[]) => string[];
+export function planRetention(objects: { path: string; at: string }[], now: Date, days?: number): string[];

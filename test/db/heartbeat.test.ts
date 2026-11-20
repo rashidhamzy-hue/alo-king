@@ -3,7 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { probeTick, projectEvent, type Env } from "../../apps/gateway/src/index";
 import type { TurnDeps } from "../../apps/gateway/src/turn";
 import { send as gatewaySend } from "@ak/wa/gateway";
-import { buttons, KapsoReceived, senderKey } from "@ak/wa/kapso";
+import { buttons, KapsoReceived, list, senderKey } from "@ak/wa/kapso";
 import { probeInbound, probeReply } from "@ak/wa/probe";
 import { offerCard, pickupCard, cashAsk } from "@ak/agents/job-card";
 import { orderButtonId } from "@ak/agents/order-card";
@@ -87,6 +87,7 @@ describe("the probe's answers", () => {
   });
 
   it("answers each message it was sent once, and places the hourly order only when due", async () => {
+    await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);   // open (FIX2: the probe orders only while open)
     const delivered: { line: string; id: string }[] = [];
     const fakeEnv = { ...env, CONVERSATION: { idFromName: (n: string) => n, get: () => ({ fetch: async (_u: string, i: RequestInit) => { const b = JSON.parse(String(i.body)); delivered.push({ line: b.line, id: b.event.message.interactive?.button_reply?.id ?? b.event.message.type }); return new Response("queued"); } }) } } as unknown as Env;
     await gatewaySend(supabaseOver(db).client, env, { line: "ops", partyId: probeRider, to: "PR.0000000000000002", category: "utility", dedupeKey: "offer:probe-d1", msg: offerCard(job, 5) });
@@ -134,11 +135,62 @@ describe("alarms", () => {
   });
 
   it("customers usually write and nobody has for hours, while open: the webhook may be dead", async () => {
-    await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
+    await openedHoursAgo(8);
     for (let i = 0; i < 25; i++) await db.pg.query(`insert into wa_inbound_events(idempotency_key, line, event, payload, received_at) values ($1, 'customer', 'whatsapp.message.received', '{}', now() - interval '2 days')`, [`real-${i}`]);
     expect((await alarms()).map((a) => a.kind)).toContain("inbound_silent");
     await db.pg.query(`insert into wa_inbound_events(idempotency_key, line, event, payload) values ('real-now', 'customer', 'whatsapp.message.received', '{}')`);
     expect((await alarms()).map((a) => a.kind)).not.toContain("inbound_silent");
+  });
+});
+
+// FIX2 (Sentry ALO-KING-GATEWAY-3 and -5, staging 19 to 20 November): the probe wrote every hour but stalled, so probe_silent fired
+// all day; inbound_silent fired at each opening after a quiet night. Honest, not silenced: the probe now completes its order, and both
+// alarms still fire when the channel is really silent while open.
+async function openedHoursAgo(h: number) {
+  await db.pg.exec(`update settings set value = jsonb_build_object('tz', 'Asia/Beirut',
+      'open', to_char((now() at time zone 'Asia/Beirut') - interval '${h} hours', 'HH24:MI'),
+      'close', to_char((now() at time zone 'Asia/Beirut') + interval '3 hours', 'HH24:MI')) where key = 'hours'`);
+}
+describe("FIX2: the probe completes its order, and silence is counted while open", () => {
+  const listMsg = (rows: { id: string; title: string }[]) => list("«ربطة خبز الفورنو»: أي واحد بدك؟", "اختار", rows);
+  it("answers the which-one list (CX2) by picking the first product row, sent as a list reply a real webhook parses", () => {
+    const ids = ["e2755700-6d60-410a-8591-bdf63abdbcb7", "dba47104-2905-4f14-8be3-cb0bc4e0e29a"].map(pickButtonId);
+    const r = probeReply(listMsg([{ id: "other:x", title: "غير شي" }, ...ids.map((id, i) => ({ id, title: `${i + 1}. خبز` }))]));
+    expect(r).toMatchObject({ kind: "tap", id: ids[0], list: true });
+    const e = KapsoReceived.parse(probeInbound({ phoneNumberId: "1378974041965966", waUserId: "PR.0000000000000001", name: "Probe", msg: { type: "tap", id: ids[0]!, title: "1. خبز", list: true } }));
+    expect(e.message.interactive?.list_reply?.id).toBe(ids[0]);
+    expect(probeReply(listMsg([{ id: "slot:1", title: "11:00" }]))).toBeNull();     // a list it does not know: no answer (the order stalls, alerted)
+  });
+  it("answers the pin request even when a 'not found yet' line came after it (the newest answerable message on the line)", async () => {
+    await db.pg.exec(`update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours'`);
+    const delivered: { line: string; type: string }[] = [];
+    const fakeEnv = { ...env, CONVERSATION: { idFromName: (n: string) => n, get: () => ({ fetch: async (_u: string, i: RequestInit) => { const b = JSON.parse(String(i.body)); delivered.push({ line: b.line, type: b.event.message.type }); return new Response("queued"); } }) } } as unknown as Env;
+    const c = supabaseOver(db).client;
+    await gatewaySend(c, env, { line: "customer", partyId: probeCustomer, to: "PR.0000000000000001", category: "service", dedupeKey: "fix2:pin", msg: { type: "interactive", interactive: { type: "location_request_message", body: { text: "ابعتلي موقعك" }, action: { name: "send_location" } } } as never });
+    await gatewaySend(c, env, { line: "customer", partyId: probeCustomer, to: "PR.0000000000000001", category: "service", dedupeKey: "fix2:notfound", msg: { type: "text", text: { body: "🔎 لسّا ما عنّا" } } });
+    await db.pg.exec(`update wa_outbox set created_at = now() - interval '1 second' where dedupe_key = 'fix2:pin'`);
+    await probeTick(deps(), fakeEnv);
+    expect(delivered.filter((d) => d.line === "customer" && d.type === "location")).toHaveLength(1);
+    expect(await db.all(`select dedupe_key, action from probe_answers where dedupe_key like 'fix2:%' order by dedupe_key`))
+      .toEqual([{ dedupe_key: "fix2:notfound", action: "none" }, { dedupe_key: "fix2:pin", action: "pin" }]);
+  });
+  it("places the test order only while the shop is open", async () => {
+    await db.pg.exec(`delete from orders where customer_id = '${probeCustomer}'`);
+    await db.pg.exec(`delete from wa_inbound_events where idempotency_key like 'probe:%'`);
+    await db.pg.exec(`update settings set value = jsonb_build_object('tz', 'Asia/Beirut',
+        'open', to_char((now() at time zone 'Asia/Beirut') + interval '1 hour', 'HH24:MI'),
+        'close', to_char((now() at time zone 'Asia/Beirut') + interval '3 hours', 'HH24:MI')) where key = 'hours'`);
+    expect(await db.rpc("probe_due")).toBeNull();
+    await openedHoursAgo(1);
+    expect(await db.rpc("probe_due")).toMatchObject({ wa_user_id: "PR.0000000000000001" });
+  });
+  it("inbound_silent counts from the opening: a quiet night is not silence, six quiet open hours are", async () => {
+    await db.pg.exec(`delete from wa_inbound_events where idempotency_key like 'real-%'`);
+    for (let i = 0; i < 25; i++) await db.pg.query(`insert into wa_inbound_events(idempotency_key, line, event, payload, received_at) values ($1, 'customer', 'whatsapp.message.received', '{}', now() - interval '14 hours')`, [`real-n${i}`]);
+    await openedHoursAgo(1);
+    expect(((await db.rpc("heartbeat_alerts")) as { kind: string }[]).map((a) => a.kind)).not.toContain("inbound_silent");
+    await openedHoursAgo(7);
+    expect(((await db.rpc("heartbeat_alerts")) as { kind: string }[]).map((a) => a.kind)).toContain("inbound_silent");
   });
 });
 

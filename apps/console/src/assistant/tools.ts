@@ -35,6 +35,19 @@ const LEADS: readonly Role[] = ["admin", "ops_lead"];
 const ADMIN: readonly Role[] = ["admin"];
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const dayArg = (v: unknown): string | null => (typeof v === "string" && DAY.test(v) && !Number.isNaN(Date.parse(v)) ? v : null);
+/** FIX2 (AST1 follow-up): figures a tool can only give as they stand now, whatever day was asked. When the question is about another day
+ *  the result says so, and the prompt asks the model to say it ("as of now, not on that day"). */
+export const NOW_ONLY: Record<string, string[]> = {
+  riders: ["cash_usd", "cash_and_pending_usd", "food_float_usd", "cap_state", "on_shift"],
+  money: ["cash_to_collect_usd", "cash_to_collect_orders", "cash_held_by_riders_usd"],
+};
+const beirutDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut" }).format(d);
+export function markNowOnly(tool: string, day: string | null, now: Date, result: unknown): unknown {
+  const fields = NOW_ONLY[tool];
+  if (!fields || !day || day === beirutDay(now) || !result || typeof result !== "object") return result;
+  return { ...(result as Record<string, unknown>), now_only: fields,
+    now_only_note: `These figures are as they stand now (${beirutDay(now)}), not on ${day}: the data keeps no history of them. Say so when you give them.` };
+}
 const intArg = (v: unknown, min: number, max: number, dflt: number) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : dflt;
@@ -57,9 +70,9 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "riders",
-    description: "Riders: who is on shift and since when, cash held against the soft and hard caps, deliveries on the day, and late pickups (minutes from an order being ready to the rider leaving with it, over 15).",
+    description: "Riders: who is on shift and since when, cash held against the soft and hard caps (as of now, whatever day is asked), deliveries on the day, and late pickups (minutes from an order being ready to the rider leaving with it, over 15).",
     input_schema: obj({ day: dayProp }), roles: LEADS,
-    run: (e, i) => e.db.rpc("assistant_riders", { p_day: dayArg(i.day), p_now: e.now.toISOString(), p_late_pickup_min: 15 }),
+    run: async (e, i) => markNowOnly("riders", dayArg(i.day), e.now, await e.db.rpc("assistant_riders", { p_day: dayArg(i.day), p_now: e.now.toISOString(), p_late_pickup_min: 15 })),
   },
   {
     name: "stock",
@@ -96,9 +109,9 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "money",
-    description: "Money on one day (admin only): sales of goods (delivery fees and tips are the riders', never company revenue), cash still to collect, cash held by riders, cash drops and transfers to confirm, over/short, the day close difference, unbalanced ledger transactions.",
+    description: "Money on one day (admin only): sales of goods (delivery fees and tips are the riders', never company revenue), cash still to collect and cash held by riders (both as of now, whatever day is asked), cash drops and transfers to confirm, over/short, the day close difference, unbalanced ledger transactions.",
     input_schema: obj({ day: dayProp }), roles: ADMIN,
-    run: (e, i) => e.db.rpc("assistant_money", { p_day: dayArg(i.day), p_now: e.now.toISOString() }),
+    run: async (e, i) => markNowOnly("money", dayArg(i.day), e.now, await e.db.rpc("assistant_money", { p_day: dayArg(i.day), p_now: e.now.toISOString() })),
   },
   {
     name: "model_spend",

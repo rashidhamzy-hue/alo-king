@@ -31,6 +31,16 @@ export function screensStore({ url, key, fetchImpl = fetch }) {
       }
       return out.sort();
     },
+    /** FIX2: every image with its upload time and size: `{ path, at, size }` (for the retention step and its before/after report). */
+    async listDetailed() {
+      const out = [];
+      for (const top of await listFolder("")) {
+        if (top.id !== null && top.id !== undefined) continue;
+        for (const f of await listFolder(top.name)) if (f.id && isImage(f.name))
+          out.push({ path: `${top.name}/${f.name}`, at: f.updated_at ?? f.created_at ?? new Date(0).toISOString(), size: Number(f.metadata?.size ?? 0) });
+      }
+      return out.sort((a, b) => a.path.localeCompare(b.path));
+    },
     async put(path, body, contentType) {
       if (!safeScreenPath(path)) throw new Error(`bad path ${path}`);
       const res = await fetchImpl(`${api}/object/${BUCKET}/${path}`, { method: "POST", headers: { ...auth, "content-type": contentType, "x-upsert": "true" }, body });

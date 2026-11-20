@@ -5,6 +5,8 @@
 #                  older screenshots of the same pages ("the latest set per page"). A session that makes screen changes dispatches this
 #                  on its branch instead of committing images (a check in ci.yml refuses any image under docs/).
 #   action move    the one-time move: every image under docs/screens/ at a git ref, uploaded with the same paths (oldest session first).
+#   action retain  FIX2: keep the newest upload of each screen name per session (chip) and everything from the last 7 days; delete the rest
+#                  through the Storage API (never SQL). Also runs after every shoot. The summary gives the size before and after.
 #   action verify  list every object and open it through a signed link; the summary says how many opened.
 # Repository secret used (never printed): SUPABASE_SERVICE_KEY (the same one the label-read and intake workflows use).
 name: screens
@@ -14,7 +16,7 @@ on:
       action:
         description: What to do
         type: choice
-        options: [shoot, move, verify]
+        options: [shoot, retain, move, verify]
         default: shoot
       session:
         description: "shoot: the folder the screenshots go to (the session's lower-case name, e.g. wh1a)"
@@ -72,6 +74,10 @@ jobs:
         if: inputs.action == 'shoot'
         env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}", SESSION: "${{ inputs.session }}" }
         run: node scripts/screens/run.mjs upload out/shots "$SESSION"
+      - name: Retention (newest of each screen per session, and the last 7 days)
+        if: inputs.action == 'shoot' || inputs.action == 'retain'
+        env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}" }
+        run: node scripts/screens/run.mjs retain
       - name: Move
         if: inputs.action == 'move'
         env: { SUPABASE_SERVICE_KEY: "${{ secrets.SUPABASE_SERVICE_KEY }}", FROM_REF: "${{ inputs.from_ref }}" }
