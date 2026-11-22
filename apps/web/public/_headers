@@ -7,3 +7,5 @@
   Cache-Control: public, max-age=604800
 /site.js
   Cache-Control: public, max-age=3600
+/categories/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400

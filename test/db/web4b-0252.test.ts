@@ -22,7 +22,8 @@ const webSkus = async (db: TestDb, q: string) =>
 
 describe("before 0252: the fault as staging had it", () => {
   let db: TestDb;
-  beforeAll(async () => { db = await stagingLike(["0252", "0268"])   /* 0268 (B1g) builds on 0252's refusals */; }, 180_000);
+  // 0267 (PERF1) builds on 0252's feed JPEG table and 0268 (B1g) on its refusals, so the database without 0252 is also without them.
+  beforeAll(async () => { db = await stagingLike(["0252", "0267", "0268"]); }, 180_000);
   afterAll(async () => { await db?.pg.close(); });
   it("«لبن» finds Halloum, «ماي» finds the tea", async () => {
     expect(await skus(db, "لبن")).toContain("AK-0044");

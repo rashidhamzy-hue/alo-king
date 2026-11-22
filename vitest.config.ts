@@ -8,6 +8,8 @@ const markdownAsText = { name: "md-as-text", transform(_code: string, id: string
 } };
 export default defineConfig({
   plugins: [markdownAsText],
+  // PERF1: the website's React components (apps/web, whose tsconfig is Astro's "preserve") are rendered by a test: compile JSX for React.
+  oxc: { jsx: { runtime: "automatic" } },
   // Tests that open PGlite with every migration can pass 5 s on a busy CI runner (console tests did, 13 Nov).
   // A beforeEach that opens one is a hook, not a test, and kept vitest's 10 s default: it failed twice on the CI runner once the console suite reached 43 files (LV1, #117).
   test: { testTimeout: 30_000, hookTimeout: 30_000 },

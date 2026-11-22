@@ -17,7 +17,12 @@ export interface CardData {
   code: string;
   /** what the price is for, in words ("per kg", "per pack of about 500 g"); null for an item sold as a piece */
   per: string | null;
+  /** PERF1: the 400/800 px srcset (null before the copies are made) and the picture's size, so the page does not jump while it loads */
+  imgSet?: string | null; imgW?: number; imgH?: number;
 }
+/** PERF1: how wide a card is drawn, so a phone takes the 400 px copy (a grid of two, a rail of 42vw) and a wide screen what it needs. */
+export const GRID_SIZES = "(min-width: 1280px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw";
+export const RAIL_SIZES = "(min-width: 640px) 176px, 42vw";
 
 export const TONE_BG: Record<Tone, string> = {
   clay: "bg-tone-clay text-tone-clay-ink", sky: "bg-tone-sky text-tone-sky-ink", wheat: "bg-tone-wheat text-tone-wheat-ink", rose: "bg-tone-rose text-tone-rose-ink",
@@ -35,10 +40,13 @@ export function AisleIcon({ code, className = "" }: { code: string; className?: 
 }
 
 /** The picture, or the aisle's tone with its icon (never the name again: it is under the picture). */
-export function ProductVisual({ p, big = false }: { p: Pick<CardData, "img" | "imgAlt" | "tone" | "code">; big?: boolean }) {
+export function ProductVisual({ p, big = false, eager = false, sizes }: { p: Pick<CardData, "img" | "imgAlt" | "tone" | "code" | "imgSet" | "imgW" | "imgH">; big?: boolean; eager?: boolean; sizes?: string }) {
+  // PERF1: lazy unless it is the page's big picture or a card of the first visible row; a width and height so nothing moves as it loads.
+  const now = big || eager;
   return p.img
     ? <span className={cx("relative block aspect-square overflow-hidden bg-white", big ? "rounded-3xl" : "rounded-xl")}>
-        <img src={p.img} alt={p.imgAlt} loading={big ? "eager" : "lazy"} decoding="async" className={cx("size-full object-contain", big ? "p-6" : "p-3")} />
+        <img src={p.img} srcSet={p.imgSet ?? undefined} sizes={p.imgSet ? (sizes ?? GRID_SIZES) : undefined} width={p.imgW ?? 400} height={p.imgH ?? 400}
+          alt={p.imgAlt} loading={now ? "eager" : "lazy"} fetchPriority={eager && !big ? "high" : undefined} decoding="async" className={cx("size-full object-contain", big ? "p-6" : "p-3")} />
       </span>
     : <span className={cx("relative grid aspect-square place-items-center overflow-hidden", big ? "rounded-3xl" : "rounded-xl", TONE_BG[p.tone])}>
         <span className="paper-grain absolute inset-0 opacity-50" aria-hidden="true" />
@@ -47,14 +55,14 @@ export function ProductVisual({ p, big = false }: { p: Pick<CardData, "img" | "i
       </span>;
 }
 
-export function ProductCard({ p, lang, as = "article" }: { p: CardData; lang: Lang; as?: "article" | "li" }) {
+export function ProductCard({ p, lang, as = "article", eager = false, sizes }: { p: CardData; lang: Lang; as?: "article" | "li"; eager?: boolean; sizes?: string }) {
   const out = !p.inStock;
   const Tag = as;
   return (
     <Tag className="ak-product group relative flex list-none flex-col">
       <div className="relative">
         <a href={`/p/${encodeURIComponent(p.sku)}`} tabIndex={-1} aria-hidden="true" className="block rounded-xl no-underline transition group-hover:-translate-y-0.5">
-          <span className={cx("block", (out || p.comingSoon) && "opacity-55 grayscale")}><ProductVisual p={p} /></span>
+          <span className={cx("block", (out || p.comingSoon) && "opacity-55 grayscale")}><ProductVisual p={p} eager={eager} sizes={sizes} /></span>
         </a>
         {(out || p.comingSoon) && (
           <span className="absolute start-2 top-2 rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-paper">{t(lang, p.comingSoon ? "coming_soon" : "out_of_stock")}</span>
@@ -75,17 +83,18 @@ export function ProductCard({ p, lang, as = "article" }: { p: CardData; lang: La
   );
 }
 
-export function ProductRail({ items, lang }: { items: CardData[]; lang: Lang }) {
+/** `eager`: how many of the first cards load at once (the first visible row; 0 for a rail below the fold). */
+export function ProductRail({ items, lang, eager = 0 }: { items: CardData[]; lang: Lang; eager?: number }) {
   return (
     <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0">
-      {items.map((p) => <div key={p.sku} className="w-[42vw] max-w-44 shrink-0 snap-start sm:w-44"><ProductCard p={p} lang={lang} /></div>)}
+      {items.map((p, i) => <div key={p.sku} className="w-[42vw] max-w-44 shrink-0 snap-start sm:w-44"><ProductCard p={p} lang={lang} eager={i < eager} sizes={RAIL_SIZES} /></div>)}
     </div>
   );
 }
-export function ProductGrid({ items, lang }: { items: CardData[]; lang: Lang }) {
+export function ProductGrid({ items, lang, eager = 0 }: { items: CardData[]; lang: Lang; eager?: number }) {
   return (
     <ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-5 p-0 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-      {items.map((p) => <ProductCard key={p.sku} p={p} lang={lang} as="li" />)}
+      {items.map((p, i) => <ProductCard key={p.sku} p={p} lang={lang} as="li" eager={i < eager} sizes={GRID_SIZES} />)}
     </ul>
   );
 }

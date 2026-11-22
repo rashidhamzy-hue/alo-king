@@ -1,0 +1,36 @@
+# PERF1 (0267): the private `media` bucket keeps no file of a picture rejected or withdrawn more than 3 days ago (the rows, reasons and
+# sha256 stay). Only the database's list is deleted (media_cleanup_work): never a label photo, a menu photo, or anything another row still
+# names. Through the Storage API, never SQL. The summary gives the catalog, media and screens buckets before and after.
+# No model, no cost. Daily, and by hand (dry_run lists without deleting). Staging only until production exists (A3).
+# Secret used (a repository secret, never printed): SUPABASE_SERVICE_KEY.
+name: storage-clean
+on:
+  schedule: [{ cron: "29 2 * * *" }]     # 02:29 UTC (04:29 in Beirut), while closed
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List what is due, delete nothing
+        type: boolean
+        default: false
+permissions: { contents: read }
+concurrency:
+  group: storage-clean
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Delete the due files, report the buckets
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_KEY" ]; then echo "SUPABASE_SERVICE_KEY is not set: nothing to do" >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          node scripts/images/media-clean.mjs

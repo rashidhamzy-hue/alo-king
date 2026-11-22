@@ -87,6 +87,8 @@ export async function catalogFeed(req: Request, deps: FeedDeps): Promise<Respons
 
 // ---------- the public `catalog` bucket (A5, 0115) ----------
 export const CATALOG_BUCKET = "catalog";
+/** PERF1: the header of every object in the public bucket (scripts/images/lib/store.mjs uses the same string). */
+export const CATALOG_CACHE_CONTROL = "public, max-age=31536000, immutable";
 const PRIVATE_BUCKET = "media";
 /** A stray younger than this may be a copy whose book entry is about to be written. */
 const STRAY_GRACE_MS = 10 * 60_000;
@@ -103,9 +105,14 @@ export interface PublicStore {
 /** The real thing, over the Storage API with the service key. */
 export function supabasePublicStore(db: SupabaseClient): PublicStore {
   return {
+    // PERF1: read and written again rather than Storage's copy, which keeps the private file's "no-cache"; the bytes pass through
+    // untouched (no decoding, so no CPU to speak of). A name in `catalog` is never given other bytes, so it is cached for a year.
     async copy(from, to) {
-      const { error } = await db.storage.from(PRIVATE_BUCKET).copy(from, to, { destinationBucket: CATALOG_BUCKET });
-      if (error && !/already exists|duplicate|409/i.test(`${error.message} ${(error as { statusCode?: string }).statusCode ?? ""}`)) throw new Error(`catalog copy: ${error.message}`);
+      const { data, error } = await db.storage.from(PRIVATE_BUCKET).download(from);
+      if (error || !data) throw new Error(`catalog copy: ${error?.message ?? "no data"}`);
+      const up = await db.storage.from(CATALOG_BUCKET).upload(to, await data.arrayBuffer(),
+        { upsert: true, contentType: data.type || "image/webp", headers: { "cache-control": CATALOG_CACHE_CONTROL } });
+      if (up.error) throw new Error(`catalog copy: ${up.error.message}`);
     },
     async remove(keys) {
       if (!keys.length) return;
@@ -127,7 +134,9 @@ export function supabasePublicStore(db: SupabaseClient): PublicStore {
 
 export interface PictureSyncResult { copied: number; removed: number; strays: number; forgotten: number; failed: number;
   /** WEB4b: feed JPEGs of withdrawn pictures removed from the bucket (they are made by the catalog-jpegs workflow, never here). */
-  jpegsRemoved: number }
+  jpegsRemoved: number;
+  /** PERF1: the website's 400 and 800 px copies of withdrawn pictures removed (made by the same workflow, never here). */
+  variantsRemoved: number }
 
 /**
  * Makes the public bucket match the database's books: removes first (privacy before convenience), then copies. The list of work
@@ -137,7 +146,7 @@ export interface PictureSyncResult { copied: number; removed: number; strays: nu
  * Each job is done on its own: one failure does not stop the others. Throws at the end if any failed, so the caller reports it.
  */
 export async function syncCatalogPictures(db: SupabaseClient, store: PublicStore, opts: { reconcile?: boolean; now?: number } = {}): Promise<PictureSyncResult> {
-  const r: PictureSyncResult = { copied: 0, removed: 0, strays: 0, forgotten: 0, failed: 0, jpegsRemoved: 0 };
+  const r: PictureSyncResult = { copied: 0, removed: 0, strays: 0, forgotten: 0, failed: 0, jpegsRemoved: 0, variantsRemoved: 0 };
   const errors: string[] = [];
   const fail = (what: string, e: unknown) => { r.failed++; errors.push(`${what}: ${String((e as Error)?.message ?? e).slice(0, 120)}`); };
   const call = async <T>(fn: string, args?: Record<string, unknown>): Promise<T> => {
@@ -157,6 +166,13 @@ export async function syncCatalogPictures(db: SupabaseClient, store: PublicStore
       try { await store.remove([j.public_path]); await call("catalog_feed_jpeg_removed", { p_image: j.image_id }); r.jpegsRemoved++; } catch (e) { fail(`remove ${j.public_path}`, e); }
     }
   } catch (e) { fail("feed jpeg work", e); }
+  // PERF1: and its website copies (the pages stopped naming them the moment it was withdrawn: catalog_web_picture).
+  try {
+    const vw = await call<{ remove: { public_path: string }[] }>("catalog_variant_work");
+    for (const j of vw.remove ?? []) {
+      try { await store.remove([j.public_path]); await call("catalog_variant_removed", { p_path: j.public_path }); r.variantsRemoved++; } catch (e) { fail(`remove ${j.public_path}`, e); }
+    }
+  } catch (e) { fail("variant work", e); }
   for (const j of work.copy ?? []) {
     try { await store.copy(j.media_path, j.public_path); await call("catalog_picture_copied", { p_image: j.image_id }); r.copied++; } catch (e) { fail(`copy ${j.public_path}`, e); }
   }

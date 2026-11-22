@@ -107,6 +107,8 @@ export interface CatalogPicture {
   /** Key in the public `catalog` bucket: <SUPABASE_URL>/storage/v1/object/public/catalog/<path>. Only a picture a customer may see and the bucket holds. */
   path: string; licence: "cc_by_sa" | "brand_own" | "own_photo"; source_kind: string; attribution: string | null; source_url: string | null;
   width_px: number | null; height_px: number | null;
+  /** PERF1 (0267): the 400 px and 800 px WebP copies in the same bucket (content-hashed names), once the hourly job made them; else absent or null. */
+  w400?: string | null; w800?: string | null;
 }
 /** WEB4a (0244): what a price is for. 'kg': a kilo. 'pack': one pack, of about `about_g` grams (null: the weight is not confirmed yet). */
 export interface PriceFor { per: "kg" | "pack"; about_g: number | null }

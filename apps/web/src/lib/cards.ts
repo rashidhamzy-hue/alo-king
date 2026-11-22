@@ -2,7 +2,7 @@
 // the database's. What a price is for (0244): "per kg", "per pack of about X g", or "per pack, weight not confirmed yet" (never a guess).
 import type { CatalogCard, PriceFor } from "@ak/commerce/index";
 import type { CardData } from "../components/ref/Product";
-import { pictureUrl, type WebEnv } from "./db";
+import { pictureSet, type WebEnv } from "./db";
 import { toneOf } from "./category-photos";
 import { nameIn, t, unitLabel, type Lang } from "./i18n";
 
@@ -18,8 +18,9 @@ const shownUnit = (lang: Lang, c: Pick<CatalogCard, "sell_unit" | "price_for">) 
 export function toCard(lang: Lang, env: WebEnv, c: CatalogCard, code = ""): CardData {
   const name = nameIn(lang, c.name_en, c.name_ar);
   const aisle = c.category_code || code;
+  const pic = c.picture ? pictureSet(env, c.picture, 400) : null;
   return {
     sku: c.sku, name, unit: shownUnit(lang, c), price: Number(c.price_usd), inStock: !!c.in_stock, comingSoon: !!c.coming_soon,
-    img: c.picture ? pictureUrl(env, c.picture.path, 400) : null, imgAlt: name, tone: toneOf(aisle), code: aisle, per: priceForText(lang, c.price_for),
+    img: pic?.src ?? null, imgSet: pic?.srcSet ?? null, imgW: pic?.width ?? 400, imgH: pic?.height ?? 400, imgAlt: name, tone: toneOf(aisle), code: aisle, per: priceForText(lang, c.price_for),
   };
 }
