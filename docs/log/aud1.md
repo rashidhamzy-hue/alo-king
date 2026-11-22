@@ -92,7 +92,11 @@ list a Worker's secrets or routes. Those are marked Founder with the exact check
 - `npm run typecheck && npm test` and the personal-data guard: see "Results".
 
 ## Results
-Filled in after CI and the deploy (below).
+- **Tests**: `npm run typecheck` clean. `npm test` locally: 3,541 passed, 182 skipped; the 7 `test/pg` files fail in this container only (no pgvector, migration 0212), as in FIX2 and PERF1. Personal-data guard clean (it caught two WhatsApp numbers in the first draft of this report; removed). **One real failure found and fixed**: CI's `permissions-check` first failed ("new row violates row-level security policy for table turns"): its scratch `service_role` was made without BYPASSRLS, while Supabase's has it (read on staging: `service_role` bypass true). The script now gives the scratch role the same attribute; after that `permissions-check` passed with the new "no public table without RLS" check in force.
+- **Merged** as [#157](https://github.com/rashidhamzy-hue/alo-king/pull/157) (merge commit 056dcc3), CI green (test, permissions-check, pilot-locks, secrets-and-dependencies, CodeQL).
+
+## On staging (22 November, deploy-staging run 45009079562 from `main` at 056dcc3, green)
+- 0270 applied: **184 migrations recorded, last 0270**. Read afterwards: **0 public tables with RLS off, 0 table grants to `anon` or `authenticated`**; the security advisor now lists 154 INFO "RLS enabled, no policy" (146 and the eight new: by design) and the one Auth WARN. The gateway's heartbeat answers (`cron_age_s` 39), no new Sentry issue, GATEWAY-5 the only one open.
 
 ## Founder actions (AUD1)
 In `docs/STATUS.md`, section 3, action **t**: branch protection (the only one that matters), Dependabot, one look at the secret names and the allowed actions, optional branch clean-up, and Supabase's leaked-password setting at gate C.
