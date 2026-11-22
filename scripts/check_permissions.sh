@@ -27,6 +27,8 @@ do $$ declare r text; begin
     execute format('alter default privileges in schema public grant all on tables to %I', r);
     execute format('alter default privileges in schema public grant execute on functions to %I', r);
   end loop;
+  -- Supabase's service_role bypasses row level security (read on staging, AUD1); the scratch one must too, or every table with RLS and no policy refuses it.
+  alter role service_role bypassrls;
 end $$;
 SQL
 for f in supabase/migrations/*.sql; do $PSQL -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; exit 1; }; done
