@@ -27,6 +27,8 @@ do $$ declare r text; begin
     execute format('alter default privileges in schema public grant all on tables to %I', r);
     execute format('alter default privileges in schema public grant execute on functions to %I', r);
   end loop;
+  -- Supabase's service_role bypasses row level security (read on staging, AUD1); the scratch one must too, or every table with RLS and no policy refuses it.
+  alter role service_role bypassrls;
 end $$;
 SQL
 for f in supabase/migrations/*.sql; do $PSQL -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; exit 1; }; done
@@ -82,6 +84,12 @@ do $$ declare n int; t text; begin
       and (has_table_privilege(r, c.oid, 'select') or has_table_privilege(r, c.oid, 'insert') or has_table_privilege(r, c.oid, 'update') or has_table_privilege(r, c.oid, 'delete')) loop
     raise warning 'table % still has a grant to anon or authenticated (RLS blocks it; revoke it in a migration)', t;
   end loop;
+  -- AUD1 (0270): row security is on for every table of ours, not only those a client role can reach. Migration 0001 switched it on
+  -- for the tables that existed then; eight later ones never had it until 0270. A new table must end with `alter table ... enable row level security`.
+  select string_agg(c.relname, ', ' order by c.relname) into t from pg_class c
+   where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') and not c.relrowsecurity
+     and not exists (select 1 from pg_depend d where d.objid = c.oid and d.deptype = 'e');
+  if t is not null then raise exception 'tables in public with row level security off (enable it in a migration): %', t; end if;
   raise notice 'none of our functions is callable by PUBLIC, anon or authenticated, and no table grant escapes row level security';
 end $$;
 -- G1-11 (F1, 0103): every function of ours carries its own search_path, so no caller's path can change what a name means.
