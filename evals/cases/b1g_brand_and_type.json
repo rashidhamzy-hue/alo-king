@@ -1,0 +1,1944 @@
+{
+  "about": "B1g (20 Nov 2026): the staging probe orders «بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين» every hour. On 19 Nov (AK-1074 to AK-1076) the Al Forno pita AK-0080 reached the card; on 20 Nov at 07:17 the reply said «ربطة خبز الفورنو ما عنّا» (the card AK-1077 still carried the bread), at 08:19 code said «لسّا ما عنّا ربطة خبز الفورنو» and AK-1078 went without it, and from 09:22 the probe was offered three other breads and took Wooden Bakery (AK-1079 to AK-1088). The words never changed, nor did the data (since 16 Nov). Cause, read from staging (agent_runs, order_items, language_pack; plan_order_core rerun read-only on the probe's own reading): (1) data: the search-words job (auto-2026-11-16) wrote the brand Al Forno's one-word Arabic and Latin spellings («الفورنو», «فورنو», forno) on the piston bread AK-0083 only; on the pita AK-0080 it wrote «آل فورنو» / «ال فورنو» (two words, from its approved Arabic name). The same split exists across 45 brands (Yamama: «اليماما» on the vinegar only; Tanmia: «التانمية» on one mortadella only). (2) logic: with «الفورنو» unexplained by the breads that fit «خبز», CX2's guard (0256/0257, b4 other_kind) read it as another product's brand and turned the line into 'not carried', though that brand's breads were sellable. The reading itself varies (query «خبز الفورنو» or «خبز»): with «خبز» the planner offered three non-Al Forno breads; with «خبز الفورنو» it said not carried; the model's tool loop sometimes found AK-0080 by another search (19 Nov) and sometimes wrote 'we don't have it' while adding it (20 Nov 07:17). So the 19th 'found' was the model rescuing the planner, the 20th 'not carried' was the planner. Rule (B1g): never say we don't carry it when an item matching the brand or the type is sellable; ask which one instead. Run by test/db/b1g-brand-and-type.test.ts (staging's names and words written through save_search_words, the job's own door).",
+  "run": "staging, probe turns 19 Nov 13:02, 15:04, 17:07 (found, path ask) and 20 Nov 07:17 (ask, «ما عنّا»), 08:19 (ask_pin, «لسّا ما عنّا»), 09:22 (which, three other breads); orders AK-1074 to AK-1088",
+  "staging_names": {
+    "AK-0080": "آل فورنو خبز بيتا أبيض كبير 800 غ",
+    "AK-0083": "خبز فرنجي سادة 5 حبة",
+    "AK-0208": "معجون طماطم ياماما 1325 غ",
+    "AK-0209": "خل أبيض ياماما 1 ل",
+    "AK-0210": "معجون طماطم ياماما 660 غ",
+    "AK-0218": "دبس رمان ياماما 300 مل",
+    "AK-0031": "فيليه دجاج طازج تنمية 500 غ",
+    "AK-0032": "فيليه دجاج مقرمش تنمية",
+    "AK-0096": "موردیلا لحم بقر مع زيتون"
+  },
+  "staging_terms": {
+    "AK-0080": [
+      [
+        "al forno",
+        "brand",
+        "en"
+      ],
+      [
+        "alforno",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "آل فورنو",
+        "brand",
+        "ar"
+      ],
+      [
+        "ال فورنو",
+        "brand",
+        "ar"
+      ],
+      [
+        "al forno 800 g",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno 800g",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno big",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno pita",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno pita white",
+        "exact",
+        "en"
+      ],
+      [
+        "forno khobz 800",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "forno pita 800",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "آل فورنو 800",
+        "exact",
+        "ar"
+      ],
+      [
+        "آل فورنو خبز بيتا",
+        "exact",
+        "ar"
+      ],
+      [
+        "فورنو بيتا 800",
+        "exact",
+        "ar"
+      ],
+      [
+        "arabic bread",
+        "kind",
+        "en"
+      ],
+      [
+        "khebz arabi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz abyad",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz araabi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz arabe",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz arabi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz baita",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "pain arabe",
+        "kind",
+        "fr"
+      ],
+      [
+        "pain pita",
+        "kind",
+        "fr"
+      ],
+      [
+        "pita bread",
+        "kind",
+        "en"
+      ],
+      [
+        "rabta khobz",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "الخبز العربي",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز أبيض",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز ابيض",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز بلدي",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز بيتا",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز صاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز عربي",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبزة",
+        "kind",
+        "ar"
+      ],
+      [
+        "ربطة خبز",
+        "kind",
+        "ar"
+      ],
+      [
+        "ربطة خبز عربي",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0083": [
+      [
+        "al forno",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "Al Forno",
+        "brand",
+        "en"
+      ],
+      [
+        "alforno",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "forno",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "Forno",
+        "brand",
+        "en"
+      ],
+      [
+        "ال فورنو",
+        "brand",
+        "ar"
+      ],
+      [
+        "الفورنو",
+        "brand",
+        "ar"
+      ],
+      [
+        "فورنو",
+        "brand",
+        "ar"
+      ],
+      [
+        "5 pieces piston",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno piston",
+        "exact",
+        "en"
+      ],
+      [
+        "al forno plain",
+        "exact",
+        "en"
+      ],
+      [
+        "forno piston",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "fransi 5",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "piston 5",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "piston 5 pcs",
+        "exact",
+        "en"
+      ],
+      [
+        "piston plain",
+        "exact",
+        "en"
+      ],
+      [
+        "piston sada",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "خبز فرنجي سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "فرنجي 5 حبات",
+        "exact",
+        "ar"
+      ],
+      [
+        "فرنجي سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "فورنو بيستون",
+        "exact",
+        "ar"
+      ],
+      [
+        "فورنو سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "5obz faransi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "5obz fransi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "bagette",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "baguette",
+        "kind",
+        "fr"
+      ],
+      [
+        "franji",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "fransi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "french bread",
+        "kind",
+        "en"
+      ],
+      [
+        "khobez faransi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz franji",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz fransi",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khobz frenji",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "pain baguette",
+        "kind",
+        "fr"
+      ],
+      [
+        "pain français",
+        "kind",
+        "fr"
+      ],
+      [
+        "pain piston",
+        "kind",
+        "fr"
+      ],
+      [
+        "piston",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "الفرنجي",
+        "kind",
+        "ar"
+      ],
+      [
+        "باجيت",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز فرنجي",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز فرنجي سادة",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز فرنساوي",
+        "kind",
+        "ar"
+      ],
+      [
+        "خبز فرنسي",
+        "kind",
+        "ar"
+      ],
+      [
+        "ربطة خبز فرنجي",
+        "kind",
+        "ar"
+      ],
+      [
+        "ربطة فرنجي",
+        "kind",
+        "ar"
+      ],
+      [
+        "فرنجي",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0208": [
+      [
+        "yamama",
+        "brand",
+        "en"
+      ],
+      [
+        "yamama tomato",
+        "brand",
+        "en"
+      ],
+      [
+        "yamamah",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "yamame",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "ياماما",
+        "brand",
+        "ar"
+      ],
+      [
+        "يامامة",
+        "brand",
+        "ar"
+      ],
+      [
+        "rob yamama 1325",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "yamama 1.3 kg",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama 1.325 kg",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama 1325",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama 1325 g",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama 1325g",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama large tomato paste",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama tomato paste 1325",
+        "exact",
+        "en"
+      ],
+      [
+        "yamame 1325",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "معجون طماطم ياماما 1325",
+        "exact",
+        "ar"
+      ],
+      [
+        "ياماما 1325",
+        "exact",
+        "ar"
+      ],
+      [
+        "ياماما طماطم",
+        "exact",
+        "ar"
+      ],
+      [
+        "concentré de tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "concentre tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "double concentré",
+        "kind",
+        "fr"
+      ],
+      [
+        "ma3joun banadoura",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun batater",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun tomata",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun tomate",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "maajoun tomate",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "pate de tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "rab bandoura",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "rob banadoura",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "rob bandora",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "tomato concentrate",
+        "kind",
+        "en"
+      ],
+      [
+        "tomato paste",
+        "kind",
+        "en"
+      ],
+      [
+        "tomato paste can",
+        "kind",
+        "en"
+      ],
+      [
+        "tomato puree",
+        "kind",
+        "en"
+      ],
+      [
+        "بندورة معلبة",
+        "kind",
+        "ar"
+      ],
+      [
+        "رب الطماطم",
+        "kind",
+        "ar"
+      ],
+      [
+        "رب بندورة",
+        "kind",
+        "ar"
+      ],
+      [
+        "رب بندوره",
+        "kind",
+        "ar"
+      ],
+      [
+        "رب طماطم",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون الطماطم",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون بندورة",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون طماطة",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون طماطم",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0209": [
+      [
+        "yamama",
+        "brand",
+        "en"
+      ],
+      [
+        "yamame",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "اليماما",
+        "brand",
+        "ar"
+      ],
+      [
+        "ياماما",
+        "brand",
+        "ar"
+      ],
+      [
+        "5al yamama",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "khal abyad 1l",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "khal yamama",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "vinaigre yamama",
+        "exact",
+        "fr"
+      ],
+      [
+        "yamama abyad",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "yamama khal",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "yamama vinegar 1l",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama white vinegar",
+        "exact",
+        "en"
+      ],
+      [
+        "خل أبيض ياماما 1 ل",
+        "exact",
+        "ar"
+      ],
+      [
+        "خل ابيض 1 ل",
+        "exact",
+        "ar"
+      ],
+      [
+        "خل ابيض ياماما",
+        "exact",
+        "ar"
+      ],
+      [
+        "خل ياماما 1 ل",
+        "exact",
+        "ar"
+      ],
+      [
+        "5all",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "5el",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khal",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khal abid",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khal abyad",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "khall",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "le vinaigre",
+        "kind",
+        "fr"
+      ],
+      [
+        "vinaigre",
+        "kind",
+        "fr"
+      ],
+      [
+        "vinaigre blanc",
+        "kind",
+        "fr"
+      ],
+      [
+        "vinegar",
+        "kind",
+        "en"
+      ],
+      [
+        "vinegar bottle",
+        "kind",
+        "en"
+      ],
+      [
+        "white vinegar",
+        "kind",
+        "en"
+      ],
+      [
+        "الخل",
+        "kind",
+        "ar"
+      ],
+      [
+        "خل",
+        "kind",
+        "ar"
+      ],
+      [
+        "خل abyad",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "خل أبيض",
+        "kind",
+        "ar"
+      ],
+      [
+        "خل ابيض",
+        "kind",
+        "ar"
+      ],
+      [
+        "خل تفاح",
+        "kind",
+        "ar"
+      ],
+      [
+        "زيت خل",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0210": [
+      [
+        "yamama",
+        "brand",
+        "en"
+      ],
+      [
+        "yamamah",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "yamame",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "yamamma",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "ياماما",
+        "brand",
+        "ar"
+      ],
+      [
+        "يامامة",
+        "brand",
+        "ar"
+      ],
+      [
+        "ma3joun yamama 660",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "yamama 660",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama 660 g",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama concentré 660",
+        "exact",
+        "fr"
+      ],
+      [
+        "yamama tomato 660g",
+        "exact",
+        "en"
+      ],
+      [
+        "yamama tomato paste 660",
+        "exact",
+        "en"
+      ],
+      [
+        "yamame 660",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "ياماما 660",
+        "exact",
+        "ar"
+      ],
+      [
+        "ياماما طماطم 660",
+        "exact",
+        "ar"
+      ],
+      [
+        "يامامة 660 غ",
+        "exact",
+        "ar"
+      ],
+      [
+        "concentré de tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "concentre tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "ma3joun bandoura",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun el tomate",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun tomata",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun tomate",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "ma3joun tomatem",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "majoun tomate",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "pâte de tomate",
+        "kind",
+        "fr"
+      ],
+      [
+        "tomate en boîte",
+        "kind",
+        "fr"
+      ],
+      [
+        "tomato concentrate",
+        "kind",
+        "en"
+      ],
+      [
+        "tomato paste",
+        "kind",
+        "en"
+      ],
+      [
+        "tomato puree",
+        "kind",
+        "en"
+      ],
+      [
+        "المعجون",
+        "kind",
+        "ar"
+      ],
+      [
+        "بندورة معلبة",
+        "kind",
+        "ar"
+      ],
+      [
+        "صلصة طماطم",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون الطماطم",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون بندورة",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون طماطة",
+        "kind",
+        "ar"
+      ],
+      [
+        "معجون طماطم",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0031": [
+      [
+        "tanmia",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "Tanmia",
+        "brand",
+        "en"
+      ],
+      [
+        "tanmiye",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "Tanmiye",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmiyeh",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "تنمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "brand",
+        "ar"
+      ],
+      [
+        "fileh tanmia 500",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "filet tanmia 500 g",
+        "exact",
+        "fr"
+      ],
+      [
+        "tanmia filet 500",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "Tanmia filet 500g",
+        "exact",
+        "en"
+      ],
+      [
+        "Tanmia fillet 500 g",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia fresh chicken filet",
+        "exact",
+        "en"
+      ],
+      [
+        "Tanmia Fresh Chicken Filet",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia fresh filet",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "فيليه تنمية 500",
+        "exact",
+        "ar"
+      ],
+      [
+        "فيليه دجاج تنمية",
+        "exact",
+        "ar"
+      ],
+      [
+        "فيليه طازج 500",
+        "exact",
+        "ar"
+      ],
+      [
+        "blanc de poulet",
+        "kind",
+        "fr"
+      ],
+      [
+        "chicken breast",
+        "kind",
+        "en"
+      ],
+      [
+        "chicken filet",
+        "kind",
+        "en"
+      ],
+      [
+        "chicken fillet",
+        "kind",
+        "en"
+      ],
+      [
+        "dajej sadr",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "file dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "fileh",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "fileh dajaj",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "filet dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "filet de poulet",
+        "kind",
+        "fr"
+      ],
+      [
+        "filet poulet",
+        "kind",
+        "fr"
+      ],
+      [
+        "fresh chicken",
+        "kind",
+        "en"
+      ],
+      [
+        "poulet filet",
+        "kind",
+        "fr"
+      ],
+      [
+        "sadr dajaj",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "sadr dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "sadr djej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "دجاج فيليه",
+        "kind",
+        "ar"
+      ],
+      [
+        "صدر الدجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "صدر دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "صدور دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه الدجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه دجاج طازج",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0032": [
+      [
+        "tanmia",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "Tanmia",
+        "brand",
+        "en"
+      ],
+      [
+        "tanmiya",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmiye",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "تنمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "تنمية فراخ",
+        "brand",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "brand",
+        "ar"
+      ],
+      [
+        "breaded fillet loose",
+        "exact",
+        "en"
+      ],
+      [
+        "fileh mo2aramesh",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "fileh tanmia mo2armash",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "filet pané vrac",
+        "exact",
+        "fr"
+      ],
+      [
+        "tanmia breaded",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "Tanmia breaded chicken",
+        "exact",
+        "en"
+      ],
+      [
+        "Tanmia breaded fillet",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia filet panee",
+        "exact",
+        "fr"
+      ],
+      [
+        "tanmia fillet loose",
+        "exact",
+        "en"
+      ],
+      [
+        "تنمية مقرمش",
+        "exact",
+        "ar"
+      ],
+      [
+        "فيليه تنمية",
+        "exact",
+        "ar"
+      ],
+      [
+        "فيليه مقرمش",
+        "exact",
+        "ar"
+      ],
+      [
+        "فيليه مقرمش تنمية",
+        "exact",
+        "ar"
+      ],
+      [
+        "blanc de poulet",
+        "kind",
+        "fr"
+      ],
+      [
+        "breaded chicken",
+        "kind",
+        "en"
+      ],
+      [
+        "chicken",
+        "kind",
+        "en"
+      ],
+      [
+        "chicken breast",
+        "kind",
+        "en"
+      ],
+      [
+        "chicken fillet",
+        "kind",
+        "en"
+      ],
+      [
+        "dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "djej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "farrouj",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "fileh dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "fileh farrouj",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "filet dajej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "filet de poulet",
+        "kind",
+        "fr"
+      ],
+      [
+        "filet farrouj",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "poulet pané",
+        "kind",
+        "fr"
+      ],
+      [
+        "sadr djej",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "دجاج مقرمش",
+        "kind",
+        "ar"
+      ],
+      [
+        "صدر دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "صدر فراخ",
+        "kind",
+        "ar"
+      ],
+      [
+        "فراخ",
+        "kind",
+        "ar"
+      ],
+      [
+        "فراخ مقرمشة",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه دجاج",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه دجاج مقرمش",
+        "kind",
+        "ar"
+      ],
+      [
+        "فيليه فراخ",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0096": [
+      [
+        "tanmeya",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmia",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmiya",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "التانمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "تانميا",
+        "brand",
+        "ar"
+      ],
+      [
+        "تانمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "mortadella lahm baqar zeitoun",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia beef mortadella olives",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia mortadella beef olives",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia mortadella bil zeitoun",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia mortadella olives",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia mortadella zeitoun",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia mortadelle olives",
+        "exact",
+        "fr"
+      ],
+      [
+        "tanmia olives",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia zeitoun",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "تانميا موردیلا",
+        "exact",
+        "ar"
+      ],
+      [
+        "تانمية مورتديلا زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "مورتديلا بقر زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "موردیلا لحم بقر مع زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "charcuterie",
+        "kind",
+        "fr"
+      ],
+      [
+        "lahm bakar mortadella",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadela",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella beef",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella bil zeitoun",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella lahme",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella ma zeitoun",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadelle",
+        "kind",
+        "fr"
+      ],
+      [
+        "mortadelle aux olives",
+        "kind",
+        "fr"
+      ],
+      [
+        "mortadello",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadelo",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "sandwich mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "المورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "شرائح مورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "لحم بقر مورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتاديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتديلا بالزيتون",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتديلا لحم بقر",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردیلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردیلا بالزیتون",
+        "kind",
+        "ar"
+      ]
+    ]
+  },
+  "staging_brand_terms": {
+    "AK-0218": [
+      [
+        "ya mama",
+        "ar"
+      ],
+      [
+        "yamama",
+        "en"
+      ],
+      [
+        "yamamah",
+        "arabizi"
+      ],
+      [
+        "yamame",
+        "arabizi"
+      ],
+      [
+        "ياماما",
+        "ar"
+      ],
+      [
+        "یاماما",
+        "ar"
+      ]
+    ],
+    "AK-0033": [
+      [
+        "tanmia",
+        "arabizi"
+      ],
+      [
+        "Tanmia",
+        "en"
+      ],
+      [
+        "tanmia chicken",
+        "en"
+      ],
+      [
+        "tanmiya",
+        "arabizi"
+      ],
+      [
+        "tanmiye",
+        "arabizi"
+      ],
+      [
+        "تنمية",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "ar"
+      ]
+    ],
+    "AK-0034": [
+      [
+        "tanmia",
+        "en"
+      ],
+      [
+        "tanmia chicken",
+        "en"
+      ],
+      [
+        "tanmiya",
+        "arabizi"
+      ],
+      [
+        "tanmiye",
+        "arabizi"
+      ],
+      [
+        "تنمية",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "ar"
+      ]
+    ],
+    "AK-0095": [
+      [
+        "tanmeya",
+        "arabizi"
+      ],
+      [
+        "tanmia",
+        "arabizi"
+      ],
+      [
+        "tanmiah",
+        "en"
+      ],
+      [
+        "tanmiye",
+        "arabizi"
+      ],
+      [
+        "التنمية",
+        "ar"
+      ],
+      [
+        "تنمية",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "ar"
+      ]
+    ],
+    "AK-0203": [
+      [
+        "tanmia",
+        "arabizi"
+      ],
+      [
+        "Tanmia",
+        "en"
+      ],
+      [
+        "tanmiye",
+        "arabizi"
+      ],
+      [
+        "تنمية",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "ar"
+      ]
+    ],
+    "AK-0236": [
+      [
+        "tanmia",
+        "arabizi"
+      ],
+      [
+        "Tanmia",
+        "en"
+      ],
+      [
+        "tanmiya",
+        "arabizi"
+      ],
+      [
+        "tanmiye",
+        "arabizi"
+      ],
+      [
+        "التنمية",
+        "ar"
+      ],
+      [
+        "تنمية",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "ar"
+      ]
+    ]
+  },
+  "probe": {
+    "message": "بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين",
+    "readings": [
+      {
+        "seen": "20 Nov 07:17 and 08:19 (not carried)",
+        "raw": "ربطة خبز الفورنو",
+        "query": "خبز الفورنو",
+        "unit": "bundle",
+        "brand_hint": "الفورنو"
+      },
+      {
+        "seen": "20 Nov 09:22 (three other breads offered)",
+        "raw": "ربطة خبز الفورنو",
+        "query": "خبز",
+        "unit": "bundle",
+        "brand_hint": "الفورنو"
+      }
+    ],
+    "want": "AK-0080 chosen, or offered first in a «which one?» whose every row is an Al Forno bread"
+  },
+  "cases": [
+    {
+      "id": "al-forno-bread-en",
+      "raw": "Al Forno bread",
+      "query": "al forno bread",
+      "brand_hint": "Al Forno",
+      "message": "Al Forno bread please",
+      "must_reach": [
+        "AK-0080"
+      ],
+      "only_brand": "Al Forno"
+    },
+    {
+      "id": "al-forno-bread-ar",
+      "raw": "خبز الفورنو",
+      "query": "خبز الفورنو",
+      "brand_hint": "الفورنو",
+      "message": "بدي خبز الفورنو",
+      "must_reach": [
+        "AK-0080"
+      ],
+      "only_brand": "Al Forno"
+    },
+    {
+      "id": "al-forno-pita",
+      "raw": "al forno pita",
+      "query": "al forno pita",
+      "brand_hint": "al forno",
+      "message": "1 al forno pita",
+      "chosen": "AK-0080"
+    },
+    {
+      "id": "bread-alone",
+      "raw": "خبز",
+      "query": "خبز",
+      "brand_hint": null,
+      "message": "بدي خبز",
+      "ask_which": true,
+      "sub_category": "Bakery"
+    },
+    {
+      "id": "yamama-tomato-paste",
+      "aisle": "pantry",
+      "raw": "رب البندورة اليماما",
+      "query": "رب البندورة اليماما",
+      "brand_hint": "اليماما",
+      "message": "بدي رب البندورة اليماما",
+      "must_reach_any": [
+        "AK-0208",
+        "AK-0210"
+      ],
+      "only_brand": "Yamama",
+      "never": [
+        "AK-0209",
+        "AK-0218"
+      ]
+    },
+    {
+      "id": "tanmia-chicken-breast",
+      "aisle": "chicken",
+      "raw": "صدر دجاج التانمية",
+      "query": "صدر دجاج التانمية",
+      "brand_hint": "التانمية",
+      "message": "بدي صدر دجاج التانمية",
+      "must_reach_any": [
+        "AK-0031",
+        "AK-0032"
+      ],
+      "only_brand": "Tanmia",
+      "never": [
+        "AK-0095",
+        "AK-0096",
+        "AK-0203"
+      ]
+    },
+    {
+      "id": "tanmia-mortadella-olives",
+      "aisle": "cold cuts",
+      "raw": "تلاتة مرتديلا بقر مع زيتون من تنمية",
+      "query": "مرتديلا بقر مع زيتون",
+      "brand_hint": "تنمية",
+      "message": "وتلاتة مرتديلا بقر مع زيتون من تنمية",
+      "must_reach": [
+        "AK-0096"
+      ],
+      "only_brand": "Tanmia",
+      "never": [
+        "AK-0093",
+        "AK-0098",
+        "AK-0097"
+      ],
+      "seen": "the B1g sim-test (run 44804389597, sim-028): on staging without 0268 this line is 'not carried' (other_kind); the first 0268 offered Al Mouna's mortadella first because «بقر» and «زيتون» are its kind words. The brand the customer names keeps only that brand's items."
+    }
+  ],
+  "rule": "A line is never 'not carried' (status not_found) while an item matching the brand or the type is sellable: it is chosen when exactly one fits, else a «which one?» of what fits. 'must_reach': the item is chosen or offered; 'only_brand': every item chosen or offered is that brand's; 'never': none of these is chosen or offered (another kind of the same brand); 'ask_which': the line is a question, not a choice and not 'not carried'."
+}

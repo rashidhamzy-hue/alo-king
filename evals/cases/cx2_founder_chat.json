@@ -132,15 +132,17 @@
         }
       ],
       "expect": {
-        "path": "card",
+        "path": "which",
         "contains": [
-          "لسّا ما عنّا nescafe vanilla"
+          "«nescafe vanilla»",
+          "Nescafe"
         ],
         "not_contains": [
-          "أي واحد بدك",
+          "لسّا ما عنّا nescafe vanilla",
           "Vanill"
         ]
-      }
+      },
+      "b1g": "B1g (20 Nov 2026), changed on purpose: «nescafe» names a sellable brand, so the line is a «which one?» of the Nescafe items (none is vanilla), never 'not carried' and never another brand's vanilla items. docs/DECISIONS.md, B1g 3 and 4."
     }
   ],
   "loop": {

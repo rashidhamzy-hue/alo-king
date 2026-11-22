@@ -51,7 +51,8 @@ describe("B1f: one set of labneh, whatever the spelling", () => {
   it("the job can never write «لبنة» on laban again: the term is refused and logged", async () => {
     const r = await db.rpc("save_search_words", { p_sku: "AK-0050", p_rows: [{ term: "لبن", level: "kind" }, { term: "لبنة", level: "kind" }, { term: "labneh", level: "kind" }], p_version: "t" });
     expect(r.written).toBe(1);
-    expect((await db.all(`select term from language_pack where sku = 'AK-0050' order by term`)).map((x) => x.term)).toEqual(["لبن"]);
+    // (B1g, 0268: the item also gets its brand's shared spellings, version 'b1g-shared'; the job's own rows are these)
+    expect((await db.all(`select term from language_pack where sku = 'AK-0050' and version <> 'b1g-shared' order by term`)).map((x) => x.term)).toEqual(["لبن"]);
     expect((await db.all(`select term from search_word_drops where sku = 'AK-0050' order by term`)).map((x) => x.term)).toEqual(["labneh", "لبنة"]);
     // and on a labneh item it is written
     const ok = await db.rpc("save_search_words", { p_sku: "AK-0046", p_rows: [{ term: "لبنة", level: "kind" }, { term: "labni", level: "kind" }], p_version: "t" });

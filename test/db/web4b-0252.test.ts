@@ -22,8 +22,8 @@ const webSkus = async (db: TestDb, q: string) =>
 
 describe("before 0252: the fault as staging had it", () => {
   let db: TestDb;
-  // 0267 (PERF1) builds on 0252's feed JPEG table, so the database without 0252 is also without it.
-  beforeAll(async () => { db = await stagingLike(["0252", "0267"]); }, 180_000);
+  // 0267 (PERF1) builds on 0252's feed JPEG table and 0268 (B1g) on its refusals, so the database without 0252 is also without them.
+  beforeAll(async () => { db = await stagingLike(["0252", "0267", "0268"]); }, 180_000);
   afterAll(async () => { await db?.pg.close(); });
   it("«لبن» finds Halloum, «ماي» finds the tea", async () => {
     expect(await skus(db, "لبن")).toContain("AK-0044");
@@ -49,7 +49,7 @@ describe("WEB4b 0252", () => {
   it("the job cannot write the refused words again: refused and logged; the right ones are written", async () => {
     const r = await db.rpc("save_search_words", { p_sku: "AK-0044", p_rows: [{ term: "LIBAN  LAIT", level: "brand", lang: "en" }, { term: "لبن ليت", level: "brand", lang: "ar" }, { term: "ليان تعنايل", level: "brand", lang: "ar" }], p_version: "t" });
     expect(r.written).toBe(1);
-    expect((await db.all(`select term from language_pack where sku = 'AK-0044'`)).map((x) => x.term)).toEqual(["ليان تعنايل"]);
+    expect((await db.all(`select term from language_pack where sku = 'AK-0044' and version <> 'b1g-shared'`   /* B1g: plus its brand's shared spellings */)).map((x) => x.term)).toEqual(["ليان تعنايل"]);
     expect((await db.all(`select term from search_word_drops where sku = 'AK-0044' and reason = 'refused_term' order by id desc limit 2`)).map((x) => x.term).sort()).toEqual(["LIBAN  LAIT", "لبن ليت"]);
     // Liban Lait stays the brand of Liban Lait's own items
     const ll = await db.rpc("save_search_words", { p_sku: "AK-0050", p_rows: [{ term: "liban lait", level: "brand", lang: "arabizi" }, { term: "لبن", level: "kind", lang: "ar" }], p_version: "t" });
