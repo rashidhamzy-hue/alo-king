@@ -1,7 +1,7 @@
 # B1g: the "Al Forno bread" miss (20 November 2026)
 
-Branch `claude/busy-maxwell-7822b3`, pull request [rashidhamzy-hue/alo-king#153](https://github.com/rashidhamzy-hue/alo-king/pull/153). Migration
-**0268** (the number the prompt gave). Decisions: `docs/DECISIONS.md`, "B1g, the "Al Forno bread" miss, 20 November 2026" (six rows). Nobody
+Branch `claude/busy-maxwell-7822b3`, pull requests [rashidhamzy-hue/alo-king#153](https://github.com/rashidhamzy-hue/alo-king/pull/153) and [#155](https://github.com/rashidhamzy-hue/alo-king/pull/155). Migrations
+**0268** (the number the prompt gave) and **0269** (after staging). Decisions: `docs/DECISIONS.md`, "B1g, the "Al Forno bread" miss, 20 November 2026" (six rows). Nobody
 was asked. No write to orders, payments, stock or the ledger; no new agent; Kabsi and PERF1's photo and storage work not touched.
 
 ## 1. What happened, read from staging
@@ -81,7 +81,13 @@ Both were dispatched once, on the branch, after CI passed (commit aff7149).
 **What the sim-test showed, and the change after it.** sim-028 asked «تلاتة مرتديلا بقر مع زيتون من تنمية». On staging today (without 0268) that line is "not carried" (`other_kind`), the B1g fault in the cold-cuts aisle. Run locally with 0268 as dispatched, the «which one?» offered Al Mouna's mortadella *first* and Tanmia's second, because «بقر» and «زيتون» are Al Mouna's kind words too. Fixed before the merge, with a case first (`tanmia-mortadella-olives`: Tanmia's mortadella with olives offered, never Al Mouna's or a pepperoni): **a brand the line names keeps only that brand's items; the owners of a kind word count only when no brand is named.** (In the sim itself the kept-order path at night showed "pepperoni beef" for that line, the model's reading of a line the planner had refused; with 0268 the planner now answers it.) The gate and the sim were not run again for this narrowing (the prompt allows one of each): it touches only lines that were "not carried" before, and only makes their «which one?» smaller.
 
 ## On staging
-STAGING_PLACEHOLDER
+Merged as [rashidhamzy-hue/alo-king#153](https://github.com/rashidhamzy-hue/alo-king/pull/153) (0268) on 22 November, after `main` with PERF1 (0267) was merged in. CI on the PR: one run failed because `test/web/pages-web1.test.ts` could not start ("listen EADDRINUSE 127.0.0.1:9229", two test Workers on one debugger port); every test that ran passed, and the one re-run was green.
+
+- **deploy-staging run 44987184481** (from `main` at e1200ce): the migrations applied (0268: 381 brand spellings shared, the number the read-only preview gave), then the run stopped at `ensure-catalog-bucket.sh`: "438 object(s) in catalog are not product pictures by name". The 438 are PERF1's 400/800 px WebP copies; the check predated them (PERF1's own report deploy, run 44807075401, had failed the same way on 20 November).
+- **Read on staging with 0268** (`plan_order_core`, read only, the probe's party): «ربطة خبز الفورنو» with the reading's query «خبز الفورنو» and with «خبز» (both of 20 November's readings): **the Al Forno pita AK-0080 chosen**. «رب البندورة اليماما»: Yamama tomato paste 1325 g chosen. «صدر دجاج التانمية»: a «which one?» of the two Tanmia fillets. But «تلاتة مرتديلا بقر مع زيتون من تنمية» offered all eight Tanmia items, the one with olives fourth.
+- **The follow-up, [rashidhamzy-hue/alo-king#155](https://github.com/rashidhamzy-hue/alo-king/pull/155)** (case first): **0269** (the fit counts the line's type words even when the planner left them unexplained; DECISIONS B1g 7) and the catalog check taught PERF1's copy names (DECISIONS B1g 8). CI green; merged.
+- **deploy-staging runs 44989302505 and 44989357541** (from `main` at 4dea740): **green**, migrations to 0269. Read afterwards: both probe readings choose AK-0080; the Tanmia mortadella with olives is chosen.
+- **The probe's next order: AK-1093, 22 November 07:02 UTC: Tannourine water, Najjar coffee and the Al Forno pita AK-0080** (closed). The turn was answered by code (`ask_pin`, then the card); no "not carried", no model rescue. The orders before the fix (AK-1078 to AK-1092, 20 and 21 November) had no bread or Wooden Bakery.
 
 ## Not proven here
 - The model's own wording when it writes «ما عنّا» beside a line it added (20 Nov 07:17): not reached once the planner finds the item; no
