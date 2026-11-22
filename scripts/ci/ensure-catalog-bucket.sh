@@ -55,7 +55,8 @@ python3 - "$tmp" <<'PY'
 import json, re, sys
 names = [o["name"] for o in json.load(open(sys.argv[1])) if o.get("id")]
 # WEB4b (0252): each public picture also has a JPEG copy for the WhatsApp catalogue feed, <sku>-<image id>.feed.jpg (catalog-jpegs workflow)
-bad = [n for n in names if not re.fullmatch(r"AK-[0-9]{4}-[0-9a-f-]{36}(\.feed\.jpg|\.(jpg|png|webp))", n)]
+# PERF1 (0267): and two small copies for the website, <sku>-<image id>-w<400|800>-<12 hex of the file's sha256>.webp
+bad = [n for n in names if not re.fullmatch(r"AK-[0-9]{4}-[0-9a-f-]{36}(\.feed\.jpg|\.(jpg|png|webp)|-w(400|800)-[0-9a-f]{12}\.webp)", n)]
 assert not bad, f"FAIL: {len(bad)} object(s) in catalog are not product pictures by name (the Worker's hourly pass removes strays)"
 print(f"catalog holds {len(names)} picture(s), every one named like a product picture")
 PY

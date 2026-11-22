@@ -10,7 +10,9 @@
     "AK-0218": "دبس رمان ياماما 300 مل",
     "AK-0031": "فيليه دجاج طازج تنمية 500 غ",
     "AK-0032": "فيليه دجاج مقرمش تنمية",
-    "AK-0096": "موردیلا لحم بقر مع زيتون"
+    "AK-0096": "موردیلا لحم بقر مع زيتون",
+    "AK-0095": "موردیلا لحم بقر سادة",
+    "AK-0093": "مورديلا لحم بقر مع زيتون"
   },
   "staging_terms": {
     "AK-0080": [
@@ -1658,6 +1660,400 @@
         "kind",
         "ar"
       ]
+    ],
+    "AK-0095": [
+      [
+        "tanmeya",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmia",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "tanmiah",
+        "brand",
+        "en"
+      ],
+      [
+        "tanmiye",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "التنمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "تنمية",
+        "brand",
+        "ar"
+      ],
+      [
+        "تنميه",
+        "brand",
+        "ar"
+      ],
+      [
+        "mortadella 3ade",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "mortadella plain",
+        "exact",
+        "en"
+      ],
+      [
+        "mortadella sada",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "mortadelle nature",
+        "exact",
+        "fr"
+      ],
+      [
+        "tanmia morta sada",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia mortadella 3ade",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia mortadella beef plain",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia mortadella plain",
+        "exact",
+        "en"
+      ],
+      [
+        "tanmia mortadella sada",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "tanmia plain mortadella",
+        "exact",
+        "en"
+      ],
+      [
+        "تنمية سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "تنمية موردیلا",
+        "exact",
+        "ar"
+      ],
+      [
+        "موردلا سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "مورديلا سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "موردیلا سادة",
+        "exact",
+        "ar"
+      ],
+      [
+        "charcuterie",
+        "kind",
+        "fr"
+      ],
+      [
+        "cold cut",
+        "kind",
+        "en"
+      ],
+      [
+        "lahme ba2er",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "lahme mortadella",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "morta",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadela",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella 1kg",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella 500g",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella beef",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadelle",
+        "kind",
+        "fr"
+      ],
+      [
+        "sandwich mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "sandwiche mortadella",
+        "kind",
+        "fr"
+      ],
+      [
+        "المورديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "لحم بقر",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردلا لحم بقر",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردیلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "موردیلا لحم",
+        "kind",
+        "ar"
+      ]
+    ],
+    "AK-0093": [
+      [
+        "Al Mouna",
+        "brand",
+        "en"
+      ],
+      [
+        "Almouna",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "el mouna",
+        "brand",
+        "arabizi"
+      ],
+      [
+        "الدونة",
+        "brand",
+        "ar"
+      ],
+      [
+        "المونة",
+        "brand",
+        "ar"
+      ],
+      [
+        "Al Mouna mortadella",
+        "exact",
+        "en"
+      ],
+      [
+        "Al Mouna mortadelle",
+        "exact",
+        "fr"
+      ],
+      [
+        "Almouna mortadela",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "Almouna zeitoun",
+        "exact",
+        "arabizi"
+      ],
+      [
+        "mortadelle olives",
+        "exact",
+        "fr"
+      ],
+      [
+        "المونة مورديلا",
+        "exact",
+        "ar"
+      ],
+      [
+        "المونة مورديلا زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "مورديلا زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "مورديلا مع زيتون",
+        "exact",
+        "ar"
+      ],
+      [
+        "charcuterie",
+        "kind",
+        "fr"
+      ],
+      [
+        "mortadela",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadela lahme",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella 2aleb",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella beef",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella bil zeitoun",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella lahm",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella ma zeitoun",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadella olives",
+        "kind",
+        "en"
+      ],
+      [
+        "mortadella zeitoun",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "mortadelle",
+        "kind",
+        "fr"
+      ],
+      [
+        "mortadelle au boeuf",
+        "kind",
+        "fr"
+      ],
+      [
+        "morteda",
+        "kind",
+        "arabizi"
+      ],
+      [
+        "sandwich mortadella",
+        "kind",
+        "en"
+      ],
+      [
+        "المورديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورتديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا بقر",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا لحم",
+        "kind",
+        "ar"
+      ],
+      [
+        "مورديلا مع زيتون",
+        "kind",
+        "ar"
+      ]
     ]
   },
   "staging_brand_terms": {
@@ -1733,36 +2129,6 @@
       [
         "tanmiye",
         "arabizi"
-      ],
-      [
-        "تنمية",
-        "ar"
-      ],
-      [
-        "تنميه",
-        "ar"
-      ]
-    ],
-    "AK-0095": [
-      [
-        "tanmeya",
-        "arabizi"
-      ],
-      [
-        "tanmia",
-        "arabizi"
-      ],
-      [
-        "tanmiah",
-        "en"
-      ],
-      [
-        "tanmiye",
-        "arabizi"
-      ],
-      [
-        "التنمية",
-        "ar"
       ],
       [
         "تنمية",

@@ -111,6 +111,15 @@ describe("B1g: an item of the brand or the type is sellable, so the line is chos
     await w.db.rpc("save_search_words", { p_sku: "AK-0083", p_rows: await w.db.all(`select term, level, lang from language_pack where sku = 'AK-0083'`), p_version: "t" });
   });
 
+  it("staging's input (0269): the line's type words left unexplained still count for the fit; Tanmia's mortadella with olives first, only mortadellas", async () => {
+    // on staging the planner leaves «تنمية», «بقر» and «زيتون» unexplained for this line (read 22 Nov); 0268 then dropped all three from the fit
+    const r = (await w.db.one(`select catalog_named_items($1::uuid, $2::jsonb, $3::jsonb) as r`, [w.party, JSON.stringify(["تنميه", "بقر", "زيتون"]),
+      JSON.stringify({ raw: "تلاتة مرتديلا بقر مع زيتون من تنمية", query: "مرتديلا بقر مع زيتون" })])).r;
+    const all = r as { product_id: string; fit: boolean }[];
+    expect(w.skuOf.get(all[0]!.product_id)).toBe("AK-0096");
+    expect(all.filter((x) => x.fit).map((x) => w.skuOf.get(x.product_id))).toEqual(["AK-0096"]);
+  });
+
   it("a brand word the job writes later reaches the brand's other items too (the job's own door)", async () => {
     const kept = await w.db.all<{ term: string; level: string; lang: string }>(`select term, level, lang from language_pack where sku = 'AK-0083'`);
     await w.db.rpc("save_search_words", { p_sku: "AK-0083", p_rows: [...kept, { term: "el forno", level: "brand", lang: "arabizi" }], p_version: "t" });
