@@ -37,8 +37,7 @@ jobs:
       NOTE_FROM: ${{ inputs.note_from }}
       NOTE_TO: ${{ inputs.note_to }}
     steps:
-      - uses: actions/checkout@v4
-        with: { ref: main }
+      - uses: actions/checkout@v4   # the ref it was run on (main, or a branch while the check itself is being fixed)
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
