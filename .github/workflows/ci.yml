@@ -76,7 +76,7 @@ jobs:
   test:
     needs: changes
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45   # VOICE1: the full suite took 26 min on TEST1 and 29.5 on VOICE1 (all green, cancelled at 30)
     steps:
       - name: Nothing to test
         if: needs.changes.outputs.tests != 'true'

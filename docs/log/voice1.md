@@ -34,6 +34,8 @@ transcript read «بدي أطلب من عنفطة Chicken Tin، جوج واحد�
 7. **Messages** in Arabic, English and French (`messages.food.placeGuess`, `placeUnknown`, `notOnSale`, `yesButton`, `noButton`,
    `catalogOffer`), checked by the CX2 rules and in the snapshots.
 8. **The live check**: workflow `voice-check` (`scripts/qa/voice-check.mjs`). It never prints a transcript.
+9. **CI's `test` job may run 45 minutes** (was 30): the full suite took 26 minutes on TEST1's last run and 29.5 on this PR's first full
+   run, which passed every test (3640) and was then cancelled at the 30-minute limit.
 
 ## Eval cases (written before the fixes)
 - `evals/voice_notes/cases/vn-voice1-a.json` to `-e.json`: the note's Kapso transcript, its clean version, «بدي تنين شاورما من صفا», an
