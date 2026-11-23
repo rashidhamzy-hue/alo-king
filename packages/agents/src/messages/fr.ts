@@ -241,6 +241,12 @@ D'ici là, rien ne change sur la page.`,
     notOpen: "👋 *Bienvenue chez Alo King*\nNous ne sommes pas encore ouverts : nous essayons le service avec un petit groupe.\n🙏 Merci de votre patience.",
   },
 
+  catalog: {
+    all: "🛒 *Le catalogue Alo King*\nAjoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.",
+    list: (category) => `🛒 *${category}*\nAjoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.`,
+    one: "Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.",
+  },
+
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *La commande ${code} a été annulée*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
       + (reopenable ? "Appuyez sur *Rouvrir* pour un nouveau bon aux prix du jour." : "Écrivez-nous si vous la voulez toujours."),

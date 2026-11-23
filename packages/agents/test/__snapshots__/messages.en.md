@@ -2315,6 +2315,26 @@ We're not open yet: we're trying the service with a small group.
 🙏 Thank you for your patience.
 ```
 
+## catalog.all
+
+```text
+🛒 *The Alo King catalogue*
+Add what you want to the cart and send it. We send you the order card to confirm.
+```
+
+## catalog.list
+
+```text
+🛒 *Dairy and eggs*
+Add what you want to the cart and send it. We send you the order card to confirm.
+```
+
+## catalog.one
+
+```text
+Add it to the cart and send it. We send you the order card to confirm.
+```
+
 ## notice.orderCancelled
 
 ```text

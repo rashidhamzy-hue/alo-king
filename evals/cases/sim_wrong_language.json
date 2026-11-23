@@ -955,6 +955,65 @@
     }
    ],
    "expect": "no wrong_language"
+  },
+  {
+   "id": "sim-020-test1",
+   "seed": 10019,
+   "category": "out_of_stock",
+   "variant": "in_basket",
+   "lang": "fr",
+   "voice": false,
+   "burst": false,
+   "clock": "day",
+   "customer": [
+    "Bonjour, je voudrais commander un pot de confiture de fraise El Rashidi El Mizan 340G et un fromage Kashkaval Aflora de vache, s'il vous plaît.",
+    "Non merci, pas de Nutella, je voulais de la confiture de fraise. Je prends seulement le fromage Kashkaval Aflora. Je suis à Baakline.",
+    "[sends a location pin: home]",
+    "Ah, je ne savais pas qu'il y avait un minimum. Qu'est-ce que vous me conseillez pour compléter, s'il vous plaît ? Peut-être une autre confiture ?",
+    "[taps \"🔎 Parcourir\"]",
+    "Je ne sais pas bien utiliser le catalogue. Pouvez-vous m'ajouter un pot de confiture d'une autre marque, ou un article qui complète le minimum ? Merci beaucoup.",
+    "Alors ajoutez-moi un deuxième fromage Kashkaval Aflora, s'il vous plaît. Comme ça j'atteins le minimum.",
+    "Alors mettez 3 fromages Kashkaval Aflora au total, s'il vous plaît.",
+    "[taps \"✅ Confirmer\"]"
+   ],
+   "shop": [
+    [
+     "👋 *Bienvenue chez Alo King !*\nNous livrons vos courses à domicile dans le Chouf.\n\n🛒 Dites-moi ce qu'il vous faut, par écrit ou par message vocal.\n🕘 Ouvert tous les jours de 09:00 à 21:00.\n\n_En nous écrivant, vous acceptez que nous gardions vos messages et commandes pour les traiter. STOP à tout moment._ [🛒 Commander | 🔎 Parcourir | 📍 Vous livrez ici ?]",
+     "La confiture de fraise El Rashidi El Mizan est en rupture de stock.\nVoulez-vous une alternative Nutella, et dans quel village faut-il livrer ?\n• Nutella Chocolate Hazelnut Spread 350 g · $3.53\n• Nutella Chocolate Hazelnut Spread 750 g · $7.00 [Nutella 350 g | Nutella 750 g | Fromage seulement]"
+    ],
+    [
+     "La confiture de fraise est en rupture de stock, je l'ai retirée.\nEnvoyez-moi votre position avec le bouton ci-dessous pour la livraison à Baakline."
+    ],
+    [
+     "🛒 *Votre commande est sous le minimum*\nDans votre panier :\n• 1 × Aflora Kashkaval Cow Cheese\n\nCommande minimum · $5.00\nVotre panier · $1.70\n*Il manque · $3.30*\n\nAjoutez un article, ou choisissez ci-dessous. [🔎 Parcourir | ❌ Annuler]"
+    ],
+    [
+     "🛒 *Votre commande est sous le minimum*\nDans votre panier :\n• 1 × Aflora Kashkaval Cow Cheese\n\nCommande minimum · $5.00\nVotre panier · $1.70\n*Il manque · $3.30*\n\nAjoutez un article, ou choisissez ci-dessous. [🔎 Parcourir | ❌ Annuler]"
+    ],
+    [
+     "هيدا كتالوج ألو كينغ 🛒 اختار الأغراض وزيدها عالسلة، وبس تبعت السلة منبعتلك ورقة الطلب لتأكّد. [a catalogue]"
+    ],
+    [
+     "🔎 *Je ne peux pas encore confirmer  pour nos pot confiture d' autre marque*\nDites-moi ce qu'il vous faut d'autre."
+    ],
+    [
+     "🛒 *Votre commande est sous le minimum*\nDans votre panier :\n• 2 × Aflora Kashkaval Cow Cheese\n\nCommande minimum · $5.00\nVotre panier · $3.40\n*Il manque · $1.60*\n\nAjoutez un article, ou choisissez ci-dessous. [🔎 Parcourir | ❌ Annuler]"
+    ],
+    [
+     "🛒 *Votre commande AK-1008*\n\n3 × Aflora Kashkaval Cow Cheese · $5.10\n\nArticles · $5.10\nLivraison à Baakline · $1.00\n*Total · $6.10*\nou 546,000 LBP\n\n📍 *Livrer à*\nBaakline\n⏱️ Dans environ 20 minutes\n\n💵 *Paiement*\nEspèces à la livraison\n\n🔁 *S'il manque un article*\nNous vous demandons avant de remplacer quoi que ce soit\n\n_En confirmant, vous acceptez que nous vous envoyions le suivi de vos commandes dans cette conversation._ [✅ Confirmer | ✏️ Modifier | ❌ Annuler]"
+    ],
+    [
+     "✅ *Commande AK-1008 confirmée*\nNous la préparons maintenant. [Le plus proche | Me demander | Le retirer | J'ai le montant exact | Je paie avec $10.00 | Je paie avec $20.00 | Je paie avec $50.00 | Garder la monnaie en avo | Annuler la commande]"
+    ]
+   ],
+   "found": [
+    {
+     "turn": 5,
+     "detail": "fr customer, reply read as ar: هيدا كتالوج ألو كينغ 🛒 اختار الأغراض وزيدها عالسلة، وبس تبعت السلة منبعتلك ورقة الطلب لتأكّد. [a catalogue]"
+    }
+   ],
+   "expect": "no wrong_language",
+   "note": "TEST1 (sim-test 45133515061, 23 Nov): the French customer's \"Browse\" tap got the catalogue message in Arabic once the WhatsApp catalogue was connected (0273). Fixed by TEST1: the catalogue's words are in the message packs, in the customer's language."
   }
  ]
 }

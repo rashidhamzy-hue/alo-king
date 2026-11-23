@@ -402,7 +402,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
 
     async show_catalog({ category, product_id }) {
       // 1.21: what to show comes from the database (catalog_list); the words and the message are code's. At most the turn's two sends.
-      const r = await catalogMessages(ctx.db, { category: category ?? null, product_id: product_id ?? null });
+      const r = await catalogMessages(ctx.db, { category: category ?? null, product_id: product_id ?? null, lang: ctx.state.lang ?? null });
       // B1a (SIM1 fix 10): the WhatsApp catalog cannot be shown (not connected, or nothing with a picture): one fixed line by code
       // that asks for the items in words. The model never words the failure ("the catalogue is not ready"). An unknown category
       // goes back to the model with the list of categories, to try again.

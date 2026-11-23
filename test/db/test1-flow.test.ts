@@ -164,3 +164,20 @@ describe("the test line itself", () => {
     expect((long as any).interactive.body.text.length).toBeLessThanOrEqual(1024);
   });
 });
+
+describe("the WhatsApp catalogue's words (sim-020, sim-test 45133515061)", () => {
+  it("are in the customer's language: a French customer's Browse tap got Arabic once the catalogue was connected", async () => {
+    const { catalogMessages } = await import("@ak/agents/catalog-messages");
+    await db.pg.query(`update settings set value = value || '{"catalog_id": "1234567890"}' where key = 'catalog'`);
+    const t = flow(db, []);
+    const body = async (lang: "ar" | "en" | "fr") => {
+      const r = await catalogMessages(t.client, { lang });
+      if (!r.ok) throw new Error(r.error);
+      return (r.messages[0] as any).interactive.body.text as string;
+    };
+    expect(await body("fr")).toContain("Le catalogue Alo King");
+    expect(await body("en")).toContain("The Alo King catalogue");
+    expect(await body("ar")).toContain("كتالوج ألو كينغ");
+    expect(await body("fr")).not.toMatch(/[؀-ۿ]/);
+  });
+});

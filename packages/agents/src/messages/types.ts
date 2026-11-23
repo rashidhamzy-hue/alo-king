@@ -275,6 +275,10 @@ export interface Messages {
    *  answer to anyone not on the tester list (no price, no menu). */
   testMode: { line: S; notOpen: S };
 
+  /** 1.21 (K1), in the customer's language since TEST1: the body of the WhatsApp catalogue's messages (the whole catalogue, one
+   *  category's list, one product). */
+  catalog: { all: S; list: (category: S) => S; one: S };
+
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours.
    *  CX2: inside the 24-hour window the free message goes; the template only outside it. */
   notice: {
