@@ -80,7 +80,15 @@ describe("2 the gate", () => {
     expect(await db.rpc("test_mode_gate", { p_party: tester.party })).toMatchObject({ on: true, allowed: true, tester: true });
     expect(await db.rpc("test_mode_gate", { p_party: stranger.party })).toMatchObject({ on: true, allowed: false });
     const probe = (await db.one(`insert into parties(role, display_name, is_probe) values ('customer', 'TEST1 probe', true) returning id`)).id;
+    await db.pg.query(`insert into party_identities(party_id, line, wa_user_id) values ($1, 'customer', 'PR.TEST1PROBE')`, [probe]);
     expect((await db.rpc("test_mode_gate", { p_party: probe })).allowed).toBe(true);
+    // 0273: a scripted probe customer with a phone number meets the gate as anyone else does (refused unless on the list)
+    const scripted = (await db.one(`insert into parties(role, display_name, is_probe) values ('customer', 'TEST1 scripted', true) returning id`)).id;
+    await db.pg.query(`insert into party_identities(party_id, line, wa_user_id, phone_e164) values ($1, 'customer', 'PR.TEST1SCRIPTED', '+96170000409')`, [scripted]);
+    expect((await db.rpc("test_mode_gate", { p_party: scripted })).allowed).toBe(false);
+    await db.rpc("set_tester", { p_by: lead, p_phone: "+96170000409", p_on: true });
+    expect(await db.rpc("test_mode_gate", { p_party: scripted })).toMatchObject({ allowed: true, tester: true });
+    await db.rpc("set_tester", { p_by: lead, p_phone: "+96170000409", p_on: false });
     await setMode(false);
     expect((await db.rpc("test_mode_gate", { p_party: stranger.party })).allowed).toBe(true);
     await setMode(true);
