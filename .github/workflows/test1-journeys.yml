@@ -10,6 +10,10 @@ on:
         description: "Which six fresh scripted customers (5 to 9): a later run takes the next digit, so no earlier chat carries over"
         type: string
         default: "5"
+      only:
+        description: "Optional: only these journeys, comma-separated (stranger, typed, voice, cart, food, web); empty runs all six"
+        type: string
+        default: ""
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -24,6 +28,7 @@ jobs:
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       WEB_URL: https://alo-king-web-staging.rashid-hamzy.workers.dev
       JOURNEY_SET: ${{ inputs.set }}
+      JOURNEYS: ${{ inputs.only }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: main }
