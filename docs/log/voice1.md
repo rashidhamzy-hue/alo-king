@@ -57,7 +57,26 @@ transcript read «بدي أطلب من عنفطة Chicken Tin، جوج واحد�
 - ElevenLabs' answer for this audio (the `voice-check` workflow, below), and Meta's "View catalog" button on a real phone.
 
 ## Results
-(Filled in at the end of the session.)
+- **Free tests**: `npm run typecheck && npm test` green on [#166](https://github.com/rashidhamzy-hue/alo-king/pull/166) (CI run 45229933064: 3640 tests;
+  the `test` job took 23 minutes). The personal-data guard and gitleaks passed every commit.
+- **Merged and deployed**: #166 merged as 4f65c0a; deploy-staging run 45234209382 from `main`, green: **0276 applied (190 of 190
+  migrations)**, the permission check passed, the Worker deployed with **`ELEVENLABS_API_KEY` set**, the catalogue feed proven (219 items).
+- **The live Scribe check on the founder's stored note** (voice-check run 45236475581): the note of 23 Nov 10:34 UTC (3.4 s), its audio
+  from the private `media` bucket, sent once to Scribe (`scribe_v2`, 100 keyterms): HTTP 200, language Arabic. **Kapso had not heard the
+  place; Scribe heard «صفا».** Cost about USD 0.00024. Scribe's transcript is stored on the note's own row (`transcript.voice1_check`),
+  never printed. The first run's dish check looked for «فروج» without folding diacritics, and its fresh note used an invented number
+  that TEST1's scripted customers already hold; both fixed in the check itself (the follow-up pull request, VOICE1b below).
+- **A fresh voice note on staging** (voice-check run 45237943821): the same audio entered as a scripted tester's voice note (a probe party:
+  nothing reached a phone) and was read by the deployed Worker: **the Worker chose `elevenlabs_scribe`** (100 keyterms, USD 0.00028). The
+  replies: the welcome with its three buttons, **the catalogue's "View catalog" message** («🛒 *كتالوج ألو كينغ بالصور*»), then
+  **Safa Chicken's menu**: the place was understood from the voice note. One flaw: the reading kept the place's other name inside the
+  dish line, and the reply said «⚠️ ما لقينا «عم صفا تشيكن طنجية» بقائمة Safa Chicken.». Fixed in VOICE1b: the place's names are taken
+  out of a line's words before its dish is matched (`food.ts` `withoutPlace`; case `voice1-place-in-the-line`). The dish word Scribe
+  heard is not the whole chicken (the check's word list found no «فروج»); the founder can read Scribe's text on the note's row
+  (`wa_messages.transcript.voice1_check`). Whole chicken stays not orderable at Safa until its price is typed (menu, MENU2).
+- **The language gate** (language-pack run 45236480995, `after` on `main`): **0 wrong (precision 1.0), F1 0.911** (Lebanese Arabic 0.917,
+  Arabizi 0.882, English 0.975, French 0.94, mixed 0.93), as TEST1's (0.91).
+- **The sim-test** was not run: November's simulation cap is spent; the one sim-50 runs on or after 1 December.
 
 ## The founder's note: how voice notes are read now
 - When a customer sends a voice note, we now transcribe it ourselves with **ElevenLabs Scribe**, telling it the words to expect: the
@@ -71,3 +90,10 @@ transcript read «بدي أطلب من عنفطة Chicken Tin، جوج واحد�
   0.07 cents. Capped at USD 1 a day (about 4 hours of notes); above it, Kapso's transcript alone. Each note's cost is recorded.
 - **Privacy**: the audio goes to ElevenLabs to be transcribed (it already did, through Kapso). Before real customers, the privacy notice
   should name ElevenLabs as the processor of voice notes: a wording for you and the lawyer.
+
+## VOICE1b (the follow-up, same session)
+- `scripts/qa/voice-check.mjs`: an invented number outside TEST1's scripted range; diacritics folded before looking for the dish; the
+  workflow runs from the ref it is started on.
+- `food.ts` `withoutPlace`: a dish line that carries the place's names («عم صفا تشيكن طنجية») is matched on what is left («طنجية»);
+  a line that was only the place («من صفا تشيكن») is dropped. Eval case `voice1-place-in-the-line` and its flow test.
+

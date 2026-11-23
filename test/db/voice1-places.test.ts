@@ -129,6 +129,16 @@ describe("1 a place name we do not know", () => {
   });
 });
 
+describe("1b the place's name inside a dish line", () => {
+  it("is taken out: only the dish word is said back, with Safa's menu", async () => {
+    const c = caseOf("voice1-place-in-the-line");
+    const t = flow(db, [read(reading(c.lines))]);
+    await tester(t);
+    await t.text(c.said);
+    expectCase(c);
+  });
+});
+
 describe("2 a dish that is not on sale", () => {
   it("the clean note: «فروج» can't be ordered yet, with Safa's dishes that can; never its unapproved price", async () => {
     const c = caseOf("voice1-clean");

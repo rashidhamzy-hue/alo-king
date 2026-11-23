@@ -19,7 +19,9 @@ const BAAKLINE = { lat: 33.67739, lng: 35.56355 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const out = [];
 const line = (s) => { out.push(s); console.error(s); };
-const heard = (t) => ({ place: /صفا|safa/i.test(t ?? ""), dish: /فروج|farr?ou?j|chicken/i.test(t ?? "") });
+// Diacritics (a shadda: «فرّوج») and the long-vowel spellings are folded before the words are looked for.
+const fold = (t) => String(t ?? "").replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
+const heard = (t) => ({ place: /صفا|safa/i.test(fold(t)), dish: /فروج|فراريج|جاج|دجاج|farr?ou?j|chicken/i.test(fold(t)) });
 const yn = (b) => (b ? "yes" : "no");
 let failed = false;
 
@@ -78,7 +80,7 @@ async function stored() {
 async function fresh(note) {
   if (!note?.media_url) { line("- Fresh note: skipped (no Kapso media link for the audio)."); return; }
   const lead = (await sql`select id from parties where is_probe and role = 'ops_lead' limit 1`)[0]?.id;
-  const phone = "+96170000970", wa = "PR.VOICE1FRESH";
+  const phone = "+96170000999", wa = "PR.VOICE1FRESH";   // outside TEST1's +961 70 000 9S0-9S5
   let party = (await sql`select party_id from party_identities where line = 'customer' and wa_user_id = ${wa}`)[0]?.party_id;
   if (!party) {
     party = (await sql`insert into parties(role, display_name, is_probe) values ('customer', 'VOICE1 scripted tester', true) returning id`)[0].id;

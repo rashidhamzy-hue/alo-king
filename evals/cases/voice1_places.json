@@ -5,33 +5,137 @@
     {
       "id": "voice1-kapso-transcript",
       "said": "بدي أطلب من عنفطة Chicken Tin، جوج واحد، okay؟",
-      "lines": [{ "raw": "جوج واحد", "query": "جوج", "qty": 1, "source_hint": "عنفطة Chicken Tin" }],
-      "expect": { "contains": ["قصدك Safa Chicken؟"], "buttons": ["إيه", "لا"], "not_contains": ["عنفطة", "مش متوفّر بعد"] }
+      "lines": [
+        {
+          "raw": "جوج واحد",
+          "query": "جوج",
+          "qty": 1,
+          "source_hint": "عنفطة Chicken Tin"
+        }
+      ],
+      "expect": {
+        "contains": [
+          "قصدك Safa Chicken؟"
+        ],
+        "buttons": [
+          "إيه",
+          "لا"
+        ],
+        "not_contains": [
+          "عنفطة",
+          "مش متوفّر بعد"
+        ]
+      }
     },
     {
       "id": "voice1-clean",
       "said": "بدي اطلب من صفا تشيكن، فروج واحد، اوكي؟",
-      "lines": [{ "raw": "فروج واحد", "query": "فروج", "qty": 1, "source_hint": "صفا تشيكن" }],
-      "expect": { "contains": ["ما فينا ناخد طلب «فروج» من Safa Chicken بعد", "هيدي أطباق من نفس المحل فيك تطلبها"], "rows": ["نص فروج"], "not_contains": ["مش متوفّر بعد", "$12"] }
+      "lines": [
+        {
+          "raw": "فروج واحد",
+          "query": "فروج",
+          "qty": 1,
+          "source_hint": "صفا تشيكن"
+        }
+      ],
+      "expect": {
+        "contains": [
+          "ما فينا ناخد طلب «فروج» من Safa Chicken بعد",
+          "هيدي أطباق من نفس المحل فيك تطلبها"
+        ],
+        "rows": [
+          "نص فروج"
+        ],
+        "not_contains": [
+          "مش متوفّر بعد",
+          "$12"
+        ]
+      }
     },
     {
       "id": "voice1-two-shawarma",
       "said": "بدي تنين شاورما من صفا",
-      "lines": [{ "raw": "تنين شاورما", "query": "شاورما", "qty": 2, "source_hint": "صفا" }],
-      "expect": { "contains": ["أيّا طبق قصدك؟"], "rows": ["سندويش شاورما دجاج", "سندويش شاورما لحمة"] }
+      "lines": [
+        {
+          "raw": "تنين شاورما",
+          "query": "شاورما",
+          "qty": 2,
+          "source_hint": "صفا"
+        }
+      ],
+      "expect": {
+        "contains": [
+          "أيّا طبق قصدك؟"
+        ],
+        "rows": [
+          "سندويش شاورما دجاج",
+          "سندويش شاورما لحمة"
+        ]
+      }
     },
     {
       "id": "voice1-english",
       "said": "uh hi yeah so I wanna order from uh Safa Chicken, um two chicken shawarma sandwiches, and that's it, okay?",
       "language": "en",
-      "lines": [{ "raw": "two chicken shawarma sandwiches", "query": "chicken shawarma sandwich", "qty": 2, "source_hint": "Safa Chicken" }],
-      "expect": { "card": true, "contains": ["🍗", "Safa Chicken"] }
+      "lines": [
+        {
+          "raw": "two chicken shawarma sandwiches",
+          "query": "chicken shawarma sandwich",
+          "qty": 2,
+          "source_hint": "Safa Chicken"
+        }
+      ],
+      "expect": {
+        "card": true,
+        "contains": [
+          "🍗",
+          "Safa Chicken"
+        ]
+      }
     },
     {
       "id": "voice1-no-such-place",
       "said": "بدي بيتزا من مطعم الكوكب الأزرق",
-      "lines": [{ "raw": "بيتزا", "query": "بيتزا", "qty": 1, "source_hint": "مطعم الكوكب الأزرق" }],
-      "expect": { "contains": ["ما لقينا هالمحل على ألو كينغ", "Safa Chicken"], "not_contains": ["الكوكب", "مش متوفّر بعد"] }
+      "lines": [
+        {
+          "raw": "بيتزا",
+          "query": "بيتزا",
+          "qty": 1,
+          "source_hint": "مطعم الكوكب الأزرق"
+        }
+      ],
+      "expect": {
+        "contains": [
+          "ما لقينا هالمحل على ألو كينغ",
+          "Safa Chicken"
+        ],
+        "not_contains": [
+          "الكوكب",
+          "مش متوفّر بعد"
+        ]
+      }
+    },
+    {
+      "id": "voice1-place-in-the-line",
+      "about": "voice-check run 45237943821 (the founder's note as a fresh note on staging, read by Scribe): the reading kept the place's other name inside the dish line, and the reply echoed «عم صفا تشيكن طنجية» as a dish not on the menu. The place's names come out of the words first.",
+      "said": "بدي اطلب من عم صفا تشيكن طنجية",
+      "lines": [
+        {
+          "raw": "عم صفا تشيكن طنجية",
+          "query": "عم صفا تشيكن طنجية",
+          "qty": 1,
+          "source_hint": "صفا تشيكن"
+        }
+      ],
+      "expect": {
+        "contains": [
+          "«طنجية»",
+          "Safa Chicken"
+        ],
+        "not_contains": [
+          "صفا تشيكن طنجية"
+        ]
+      }
     }
   ]
 }
