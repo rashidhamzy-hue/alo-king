@@ -15,3 +15,4 @@ Model-written; not yet read by an Arabic reader. The first two are customer-faci
 | اكتب سبب المسح. | Write why you clear them. | not yet |
 | مُسح | cleared | not yet |
 | وضع تجربة الأصدقاء (بيئة التجربة فقط) | Friends' test mode (staging only) | not yet |
+| عند التشغيل: الأرقام في قائمة المجرّبين فقط تطلب، بأي ساعة وبلا مخزون؛ طلباتهم تتقدّم وحدها ولا شيء يُوصَل أو يُدفع. قاعدة البيانات ترفضه خارج بيئة التجربة. | On: only numbers on the tester list can order, any hour, no stock; their orders walk by themselves and nothing is delivered or charged. The database refuses it outside staging. | not yet |

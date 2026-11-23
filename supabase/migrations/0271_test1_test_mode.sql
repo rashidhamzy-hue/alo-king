@@ -142,15 +142,15 @@ begin
     'total_usd', v_total, 'total_lbp', case when v_fx is null then null else round(v_total * v_fx / 1000) * 1000 end, 'test_order', true);
 end $$;
 
--- The planner (plan_order, 0022, over plan_order_core) quotes the basket for nobody. For a tester only, it is told who is asking, for
--- the length of this call (a transaction-local setting, cleared after).
-alter function plan_order(uuid, jsonb, uuid, jsonb) rename to plan_order_before_test1;
-create or replace function plan_order(p_party uuid, p_intent jsonb, p_village uuid default null, p_choices jsonb default '{}')
-returns jsonb language plpgsql set search_path = public, pg_temp as $$
+-- The planner (plan_order_core, under 0022's logging plan_order) quotes the basket for nobody. For a tester only, it is told who is asking,
+-- for the length of this call (a transaction-local setting, cleared after). plan_order and its demand log are not touched.
+alter function plan_order_core(uuid, jsonb, uuid, jsonb) rename to plan_order_core_before_test1;
+create or replace function plan_order_core(p_party uuid, p_intent jsonb, p_village uuid default null, p_choices jsonb default '{}')
+returns jsonb language plpgsql stable set search_path = public, extensions, pg_temp as $$
 declare r jsonb; v_test boolean := is_test_party(p_party);
 begin
   if v_test then perform set_config('alo.test_party', p_party::text, true); end if;
-  r := plan_order_before_test1(p_party, p_intent, p_village, p_choices);
+  r := plan_order_core_before_test1(p_party, p_intent, p_village, p_choices);
   if v_test then perform set_config('alo.test_party', '', true); end if;
   return r;
 end $$;
