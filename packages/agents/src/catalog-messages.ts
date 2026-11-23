@@ -96,3 +96,35 @@ export async function catalogMessages(db: SupabaseClient, args: { category?: str
   if (msgs.length > 2) return { ok: true, messages: [catalogMessage(C.all)], summary: `[catalog, for ${list.category.code}]` };
   return { ok: true, messages: msgs, summary: `[catalog list ${list.category.code}]` };
 }
+
+// ---------- VOICE1: the catalogue's button, offered and asked for ----------
+// Meta shows no cart icon in the chat header for Cloud API numbers, and the shop icon comes late, so the welcome (and, in the friends'
+// test, a tester's first reply) carries WhatsApp's own "View catalog" button: the catalog_message. And the words «بدي شوف الكتالوج», "show
+// me the catalogue", «le catalogue» send it by code, with no model.
+
+/** True when the catalogue can be shown (settings.catalog.catalog_id is set). */
+export async function catalogReady(db: SupabaseClient): Promise<boolean> {
+  return !!(((await db.rpc("setting", { p_key: "catalog" })).data ?? {}) as CatalogSettings).catalog_id;
+}
+
+/** The catalogue's button with its line, in the customer's language; null when the catalogue is not connected. */
+export async function catalogOffer(db: SupabaseClient, lang: Lang | string | null | undefined): Promise<{ msg: Outbound; text: string } | null> {
+  if (!(await catalogReady(db).catch(() => false))) return null;
+  const text = messages(asLang(lang)).catalogOffer;
+  return { msg: catalogMessage(text), text };
+}
+
+const CATALOG_WORD = /^(?:ال|لل|بال|عال)?(?:كتالوج|كتالوغ|كتالوك|كاتالوج|كاتالوغ|كاتالوك|كتلوج|كاتلوج)$|^(?:catalog|catalogue|catalogo|katalog|katalogue)s?$/u;
+const CATALOG_FILLER = new Set(["بدي", "بدنا", "شوف", "اشوف", "نشوف", "فرجيني", "وريني", "ورجيني", "ابعتلي", "ابعت", "ابعتو", "بعتلي", "عطيني", "افتح",
+  "فتحلي", "ممكن", "لو", "سمحت", "بليز", "من", "فضلك", "وين", "في", "عندكن", "عندكم", "هو", "تبعكن", "تبعكم", "الصور", "بالصور", "يا", "مرحبا",
+  "show", "me", "the", "your", "see", "send", "open", "want", "i", "to", "can", "please", "pls", "plz", "a", "look", "at", "view", "browse", "do", "you",
+  "have", "is", "there", "where", "s", "bade", "baddi", "bde", "bdi", "shouf", "chouf", "l", "el", "ma3", "lal",
+  "le", "la", "les", "votre", "voir", "je", "veux", "voudrais", "montrez", "moi", "envoyez", "svp", "stp", "s'il", "vous", "plaît", "plait", "ouvrir",
+  "bonjour", "salut", "hi", "hello", "marhaba"]);
+
+/** True when the message only asks to see the catalogue (any language), never when it names a category or an item. */
+export function catalogueAsked(text: string): boolean {
+  const words = text.toLowerCase().replace(/[ً-ْـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/[^\p{L}\p{N}' ]+/gu, " ").split(/\s+/).filter(Boolean);
+  if (!words.length || words.length > 8 || !words.some((w) => CATALOG_WORD.test(w))) return false;
+  return words.every((w) => CATALOG_WORD.test(w) || CATALOG_FILLER.has(w));
+}

@@ -15,6 +15,7 @@ import type { Quote, QuoteLine } from "./order-card";
 import { messages, productName, usd, type Lang } from "./messages";
 import { listTitle, quoted } from "./choice";
 import type { OrderIntent } from "./schemas";
+import { guessPlace, type PlaceChoice } from "./place-guess";
 
 type Done = { done: true; path: string } | { done: false };
 type Basket = { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean };
@@ -24,7 +25,7 @@ export interface DishCandidate { product_id: string; name_en: string; name_ar: s
 /** What the food path waits on: a choice of one group for one line, or which dish a word meant. */
 export type FoodAsk =
   | { kind: "group"; key: string; productId: string; groupId: string; required: boolean }
-  | { kind: "dish"; raw: string; qty: number; words: string; candidates: DishCandidate[] };
+  | { kind: "dish"; raw: string; qty: number; words: string; candidates: DishCandidate[]; lead?: string };
 export interface FoodState {
   sourceId: string; name: string;
   asking?: FoodAsk | null;
@@ -38,8 +39,12 @@ interface Group { group_id: string; name_en: string; name_ar: string | null; req
   options: { id: string; name_en: string; name_ar: string | null; price_delta_usd: number }[] }
 type FoodLine = QuoteLine & { key?: string; source_id?: string; needs?: Group[]; open_groups?: Group[]; options?: { id: string; name_en: string; name_ar: string | null }[] };
 interface PlaceNamed { source_id: string; name: string; score: number; orderable: boolean }
-interface Matched { idx: number; raw: string | null; query: string | null; qty: number; status: "matched" | "ambiguous" | "not_found";
-  chosen: DishCandidate | null; candidates: DishCandidate[]; options: string[] }
+interface Matched { idx: number; raw: string | null; query: string | null; qty: number; status: "matched" | "ambiguous" | "not_found" | "not_on_sale";
+  chosen: DishCandidate | null; candidates: DishCandidate[]; options: string[];
+  /** VOICE1 (0276): the menu's dish the words named that is not on sale; `candidates` are then the place's dishes on sale. */
+  dish?: { name_ar: string | null; name_en: string | null } | null }
+/** VOICE1: a place name we did not know, asked about («قصدك …؟»): the reading kept for the "yes". */
+export interface PlaceGuessState { sourceId: string; name: string; intent: OrderIntent }
 
 const T = (ctx: ToolContext) => messages(ctx.state.lang);
 const lang = (ctx: ToolContext): Lang => ctx.state.lang ?? "ar";
@@ -56,9 +61,15 @@ export const FOOD_OPTION = "fopt:";
 export const foodOptionId = (optionId: string) => `fopt:${optionId}`;
 export const foodNoneId = (groupId: string) => `fopt:none:${groupId}`;
 export const foodDishId = (productId: string) => `fdish:${productId}`;
-export type FoodTap = { kind: "option"; optionId: string } | { kind: "none"; groupId: string } | { kind: "dish"; productId: string };
+export const placeYesId = (sourceId: string) => `fplace:${sourceId}`;
+export const PLACE_NO = "fplace:none";
+export type FoodTap = { kind: "option"; optionId: string } | { kind: "none"; groupId: string } | { kind: "dish"; productId: string }
+  | { kind: "place"; sourceId: string } | { kind: "noplace" };
 export function parseFoodButton(id: string): FoodTap | null {
-  let m = /^fopt:none:([0-9a-f-]{36})$/.exec(id);
+  if (id === PLACE_NO) return { kind: "noplace" };
+  let m = /^fplace:([0-9a-f-]{36})$/.exec(id);
+  if (m) return { kind: "place", sourceId: m[1]! };
+  m = /^fopt:none:([0-9a-f-]{36})$/.exec(id);
   if (m) return { kind: "none", groupId: m[1]! };
   m = /^fopt:([0-9a-f-]{36})$/.exec(id);
   if (m) return { kind: "option", optionId: m[1]! };
@@ -94,6 +105,12 @@ const basketIsPlace = (ctx: ToolContext, sourceId: string) =>
  */
 export async function foodTurn(ctx: ToolContext, intent: OrderIntent | null, said: string, route: Route): Promise<Done> {
   if (!intent) return { done: false };
+  // VOICE1: "yes" typed to «قصدك …؟» is the button's yes; anything else lets the question go.
+  const guess = ctx.state.placeGuess;
+  if (guess) {
+    ctx.state.placeGuess = null;
+    if (YES.test(said.trim())) return orderFrom(ctx, guess.sourceId, guess.name, guess.intent);
+  }
   const words = placeWords(intent, said);
   const named = words.trim() ? await rpc<PlaceNamed[]>(ctx, "food_places_named", { p_party: ctx.partyId, p_text: words }).catch(() => [] as PlaceNamed[]) : [];
   const place = named[0];
@@ -104,6 +121,12 @@ export async function foodTurn(ctx: ToolContext, intent: OrderIntent | null, sai
   // A question about a place's dish («does the shawarma have nuts?») is the Concierge's to answer (food_facts): nothing is added to a basket.
   const ordering = new Set(["order", "add_to_order", "change_order"]).has(intent.intent);
   if (place && ordering) return orderFrom(ctx, place.source_id, place.name, intent);
+  // VOICE1: a place named that is none we know (a speech model's «عنفطة Chicken Tin» for Safa Chicken): the closest place this customer may
+  // order from is asked about, or the places are listed. The name as heard is never repeated as if it were a real place.
+  if (!place && ordering) {
+    const r = await unknownPlace(ctx, intent, said);
+    if (r.done) return r;
+  }
   // A food basket in hand: lines that are this place's dishes are edits to it; anything else is not food (the grocery path).
   const food = ctx.state.food;
   if (food && intent.lines.length && (intent.intent === "order" || intent.intent === "add_to_order" || intent.intent === "change_order") && basketIsPlace(ctx, food.sourceId)) {
@@ -114,6 +137,32 @@ export async function foodTurn(ctx: ToolContext, intent: OrderIntent | null, sai
     ctx.state.food = null;
   }
   return { done: false };
+}
+
+/** VOICE1: a typed yes to «قصدك …؟» (turn.ts reads it before any model while the question waits). */
+export const placeYes = (text: string) => YES.test(text.trim());
+const YES = /^(?:اي|ايه|إيه|أيه|اية|ايوا|ايوه|أكيد|اكيد|نعم|صح|هيدا|هيدا هو|yes|yeah|yep|ya|eh|aywa|ah|ok|okay|oui|ouais|si)[.!؟?\s]*$/iu;
+const hintsOf = (intent: OrderIntent) => [...new Set(intent.lines.map((l) => (l as { source_hint?: string | null }).source_hint?.trim() ?? "").filter(Boolean))];
+
+/** VOICE1: a place name we do not know. Not done when it names a real place we know of (the usual "not on Alo King yet" follows). */
+async function unknownPlace(ctx: ToolContext, intent: OrderIntent, said: string): Promise<Done> {
+  const hints = hintsOf(intent);
+  if (!hints.length) return { done: false };
+  const hint = hints.join(" ");
+  if (await rpc<boolean>(ctx, "place_hint_known", { p_hint: hint }).catch(() => true)) return { done: false };
+  const places = await rpc<PlaceChoice[]>(ctx, "food_place_choices", { p_party: ctx.partyId }).catch(() => [] as PlaceChoice[]);
+  const g = guessPlace(hint, places);
+  if (g) {
+    // The reading is kept for the "yes", without the name as heard: as a line or as the shop, it is the place, not a dish.
+    const heard = hints.map((h) => h.toLowerCase());
+    const lines = intent.lines.filter((l) => !heard.some((h) => (l.raw ?? "").toLowerCase().trim() === h || (l.query ?? "").toLowerCase().trim() === h))
+      .map((l) => ({ ...l, source_hint: null }));
+    ctx.state.placeGuess = { sourceId: g.source_id, name: g.name, intent: { ...intent, lines } };
+    const text = T(ctx).food.placeGuess(g.name);
+    const msg = buttons(text, [{ id: placeYesId(g.source_id), title: T(ctx).food.yesButton }, { id: PLACE_NO, title: T(ctx).food.noButton }]);
+    return (await deliver(ctx, msg, text)).ok ? { done: true, path: "food_place_guess" } : { done: false };
+  }
+  return say(ctx, T(ctx).food.placeUnknown(places.map((p) => p.name)), "food_place_unknown");
 }
 
 /** The reading's lines, as food_match takes them (the place's own name is not a dish). */
@@ -148,6 +197,9 @@ async function orderFrom(ctx: ToolContext, sourceId: string, placeName: string, 
   const real = lines.filter((l) => !placeLine(l));
   const notFound = real.filter((l) => l.status === "not_found").map((l) => quoted(l.raw ?? l.query ?? ""));
   if (notFound.length) before.push(T(ctx).food.notOnMenu(notFound, placeName));
+  // VOICE1: a dish on the menu that is not on sale (rejected, a price to confirm): said honestly, with the place's dishes that are.
+  const offSale = real.filter((l) => l.status === "not_on_sale" && l.dish);
+  const offName = (l: Matched) => name({ name_en: l.dish?.name_en ?? l.dish?.name_ar ?? "", name_ar: l.dish?.name_ar ?? null }, lang(ctx));
   const held = ctx.state.lastQuote?.lines ?? [];
   let basket = [...held];
   for (const l of real.filter((x) => x.status === "matched" && x.chosen)) basket = upsert(basket, { product_id: l.chosen!.product_id, qty: l.qty, options: l.options, source_id: sourceId });
@@ -156,11 +208,17 @@ async function orderFrom(ctx: ToolContext, sourceId: string, placeName: string, 
     ctx.state.food!.asking = { kind: "dish", raw: quoted(ambiguous.raw ?? ambiguous.query ?? ""), qty: ambiguous.qty, words: [ambiguous.raw, ambiguous.query].filter(Boolean).join(" "),
                                candidates: ambiguous.candidates.slice(0, 10) };
   }
-  if (!basket.length && !ambiguous) {
+  const offer = !ambiguous ? offSale.find((l) => l.candidates.length) : undefined;
+  for (const l of offSale) if (l !== offer) before.push(T(ctx).food.notOnSale(offName(l), placeName, false));
+  if (offer) {
+    ctx.state.food!.asking = { kind: "dish", raw: offName(offer), qty: offer.qty, words: "", candidates: offer.candidates.slice(0, 10),
+                               lead: T(ctx).food.notOnSale(offName(offer), placeName, true) };
+  }
+  if (!basket.length && !ambiguous && !offer) {
     // Nothing chosen yet: the menu, as a list (at most ten dishes; the rest by name).
     return showMenu(ctx, sourceId, placeName, before.join("\n") || undefined);
   }
-  await priced(ctx, basket);
+  if (basket.length) await priced(ctx, basket);
   return next(ctx, before.join("\n") || undefined);
 }
 
@@ -231,7 +289,7 @@ export async function next(ctx: ToolContext, before?: string, route?: Route): Pr
   if (food.asking?.kind === "dish") {
     const a = food.asking;
     const rows = a.candidates.map((d) => dishRow(d, lg));
-    const text = [before, T(ctx).food.whichDish(a.raw, food.name)].filter(Boolean).join("\n");
+    const text = [before, a.lead ?? T(ctx).food.whichDish(a.raw, food.name)].filter(Boolean).join("\n");
     return (await deliver(ctx, list(text, T(ctx).food.dishesButton, rows), `[food which] ${text}`)).ok ? { done: true, path: "food_which" } : { done: false };
   }
   if (!held?.lines.length) return { done: false };
@@ -274,6 +332,14 @@ async function askGroup(ctx: ToolContext, l: FoodLine, g: Group, required: boole
 
 /** A tap on a food question: an option, "no, thanks", or a dish. Not done when it is not for the question waiting (an old button). */
 export async function takeFoodTap(ctx: ToolContext, tap: FoodTap, route: Route): Promise<Done> {
+  // VOICE1: the answer to «قصدك …؟». Yes: the order goes on from that place with the words already said. No: the places, by name.
+  if (tap.kind === "place" || tap.kind === "noplace") {
+    const g = ctx.state.placeGuess;
+    ctx.state.placeGuess = null;
+    if (tap.kind === "place" && g && g.sourceId === tap.sourceId) return orderFrom(ctx, g.sourceId, g.name, g.intent);
+    const places = await rpc<PlaceChoice[]>(ctx, "food_place_choices", { p_party: ctx.partyId }).catch(() => [] as PlaceChoice[]);
+    return say(ctx, T(ctx).food.placeUnknown(places.map((p) => p.name)), "food_place_unknown");
+  }
   const food = ctx.state.food;
   if (!food) return { done: false };
   if (tap.kind === "dish") {

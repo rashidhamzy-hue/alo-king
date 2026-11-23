@@ -246,6 +246,7 @@ Until then nothing changes on the page.`,
     list: (category) => `🛒 *${category}*\nAdd what you want to the cart and send it. We send you the order card to confirm.`,
     one: "Add it to the cart and send it. We send you the order card to confirm.",
   },
+  catalogOffer: "🛒 *The Alo King catalogue, with pictures*\nTap the button below to open it, or write \"catalogue\" any time.",
 
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *Order ${code} was cancelled*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
@@ -362,6 +363,12 @@ Until then nothing changes on the page.`,
     priceAccepted: (code, total) => `✅ *Order ${code}*\nWe go on at the new price.\n*New total · ${usd(total)}*`,
     answerCancelled: (code) => `❌ *Order ${code} is cancelled*\nYou pay nothing.`,
     notWaiting: (code) => code ? `💬 Order ${o(code)} is no longer waiting for an answer. Write to us if anything is wrong.` : "💬 No question is waiting for an answer. Write to us if anything is wrong.",
+    placeGuess: (place) => `🔎 *Did you mean ${place}?*\nTap "Yes" and we'll carry on with your order from there.`,
+    yesButton: "Yes", noButton: "No",
+    placeUnknown: (places) => places.length
+      ? `🔎 *We couldn't find that place on Alo King*\nYou can order food from: ${join(places)}.\nOr order groceries as usual.`
+      : "🔎 *We couldn't find that place on Alo King*\nYou can order groceries as usual.",
+    notOnSale: (dish, place, others) => `⚠️ *"${dish}" from ${place} can't be ordered yet*${others ? "\nThese dishes from the same place can:" : ""}`,
   },
 
   ops: {

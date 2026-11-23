@@ -1,0 +1,54 @@
+# Manual. VOICE1: our own transcription (ElevenLabs Scribe) checked live on STAGING (scripts/qa/voice-check.mjs): the founder's stored test
+# voice note of 23 November sent once to Scribe with staging's keyterms (did it hear «صفا»?), and, with `fresh`, the same audio as a fresh
+# voice note from a scripted tester (a probe party: nothing reaches a phone) read by the deployed Worker. The report never prints a
+# transcript. Spend: a few seconds of audio (fractions of a cent).
+name: voice-check
+on:
+  workflow_dispatch:
+    inputs:
+      fresh:
+        description: "Also send the audio as a fresh voice note through the staging Worker"
+        type: boolean
+        default: true
+      note_from:
+        description: "The stored note's window, start (UTC)"
+        type: string
+        default: "2026-11-23T10:30:00Z"
+      note_to:
+        description: "The stored note's window, end (UTC)"
+        type: string
+        default: "2026-11-23T10:40:00Z"
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency: { group: voice-check, cancel-in-progress: false }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      FRESH: ${{ inputs.fresh }}
+      NOTE_FROM: ${{ inputs.note_from }}
+      NOTE_TO: ${{ inputs.note_to }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler)
+        run: |
+          test -n "$ELEVENLABS_API_KEY" || { echo "no ELEVENLABS_API_KEY repository secret"; exit 1; }
+          supabase link --project-ref lhgkvvdckwbfpdsftzqp
+          test -s supabase/.temp/pooler-url || { echo "no pooler url after link"; exit 1; }
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: The check
+        run: node scripts/qa/voice-check.mjs | tee -a "$GITHUB_STEP_SUMMARY"

@@ -12,7 +12,7 @@ import { answerQuick, answerWhen, askPinVillage, nameLost, settlePinVillage, bas
          routeBasket, waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { parsePickButton, takePick } from "@ak/agents/choice";
-import { parseCallButton, parseFoodButton, takeCallAnswer, takeFoodTap } from "@ak/agents/food";
+import { parseCallButton, parseFoodButton, placeYes, takeCallAnswer, takeFoodTap } from "@ak/agents/food";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, reopenLapsed, repeatLast } from "@ak/agents/answers";
@@ -22,6 +22,7 @@ import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, par
 import { orderWindowTap, resendCard, schedules, whenOnly } from "@ak/agents/windows";
 import { CARD_AGAIN, LINK_CODE, SIGN_OUT, webWords } from "@ak/agents/web-orders";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
+import { catalogOffer, catalogueAsked } from "@ak/agents/catalog-messages";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { asLang, messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
 import { keepLanguage, langOfSpeech, replyLanguage, type Speech } from "@ak/agents/language";
@@ -67,7 +68,7 @@ export interface TurnDeps {
   typing?: (waMessageId: string) => Promise<unknown>;
   /** TEST1: the friends' test mode may apply (the Worker's ENVIRONMENT is staging). The database still decides whether it is on. */
   testMode?: boolean;
-  /** A second speech-to-text provider (1.7), passed by the worker only when its key is configured. settings.stt decides use. */
+  /** Our own speech-to-text (VOICE1: ElevenLabs Scribe), passed by the worker only when its key is configured. settings.stt decides use. */
   stt?: SttProvider;
 }
 /**
@@ -189,8 +190,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // TEST1 (test mode, staging only: deps.testMode is set only when the Worker's ENVIRONMENT is staging, and the database answers "on"
   // only when it is marked as staging). A number not on the tester list gets one short "we're not open yet" in its language, before any
   // model, with no price and no menu. STOP and START still win (invariant 6); nothing is dropped in silence (invariant 18).
+  let tester = false;
   if (deps.testMode) {
-    const gate = await call<{ on: boolean; allowed: boolean }>(db, "test_mode_gate", { p_party: conv.party_id });
+    const gate = await call<{ on: boolean; allowed: boolean; tester?: boolean }>(db, "test_mode_gate", { p_party: conv.party_id });
+    tester = !!gate.on && !!gate.tester;
     if (!gate.allowed) {
       for (const p of pending) {
         const m = p.event.message;
@@ -509,6 +512,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 3. STOP wins, before any model.
     if (m.type === "text") {
       const body = m.text?.body ?? "";
+      // VOICE1: «ايه», "yes", «oui» typed to «قصدك …؟»: the button's yes, before any model.
+      if (state.placeGuess && placeYes(body)) {
+        const g = state.placeGuess;
+        try { if ((await takeFoodTap(ctx, { kind: "place", sourceId: g.sourceId }, routeBasket)).done) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; } }
+        catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          buttonsHandled++; await tapFailed(`fplace:${g.sourceId}`, "basket", err); continue;
+        }
+      }
       // LV1: "Claim <listing_id>" is a code we typed for the owner, not the customer's own words: it says nothing of their language.
       const claimShaped = /^\s*claim\s+\S+\s*$/i.test(body);
       // WEB2: the website's sign-in code and "Card AK-xxxx" are typed by the website too: only the words around a code are the customer's.
@@ -579,7 +591,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       continue;
     }
 
-    // 4. Voice: the policy, then the transcripts (Kapso first, a second provider behind settings.stt), then mechanical checks.
+    // 4. Voice: the policy, then the transcripts (VOICE1: ours first with keyterms, Kapso's as the fallback), then mechanical checks.
     if (m.type === "audio") {
       // Policy first (1.17): the role's limit and the sender's hourly budget from settings.voice_limits, across turns. A note
       // over a limit is answered politely and not read. Nothing is dropped in silence.
@@ -587,7 +599,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (policy.reply) { await say(policy.reply); buttonsHandled++; continue; }
       const seconds = policy.seconds;
       voiceSecondsThisTurn += seconds;
-      // Kapso's transcript first; a second provider's too when settings.stt names one we have (1.7). Both are judged.
+      // VOICE1: Scribe's transcript, biased by keyterms (the places, their other names, item words, villages, brands: stt_context), when
+      // its key exists and settings.stt names it primary; Kapso's is the fallback. judge() decides; the provider and cost are recorded.
       const { verdict } = await readVoiceNote({ db, fetchMedia: deps.fetchMedia, stt: deps.stt }, conv.party_id, m, seconds);
       if (verdict.usable) {
         transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
@@ -629,6 +642,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (welcome) sent.push(welcome);
     }
     state.welcomed = true;
+  }
+  // VOICE1: WhatsApp's own "View catalog" button (Meta shows no cart icon in the header for our numbers): with the welcome, and in the
+  // friends' test with a tester's first reply. Once per conversation; only when the catalogue is connected; never for a tap alone.
+  let catalogSent = false;
+  if (!state.catalogOffered && !claimed && (welcome || tester) && (texts.length > 0 || transcripts.length > 0)) {
+    const offer = await catalogOffer(db, state.lang).catch(() => null);
+    if (offer && (await sendRaw(offer.msg)).ok) { sent.push(offer.text); state.catalogOffered = true; catalogSent = true; }
   }
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
@@ -699,6 +719,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // CX1: "cancel my order" said on its own, about a confirmed order: what a cancel gives back and a button that cancels; once
     // picking started, the exact refundable amount and a person. A card still waiting for its tap keeps the usual path.
     const one = texts.length === 1 && transcripts.length === 0 && pins === 0 ? texts[0]! : null;
+    // VOICE1: «بدي شوف الكتالوج», "show me the catalogue", «le catalogue»: the catalogue by code, no model (said twice in one turn, once).
+    if (one && catalogueAsked(one)) {
+      if (!catalogSent) await makeConciergeTools(ctx).show_catalog({});
+      remember(); await record("ok", "catalog_words"); return { outcome: "answered", sent };
+    }
     if (one && cancelWords(one)) {
       const s = await call<{ order_id?: string; status?: string } | null>(db, "order_status_for", { p_party: conv.party_id });
       if (s?.order_id && s.status !== "awaiting_confirmation") {

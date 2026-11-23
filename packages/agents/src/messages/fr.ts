@@ -246,6 +246,7 @@ D'ici là, rien ne change sur la page.`,
     list: (category) => `🛒 *${category}*\nAjoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.`,
     one: "Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.",
   },
+  catalogOffer: "🛒 *Le catalogue Alo King, en photos*\nTouchez le bouton ci-dessous pour l'ouvrir, ou écrivez « catalogue » à tout moment.",
 
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *La commande ${code} a été annulée*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
@@ -362,6 +363,12 @@ D'ici là, rien ne change sur la page.`,
     priceAccepted: (code, total) => `✅ *Commande ${code}*\nNous continuons au nouveau prix.\n*Nouveau total · ${usd(total)}*`,
     answerCancelled: (code) => `❌ *Commande ${code} annulée*\nVous ne payez rien.`,
     notWaiting: (code) => code ? `💬 La commande ${o(code)} n'attend plus de réponse. Écrivez-nous si quelque chose ne va pas.` : "💬 Aucune question n'attend de réponse. Écrivez-nous si quelque chose ne va pas.",
+    placeGuess: (place) => `🔎 *Vouliez-vous dire ${place} ?*\nTouchez « Oui » et on continue votre commande chez eux.`,
+    yesButton: "Oui", noButton: "Non",
+    placeUnknown: (places) => places.length
+      ? `🔎 *Nous n'avons pas trouvé ce commerce sur Alo King*\nVous pouvez commander à manger chez : ${join(places)}.\nOu commandez vos courses comme d'habitude.`
+      : "🔎 *Nous n'avons pas trouvé ce commerce sur Alo King*\nVous pouvez commander vos courses comme d'habitude.",
+    notOnSale: (dish, place, others) => `⚠️ *« ${dish} » chez ${place} ne peut pas encore être commandé*${others ? "\nCes plats du même endroit, oui :" : ""}`,
   },
 
   ops: {

@@ -2768,6 +2768,53 @@ Vous ne payez rien.
 💬 Aucune question n'attend de réponse. Écrivez-nous si quelque chose ne va pas.
 ```
 
+## food.placeGuess
+
+```text
+🔎 *Vouliez-vous dire Alo King test kitchen ?*
+Touchez « Oui » et on continue votre commande chez eux.
+```
+
+## food.yesButton
+
+```text
+Oui
+```
+
+## food.noButton
+
+```text
+Non
+```
+
+## food.placeUnknown
+
+```text
+🔎 *Nous n'avons pas trouvé ce commerce sur Alo King*
+Vous pouvez commander à manger chez : Alo King test kitchen, Alo King test kitchen.
+Ou commandez vos courses comme d'habitude.
+```
+
+## food.placeUnknown.none
+
+```text
+🔎 *Nous n'avons pas trouvé ce commerce sur Alo King*
+Vous pouvez commander vos courses comme d'habitude.
+```
+
+## food.notOnSale
+
+```text
+⚠️ *« whole chicken » chez Alo King test kitchen ne peut pas encore être commandé*
+Ces plats du même endroit, oui :
+```
+
+## food.notOnSale.alone
+
+```text
+⚠️ *« whole chicken » chez Alo King test kitchen ne peut pas encore être commandé*
+```
+
 ## ops.foodCall
 
 ```text

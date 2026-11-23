@@ -219,7 +219,7 @@ function render(m: Messages): Rendered[] {
   add("feedback.ask", fb.ask(CODE)); add("feedback.fineButton", fb.fineButton); add("feedback.problemButton", fb.problemButton);
   add("feedback.fine", fb.fine); add("feedback.problem", fb.problem(CODE));
   add("testMode.line", m.testMode.line); add("testMode.notOpen", m.testMode.notOpen);
-  add("catalog.all", m.catalog.all); add("catalog.list", m.catalog.list(m.lang === "ar" ? "الألبان والبيض" : "Dairy and eggs")); add("catalog.one", m.catalog.one);
+  add("catalog.all", m.catalog.all); add("catalog.list", m.catalog.list(m.lang === "ar" ? "الألبان والبيض" : "Dairy and eggs")); add("catalog.one", m.catalog.one); add("catalogOffer", m.catalogOffer);
   const n = m.notice;
   add("notice.orderCancelled", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time")); add("notice.orderCancelled.reopen", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time", true)); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
   add("notice.paymentReceived", n.paymentReceived(CODE, L === "ar" ? "12.50$ نقداً" : L === "en" ? "12.50$ cash" : "12.50$ en espèces")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.onTheWay.cash", n.onTheWay(CODE, 7.27)); add("notice.riderWaiting", n.riderWaiting(CODE));
@@ -252,6 +252,9 @@ function render(m: Messages): Rendered[] {
   add("food.closedNow", fd.closedNow(CODE, P)); add("food.priceLower", fd.priceLower(CODE, P, dish, 12.5)); add("food.priceUp", fd.priceUp(CODE, P, dish, 6.5, 7, 15));
   add("food.dropped", fd.dropped(CODE, 9)); add("food.priceAccepted", fd.priceAccepted(CODE, 15)); add("food.answerCancelled", fd.answerCancelled(CODE));
   add("food.notWaiting", fd.notWaiting(CODE)); add("food.notWaiting.none", fd.notWaiting(""));
+  add("food.placeGuess", fd.placeGuess(P)); add("food.yesButton", fd.yesButton); add("food.noButton", fd.noButton);
+  add("food.placeUnknown", fd.placeUnknown([P, "Alo King test kitchen"])); add("food.placeUnknown.none", fd.placeUnknown([]));
+  add("food.notOnSale", fd.notOnSale(L === "ar" ? "فروج" : "whole chicken", P, true)); add("food.notOnSale.alone", fd.notOnSale(L === "ar" ? "فروج" : "whole chicken", P, false));
 
   const o = m.ops;
   const S = (k: string, v: string) => add(`ops.${k}`, v);

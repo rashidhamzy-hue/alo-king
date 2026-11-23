@@ -241,6 +241,7 @@ export const ar: Messages = {
     list: (category) => `🛒 *${category}*\nزيد يلي بدك ياه عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.`,
     one: "زيدو عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.",
   },
+  catalogOffer: "🛒 *كتالوج ألو كينغ بالصور*\nاكبس الزر تحت لتشوفو، أو اكتب «الكتالوج» بأي وقت.",
 
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *انلغى طلبك ${code}*\n${reason}.\n`
@@ -357,6 +358,12 @@ export const ar: Messages = {
     priceAccepted: (code, total) => `✅ *طلبك ${code}*\nمنكمّل بالسعر الجديد.\n*المجموع الجديد · ${usd(total)}*`,
     answerCancelled: (code) => `❌ *طلبك ${code} انلغى*\nما رح تدفع شي.`,
     notWaiting: (code) => code ? `💬 طلبك ${o(code)} ما عاد ناطر جواب. إذا في شي اكتبلنا.` : "💬 ما في سؤال ناطر جواب. إذا في شي اكتبلنا.",
+    placeGuess: (place) => `🔎 *قصدك ${place}؟*\nاكبس «إيه» ومنكمّل طلبك من عندن.`,
+    yesButton: "إيه", noButton: "لا",
+    placeUnknown: (places) => places.length
+      ? `🔎 *ما لقينا هالمحل على ألو كينغ*\nفيك تطلب أكل من: ${join(places)}.\nأو اطلب أغراض البقالة متل العادة.`
+      : "🔎 *ما لقينا هالمحل على ألو كينغ*\nفيك تطلب أغراض البقالة متل العادة.",
+    notOnSale: (dish, place, others) => `⚠️ *ما فينا ناخد طلب «${dish}» من ${place} بعد*${others ? "\nهيدي أطباق من نفس المحل فيك تطلبها:" : ""}`,
   },
 
   ops: {

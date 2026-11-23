@@ -1,0 +1,27 @@
+{
+  "id": "vn-voice1-b",
+  "about": "VOICE1: the same note as it was said (what Scribe with the places as keyterms should return)",
+  "transcript": "بدي اطلب من صفا تشيكن، فروج واحد، اوكي؟",
+  "duration_sec": 4,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [
+      {
+        "item": "فروج",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": "Safa Chicken"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

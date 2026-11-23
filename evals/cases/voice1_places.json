@@ -1,0 +1,37 @@
+{
+  "about": "VOICE1 (23 Nov 2026): a voice note from a tester on staging, «one whole chicken from Safa Chicken», came through Kapso's transcript as «بدي أطلب من عنفطة Chicken Tin، جوج واحد، okay؟» and was answered «عنفطة مش متوفّر بعد على ألو كينغ». Code (packages/agents/src/food.ts, place-guess.ts), never the model, now asks about the closest place this customer may order from («قصدك …؟», two buttons) or lists those places, and never repeats a name we do not know as a real place; a dish on the place's menu that is not on sale (Safa's whole chicken was rejected for a price range) is said honestly, with the place's dishes that are. Run by test/db/voice1-places.test.ts with the readings scripted as the live model gives them (the place in source_hint, the dish as the line), on an invented copy of the place («Safa Chicken», invented menu and prices; the name and its other names as on staging, 0274). The transcripts are also speech cases (evals/voice_notes/cases/vn-voice1-*.json).",
+  "place": "Safa Chicken",
+  "cases": [
+    {
+      "id": "voice1-kapso-transcript",
+      "said": "بدي أطلب من عنفطة Chicken Tin، جوج واحد، okay؟",
+      "lines": [{ "raw": "جوج واحد", "query": "جوج", "qty": 1, "source_hint": "عنفطة Chicken Tin" }],
+      "expect": { "contains": ["قصدك Safa Chicken؟"], "buttons": ["إيه", "لا"], "not_contains": ["عنفطة", "مش متوفّر بعد"] }
+    },
+    {
+      "id": "voice1-clean",
+      "said": "بدي اطلب من صفا تشيكن، فروج واحد، اوكي؟",
+      "lines": [{ "raw": "فروج واحد", "query": "فروج", "qty": 1, "source_hint": "صفا تشيكن" }],
+      "expect": { "contains": ["ما فينا ناخد طلب «فروج» من Safa Chicken بعد", "هيدي أطباق من نفس المحل فيك تطلبها"], "rows": ["نص فروج"], "not_contains": ["مش متوفّر بعد", "$12"] }
+    },
+    {
+      "id": "voice1-two-shawarma",
+      "said": "بدي تنين شاورما من صفا",
+      "lines": [{ "raw": "تنين شاورما", "query": "شاورما", "qty": 2, "source_hint": "صفا" }],
+      "expect": { "contains": ["أيّا طبق قصدك؟"], "rows": ["سندويش شاورما دجاج", "سندويش شاورما لحمة"] }
+    },
+    {
+      "id": "voice1-english",
+      "said": "uh hi yeah so I wanna order from uh Safa Chicken, um two chicken shawarma sandwiches, and that's it, okay?",
+      "language": "en",
+      "lines": [{ "raw": "two chicken shawarma sandwiches", "query": "chicken shawarma sandwich", "qty": 2, "source_hint": "Safa Chicken" }],
+      "expect": { "card": true, "contains": ["🍗", "Safa Chicken"] }
+    },
+    {
+      "id": "voice1-no-such-place",
+      "said": "بدي بيتزا من مطعم الكوكب الأزرق",
+      "lines": [{ "raw": "بيتزا", "query": "بيتزا", "qty": 1, "source_hint": "مطعم الكوكب الأزرق" }],
+      "expect": { "contains": ["ما لقينا هالمحل على ألو كينغ", "Safa Chicken"], "not_contains": ["الكوكب", "مش متوفّر بعد"] }
+    }
+  ]
+}

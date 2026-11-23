@@ -58,6 +58,10 @@ export interface ConversationState {
   food?: import("./food").FoodState | null;
   /** FD2: another shop's basket, kept apart while this one is built (one shop per order); the basket in hand again once a card went. */
   parked?: import("./food").Parked | null;
+  /** VOICE1: a place name we did not know, asked about («قصدك …؟»); the reading kept for the "yes". */
+  placeGuess?: import("./food").PlaceGuessState | null;
+  /** VOICE1: the catalogue's button was offered in this conversation (with the welcome, or a tester's first reply). */
+  catalogOffered?: boolean;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;

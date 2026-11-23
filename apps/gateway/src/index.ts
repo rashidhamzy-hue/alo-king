@@ -23,6 +23,7 @@ import { claimOrderMessage, logTemplateSkip, sendCodeStarted } from "@ak/agents/
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 import { workersAiEmbedder } from "@ak/agents/embeddings";
 import { testLineSend, testOrderTick } from "@ak/agents/test-mode";
+import { scribeProvider } from "@ak/agents/scribe";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -44,6 +45,8 @@ export interface Env {
   ANTHROPIC_BASE_URL?: string;
   /** 1.21 (K1): the password Meta's scheduled feed uses for GET /catalog/feed.csv (user "meta"). Unset: the route answers 404. */
   CATALOG_FEED_PASSWORD?: string;
+  /** VOICE1: ElevenLabs Scribe, our own speech-to-text (a Worker secret, from the repository secret of the same name). Absent: Kapso's transcript. */
+  ELEVENLABS_API_KEY?: string;
   /** SR1: Workers AI (wrangler.jsonc "ai"), for query embeddings. Absent: search runs on words alone. */
   AI?: { run(model: string, input: unknown): Promise<unknown> };
   /** Tests inject a scripted model and an in-memory database here. Never set in production. */
@@ -83,6 +86,8 @@ function depsFor(env: Env): TurnDeps {
   const deps: TurnDeps = { db: supa, model: guarded, modelName: env.MODEL_FAST, send: staging ? testLineSend(supa, out) : out };
   if (staging) deps.testMode = true;
   // SR1: search by meaning; the switch, the model and the daily cap are settings.search, checked before every call (search.ts)
+  // VOICE1: our own transcription when its key exists; settings.stt.primary_provider decides whether it is used (stt.ts).
+  if (env.ELEVENLABS_API_KEY && !env.TEST_DEPS) deps.stt = scribeProvider({ apiKey: env.ELEVENLABS_API_KEY });
   if (env.AI && !env.TEST_DEPS) deps.embedder = workersAiEmbedder(env.AI);
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);

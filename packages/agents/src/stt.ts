@@ -1,6 +1,6 @@
 // Speech-to-text for Lebanese voice notes: two transcripts, one judgement, and a hard check for failure modes.
 export interface Transcript { text: string; provider: string }
-export interface SttProvider { name: string; transcribe(audio: ArrayBuffer, opts: { keyterms: string[] }): Promise<string> }
+export interface SttProvider { name: string; model?: string; transcribe(audio: ArrayBuffer, opts: { keyterms: string[]; model?: string }): Promise<string> }
 
 /**
  * Generic speech models break on dialect in a specific way: they loop. In our own run, an off-the-shelf
@@ -39,37 +39,59 @@ export function judge(primary: Transcript, secondary: Transcript | undefined, du
   return { usable: false, reason: looksLooped(primary.text) ? "looped" : "implausible_rate" };
 }
 
-// ---------- Build plan 1.7: Kapso's transcript first, a second provider behind a setting, the audio kept privately ----------
-// settings.stt: { keep_audio, second_provider }. keep_audio copies the note into the private `media` bucket at once (the
-// hand-corrected evaluation, 5.8, needs the audio). second_provider names the provider whose transcript is also taken; the
-// worker passes the provider object only when its key is configured, so the setting alone never sends audio anywhere.
-// Kapso's own transcription runs through ElevenLabs, which may keep transcripts: whether to say so in the privacy notice or
-// to rely on our own provider is the founder's decision (docs/HANDOFF.md). The audio and the transcripts are personal data:
-// stored, never logged.
+// ---------- Build plan 1.7, and VOICE1: our own transcript first (ElevenLabs Scribe), Kapso's as the fallback ----------
+// settings.stt: { keep_audio, primary_provider, second_provider, scribe, keyterms_max, daily_cap_usd, keyterms_extra }.
+// VOICE1 (0276): when the worker passes a provider whose name is settings.stt.primary_provider ("elevenlabs_scribe", built only when the
+// Worker secret ELEVENLABS_API_KEY exists), the note's audio is fetched through Kapso and transcribed by it with keyterms (the places and the
+// names customers use for them, everyday item words, the served villages, the brands most ordered: stt_context, 0276); judge() takes ours
+// when it is usable and Kapso's otherwise. Over settings.stt.daily_cap_usd, or with no key, Kapso's transcript alone, as before. Each note's
+// provider, seconds and cost are written with its transcripts, and its cost to model_costs (workflow "stt"). Before VOICE1 the provider
+// could only be a second transcript behind second_provider (null on staging); that path is kept. keep_audio copies the note into the
+// private `media` bucket at once. The audio and the transcripts are personal data: stored, never logged.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kapsoMediaUrl, MEDIA_BUCKET } from "./payment-proof";
 import { fetchKapsoMedia } from "@ak/wa/media";
+import { cleanKeyterms, scribeCostUsd } from "./scribe";
 
 export interface VoiceNote { id: string; kapso: { transcript?: { text: string }; media_url?: string; media_data?: { url: string; content_type?: string; byte_size?: number } } }
-export interface SttSettings { keep_audio?: boolean; second_provider?: string | null }
-export interface VoiceDeps { db: SupabaseClient; fetchMedia?: (url: string) => Promise<Response>; stt?: SttProvider }
+export interface SttSettings {
+  keep_audio?: boolean; second_provider?: string | null; primary_provider?: string | null;
+  scribe?: { model?: string; usd_per_hour?: number; keyterms_usd_per_hour?: number };
+  keyterms_max?: number; daily_cap_usd?: number;
+}
+export interface VoiceDeps { db: SupabaseClient; fetchMedia?: (url: string) => Promise<Response>; stt?: SttProvider & { model?: string } }
 const MAX_AUDIO = 16 * 1024 * 1024;   // WhatsApp's own ceiling for audio
 const hexOf = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 
+interface SttContext { settings: SttSettings; keyterms: string[]; spent_today_usd: number }
+async function sttContext(db: SupabaseClient, partyId: string): Promise<SttContext> {
+  const r = await db.rpc("stt_context", { p_party: partyId });
+  if (!r.error && r.data) return r.data as SttContext;
+  // a database without 0276: the setting alone, as before
+  return { settings: ((await db.rpc("setting", { p_key: "stt" })).data ?? {}) as SttSettings, keyterms: [], spent_today_usd: 0 };
+}
+
 /**
- * Reads one voice note: stores it if asked, takes the second transcript if the setting names the provider we have, and judges
- * both. Storage or the second provider failing never loses the note: Kapso's transcript is still judged, and what failed is
- * recorded with the message. Returns what the turn needs; writes the transcripts and the storage key onto wa_messages.
+ * Reads one voice note: stores it if asked, takes our own transcript when the provider is configured (primary), or a second transcript
+ * behind the older setting, and judges them with Kapso's. Storage or our provider failing never loses the note: Kapso's transcript is still
+ * judged, and what failed is recorded with the message. Returns what the turn needs; writes the transcripts, the provider, the cost and the
+ * storage key onto wa_messages. `keyterms` are added to the database's own list (stt_context).
  */
 export async function readVoiceNote(deps: VoiceDeps, partyId: string, m: VoiceNote, seconds: number, keyterms: string[] = []):
-    Promise<{ verdict: SttVerdict; mediaPath: string | null; second: Transcript | null }> {
-  const s = ((await deps.db.rpc("setting", { p_key: "stt" })).data ?? {}) as SttSettings;
-  const wantSecond = !!s.second_provider && deps.stt?.name === s.second_provider;
-  const kapso: Transcript = { text: m.kapso.transcript?.text ?? "", provider: "kapso" };
+    Promise<{ verdict: SttVerdict; mediaPath: string | null; second: Transcript | null; ours: Transcript | null; costUsd: number }> {
+  const c = await sttContext(deps.db, partyId);
+  const s = c.settings ?? {};
   const notes: Record<string, string> = {};
-  let mediaPath: string | null = null, audio: ArrayBuffer | null = null, second: Transcript | null = null;
+  const capped = s.daily_cap_usd != null && Number(c.spent_today_usd ?? 0) >= Number(s.daily_cap_usd);
+  const primary = !!deps.stt && !!s.primary_provider && deps.stt.name === s.primary_provider;
+  if (primary && capped) notes.ours = "daily_cap";
+  const useOurs = primary && !capped;
+  const wantSecond = !useOurs && !primary && !!s.second_provider && deps.stt?.name === s.second_provider;
+  const kapso: Transcript = { text: m.kapso.transcript?.text ?? "", provider: "kapso" };
+  let mediaPath: string | null = null, audio: ArrayBuffer | null = null, second: Transcript | null = null, ours: Transcript | null = null;
+  let costUsd = 0;
 
-  if (s.keep_audio || wantSecond) {
+  if (s.keep_audio || wantSecond || useOurs) {
     const url = kapsoMediaUrl(m);
     if (!url) notes.audio = "no_kapso_media_url";
     else {
@@ -88,15 +110,26 @@ export async function readVoiceNote(deps: VoiceDeps, partyId: string, m: VoiceNo
       } catch (e) { notes.audio = String((e as Error).message ?? e).slice(0, 60); }
     }
   }
-  if (wantSecond && audio) {
-    try { second = { text: await deps.stt!.transcribe(audio, { keyterms }), provider: deps.stt!.name }; }
-    catch (e) { notes.second = String((e as Error).message ?? e).slice(0, 60); }
+  const terms = cleanKeyterms([...(c.keyterms ?? []), ...keyterms], s.keyterms_max ?? 100);
+  if ((useOurs || wantSecond) && audio) {
+    try {
+      const text = await deps.stt!.transcribe(audio, { keyterms: terms, ...(useOurs && s.scribe?.model ? { model: s.scribe.model } : {}) });
+      if (useOurs) ours = { text, provider: deps.stt!.name }; else second = { text, provider: deps.stt!.name };
+      if (useOurs) {
+        costUsd = scribeCostUsd(seconds, s.scribe ?? {}, terms.length);
+        await deps.db.rpc("record_stt_cost", { p_wamid: m.id, p_model: s.scribe?.model ?? deps.stt!.model ?? deps.stt!.name, p_seconds: seconds, p_usd: costUsd })
+          .then(() => undefined, () => undefined);
+      }
+    } catch (e) { notes[useOurs ? "ours" : "second"] = String((e as Error).message ?? e).slice(0, 60); }
   }
-  const verdict = judge(kapso, second ?? undefined, seconds);
+  // Ours first when it was asked for: judge() keeps it if it is usable, else Kapso's. Otherwise Kapso's first, as before.
+  const verdict = useOurs && ours ? judge(ours, kapso, seconds) : judge(kapso, second ?? undefined, seconds);
   await deps.db.from("wa_messages").update({
     media_path: mediaPath,
-    transcript: { kapso: kapso.text || null, ...(second ? { second: { provider: second.provider, text: second.text } } : {}),
+    transcript: { kapso: kapso.text || null,
+                  ...(ours ? { ours: { provider: ours.provider, text: ours.text, seconds, keyterms: terms.length, usd: costUsd } } : {}),
+                  ...(second ? { second: { provider: second.provider, text: second.text } } : {}),
                   chosen: verdict.usable ? verdict.primary.provider : null, ...(Object.keys(notes).length ? { notes } : {}) },
   }).eq("wa_message_id", m.id);
-  return { verdict, mediaPath, second };
+  return { verdict, mediaPath, second, ours, costUsd };
 }

@@ -278,6 +278,8 @@ export interface Messages {
   /** 1.21 (K1), in the customer's language since TEST1: the body of the WhatsApp catalogue's messages (the whole catalogue, one
    *  category's list, one product). */
   catalog: { all: S; list: (category: S) => S; one: S };
+  /** VOICE1: the catalogue's own button offered with the welcome and to a tester's first reply (WhatsApp words the button itself). */
+  catalogOffer: S;
 
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours.
    *  CX2: inside the 24-hour window the free message goes; the template only outside it. */
@@ -407,6 +409,13 @@ export interface Messages {
     priceAccepted: (code: S, total: number) => S;
     answerCancelled: (code: S) => S;
     notWaiting: (code: S) => S;
+    /** VOICE1: a place name we do not know, close to one the customer may order from: asked, never assumed. */
+    placeGuess: (place: S) => S;
+    yesButton: S; noButton: S;
+    /** VOICE1: a place name we do not know and nothing close: the places this customer may order from. Never the name as said. */
+    placeUnknown: (places: S[]) => S;
+    /** VOICE1: a dish on the place's menu that is not on sale (rejected or unpriced); `others` when dishes of the place follow. */
+    notOnSale: (dish: S, place: S, others: boolean) => S;
   };
 
   ops: {
