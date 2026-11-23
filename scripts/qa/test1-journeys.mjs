@@ -25,7 +25,9 @@ const WEB = (process.env.WEB_URL ?? "").replace(/\/+$/, "");
 const PHONE_ID = "1378974041965966";
 const LINE = "🧪 طلب تجريبي: ما في توصيل ولا دفع";
 const BAAKLINE = { lat: 33.67739, lng: 35.56355 };      // Baakline's centre (as prepare-staging.sql)
-const WHO = { stranger: "+96170000950", typed: "+96170000951", voice: "+96170000952", cart: "+96170000953", food: "+96170000954", web: "+96170000955" };
+// A run uses one set of six fresh customers (+961 70 000 9S0 to 9S5, S = JOURNEY_SET, 5 to 9), so an earlier run's chats never carry over.
+const SET = /^[5-9]$/.test(process.env.JOURNEY_SET ?? "") ? process.env.JOURNEY_SET : "5";
+const WHO = Object.fromEntries(["stranger", "typed", "voice", "cart", "food", "web"].map((k, i) => [k, `+961700009${SET}${i}`]));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const report = [];
 const say = (j, ok, what) => { report.push({ j, ok, what }); console.error(`${ok ? "ok  " : "FAIL"} ${j}: ${what}`); };
@@ -39,10 +41,10 @@ async function setup() {
   if (!lead) throw new Error("no probe ops lead on staging (prepare-staging.sql)");
   const out = {};
   for (const [k, phone] of Object.entries(WHO)) {
-    const wa = `PR.TEST1${k.toUpperCase()}`;
+    const wa = `PR.TEST1${SET}${k.toUpperCase()}`;
     let party = (await sql`select party_id from party_identities where line = 'customer' and wa_user_id = ${wa}`)[0]?.party_id;
     if (!party) {
-      party = (await sql`insert into parties(role, display_name, is_probe) values ('customer', ${"TEST1 scripted " + k}, true) returning id`)[0].id;
+      party = (await sql`insert into parties(role, display_name, is_probe) values ('customer', ${`TEST1 scripted ${k} ${SET}`}, true) returning id`)[0].id;
       await sql`insert into party_identities(party_id, line, wa_user_id, phone_e164) values (${party}, 'customer', ${wa}, ${phone})`;
       await sql`insert into consent_events(party_id, line, kind, action, source, wording) values (${party}, 'customer', 'transactional', 'opt_in', 'test1_setup', 'TEST1 scripted customer')`;
     }
@@ -111,6 +113,8 @@ async function toCard(j, who, since) {
     if (p.type === "interactive" && p.interactive?.type === "location_request_message") { after = await inject(who, { type: "location", ...BAAKLINE }); continue; }
     if (/كرمال السائق/.test(bodyOf(p))) { after = await inject(who, { type: "text", body: "بيت الاختبار، الطابق الأول، حد ساحة الضيعة" }); continue; }
     const rows = rowsOf(p);
+    // The first-ever welcome (its buttons start a new basket): a person reads it and waits for the answer to what they wrote.
+    if (rows.some((r) => /^(welcome|menu):/.test(r.id ?? ""))) continue;
     if (rows.length) { const r = rows[0]; after = await inject(who, { type: "tap", id: r.id, title: r.title ?? "", list: p.interactive?.type === "list" }); continue; }
     // a plain text on the way (a note before the card): wait for the next one
   }
@@ -147,7 +151,7 @@ async function stranger(w) {
 }
 
 async function typed(w) {
-  const t = await inject(w.typed, { type: "text", body: "بدي كرتونة مي تنورين وربطة خبز الفورنو" });
+  const t = await inject(w.typed, { type: "text", body: "بدي تلات كراتين مي تنورين وربطتين خبز الفورنو" });
   const card = await toCard("typed", w.typed, t);
   if (!card) return say("typed", false, "no card");
   const id = await confirmCard("typed", w.typed, card);
@@ -220,8 +224,11 @@ async function web(w) {
     await page.goto(`${WEB}/checkout`);
     await page.locator('form[action="/signin"] button').first().click();
     await page.waitForURL(/\/signin/);
-    const href = await page.locator('a[href*="wa.me"]').first().getAttribute("href");
+    // The sign-in panel's own chat link carries the code (the header's chat link carries a greeting).
+    const code = (await page.locator(".w2-code").first().textContent({ timeout: 30_000 }))?.trim();
+    const href = await page.locator('.panel a[href*="wa.me"]').first().getAttribute("href");
     const text = new URL(href).searchParams.get("text");
+    say("web", !!code && text.includes(code), `the sign-in code ${code} is in the chat link's words`);
     say("web", !!text, `the website's sign-in code, sent from WhatsApp as the customer would: «${text}»`);
     const t = await inject(w.web, { type: "text", body: text });
     const linked = await next(w.web, t);
@@ -251,7 +258,7 @@ async function main() {
   const failed = report.filter((r) => !r.ok).length;
   console.log(`### TEST1 journeys on staging (${new Date().toISOString()})\n\n| Journey | | What happened |\n|---|---|---|`);
   for (const r of report) console.log(`| ${r.j} | ${r.ok ? "✅" : "❌"} | ${String(r.what).replace(/\|/g, "/")} |`);
-  console.log(`\n${failed ? `**${failed} check(s) failed.**` : "**Every check passed.**"} Scripted customers +961 70 000 950 to 955 (invented; probe parties, nothing sent to a phone); taken off the tester list again.`);
+  console.log(`\n${failed ? `**${failed} check(s) failed.**` : "**Every check passed.**"} Scripted customers +961 70 000 9${SET}0 to 9${SET}5 (invented; probe parties, nothing sent to a phone); taken off the tester list again.`);
   await sql.end();
   if (failed) process.exit(1);
 }
