@@ -70,7 +70,7 @@ write by a model; Kabsi not touched.
   - **Website** (AK-1108): basket and checkout on the website, sign-in by the code sent from WhatsApp («ALO-…»), the card on WhatsApp
     (channel web), the tap there.
   - **Food**: Safa found by «صفا» and the size asked by buttons. The one shawarma ($4.50) was then rightly turned down as under the $5
-    minimum, so the script now orders two (#164). FOOD_RERUN
+    minimum, so the script now orders two (#164).
 - Earlier runs on the same build: AK-1098 and AK-1099 each walked to the feedback question; the stranger, the cart, the voice note and
   the website order were proven again.
 
