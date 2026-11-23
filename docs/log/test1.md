@@ -5,7 +5,7 @@ Alo King end to end on WhatsApp and the website, now. Decisions: `docs/DECISIONS
 2026". Migrations **0271** (test mode), **0272** (the catalogue's product link, staging only), **0273** (the catalogue id and the gate's probe
 exemption, after the stage stop, staging only), **0274** (Safa Chicken's other names, staging only), **0275** (the staging probe answers
 only its own parties). Pull requests [#159](https://github.com/rashidhamzy-hue/alo-king/pull/159), [#160](https://github.com/rashidhamzy-hue/alo-king/pull/160),
-[#161](https://github.com/rashidhamzy-hue/alo-king/pull/161), #162, #163, #164, each merged with CI green. No new agent (invariant 21); no
+[#161](https://github.com/rashidhamzy-hue/alo-king/pull/161), #162, #163, #164, #165, each merged with CI green. No new agent (invariant 21); no
 write by a model; Kabsi not touched.
 
 ## Built
@@ -56,7 +56,7 @@ write by a model; Kabsi not touched.
 
 ## Proven on staging
 **The journeys** (`test1-journeys`, scripted customers, staging deployed from main):
-- Run 45148927202 (set 8, main at #163), every check but food passed:
+- Run 45148927202 (set 8, main at #163): every check passed except food.
   - **Stranger**: «لسّا ما فتحنا: عم نجرّب الخدمة مع مجموعة صغيرة», no price, no model turn.
   - **Typed order** (AK-1111): "which one?" for the bread, then the card with the test line. It waited for the tap; the tap confirmed.
     - «وين صار طلبي؟» was answered with «طلبك AK-1111: عم نحضّرو / بيوصل خلال حوالي 19 دقيقة».
@@ -71,12 +71,16 @@ write by a model; Kabsi not touched.
     (channel web), the tap there.
   - **Food**: Safa found by «صفا» and the size asked by buttons. The one shawarma ($4.50) was then rightly turned down as under the $5
     minimum, so the script now orders two (#164).
+- Run 45156158771 (set 9, food only, main at #164), every check passed. **Food** (AK-1112): «بدي تنين ساندويش شاورما لحمة من صفا»; the
+  size asked by buttons; the card «🍗 من: Safa Chicken» with the test line; the tap confirmed it. The call ahead was simulated and
+  accepted, ready in 20 minutes (nobody called Safa). The customer was told «Safa Chicken قبل الطلب وعم يحضّرو / بيوصلك خلال حوالي 30
+  دقيقة» with the test line.
 - Earlier runs on the same build: AK-1098 and AK-1099 each walked to the feedback question; the stranger, the cart, the voice note and
   the website order were proven again.
 
 **The feed**: deploy-staging proves `GET /catalog/feed.csv` on every deploy (219 items, 215 in stock; the 4 others have no price).
 
-**Free tests**: `npm run typecheck && npm test` green on every PR (#159 to #164); the personal-data guard and gitleaks passed every
+**Free tests**: `npm run typecheck && npm test` green on every PR (#159 to #165); the personal-data guard and gitleaks passed every
 commit.
 
 **The language gate** (run 45133503756): 0 wrong, precision 1.0, F1 0.91 (Lebanese Arabic 0.919, Arabizi 0.881, English 0.966, French
@@ -94,7 +98,7 @@ commit.
 
 Nothing is delivered or paid in test mode, by design.
 
-**Left on staging**: test orders AK-1098 to AK-1111 from these runs; clear them whenever you like (below). The scripted customers have
+**Left on staging**: test orders AK-1098 to AK-1112 from these runs; clear them whenever you like (below). The scripted customers have
 been taken off the tester list.
 
 ## The message to forward to your friends

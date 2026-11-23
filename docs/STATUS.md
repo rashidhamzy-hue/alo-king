@@ -35,7 +35,7 @@ Also on the gate: **every active item at least "sellable"** (an Arabic name, a p
 (the first gets the honest answer today; "protein bars with no sugar" was B1e's, built 18 November, not yet re-run on staging).
 
 ## 2. Live on staging (last recorded)
-- **The friends' test mode (TEST1, 23 November; #159 to #164, 0271 to 0275)**: `test_mode.enabled` on (staging only,
+- **The friends' test mode (TEST1, 23 November; #159 to #165, 0271 to 0275)**: `test_mode.enabled` on (staging only,
   locked twice); testers order at any hour with no stock, any pin; test orders move no stock, rider, payment or ledger and walk by themselves
   (60 to 120 s a step) to delivered and the feedback question, every message with «🧪 طلب تجريبي: ما في توصيل ولا دفع»; food test orders'
   call ahead simulated; Console, Orders: the 🧪 mark and **Clear test orders**. The WhatsApp catalogue connected with the cart (id
