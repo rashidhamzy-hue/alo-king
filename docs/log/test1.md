@@ -40,5 +40,39 @@ agent (invariant 21); no write by a model; Kabsi not touched.
 - `apps/console/test/test1-orders.test.ts` (2): the mark, clearing, the log, a picker refused.
 - The message rules and snapshots (`messages.{ar,en,fr}.md`) with the two new messages; 🧪 allowed for the test line only.
 
+## The message to forward to your friends
+First add each friend's WhatsApp number to the tester list (below, "Add a friend"); until then they get "we're not open yet".
+
+**بالعربي**
+
+> أهلا! عم جرّب خدمة «ألو كينغ» للطلبات عالواتساب وبدّي رأيك. هيدي تجربة: **ما في توصيل ولا دفع**، وكل طلب بيجي معه سطر «🧪 طلب تجريبي».
+> الرقم (واتساب): ‎+1 203 660 2328
+> جرّب، بالترتيب اللي بدك ياه:
+> 1. اكتب طلب بقالة، مثلاً «بدي كرتونة مي تنورين وربطة خبز».
+> 2. ابعت رسالة صوتية فيها طلبك.
+> 3. افتح الكتالوج (أيقونة المحل فوق بالمحادثة)، حط أغراض بالسلة وابعتها.
+> 4. اطلب أكل من صفا تشيكن، مثلاً «بدي سندويش طاووق من صفا»، واختار من الخيارات.
+> 5. بعد ما تكبس «تأكيد الطلب»، اسأل «وين طلبي؟». الطلب بيمشي لحالو خطوة خطوة كل دقيقة أو دقيقتين لحد ما «يوصل».
+> 6. لما يوصل، جاوب عالسؤال عن الطلب.
+> 7. إذا بدك: اطلب من الموقع https://alo-king-web-staging.rashid-hamzy.workers.dev وأكّد عالواتساب.
+> صورة لائحة مشتريات ما منقراها بعد: جرّب وشوف شو بيصير. ولا شي بينوصل ولا بتدفع شي. ابعتلي شو عجبك وشو ما عجبك.
+
+**In English**
+
+> Hi! I'm testing Alo King, ordering on WhatsApp, and I'd love your opinion. It's a test: **nothing is delivered and nothing is charged**; every order carries a "🧪 Test order" line.
+> The number (WhatsApp): +1 203 660 2328
+> Try, in any order:
+> 1. Type a grocery order, e.g. "I want a pack of Tannourine water and a bag of bread".
+> 2. Send a voice note with your order.
+> 3. Open the catalogue (the shop icon at the top of the chat), add items to the cart and send it.
+> 4. Order food from Safa Chicken, e.g. "a taouk sandwich from Safa", and pick the options.
+> 5. After you tap "Confirm order", ask "where's my order?". The order moves on by itself, a step every minute or two, until it is "delivered".
+> 6. When it arrives, answer the question about the order.
+> 7. If you like: order on the website https://alo-king-web-staging.rashid-hamzy.workers.dev and confirm on WhatsApp.
+> A photo of a shopping list isn't read yet: try it and see what happens. Nothing is delivered or charged. Tell me what you liked and what you didn't.
+
 ## Founder actions (TEST1)
-_Filled in at the end of the session._
+1. **Add a friend** (before you forward the message): Console, **People**, **Places**, tab **Testers**: their WhatsApp number in full (+961…, + and the country code), **Add the tester**. Remove them the same way when the test ends.
+2. **Clear test orders** whenever you like: Console, **Orders**: the box at the top, "N test order(s) from the friends' test", type why (for example "end of the first round"), **Clear test orders**. It touches test orders only; open ones are cancelled without a message to the friend; all of them leave the list (each still opens by its code). Logged with your name.
+3. **Switch test mode off** (only when the test is over): your name, **Settings**, "Friends' test mode (staging only)", off, the reason. Then everyone gets the normal service on staging again.
+4. **Optional**: category groups ("sets") in Commerce Manager (RUNBOOK B6). The bot does not need them.
