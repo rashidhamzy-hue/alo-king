@@ -150,6 +150,8 @@ async function unknownPlace(ctx: ToolContext, intent: OrderIntent, said: string)
   if (!hints.length) return { done: false };
   const hint = hints.join(" ");
   if (await rpc<boolean>(ctx, "place_hint_known", { p_hint: hint }).catch(() => true)) return { done: false };
+  // Groceries said with it: they go on as before (the card); the shop part is said without its name (pipeline.ts notAvailableText).
+  if (intent.lines.some((l) => !(l as { source_hint?: string | null }).source_hint?.trim())) { ctx.unknownPlaces = hints; return { done: false }; }
   const places = await rpc<PlaceChoice[]>(ctx, "food_place_choices", { p_party: ctx.partyId }).catch(() => [] as PlaceChoice[]);
   const g = guessPlace(hint, places);
   if (g) {

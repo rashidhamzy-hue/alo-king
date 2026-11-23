@@ -2335,6 +2335,13 @@ Ajoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche 
 Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.
 ```
 
+## catalogOffer
+
+```text
+🛒 *Le catalogue Alo King, en photos*
+Touchez le bouton ci-dessous pour l'ouvrir, ou écrivez « catalogue » à tout moment.
+```
+
 ## notice.orderCancelled
 
 ```text

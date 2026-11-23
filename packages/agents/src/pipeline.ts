@@ -262,7 +262,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const closedNow = (plan.quote?.issues ?? plan.issues).some((i) => i.code === "closed");
   const saidLost = (l: PlanLine) => l.status === "not_found" && ((l as { b4?: string | null }).b4 === "other_kind" || closedNow);
   const lostLine = lostText({ lines: plan.lines.filter(saidLost) }, intent, ctx.state.lang);
-  const unavailable = [notAvailableText(plan, ctx.state.lang), lostLine].filter(Boolean).join("\n") || null;
+  const unavailable = [notAvailableText(plan, ctx.state.lang, ctx.unknownPlaces), lostLine].filter(Boolean).join("\n") || null;
   if (plan.next === "not_available") {
     const r = await deliver(ctx, { type: "text", text: { body: unavailable! } }, unavailable!);
     return r.ok ? { done: true, path: "not_available" } : { done: false, plan };
@@ -810,8 +810,10 @@ export async function nameLost(ctx: ToolContext, plan: Partial<Plan> | null | un
 }
 
 /** "X is not available yet", in the customer's own words for the shop. Neutral: no reason, no opinion, no promise. */
-export function notAvailableText(plan: Pick<Plan, "unavailable">, lang?: string | null): string | null {
-  const said = [...new Set((plan.unavailable ?? []).map((u) => (u.source_hint ?? "").trim()).filter(Boolean))];
+export function notAvailableText(plan: Pick<Plan, "unavailable">, lang?: string | null, unknown: string[] = []): string | null {
+  // VOICE1: a name that is no place we know of (a speech model's mishearing, or a made-up name) is never said back as a real place.
+  const strange = new Set(unknown.map((u) => u.trim().toLowerCase()));
+  const said = [...new Set((plan.unavailable ?? []).map((u) => (u.source_hint ?? "").trim()).filter((h) => h && !strange.has(h.toLowerCase())))];
   if (!(plan.unavailable ?? []).length) return null;
   return messages(lang).fixed.notAvailable(said);
 }

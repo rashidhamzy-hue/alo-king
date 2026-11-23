@@ -108,6 +108,8 @@ export interface ToolContext {
   customerWords?: string;
   /** PD1 (g): settings.catalog has a WhatsApp catalogue. False: the catalogue is never offered (staging, 15 Nov 22:20). */
   catalogueReady?: boolean;
+  /** VOICE1: shop names said this turn that are no place we know of: never repeated as a real place ("this shop is not on Alo King yet"). */
+  unknownPlaces?: string[];
   /** B1e: the places a tool or the planner returned this turn, with their answer: the only places the model may say we deliver to or not. */
   areas?: { names: string[]; served: boolean }[];
   /** B1f: quote_order or the delivery windows returned times this turn: only then may the model say when it arrives (time_claim). */
