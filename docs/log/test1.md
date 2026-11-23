@@ -65,7 +65,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > 1. اكتب طلب بقالة، مثلاً «بدي كرتونة مي تنورين وربطة خبز».
 > 2. ابعت رسالة صوتية فيها طلبك.
 > 3. افتح الكتالوج (أيقونة المحل فوق بالمحادثة)، حط أغراض بالسلة وابعتها.
-> 4. اطلب أكل من صفا تشيكن، مثلاً «بدي سندويش طاووق من صفا»، واختار من الخيارات.
+> 4. اطلب أكل من صفا تشيكن، مثلاً «بدي تنين شاورما دجاج وبطاطا من صفا»، واختار من الخيارات (أقل طلب $5).
 > 5. بعد ما تكبس «تأكيد الطلب»، اسأل «وين طلبي؟». الطلب بيمشي لحالو خطوة خطوة كل دقيقة أو دقيقتين لحد ما «يوصل».
 > 6. لما يوصل، جاوب عالسؤال عن الطلب.
 > 7. إذا بدك: اطلب من الموقع https://alo-king-web-staging.rashid-hamzy.workers.dev وأكّد عالواتساب.
@@ -79,7 +79,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > 1. Type a grocery order, e.g. "I want a pack of Tannourine water and a bag of bread".
 > 2. Send a voice note with your order.
 > 3. Open the catalogue (the shop icon at the top of the chat), add items to the cart and send it.
-> 4. Order food from Safa Chicken, e.g. "a taouk sandwich from Safa", and pick the options.
+> 4. Order food from Safa Chicken, e.g. "two chicken shawarma sandwiches and fries from Safa", and pick the options (the minimum order is $5).
 > 5. After you tap "Confirm order", ask "where's my order?". The order moves on by itself, a step every minute or two, until it is "delivered".
 > 6. When it arrives, answer the question about the order.
 > 7. If you like: order on the website https://alo-king-web-staging.rashid-hamzy.workers.dev and confirm on WhatsApp.
