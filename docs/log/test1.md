@@ -3,9 +3,9 @@
 Session TEST1. The founder's decision of 23 November: not launching yet (no stock, van, warehouse or label day); the founder's friends test
 Alo King end to end on WhatsApp and the website, now. Decisions: `docs/DECISIONS.md`, "TEST1, a working friends' test on staging, 23 November
 2026". Migrations **0271** (test mode), **0272** (the catalogue's product link, staging only), **0273** (the catalogue id and the gate's probe
-exemption, after the stage stop, staging only), **0274** (Safa Chicken's other names, staging only). Pull requests
-[#159](https://github.com/rashidhamzy-hue/alo-king/pull/159), [#160](https://github.com/rashidhamzy-hue/alo-king/pull/160),
-[#161](https://github.com/rashidhamzy-hue/alo-king/pull/161) (and this report's), each merged with CI green. No new agent (invariant 21); no
+exemption, after the stage stop, staging only), **0274** (Safa Chicken's other names, staging only), **0275** (the staging probe answers
+only its own parties). Pull requests [#159](https://github.com/rashidhamzy-hue/alo-king/pull/159), [#160](https://github.com/rashidhamzy-hue/alo-king/pull/160),
+[#161](https://github.com/rashidhamzy-hue/alo-king/pull/161), #162, #163, #164, each merged with CI green. No new agent (invariant 21); no
 write by a model; Kabsi not touched.
 
 ## Built
@@ -54,6 +54,49 @@ write by a model; Kabsi not touched.
 - `apps/console/test/test1-orders.test.ts` (2): the mark, clearing, the log, a picker refused.
 - The message rules and snapshots (`messages.{ar,en,fr}.md`) with the two new messages; 🧪 allowed for the test line only.
 
+## Proven on staging
+**The journeys** (`test1-journeys`, scripted customers, staging deployed from main):
+- Run 45148927202 (set 8, main at #163), every check but food passed:
+  - **Stranger**: «لسّا ما فتحنا: عم نجرّب الخدمة مع مجموعة صغيرة», no price, no model turn.
+  - **Typed order** (AK-1111): "which one?" for the bread, then the card with the test line. It waited for the tap; the tap confirmed.
+    - «وين صار طلبي؟» was answered with «طلبك AK-1111: عم نحضّرو / بيوصل خلال حوالي 19 دقيقة».
+    - The walk went preparing → on the way → at the door → delivered → feedback, one step about every 2 minutes, five messages each
+      with the test line.
+    - The feedback tap was answered («تمام، شكراً إلك!»).
+    - It ended delivered, with 0 stock, payment, ledger and delivery-stop rows.
+  - **Voice note** (AK-1110): the card, then the tap.
+  - **Catalogue cart** (AK-1109, catalogue 1178584524839853): the cart became the card with no model turn. Nothing was confirmed before
+    the tap; the tap confirmed it.
+  - **Website** (AK-1108): basket and checkout on the website, sign-in by the code sent from WhatsApp («ALO-…»), the card on WhatsApp
+    (channel web), the tap there.
+  - **Food**: Safa found by «صفا» and the size asked by buttons. The one shawarma ($4.50) was then rightly turned down as under the $5
+    minimum, so the script now orders two (#164).
+- Earlier runs on the same build: AK-1098 and AK-1099 each walked to the feedback question; the stranger, the cart, the voice note and
+  the website order were proven again.
+
+**The feed**: deploy-staging proves `GET /catalog/feed.csv` on every deploy (219 items, 215 in stock; the 4 others have no price).
+
+**Free tests**: `npm run typecheck && npm test` green on every PR (#159 to #164); the personal-data guard and gitleaks passed every
+commit.
+
+**The language gate** (run 45133503756): 0 wrong, precision 1.0, F1 0.91 (Lebanese Arabic 0.919, Arabizi 0.881, English 0.966, French
+0.94, mixed 0.93). Cost USD 0.20.
+
+**The sim-test** (run 45133515061, limit 50, budget USD 1.85):
+- 70 conversations, 24 of the 50 first runs passed, 28 seeds passed at least once. Cost USD 1.71 (it stopped at the soft limit).
+- November sim spend is now about USD 54.8 of the 55 cap, so no further sim-test runs before 1 December.
+- Its one hard failure, sim-020 (a French customer given the Arabic catalogue line), is fixed (#161) and is now a case in `evals/`.
+
+**Only a live phone can prove**:
+- Meta's own catalogue and cart screens on a real phone.
+- A real voice note's audio (the script gives Kapso's transcript).
+- That a friend's real number reaches the bot once it is on the tester list.
+
+Nothing is delivered or paid in test mode, by design.
+
+**Left on staging**: test orders AK-1098 to AK-1111 from these runs; clear them whenever you like (below). The scripted customers have
+been taken off the tester list.
+
 ## The message to forward to your friends
 First add each friend's WhatsApp number to the tester list (below, "Add a friend"); until then they get "we're not open yet".
 
@@ -65,7 +108,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > 1. اكتب طلب بقالة، مثلاً «بدي كرتونة مي تنورين وربطة خبز».
 > 2. ابعت رسالة صوتية فيها طلبك.
 > 3. افتح الكتالوج (أيقونة المحل فوق بالمحادثة)، حط أغراض بالسلة وابعتها.
-> 4. اطلب أكل من صفا تشيكن، مثلاً «بدي سندويش طاووق من صفا»، واختار من الخيارات.
+> 4. اطلب أكل من صفا تشيكن، مثلاً «بدي تنين شاورما دجاج وبطاطا من صفا»، واختار من الخيارات (أقل طلب $5).
 > 5. بعد ما تكبس «تأكيد الطلب»، اسأل «وين طلبي؟». الطلب بيمشي لحالو خطوة خطوة كل دقيقة أو دقيقتين لحد ما «يوصل».
 > 6. لما يوصل، جاوب عالسؤال عن الطلب.
 > 7. إذا بدك: اطلب من الموقع https://alo-king-web-staging.rashid-hamzy.workers.dev وأكّد عالواتساب.
@@ -79,7 +122,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > 1. Type a grocery order, e.g. "I want a pack of Tannourine water and a bag of bread".
 > 2. Send a voice note with your order.
 > 3. Open the catalogue (the shop icon at the top of the chat), add items to the cart and send it.
-> 4. Order food from Safa Chicken, e.g. "a taouk sandwich from Safa", and pick the options.
+> 4. Order food from Safa Chicken, e.g. "two chicken shawarma sandwiches and fries from Safa", and pick the options (the minimum order is $5).
 > 5. After you tap "Confirm order", ask "where's my order?". The order moves on by itself, a step every minute or two, until it is "delivered".
 > 6. When it arrives, answer the question about the order.
 > 7. If you like: order on the website https://alo-king-web-staging.rashid-hamzy.workers.dev and confirm on WhatsApp.

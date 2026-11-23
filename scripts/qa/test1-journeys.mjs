@@ -209,7 +209,8 @@ async function food(w) {
      where s.name = 'Safa Chicken' and p.is_active and product_orderable_for(p.id, ${w.food.party})
        and exists (select 1 from dish_option_groups g where g.product_id = p.id and g.required) order by p.name_en limit 1`)[0];
   if (!d) return say("food", false, "no orderable Safa Chicken dish with a required choice for a tester");
-  const t = await inject(w.food, { type: "text", body: `بدي ${d.name} من صفا` });
+  // Two of them: no Safa dish alone reaches the $5 minimum (the fifth run's one shawarma, $4.50, was rightly turned down).
+  const t = await inject(w.food, { type: "text", body: `بدي تنين ${d.name} من صفا` });
   const card = await toCard("food", w.food, t);
   if (!card) return say("food", false, `no card for «${d.name}»`);
   say("food", /🍗 من: Safa Chicken/.test(bodyOf(card.payload)), `the card names the place: «${bodyOf(card.payload).split("\n").find((l) => l.includes("🍗")) ?? ""}»`);
@@ -260,9 +261,11 @@ async function web(w) {
 async function main() {
   const w = await setup();
   try {
-    const runs = [stranger(w), typed(w), voice(w), cart(w), food(w), web(w)].map((p, i) =>
-      p.catch((e) => say(["stranger", "typed", "voice", "cart", "food", "web"][i], false, `error: ${String(e.message ?? e).slice(0, 200)}`)));
-    await Promise.all(runs);
+    const all = { stranger, typed, voice, cart, food, web };
+    // JOURNEYS (optional, comma-separated) runs only those, e.g. "food" to repeat one journey on a fresh set.
+    const only = (process.env.JOURNEYS ?? "").split(",").map((x) => x.trim()).filter((x) => x in all);
+    const pick = only.length ? only : Object.keys(all);
+    await Promise.all(pick.map((k) => all[k](w).catch((e) => say(k, false, `error: ${String(e.message ?? e).slice(0, 200)}`))));
   } finally { await teardown(); }
   const failed = report.filter((r) => !r.ok).length;
   console.log(`### TEST1 journeys on staging (${new Date().toISOString()})\n\n| Journey | | What happened |\n|---|---|---|`);
