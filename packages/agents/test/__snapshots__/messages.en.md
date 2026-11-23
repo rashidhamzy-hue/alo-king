@@ -2335,6 +2335,13 @@ Add what you want to the cart and send it. We send you the order card to confirm
 Add it to the cart and send it. We send you the order card to confirm.
 ```
 
+## catalogOffer
+
+```text
+🛒 *The Alo King catalogue, with pictures*
+Tap the button below to open it, or write "catalogue" any time.
+```
+
 ## notice.orderCancelled
 
 ```text
@@ -2766,6 +2773,53 @@ You pay nothing.
 
 ```text
 💬 No question is waiting for an answer. Write to us if anything is wrong.
+```
+
+## food.placeGuess
+
+```text
+🔎 *Did you mean Alo King test kitchen?*
+Tap "Yes" and we'll carry on with your order from there.
+```
+
+## food.yesButton
+
+```text
+Yes
+```
+
+## food.noButton
+
+```text
+No
+```
+
+## food.placeUnknown
+
+```text
+🔎 *We couldn't find that place on Alo King*
+You can order food from: Alo King test kitchen, Alo King test kitchen.
+Or order groceries as usual.
+```
+
+## food.placeUnknown.none
+
+```text
+🔎 *We couldn't find that place on Alo King*
+You can order groceries as usual.
+```
+
+## food.notOnSale
+
+```text
+⚠️ *"whole chicken" from Alo King test kitchen can't be ordered yet*
+These dishes from the same place can:
+```
+
+## food.notOnSale.alone
+
+```text
+⚠️ *"whole chicken" from Alo King test kitchen can't be ordered yet*
 ```
 
 ## ops.foodCall

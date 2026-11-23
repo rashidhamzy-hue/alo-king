@@ -1,0 +1,27 @@
+{
+  "id": "vn-voice1-c",
+  "about": "VOICE1: two shawarmas from Safa, said short",
+  "transcript": "بدي تنين شاورما من صفا",
+  "duration_sec": 3,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [
+      {
+        "item": "شاورما",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [],
+        "source": "Safa Chicken"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

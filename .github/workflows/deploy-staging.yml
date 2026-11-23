@@ -120,20 +120,27 @@ jobs:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CATALOG_FEED_PASSWORD: ${{ secrets.CATALOG_FEED_PASSWORD }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
         run: |
+          # VOICE1: ELEVENLABS_API_KEY (ElevenLabs Scribe, our own transcription of voice notes) goes in the same way: only when the
+          # repository secret exists, so an empty value never removes a working key. Without it the Worker reads Kapso's transcript.
           # jq reads the values from the environment, so nothing secret is ever on a command line or in a log.
           # CATALOG_FEED_PASSWORD goes in only when the repository secret exists: an empty value must never overwrite the one
           # already set on the Worker (the feed would then answer 404 to Meta).
           umask 077
           jq -n 'env | {SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}
-                       + (if (.CATALOG_FEED_PASSWORD // "") != "" then {CATALOG_FEED_PASSWORD} else {} end)' > "$RUNNER_TEMP/secrets.json"
+                       + (if (.CATALOG_FEED_PASSWORD // "") != "" then {CATALOG_FEED_PASSWORD} else {} end)
+                       + (if (.ELEVENLABS_API_KEY // "") != "" then {ELEVENLABS_API_KEY} else {} end)' > "$RUNNER_TEMP/secrets.json"
           feed=no; jq -e 'has("CATALOG_FEED_PASSWORD")' "$RUNNER_TEMP/secrets.json" >/dev/null && feed=yes
+          scribe=no; jq -e 'has("ELEVENLABS_API_KEY")' "$RUNNER_TEMP/secrets.json" >/dev/null && scribe=yes
           cfg=wrangler.jsonc; [ -f wrangler.staging-noqueue.json ] && cfg=wrangler.staging-noqueue.json
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
           rm -f "$RUNNER_TEMP/secrets.json"
           echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
           if [ "$feed" = yes ]; then echo "- Worker secret set: CATALOG_FEED_PASSWORD (from the repository secret)" >> "$GITHUB_STEP_SUMMARY"
           else echo "- CATALOG_FEED_PASSWORD: no repository secret, so the Worker's own value is left as it is" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$scribe" = yes ]; then echo "- Worker secret set: ELEVENLABS_API_KEY (voice notes read by ElevenLabs Scribe first)" >> "$GITHUB_STEP_SUMMARY"
+          else echo "- ELEVENLABS_API_KEY: no repository secret, so voice notes are read from Kapso's transcript" >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Anthropic key and both model ids work (0.7)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

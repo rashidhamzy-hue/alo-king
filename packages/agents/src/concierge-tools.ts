@@ -58,6 +58,10 @@ export interface ConversationState {
   food?: import("./food").FoodState | null;
   /** FD2: another shop's basket, kept apart while this one is built (one shop per order); the basket in hand again once a card went. */
   parked?: import("./food").Parked | null;
+  /** VOICE1: a place name we did not know, asked about («قصدك …؟»); the reading kept for the "yes". */
+  placeGuess?: import("./food").PlaceGuessState | null;
+  /** VOICE1: the catalogue's button was offered in this conversation (with the welcome, or a tester's first reply). */
+  catalogOffered?: boolean;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
@@ -104,6 +108,8 @@ export interface ToolContext {
   customerWords?: string;
   /** PD1 (g): settings.catalog has a WhatsApp catalogue. False: the catalogue is never offered (staging, 15 Nov 22:20). */
   catalogueReady?: boolean;
+  /** VOICE1: shop names said this turn that are no place we know of: never repeated as a real place ("this shop is not on Alo King yet"). */
+  unknownPlaces?: string[];
   /** B1e: the places a tool or the planner returned this turn, with their answer: the only places the model may say we deliver to or not. */
   areas?: { names: string[]; served: boolean }[];
   /** B1f: quote_order or the delivery windows returned times this turn: only then may the model say when it arrives (time_claim). */

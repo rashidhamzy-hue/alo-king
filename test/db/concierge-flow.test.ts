@@ -331,11 +331,13 @@ describe("unsigned restaurants (1.2)", () => {
     const c = await t.customer();
     expect(t.seen).toHaveLength(1);                                     // plan_order decided
     expect(outbound).toHaveLength(1);
-    expect(outbound[0]!.body.text.body).toBe("سناك أبو علي مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.");
+    // VOICE1: a shop that is no place we know of (no place row, no LV1 listing) is never said back as a real place: the places listed.
+    expect(outbound[0]!.body.text.body).toContain("ما لقينا هالمحل على ألو كينغ");
+    expect(outbound[0]!.body.text.body).not.toContain("سناك أبو علي");
     expect(c.human_handoff).toBe(false);                                // nobody phones it in
     expect(await db.one(`select count(*)::int as n from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ n: 0 });
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
-    expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "not_available" });
+    expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "food_place_unknown" });
   });
 
   it("a mixed message: the restaurant part is named as not available, the groceries go on the card", async () => {
@@ -346,7 +348,8 @@ describe("unsigned restaurants (1.2)", () => {
     await t.conv.alarm();
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(2);
-    expect(outbound[0]!.body.text.body).toContain("سناك أبو علي مش متوفّر بعد");   // named before the card
+    expect(outbound[0]!.body.text.body).toContain("هالمحل مش متوفّر بعد");          // said before the card; VOICE1: not by a name we do not know
+    expect(outbound[0]!.body.text.body).not.toContain("سناك أبو علي");
     expect(outbound[1]!.body.interactive.body.text).toContain("$8.24");            // the card holds only what we can deliver
     const order = await db.one(`select id from orders where customer_id = $1`, [c.party_id]);
     expect(await db.one(`select count(*)::int as n from order_items where order_id = $1`, [order.id])).toEqual({ n: 2 });

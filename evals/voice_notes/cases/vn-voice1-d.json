@@ -1,0 +1,27 @@
+{
+  "id": "vn-voice1-d",
+  "about": "VOICE1: an English note, said as people speak (fillers, a restart)",
+  "transcript": "uh hi yeah so I wanna order from uh Safa Chicken, um two chicken shawarma sandwiches, and that's it, okay?",
+  "duration_sec": 9,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [
+      {
+        "item": "chicken shawarma sandwich",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [],
+        "source": "Safa Chicken"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

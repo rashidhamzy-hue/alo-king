@@ -1,0 +1,27 @@
+{
+  "id": "vn-voice1-e",
+  "about": "VOICE1: a place that does not exist (invented): the bot must never repeat it as a real place",
+  "transcript": "بدي بيتزا من مطعم الكوكب الأزرق",
+  "duration_sec": 3,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [
+      {
+        "item": "بيتزا",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": "مطعم الكوكب الأزرق"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

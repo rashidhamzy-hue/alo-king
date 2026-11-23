@@ -1,0 +1,27 @@
+{
+  "id": "vn-voice1-a",
+  "about": "VOICE1 (staging 23 Nov 10:34 UTC): Kapso's transcript of a tester's note «one whole chicken from Safa Chicken», as Kapso returned it. Usable as text: the place and the dish are garbled, which the place guess and Scribe's keyterms answer, not judge()",
+  "transcript": "بدي أطلب من عنفطة Chicken Tin، جوج واحد، okay؟",
+  "duration_sec": 4,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [
+      {
+        "item": "فروج",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": "Safa Chicken"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

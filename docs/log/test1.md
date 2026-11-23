@@ -102,6 +102,7 @@ Nothing is delivered or paid in test mode, by design.
 been taken off the tester list.
 
 ## The message to forward to your friends
+Updated by VOICE1 (23 November): step 3 says to write «الكتالوج» or tap View catalog (the welcome now carries the catalogue's button; Meta shows no cart icon in the chat header for our number).
 First add each friend's WhatsApp number to the tester list (below, "Add a friend"); until then they get "we're not open yet".
 
 **بالعربي**
@@ -111,7 +112,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > جرّب، بالترتيب اللي بدك ياه:
 > 1. اكتب طلب بقالة، مثلاً «بدي كرتونة مي تنورين وربطة خبز».
 > 2. ابعت رسالة صوتية فيها طلبك.
-> 3. افتح الكتالوج (أيقونة المحل فوق بالمحادثة)، حط أغراض بالسلة وابعتها.
+> 3. اكتب «الكتالوج» أو اكبس View catalog، حط أغراض بالسلة وابعتها.
 > 4. اطلب أكل من صفا تشيكن، مثلاً «بدي تنين شاورما دجاج وبطاطا من صفا»، واختار من الخيارات (أقل طلب $5).
 > 5. بعد ما تكبس «تأكيد الطلب»، اسأل «وين طلبي؟». الطلب بيمشي لحالو خطوة خطوة كل دقيقة أو دقيقتين لحد ما «يوصل».
 > 6. لما يوصل، جاوب عالسؤال عن الطلب.
@@ -125,7 +126,7 @@ First add each friend's WhatsApp number to the tester list (below, "Add a friend
 > Try, in any order:
 > 1. Type a grocery order, e.g. "I want a pack of Tannourine water and a bag of bread".
 > 2. Send a voice note with your order.
-> 3. Open the catalogue (the shop icon at the top of the chat), add items to the cart and send it.
+> 3. Write «الكتالوج» or tap View catalog, add items to the cart and send it.
 > 4. Order food from Safa Chicken, e.g. "two chicken shawarma sandwiches and fries from Safa", and pick the options (the minimum order is $5).
 > 5. After you tap "Confirm order", ask "where's my order?". The order moves on by itself, a step every minute or two, until it is "delivered".
 > 6. When it arrives, answer the question about the order.

@@ -2332,6 +2332,13 @@ Labneh 500 g: منشيلو من الطلب
 زيدو عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.
 ```
 
+## catalogOffer
+
+```text
+🛒 *كتالوج ألو كينغ بالصور*
+اكبس الزر تحت لتشوفو، أو اكتب «الكتالوج» بأي وقت.
+```
+
 ## notice.orderCancelled
 
 ```text
@@ -2763,6 +2770,53 @@ Alo King test kitchen مسكّر هلّق، فما فينا ناخد الطلب.
 
 ```text
 💬 ما في سؤال ناطر جواب. إذا في شي اكتبلنا.
+```
+
+## food.placeGuess
+
+```text
+🔎 *قصدك Alo King test kitchen؟*
+اكبس «إيه» ومنكمّل طلبك من عندن.
+```
+
+## food.yesButton
+
+```text
+إيه
+```
+
+## food.noButton
+
+```text
+لا
+```
+
+## food.placeUnknown
+
+```text
+🔎 *ما لقينا هالمحل على ألو كينغ*
+فيك تطلب أكل من: Alo King test kitchen، Alo King test kitchen.
+أو اطلب أغراض البقالة متل العادة.
+```
+
+## food.placeUnknown.none
+
+```text
+🔎 *ما لقينا هالمحل على ألو كينغ*
+فيك تطلب أغراض البقالة متل العادة.
+```
+
+## food.notOnSale
+
+```text
+⚠️ *ما فينا ناخد طلب «فروج» من Alo King test kitchen بعد*
+هيدي أطباق من نفس المحل فيك تطلبها:
+```
+
+## food.notOnSale.alone
+
+```text
+⚠️ *ما فينا ناخد طلب «فروج» من Alo King test kitchen بعد*
 ```
 
 ## ops.foodCall
