@@ -39,7 +39,10 @@ Also on the gate: **every active item at least "sellable"** (an Arabic name, a p
   names, everyday words, villages, brands; at most 100), Kapso's transcript the fallback; each note's provider and cost recorded (USD 0.25
   an hour, cap USD 1 a day). A place name we do not know is asked about («قصدك Safa Chicken؟») or the places are listed, never echoed; a
   dish not on sale (Safa's فروج) is said honestly with the place's dishes that are; the welcome (and a tester's first reply) carries
-  WhatsApp's "View catalog" button, and «الكتالوج» sends it. `docs/log/voice1.md`
+  WhatsApp's "View catalog" button, and «الكتالوج» sends it. **Proven on staging (deploy-staging run 45234209382, 0276 applied):
+  Scribe heard «صفا» in the founder's stored note where Kapso had not (voice-check runs 45236475581, 45237943821); a fresh note through
+  the Worker was read by Scribe (USD 0.00028), got the welcome, the View catalog message and Safa Chicken's menu.** Gate wrong 0,
+  F1 0.911 (run 45236480995). `docs/log/voice1.md`
 - **The friends' test mode (TEST1, 23 November; #159 to #165, 0271 to 0275)**: `test_mode.enabled` on (staging only,
   locked twice); testers order at any hour with no stock, any pin; test orders move no stock, rider, payment or ledger and walk by themselves
   (60 to 120 s a step) to delivered and the feedback question, every message with «🧪 طلب تجريبي: ما في توصيل ولا دفع»; food test orders'

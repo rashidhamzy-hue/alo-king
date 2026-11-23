@@ -57,3 +57,15 @@ describe("the catalogue asked for", () => {
   it.each(["بدي شوف الكتالوج", "الكتالوج", "show me the catalogue", "le catalogue", "je veux voir le catalogue", "فرجيني الكاتالوج"])("«%s»", (s) => expect(catalogueAsked(s)).toBe(true));
   it.each(["الكتالوج تبع الألبان", "بدي لبنة", "catalogue des produits laitiers", "مرحبا"])("not «%s»", (s) => expect(catalogueAsked(s)).toBe(false));
 });
+
+describe("a line that carries the place's name (voice-check run 45237943821)", async () => {
+  const { withoutPlace } = await import("@ak/agents/food");
+  const names = ["Safa Chicken", "صفا", "صفا تشيكن", "safa"];
+  it.each([
+    ["عم صفا تشيكن طنجية", "طنجية"],
+    ["من صفا تشيكن", ""],
+    ["فروج من صفا", "فروج"],
+    ["two chicken shawarma from Safa Chicken", "two chicken shawarma"],
+    ["سندويش شاورما", "سندويش شاورما"],
+  ])("«%s» → «%s»", (said, left) => expect(withoutPlace(said, names)).toBe(left));
+});

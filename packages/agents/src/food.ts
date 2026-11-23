@@ -167,6 +167,19 @@ async function unknownPlace(ctx: ToolContext, intent: OrderIntent, said: string)
   return say(ctx, T(ctx).food.placeUnknown(places.map((p) => p.name)), "food_place_unknown");
 }
 
+/** The words of a line without the place's names (its own and the names customers use), and without a filler left alone around them. */
+const FILLER = /^(?:عم|من|عند|من عند|بدي|بدنا|اطلب|أطلب|from|at|de|chez|i want|order)$/iu;
+export function withoutPlace(text: string, names: string[]): string {
+  let t = ` ${text} `;
+  for (const n of [...names].filter((x) => x && x.trim().length >= 2).sort((a, b) => b.length - a.length)) {
+    const esc = n.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    t = t.replace(new RegExp(`(^|[\\s،,.])(?:(?:[وب]?(?:من|عند)|from|at|de|chez)\\s+)?${esc}(?=$|[\\s،,.?؟!])`, "giu"), "$1");
+  }
+  const words = t.trim().split(/\s+/).filter(Boolean);
+  while (words.length && FILLER.test(words[0]!)) words.shift();      // «عم», «من»… left in front of what was the place's name
+  return words.join(" ");
+}
+
 /** The reading's lines, as food_match takes them (the place's own name is not a dish). */
 function linesOf(intent: OrderIntent): { raw: string; query: string; qty: number; modifiers: string[] }[] {
   return intent.lines.map((l) => ({ raw: l.raw ?? l.query, query: l.query ?? l.raw, qty: Number(l.qty ?? 1) || 1, modifiers: l.modifiers ?? [] }));
@@ -191,6 +204,14 @@ async function orderFrom(ctx: ToolContext, sourceId: string, placeName: string, 
   }
   if (!ctx.state.food || ctx.state.food.sourceId !== sourceId) ctx.state.food = { sourceId, name: placeName, asking: null, offered: [] };
   await whereTo(ctx, intent);
+  // VOICE1 (voice-check run 45237943821): a line that carries the place's other name («عم صفا تشيكن طنجية») was echoed whole as a dish
+  // not on the menu. The place's names are taken out of the words first; a line left with nothing but a filler is the place, not a dish.
+  if (!matched && intent.lines.length) {
+    const names = (await rpc<PlaceChoice[]>(ctx, "food_place_choices", { p_party: ctx.partyId }).catch(() => [] as PlaceChoice[]))
+      .find((p) => p.source_id === sourceId)?.names ?? [placeName];
+    intent = { ...intent, lines: intent.lines.map((l) => ({ ...l, raw: withoutPlace(l.raw ?? "", names), query: withoutPlace(l.query ?? "", names) }))
+      .filter((l) => (l.raw ?? "").trim() || (l.query ?? "").trim()) };
+  }
   const lines = matched ?? (intent.lines.length
     ? (await rpc<{ ok: boolean; lines: Matched[] }>(ctx, "food_match", { p_party: ctx.partyId, p_source: sourceId, p_lines: linesOf(intent) })).lines
     : []);
