@@ -92,7 +92,8 @@
      "docs/RESEARCH_REGISTER.md"
     ],
     "note": "MontyPay's own published WhatsApp number, quoted in the research register (a company line, not a customer or a rider)"
-   }
+   },
+      { "digits": "12036602328", "files": ["supabase/migrations/0272_test1_catalog_link.sql", "docs/log/test1.md"], "note": "Alo King's own US test number (the staging customer line): the WhatsApp catalogue's product link and the number friends message in the friends' test (a company line, not a customer or a rider)" }
   ]
  },
  "pins": {

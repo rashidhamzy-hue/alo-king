@@ -2301,6 +2301,20 @@ Quelqu'un de l'équipe va vous parler de la commande *AK-1042* rapidement.
 Vous pouvez nous écrire ici ce qui s'est passé.
 ```
 
+## testMode.line
+
+```text
+🧪 Commande d'essai : ni livraison ni paiement
+```
+
+## testMode.notOpen
+
+```text
+👋 *Bienvenue chez Alo King*
+Nous ne sommes pas encore ouverts : nous essayons le service avec un petit groupe.
+🙏 Merci de votre patience.
+```
+
 ## notice.orderCancelled
 
 ```text

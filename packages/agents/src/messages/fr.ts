@@ -236,6 +236,11 @@ D'ici là, rien ne change sur la page.`,
     problem: (code) => `💬 *Désolés pour cela*\nQuelqu'un de l'équipe va vous parler de la commande ${o(code)} rapidement.\nVous pouvez nous écrire ici ce qui s'est passé.`,
   },
 
+  testMode: {
+    line: "🧪 Commande d'essai : ni livraison ni paiement",
+    notOpen: "👋 *Bienvenue chez Alo King*\nNous ne sommes pas encore ouverts : nous essayons le service avec un petit groupe.\n🙏 Merci de votre patience.",
+  },
+
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *La commande ${code} a été annulée*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
       + (reopenable ? "Appuyez sur *Rouvrir* pour un nouveau bon aux prix du jour." : "Écrivez-nous si vous la voulez toujours."),

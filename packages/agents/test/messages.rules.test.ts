@@ -16,7 +16,8 @@ import { cashAsk, dropCard, offerCard, pickupCard, type Job } from "@ak/agents/j
 // ---------- the rules ----------
 // CX2 (approved by the founder, 18 November 2026; docs/MESSAGES.md and packages/agents/src/messages/types.ts): the customer's messages.
 // FD2 (18 November 2026): 🍗 added, for the food card's place line «🍗 من: <place>» and the place's menu heading only (the session's prompt).
-const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝", "🍗"]);
+// TEST1 (23 November 2026): 🧪 added, for the founder's test line only («🧪 طلب تجريبي: ما في توصيل ولا دفع», staging's friends' test).
+const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝", "🍗", "🧪"]);
 const MAX_LINE = 120;          // rule 1: about three phone lines
 const MAX_EMOJI = 3, MAX_EMOJI_CARD = 6;
 const AMOUNT = /-?\$\d+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+ (?:ل\.ل|LBP)|\b\d+ (?:ل\.ل|LBP)/gu;
@@ -217,6 +218,7 @@ function render(m: Messages): Rendered[] {
   const fb = m.feedback;
   add("feedback.ask", fb.ask(CODE)); add("feedback.fineButton", fb.fineButton); add("feedback.problemButton", fb.problemButton);
   add("feedback.fine", fb.fine); add("feedback.problem", fb.problem(CODE));
+  add("testMode.line", m.testMode.line); add("testMode.notOpen", m.testMode.notOpen);
   const n = m.notice;
   add("notice.orderCancelled", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time")); add("notice.orderCancelled.reopen", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time", true)); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
   add("notice.paymentReceived", n.paymentReceived(CODE, L === "ar" ? "12.50$ نقداً" : L === "en" ? "12.50$ cash" : "12.50$ en espèces")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.onTheWay.cash", n.onTheWay(CODE, 7.27)); add("notice.riderWaiting", n.riderWaiting(CODE));

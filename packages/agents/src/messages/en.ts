@@ -236,6 +236,11 @@ Until then nothing changes on the page.`,
     problem: (code) => `💬 *Sorry about that*\nSomeone from the team will talk to you about order ${o(code)} shortly.\nYou can tell us here what happened.`,
   },
 
+  testMode: {
+    line: "🧪 Test order: no delivery, no payment",
+    notOpen: "👋 *Welcome to Alo King*\nWe're not open yet: we're trying the service with a small group.\n🙏 Thank you for your patience.",
+  },
+
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *Order ${code} was cancelled*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
       + (reopenable ? "Tap *Reopen order* for a new card at today's prices." : "Write to us if you still want it."),

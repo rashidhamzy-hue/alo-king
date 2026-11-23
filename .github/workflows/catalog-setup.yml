@@ -1,0 +1,39 @@
+# Manual. TEST1: the WhatsApp catalogue's Meta side through Kapso's Meta proxy (scripts/catalog/meta-catalog.mjs). Staging only: the
+# customer line is the Alo King test number. Actions: inspect (reads only: who owns the WhatsApp account, connected catalogues, the
+# number's commerce settings), enable_cart (catalogue icon and cart on), sets (one product set per category in the catalogue).
+name: catalog-setup
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: inspect, enable_cart or sets
+        type: choice
+        options: [inspect, enable_cart, sets]
+        default: inspect
+      catalog_id:
+        description: The catalogue id (sets only; empty = settings.catalog.catalog_id on staging)
+        type: string
+        default: ""
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency: { group: catalog-setup, cancel-in-progress: false }
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+      SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      WABA_ID: "1086076707594153"
+      PHONE_NUMBER_ID: "1378974041965966"
+      ACTION: ${{ inputs.action }}
+      CATALOG_ID: ${{ inputs.catalog_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Meta, through Kapso
+        run: node scripts/catalog/meta-catalog.mjs | tee -a "$GITHUB_STEP_SUMMARY"

@@ -76,16 +76,16 @@ const storage = { from: (b: string) => ({
     bucket.set(`${b}/${path}`, { bytes, contentType: opts?.contentType }); return { data: { path }, error: null };
   } }) };
 
-const ENV = { KAPSO_BASE_URL: "https://kapso.test/v24.0", KAPSO_API_KEY: "k", PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS" };
+export const ENV = { KAPSO_BASE_URL: "https://kapso.test/v24.0", KAPSO_API_KEY: "k", PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS" };
 
 let customerSeq = 0;
 /** One fresh customer per call, so tests never see each other's orders. */
-export function flow(db: TestDb, steps: Anthropic.ToolUseBlock[][], opts: { who?: { waUserId: string; phone?: string }; deps?: Partial<TurnDeps> } = {}) {
+export function flow(db: TestDb, steps: Anthropic.ToolUseBlock[][], opts: { who?: { waUserId: string; phone?: string }; deps?: Partial<TurnDeps>; env?: Record<string, string> } = {}) {
   const n = ++customerSeq;
   const who = opts.who ?? { waUserId: `bsuid-b2-${n}`, phone: `+9617100${String(n).padStart(4, "0")}` };
   const shim = supabaseOver(db), m = scriptedModel(steps), s = fakeState();
   Object.assign(shim.client, { storage });
-  const env = { BUFFER_SECONDS: "6", MODEL_FAST: "fast", ...ENV, TEST_DEPS: { db: shim.client, model: m.model } } as unknown as Env;
+  const env = { BUFFER_SECONDS: "6", MODEL_FAST: "fast", ...ENV, ...opts.env, TEST_DEPS: { db: shim.client, model: m.model } } as unknown as Env;
   const conv = new ConversationDO(s.state, env);
   const event = (message: Record<string, unknown>) => ({
     message: { id: `wamid.b2.${n}.${Math.random()}`, timestamp: "1794390000", kapso: { direction: "inbound", origin: "cloud_api" }, ...message },

@@ -73,7 +73,7 @@ export function wrongLanguage(expected: Lang, text: string): Seen | null {
 }
 
 // ---------- the message rules (CX2, approved 18 November 2026; packages/agents/test/messages.rules.test.ts) ----------
-const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝", "🍗"]
+const ALLOWED = new Set(["📍", "🛒", "🛵", "✅", "💵", "🌙", "⚠️", "📦", "🏠", "🔢", "⏱️", "🔁", "🕘", "👋", "🙏", "🔎", "✏️", "❌", "💬", "☀️", "👇", "📝", "🍗", "🧪"]
   .map((e) => e.replace("️", "")));
 const MAX_LINE = 120, MAX_EMOJI = 6;
 const AMOUNT = /-?\$\d+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+ (?:ل\.ل|LBP)|\b\d+ (?:ل\.ل|LBP)/gu;

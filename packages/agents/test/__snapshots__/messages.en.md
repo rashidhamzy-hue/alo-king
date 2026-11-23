@@ -2301,6 +2301,20 @@ Someone from the team will talk to you about order *AK-1042* shortly.
 You can tell us here what happened.
 ```
 
+## testMode.line
+
+```text
+🧪 Test order: no delivery, no payment
+```
+
+## testMode.notOpen
+
+```text
+👋 *Welcome to Alo King*
+We're not open yet: we're trying the service with a small group.
+🙏 Thank you for your patience.
+```
+
 ## notice.orderCancelled
 
 ```text

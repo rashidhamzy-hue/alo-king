@@ -271,6 +271,10 @@ export interface Messages {
   /** CX2: the question after delivery (feedback.ts), in the customer's language; its buttons and the two answers. */
   feedback: { ask: (code: S) => S; fineButton: S; problemButton: S; fine: S; problem: (code: S) => S };
 
+  /** TEST1 (staging's friends' test, test_mode): the one line every card and status message of a test order carries, and the short
+   *  answer to anyone not on the tester list (no price, no menu). */
+  testMode: { line: S; notOpen: S };
+
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours.
    *  CX2: inside the 24-hour window the free message goes; the template only outside it. */
   notice: {
