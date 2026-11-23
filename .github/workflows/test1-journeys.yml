@@ -3,7 +3,13 @@
 # question, and a website order confirmed on WhatsApp. Nothing is sent to a real phone (the scripted customers are probe parties); their
 # invented numbers are on the tester list only for the run. Spend: the live model reads three orders (cents).
 name: test1-journeys
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: "Which six fresh scripted customers (5 to 9): a later run takes the next digit, so no earlier chat carries over"
+        type: string
+        default: "5"
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -17,6 +23,7 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       WEB_URL: https://alo-king-web-staging.rashid-hamzy.workers.dev
+      JOURNEY_SET: ${{ inputs.set }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: main }

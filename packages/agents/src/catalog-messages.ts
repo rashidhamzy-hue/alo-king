@@ -4,6 +4,7 @@
 // pictures, names and prices it read from our feed. Nothing here states a price, and nothing here confirms.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Outbound } from "@ak/wa/kapso";
+import { ar, asLang, messages, type Lang } from "./messages";
 
 /** Meta's limits for one product-list message: 30 products in all, 10 sections, 24 characters a section title, 60 the header. */
 export const LIST_LIMITS = { products: 30, sections: 10, sectionTitle: 24, header: 60 } as const;
@@ -59,11 +60,9 @@ export const productMessage = (catalogId: string, sku: string, body?: string): O
   interactive: { type: "product", ...(body ? { body: { text: body } } : {}), action: { catalog_id: catalogId, product_retailer_id: sku } },
 });
 
-export const CATALOG_TEXT = {
-  all: "هيدا كتالوج ألو كينغ 🛒 اختار الأغراض وزيدها عالسلة، وبس تبعت السلة منبعتلك ورقة الطلب لتأكّد.",
-  list: (categoryAr: string) => `${categoryAr} 🛒 زيد يلي بدك ياه عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.`,
-  one: "زيدو عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.",
-};
+/** TEST1 (sim-test 45133515061, sim-020: a French customer's "Browse" tap got the Arabic line once the catalogue was connected): the words
+ *  are in the customer's language, from the message packs (messages/{ar,en,fr}.ts, `catalog`). CATALOG_TEXT is the Arabic, as before. */
+export const CATALOG_TEXT = { all: ar.catalog.all, list: ar.catalog.list, one: ar.catalog.one };
 
 export interface CatalogSettings { catalog_id: string | null; list_max_products?: number; list_max_sections?: number }
 
@@ -72,25 +71,28 @@ export interface CatalogSettings { catalog_id: string | null; list_max_products?
  * up yet, the category is unknown, or nothing in it has an approved picture (only those are in the catalog, 1.21 step 2).
  * More than two list messages for one category: the full catalog view instead (one turn sends at most two messages).
  */
-export async function catalogMessages(db: SupabaseClient, args: { category?: string | null; product_id?: string | null }):
+export async function catalogMessages(db: SupabaseClient, args: { category?: string | null; product_id?: string | null; lang?: Lang | null }):
     Promise<{ ok: true; messages: Outbound[]; summary: string } | { ok: false; error: string; categories?: unknown }> {
   const settings = ((await db.rpc("setting", { p_key: "catalog" })).data ?? {}) as CatalogSettings;
   const catalogId = settings.catalog_id;
   if (!catalogId) return { ok: false, error: "catalog_not_ready" };
+  const lang = asLang(args.lang), C = messages(lang).catalog;
+  const named = (x: { ar: string; en: string }) => (lang === "ar" ? x.ar : x.en || x.ar);
   if (args.product_id) {
     const feed = ((await db.rpc("catalog_feed")).data ?? []) as { product_id: string; sku: string }[];
     const row = feed.find((r) => r.product_id === args.product_id);
     if (!row) return { ok: false, error: "product_not_in_catalog" };
-    return { ok: true, messages: [productMessage(catalogId, row.sku, CATALOG_TEXT.one)], summary: `[catalog product ${row.sku}]` };
+    return { ok: true, messages: [productMessage(catalogId, row.sku, C.one)], summary: `[catalog product ${row.sku}]` };
   }
-  if (!args.category) return { ok: true, messages: [catalogMessage(CATALOG_TEXT.all)], summary: "[catalog]" };
+  if (!args.category) return { ok: true, messages: [catalogMessage(C.all)], summary: "[catalog]" };
   const list = (await db.rpc("catalog_list", { p_category: args.category })).data as
-    { ok: boolean; error?: string; categories?: unknown; category?: { code: string; name_ar: string; name_en: string }; sections?: { title_ar: string; skus: string[] }[] } | null;
+    { ok: boolean; error?: string; categories?: unknown; category?: { code: string; name_ar: string; name_en: string }; sections?: { title_ar: string; title_en?: string | null; skus: string[] }[] } | null;
   if (!list?.ok || !list.category) return { ok: false, error: list?.error ?? "unknown_category", categories: list?.categories };
-  const sections = (list.sections ?? []).map((s) => ({ title: s.title_ar, skus: s.skus }));
+  const sections = (list.sections ?? []).map((s) => ({ title: named({ ar: s.title_ar, en: s.title_en ?? "" }), skus: s.skus }));
   if (!sections.some((s) => s.skus.length)) return { ok: false, error: "no_products_with_pictures_in_category" };
-  const msgs = productListMessages(catalogId, list.category.name_ar, CATALOG_TEXT.list(list.category.name_ar), sections,
+  const category = named({ ar: list.category.name_ar, en: list.category.name_en });
+  const msgs = productListMessages(catalogId, category, C.list(category), sections,
     { products: settings.list_max_products ?? LIST_LIMITS.products, sections: settings.list_max_sections ?? LIST_LIMITS.sections });
-  if (msgs.length > 2) return { ok: true, messages: [catalogMessage(CATALOG_TEXT.all)], summary: `[catalog, for ${list.category.code}]` };
+  if (msgs.length > 2) return { ok: true, messages: [catalogMessage(C.all)], summary: `[catalog, for ${list.category.code}]` };
   return { ok: true, messages: msgs, summary: `[catalog list ${list.category.code}]` };
 }

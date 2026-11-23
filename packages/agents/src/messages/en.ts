@@ -241,6 +241,12 @@ Until then nothing changes on the page.`,
     notOpen: "👋 *Welcome to Alo King*\nWe're not open yet: we're trying the service with a small group.\n🙏 Thank you for your patience.",
   },
 
+  catalog: {
+    all: "🛒 *The Alo King catalogue*\nAdd what you want to the cart and send it. We send you the order card to confirm.",
+    list: (category) => `🛒 *${category}*\nAdd what you want to the cart and send it. We send you the order card to confirm.`,
+    one: "Add it to the cart and send it. We send you the order card to confirm.",
+  },
+
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *Order ${code} was cancelled*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`
       + (reopenable ? "Tap *Reopen order* for a new card at today's prices." : "Write to us if you still want it."),

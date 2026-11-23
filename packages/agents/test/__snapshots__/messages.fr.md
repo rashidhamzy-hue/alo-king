@@ -2315,6 +2315,26 @@ Nous ne sommes pas encore ouverts : nous essayons le service avec un petit group
 🙏 Merci de votre patience.
 ```
 
+## catalog.all
+
+```text
+🛒 *Le catalogue Alo King*
+Ajoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.
+```
+
+## catalog.list
+
+```text
+🛒 *Dairy and eggs*
+Ajoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.
+```
+
+## catalog.one
+
+```text
+Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.
+```
+
 ## notice.orderCancelled
 
 ```text

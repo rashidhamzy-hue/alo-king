@@ -16,3 +16,5 @@ Model-written; not yet read by an Arabic reader. The first two are customer-faci
 | مُسح | cleared | not yet |
 | وضع تجربة الأصدقاء (بيئة التجربة فقط) | Friends' test mode (staging only) | not yet |
 | عند التشغيل: الأرقام في قائمة المجرّبين فقط تطلب، بأي ساعة وبلا مخزون؛ طلباتهم تتقدّم وحدها ولا شيء يُوصَل أو يُدفع. قاعدة البيانات ترفضه خارج بيئة التجربة. | On: only numbers on the tester list can order, any hour, no stock; their orders walk by themselves and nothing is delivered or charged. The database refuses it outside staging. | not yet |
+| 🛒 *كتالوج ألو كينغ* / اختار الأغراض وزيدها عالسلة. بس تبعت السلة، منبعتلك ورقة الطلب لتأكّد. | 🛒 *The Alo King catalogue* / Add what you want to the cart and send it. We send you the order card to confirm. (customer-facing; K1's line in CX2's layout) | not yet |
+| 🛒 *<الفئة>* / زيد يلي بدك ياه عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد. | 🛒 *<category>* / Add what you want to the cart and send it. We send you the order card to confirm. (customer-facing) | not yet |
