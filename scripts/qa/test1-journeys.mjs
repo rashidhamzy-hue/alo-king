@@ -76,15 +76,18 @@ async function inject(who, msg) {
   if (msg.type === "location") message.location = { latitude: msg.lat, longitude: msg.lng };
   const body = { message, conversation: { id: `test1-${who.wa}`, contact_name: "TEST1", phone_number: null, business_scoped_user_id: who.wa, status: "active", phone_number_id: PHONE_ID },
                  is_new_conversation: false, phone_number_id: PHONE_ID };
-  await sql`insert into wa_inbound_events(idempotency_key, line, event, payload) values (${"test1:" + id}, 'customer', 'whatsapp.message.received', ${sql.json(body)})`;
-  return new Date();
+  // The database's own clock, to the microsecond, as text: a JS Date (milliseconds) read back from created_at made an earlier message
+  // look new again (the second run re-read the welcome until it gave up), and the runner's clock is not the database's.
+  return (await sql`insert into wa_inbound_events(idempotency_key, line, event, payload) values (${"test1:" + id}, 'customer', 'whatsapp.message.received', ${sql.json(body)})
+                    returning received_at::text as at`)[0].at;
 }
 
 /** The next message sent to this customer after `since` that `want` accepts. */
 async function next(who, since, want = () => true, ms = 300_000) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
-    const rows = await sql`select payload, created_at, dedupe_key from wa_outbox where party_id = ${who.party} and line = 'customer' and created_at > ${since} order by created_at`;
+    const rows = await sql`select payload, created_at::text as created_at, dedupe_key from wa_outbox
+                           where party_id = ${who.party} and line = 'customer' and created_at > ${since}::timestamptz order by created_at`;
     const hit = rows.find((r) => want(r.payload, r.dedupe_key));
     if (hit) return hit;
     await sleep(5000);
@@ -97,7 +100,7 @@ const confirmOf = (p) => rowsOf(p).find((r) => /^order:confirm:/.test(r.id ?? ""
 const walkKey = (k) => /^test:/.test(k ?? "");
 /** Model turns of this customer's conversations since t (agent_runs is per conversation). */
 const modelTurns = async (who, t) => (await sql`select count(*)::int n from agent_runs r join conversations c on c.id = r.conversation_id
-  where c.party_id = ${who.party} and r.created_at > ${t} and r.agent = 'concierge'`)[0].n;
+  where c.party_id = ${who.party} and r.created_at > ${t}::timestamptz and r.agent = 'concierge'`)[0].n;
 const orderOfConfirm = (p) => /^order:confirm:([0-9a-f-]{36})/.exec(confirmOf(p)?.id ?? "")?.[1];
 
 /** Answers what the bot asks on the way to a card, as a person would: the first product of a "which one?", the first choice of a dish's
@@ -208,7 +211,7 @@ async function food(w) {
   const call = (await sql`select c.status, c.ready_in_min, (select count(*)::int from place_call_log l where l.call_id = c.id and (l.detail->>'simulated')::boolean) sim
                             from place_calls c where c.order_id = ${id}`)[0];
   say("food", call?.status === "accepted" && call.sim === 1, `the call ahead: ${call?.status}, ready in ${call?.ready_in_min} min, simulated (nobody called Safa)`);
-  const took = await next(w.food, new Date(Date.now() - 600_000), (p, k) => walkKey(k) && /Safa Chicken/.test(bodyOf(p)) && bodyOf(p).includes(LINE), 300_000);
+  const took = await next(w.food, (await sql`select (now() - interval '10 minutes')::text as at`)[0].at, (p, k) => walkKey(k) && /Safa Chicken/.test(bodyOf(p)) && bodyOf(p).includes(LINE), 300_000);
   say("food", !!took, `the customer is told: «${bodyOf(took?.payload).replace(/\n/g, " / ")}»`);
 }
 
@@ -236,7 +239,7 @@ async function web(w) {
     await page.goto(`${WEB}/checkout`);
     const send = page.locator('button[name="do"][value="place"]');
     await send.waitFor({ timeout: 30_000 });
-    const before = new Date();
+    const before = (await sql`select now()::text as at`)[0].at;
     await send.click();
     await page.waitForLoadState("load");
     const card = await next(w.web, before, hasConfirm);

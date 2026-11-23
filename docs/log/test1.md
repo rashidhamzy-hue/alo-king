@@ -2,8 +2,11 @@
 
 Session TEST1. The founder's decision of 23 November: not launching yet (no stock, van, warehouse or label day); the founder's friends test
 Alo King end to end on WhatsApp and the website, now. Decisions: `docs/DECISIONS.md`, "TEST1, a working friends' test on staging, 23 November
-2026". Migrations **0271** (test mode), **0272** (the catalogue's product link), **0273** (the catalogue id, after the stage stop). No new
-agent (invariant 21); no write by a model; Kabsi not touched.
+2026". Migrations **0271** (test mode), **0272** (the catalogue's product link, staging only), **0273** (the catalogue id and the gate's probe
+exemption, after the stage stop, staging only), **0274** (Safa Chicken's other names, staging only). Pull requests
+[#159](https://github.com/rashidhamzy-hue/alo-king/pull/159), [#160](https://github.com/rashidhamzy-hue/alo-king/pull/160),
+[#161](https://github.com/rashidhamzy-hue/alo-king/pull/161) (and this report's), each merged with CI green. No new agent (invariant 21); no
+write by a model; Kabsi not touched.
 
 ## Built
 1. **Test mode** (`settings.test_mode`, 0271). On for staging, impossible in production: a trigger refuses it on unless the database holds
@@ -27,6 +30,17 @@ agent (invariant 21); no write by a model; Kabsi not touched.
 7. **The catalogue**: 0272 sets `catalog.product_link` to the customer line's wa.me link; deploy-staging proves `GET /catalog/feed.csv` after
    every deploy; the `catalog-setup` workflow does Meta's side through Kapso where the access allows (inspect, enable_cart, sets); in test
    mode every listed item is in stock.
+
+8. **After the stage stop**: the catalogue `1178584524839853` the founder made and connected (0273, staging); the gate lets through only the
+   probe that has no phone number (0273), so scripted customers meet it as anyone else; Safa Chicken's other names («صفا», «صفا تشيكن», …,
+   0274); the WhatsApp catalogue's words in the customer's language (the session's sim-test found a French customer getting the Arabic line
+   once the catalogue was connected).
+9. **The journeys on staging, by scripted customers** (`test1-journeys` workflow, `scripts/qa/test1-journeys.mjs`): probe parties with
+   invented numbers (+961 70 000 9S0 to 9S5), so nothing reaches a phone; their messages enter as Kapso's webhook does (stored inbound
+   events the Worker's minute cron delivers), their replies are read from the outbox, the website journey runs in a headless browser.
+10. **Who owns the WhatsApp account**: the founder's own business portfolio (Kapso's Instant setup is Meta's embedded signup); Kapso's Meta
+    proxy reaches neither catalogues nor commerce settings, so the catalogue, its connection and the cart switch were the founder's clicks
+    (DECISIONS rows 15, 16).
 
 ## Tested (free)
 - `test/db/test1-test-mode.test.ts` (14): the lock (off, refused without the mark, on with it); the gate (tester, stranger, probe); a
