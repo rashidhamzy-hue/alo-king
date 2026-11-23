@@ -89,6 +89,13 @@ describe("2 the gate", () => {
     await db.rpc("set_tester", { p_by: lead, p_phone: "+96170000409", p_on: true });
     expect(await db.rpc("test_mode_gate", { p_party: scripted })).toMatchObject({ allowed: true, tester: true });
     await db.rpc("set_tester", { p_by: lead, p_phone: "+96170000409", p_on: false });
+    // 0275: the staging probe answers its own (phone-less) parties only, never a scripted customer's card
+    await db.pg.query(`update settings set value = value || '{"enabled": true}' where key = 'probe'`);
+    await db.pg.query(`insert into wa_outbox(dedupe_key, line, party_id, payload, status) values
+      ('t1-probe-own', 'customer', $1, '{"type":"text","text":{"body":"x"}}', 'sent'), ('t1-scripted', 'customer', $2, '{"type":"text","text":{"body":"y"}}', 'sent')`, [probe, scripted]);
+    const answered = (await db.rpc("probe_pending")).map((x: any) => x.key);
+    expect(answered).toContain("t1-probe-own");
+    expect(answered).not.toContain("t1-scripted");
     await setMode(false);
     expect((await db.rpc("test_mode_gate", { p_party: stranger.party })).allowed).toBe(true);
     await setMode(true);

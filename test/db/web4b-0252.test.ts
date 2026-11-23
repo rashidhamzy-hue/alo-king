@@ -24,7 +24,7 @@ describe("before 0252: the fault as staging had it", () => {
   let db: TestDb;
   // 0267 (PERF1) and 0271 (TEST1's feed) build on 0252's feed JPEG table and 0268 (B1g) on its refusals, so the database without 0252 is also
   // without them (0269 replaces 0268's function and 0272 is TEST1's catalogue link: both stand without 0252 but go with their sessions).
-  beforeAll(async () => { db = await stagingLike(["0252", "0267", "0268", "0269", "0271", "0272", "0273", "0274"]); }, 180_000);
+  beforeAll(async () => { db = await stagingLike(["0252", "0267", "0268", "0269", "0271", "0272", "0273", "0274", "0275"]); }, 180_000);
   afterAll(async () => { await db?.pg.close(); });
   it("«لبن» finds Halloum, «ماي» finds the tea", async () => {
     expect(await skus(db, "لبن")).toContain("AK-0044");

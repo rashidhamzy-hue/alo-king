@@ -82,14 +82,20 @@ async function inject(who, msg) {
                     returning received_at::text as at`)[0].at;
 }
 
-/** The next message sent to this customer after `since` that `want` accepts. */
+/** The next message sent to this customer after `since` that `want` accepts and that this customer's journey has not read yet. Read
+ *  messages are remembered by their outbox key (unique), never by time alone: the third run kept getting a message it had already read. */
 async function next(who, since, want = () => true, ms = 300_000) {
   const end = Date.now() + ms;
+  who.read ??= new Set();
   while (Date.now() < end) {
     const rows = await sql`select payload, created_at::text as created_at, dedupe_key from wa_outbox
                            where party_id = ${who.party} and line = 'customer' and created_at > ${since}::timestamptz order by created_at`;
-    const hit = rows.find((r) => want(r.payload, r.dedupe_key));
-    if (hit) return hit;
+    const hit = rows.find((r) => !who.read.has(r.dedupe_key) && want(r.payload, r.dedupe_key));
+    if (hit) {
+      who.read.add(hit.dedupe_key);
+      console.error(`     ${who.wa} read ${hit.created_at} ${hit.dedupe_key.slice(0, 48)} «${bodyOf(hit.payload).split("\n")[0].slice(0, 60)}» [${rowsOf(hit.payload).map((r) => (r.id ?? "").split(":")[0]).join(",")}]`);
+      return hit;
+    }
     await sleep(5000);
   }
   return null;
