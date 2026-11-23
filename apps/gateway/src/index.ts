@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/cloudflare";
 import { buttons, fundingState, KapsoReceived, numberHealth, senderKey, showTyping, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
 import { probeInbound, probeReply, type ProbeMessage } from "@ak/wa/probe";
-import { send as gatewaySend } from "@ak/wa/gateway";
+import { send as gatewaySend, type SendRequest } from "@ak/wa/gateway";
 import { lineProblem, parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
 import type { ModelClient } from "@ak/agents/concierge";
 import type { ConversationState } from "@ak/agents/concierge-tools";
@@ -22,6 +22,7 @@ import { supportMessage } from "@ak/agents/support";
 import { claimOrderMessage, logTemplateSkip, sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 import { workersAiEmbedder } from "@ak/agents/embeddings";
+import { testLineSend, testOrderTick } from "@ak/agents/test-mode";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -32,6 +33,8 @@ export interface Env {
   KAPSO_WEBHOOK_SECRET_PROJECT?: string;
   /** "on" only on staging: the cron runs the probe (hourly test order, test rider). Production never sets it (4.10). */
   PROBE_MODE?: string;
+  /** "staging" or "production" (wrangler.jsonc). TEST1: the friends' test mode applies only on "staging". */
+  ENVIRONMENT?: string;
   PHONE_NUMBER_ID_CUSTOMER: string; PHONE_NUMBER_ID_OPS: string;
   /** The WhatsApp Business Account of the customer line: where its templates live (4.3). Not secret. */
   WABA_ID_CUSTOMER?: string;
@@ -74,7 +77,11 @@ function depsFor(env: Env): TurnDeps {
     await accountReport(supa)(reason, message);
     Sentry.captureMessage(`model_account: ${reason}`, { level: "fatal", tags: { where: "model_account", reason }, extra: { message }, fingerprint: ["model_account", reason] });
   });
-  const deps: TurnDeps = { db: supa, model: guarded, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
+  const out = (req: SendRequest) => gatewaySend(supa, env, req);                                                               // the only door out
+  // TEST1: on staging only, every message about a test order carries the test line (packages/agents/src/test-mode.ts).
+  const staging = env.ENVIRONMENT === "staging";
+  const deps: TurnDeps = { db: supa, model: guarded, modelName: env.MODEL_FAST, send: staging ? testLineSend(supa, out) : out };
+  if (staging) deps.testMode = true;
   // SR1: search by meaning; the switch, the model and the daily cap are settings.search, checked before every call (search.ts)
   if (env.AI && !env.TEST_DEPS) deps.embedder = workersAiEmbedder(env.AI);
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
@@ -238,6 +245,8 @@ export default {
 
     // 8. heartbeat (4.10): the probe, silence, and Kapso's view of our numbers. Each step on its own: one failing never stops the others.
     if (env.PROBE_MODE === "on") await step("probe", () => probeTick(deps, env));
+    // TEST1: a confirmed test order walks by itself (staging only; the database answers nothing unless test mode is on).
+    if (env.ENVIRONMENT === "staging") await step("test_orders", async () => { await testOrderTick(deps, (p) => customerAddress(supa, p)); });
     await step("heartbeat", () => heartbeatAlerts(deps));
     const now = new Date();
     if (now.getUTCHours() === 6 && now.getUTCMinutes() === 13) await step("kapso_health", () => kapsoHealth(deps, env));

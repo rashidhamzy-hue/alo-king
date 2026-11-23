@@ -148,6 +148,12 @@ jobs:
         run: |
           [ -f wrangler.staging-noqueue.json ] && export WRANGLER_CONFIG=wrangler.staging-noqueue.json
           scripts/ci/ensure-webhooks.sh
+      - name: The WhatsApp catalogue's feed, as Meta reads it (TEST1; RUNBOOK "WhatsApp catalog" A4)
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+          CATALOG_FEED_PASSWORD: ${{ secrets.CATALOG_FEED_PASSWORD }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/ci/check-catalog-feed.mjs | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Sentry accepts events from our DSN (posted straight to the ingest endpoint)
         run: scripts/ci/sentry-ingest-check.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Smoke test, no secrets needed

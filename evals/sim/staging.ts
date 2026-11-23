@@ -61,5 +61,8 @@ export function scrubSettings(rows: Record<string, unknown>[]): { rows: Record<s
     if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
     return v;
   };
-  return { rows: rows.map((r) => ({ ...r, value: walk(r.value) })), replaced };
+  // TEST1: the simulated customers are real customers of the copy, never the friends' test: test mode stays off there (the copy is not
+  // a database marked as staging, so 0271's lock would refuse it on anyway).
+  const off = (r: Record<string, unknown>) => (r.key === "test_mode" ? { ...r, value: { ...(r.value as object), enabled: false } } : r);
+  return { rows: rows.map((r) => off({ ...r, value: walk(r.value) })), replaced };
 }

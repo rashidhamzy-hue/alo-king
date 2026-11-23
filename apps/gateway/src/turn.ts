@@ -65,6 +65,8 @@ export interface TurnDeps {
    * (packages/wa, lane A), nothing is shown. Never sends a message and never blocks the turn.
    */
   typing?: (waMessageId: string) => Promise<unknown>;
+  /** TEST1: the friends' test mode may apply (the Worker's ENVIRONMENT is staging). The database still decides whether it is on. */
+  testMode?: boolean;
   /** A second speech-to-text provider (1.7), passed by the worker only when its key is configured. settings.stt decides use. */
   stt?: SttProvider;
 }
@@ -183,6 +185,34 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   };
   let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false, personAsked = false, chased = false, claimed = false;
   const openCases = conv.cases ?? [];
+
+  // TEST1 (test mode, staging only: deps.testMode is set only when the Worker's ENVIRONMENT is staging, and the database answers "on"
+  // only when it is marked as staging). A number not on the tester list gets one short "we're not open yet" in its language, before any
+  // model, with no price and no menu. STOP and START still win (invariant 6); nothing is dropped in silence (invariant 18).
+  if (deps.testMode) {
+    const gate = await call<{ on: boolean; allowed: boolean }>(db, "test_mode_gate", { p_party: conv.party_id });
+    if (!gate.allowed) {
+      for (const p of pending) {
+        const m = p.event.message;
+        if (m.type !== "text") continue;
+        const body = m.text?.body ?? "";
+        if (body) learnLang([body]);
+        const signal = detectConsentSignal(body);
+        if (signal === "opt_out") {
+          await say(T().fixed.optOut);
+          await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_out", p_source: "stop_keyword", p_wamid: m.id });
+          return { outcome: "opt_out", sent };
+        }
+        if (signal === "opt_in") {
+          await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_in", p_source: "start_keyword", p_wamid: m.id });
+          await say(T().fixed.optIn);
+          return { outcome: "opt_in", sent };
+        }
+      }
+      await say(T().testMode.notOpen);
+      return { outcome: "answered", sent };
+    }
+  }
 
   // HO1: a tap whose handler failed is a technical failure, not a hand-off: the error line with a button that repeats the tap,
   // and an ops exception carrying the error. The bot stays in the chat.

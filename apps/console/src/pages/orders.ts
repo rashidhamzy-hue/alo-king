@@ -5,6 +5,8 @@
 // On a wide screen it opens in a drawer beside the list (the same address with `open=`); on a phone it is its own page.
 // CON1: groceries and food together, filterable by kind ("Groceries" or "Food": a food order is one with a call ahead, FD2's place_calls);
 // a food order carries a "Food" mark in the list.
+// TEST1: a test order (staging's friends' test) carries a «🧪 Test» mark in the list and on its page; "Clear test orders" (leads, with a
+// reason, logged by clear_test_orders() in test_mode_log) cancels the open ones without a customer notice and takes them all off the list.
 // Read-only, except two buttons that file an eval case through file_order_eval_case() (0159): "wrong product" and "bot at fault".
 // They change nothing on the order. The customer's phone is searched but never shown; a voice note is shown as "[audio]", never its words.
 // Not here because nothing in the database gives it to this page yet (listed in docs/HANDOFF.md, DS1): a filter by rider, saved
@@ -19,12 +21,14 @@ import { statusPill } from "@ak/ui/status";
 import type { Raw } from "@ak/ui/h";
 import { messageWords } from "../message-words";
 
-type Row = { id: string; short_code: string; status: string; created_at: string; total_usd: number | string; payment_method: string; channel: string; customer_name: string | null; village_name: string | null };
+type Row = { id: string; short_code: string; status: string; created_at: string; total_usd: number | string; payment_method: string; channel: string; customer_name: string | null; village_name: string | null; is_test?: boolean };
 type Order = { id: string; short_code: string; customer_id: string; conversation_id: string | null; status: string; village_id: string | null; is_pickup: boolean; subtotal_usd: number | string;
   delivery_fee_usd: number | string; tip_usd: number | string; total_usd: number | string; payment_method: string; channel: string; customer_notes: string | null; cancel_reason: string | null;
   created_at: string; confirmed_at: string | null; delivered_at: string | null;
   /** The code itself is never drawn: only whether one is needed, whether it was checked, and the tries used. */
-  handover_code: string | null; handover_verified_at: string | null; handover_attempts: number | null; missing_pref: string | null };
+  handover_code: string | null; handover_verified_at: string | null; handover_attempts: number | null; missing_pref: string | null;
+  /** TEST1 (0271): a friends' test order, and when staff cleared it. */
+  is_test?: boolean; test_cleared_at?: string | null };
 type Item = { id: string; name_snapshot: string; qty: number | string; unit_price_usd: number | string; status: string; substitution_of: string | null; note: string | null; modifiers: unknown };
 type Ev = { created_at: string; from_status: string | null; to_status: string; actor: string; reason: string | null };
 type Pay = { id: string; method: string; status: string; amount_usd: number | string; received_usd: number | string; received_lbp: number | string; external_ref: string | null; confirmed_at: string | null; created_at: string };
@@ -68,6 +72,9 @@ function address(f: Filters, change: Partial<Filters> = {}, path = "/orders"): s
 const dayStart = (day: string) => beirutMidnight(new Date(`${day}T12:00:00Z`));
 
 /** The rows for these filters, newest first unless sorted otherwise, and whether older ones exist. With words typed, the database's own search (0159) finds the orders and the other filters narrow them. */
+/** TEST1: the mark of a test order, in the list and on its page. */
+export const testMark = (L: Lang) => badge(pick(L, "🧪 Test: no delivery, no payment", "🧪 تجريبي: لا توصيل ولا دفع"), "warn");
+
 /** The orders that are food orders (each has its call ahead, FD2). A database without place_calls yet has none. */
 export async function foodOrderIds(c: Ctx): Promise<Set<string>> {
   try { return new Set((await c.deps.db.rows<{ order_id: string }>("place_calls", { select: "order_id", limit: 5000 })).map((r) => r.order_id)); }
@@ -79,7 +86,10 @@ async function findRows(c: Ctx, f: Filters, limit: number, food: Set<string>): P
   const statusIn = f.status === "open" ? [...ACTIVE] : f.status ? [f.status] : null;
   const from = f.from ? dayStart(f.from).getTime() : null, to = f.to ? dayStart(f.to).getTime() + 86_400_000 : null;
   if (f.q) {
-    const found = await db.rpc<Row[]>("search_orders", { p_q: f.q, p_limit: 100 });
+    const found0 = await db.rpc<Row[]>("search_orders", { p_q: f.q, p_limit: 100 });
+    const marks = found0.length ? await db.rows<{ id: string; is_test: boolean; test_cleared_at: string | null }>("orders", { select: "id,is_test,test_cleared_at", where: { id: { in: found0.map((o) => o.id) } } }).catch(() => []) : [];
+    const mark = new Map(marks.map((m) => [m.id, m]));
+    const found = found0.filter((o) => !(mark.get(o.id)?.is_test && mark.get(o.id)?.test_cleared_at)).map((o) => ({ ...o, is_test: !!mark.get(o.id)?.is_test }));
     let village: string | null = null;
     if (f.village) village = (await db.rows<{ name_en: string }>("villages", { select: "name_en", where: { id: f.village }, limit: 1 }))[0]?.name_en ?? "\u0000";
     const rows = found.filter((o) => kindOk(o.id) && (!statusIn || statusIn.includes(o.status as never)) && (!f.channel || o.channel === f.channel) && (!f.payment || o.payment_method === f.payment)
@@ -101,9 +111,9 @@ async function findRows(c: Ctx, f: Filters, limit: number, food: Set<string>): P
   const upper = [f.before && byTime ? new Date(f.before).getTime() : null, to].filter((x): x is number => x !== null).sort((a, b) => a - b)[0] ?? null;
   if (upper !== null && (byTime || from === null)) where.created_at = { lt: new Date(upper).toISOString() };
   else if (from !== null) where.created_at = { gte: new Date(from).toISOString() };
-  const got = await db.rows<Order>("orders", { select: "id,short_code,status,created_at,total_usd,payment_method,channel,customer_id,village_id", where: where as never,
+  const got = await db.rows<Order>("orders", { select: "id,short_code,status,created_at,total_usd,payment_method,channel,customer_id,village_id,is_test,test_cleared_at", where: where as never,
     order: [{ col: SORTS[f.sort], desc: f.dir === "desc" }, ...(f.sort === "created_at" ? [] : [{ col: "created_at", desc: true }])], limit: (byTime && from === null && f.kind !== "grocery" ? limit : MAX) + 1 });
-  const within = got.filter((o) => { const made = new Date(o.created_at).getTime(); return kindOk(o.id) && (from === null || made >= from) && (upper === null || made < upper); });
+  const within = got.filter((o) => { const made = new Date(o.created_at).getTime(); return kindOk(o.id) && !(o.is_test && o.test_cleared_at) && (from === null || made >= from) && (upper === null || made < upper); });
   const page = within.slice(0, limit);
   const [names, villages] = await Promise.all([
     page.length ? db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: [...new Set(page.map((o) => o.customer_id))] } } }) : Promise.resolve([]),
@@ -111,7 +121,7 @@ async function findRows(c: Ctx, f: Filters, limit: number, food: Set<string>): P
   ]);
   const name = new Map(names.map((p) => [p.id, p.display_name])), village = new Map(villages.map((v) => [v.id, v.name_en]));
   return { rows: page.map((o) => ({ id: o.id, short_code: o.short_code, status: o.status, created_at: o.created_at, total_usd: o.total_usd, payment_method: o.payment_method, channel: o.channel,
-    customer_name: name.get(o.customer_id) ?? null, village_name: o.village_id ? village.get(o.village_id) ?? null : null })), more: within.length > limit };
+    customer_name: name.get(o.customer_id) ?? null, village_name: o.village_id ? village.get(o.village_id) ?? null : null, is_test: !!o.is_test })), more: within.length > limit };
 }
 
 const colLabel = (L: Lang, col: Col) => ({ status: pick(L, "Status", "الحالة"), customer: t(L, "customer"), village: t(L, "village"), total: t(L, "total"), payment: t(L, "payment"), channel: t(L, "channel"), placed: t(L, "placed") })[col];
@@ -140,7 +150,14 @@ async function search(c: Ctx) {
   const sel = (name: keyof Filters, label: string, options: readonly string[], word: (v: string) => string = (v) => v) =>
     select({ name, label, value: f[name] as string, options: [{ value: "", label: pick(L, "Any", "الكل") }, ...options.map((v) => ({ value: v, label: word(v) }))] });
 
+  // TEST1: test orders not cleared yet (staging's friends' test). The button shows only while there are some.
+  const tests = await db.rows<{ id: string }>("orders", { select: "id", where: { is_test: true, test_cleared_at: { isNull: true } }, limit: 1000 }).catch(() => []);
+  const clearForm = tests.length ? form(c.f, "/orders/clear-tests", html`<p>${testMark(L)} ${pick(L, `${tests.length} test order(s) from the friends' test. Clearing cancels the open ones without telling the tester and takes them all off this list. Real orders are never touched.`,
+      `${tests.length} طلب(ات) تجريبية من تجربة الأصدقاء. المسح يلغي المفتوح منها بلا إبلاغ المجرّب ويزيلها كلها من هذه القائمة. الطلبات الحقيقية لا تُمسّ.`)}</p>
+${input({ name: "reason", label: pick(L, "Why (for the record)", "السبب (للسجل)"), required: true, maxlength: 200 })}
+<div class="actions-row">${button({ label: pick(L, "Clear test orders", "امسح الطلبات التجريبية"), variant: "danger" })}</div>`) : "";
   return render(c, t(L, "orders_title"), html`
+${clearForm}
 ${chips(views.map(([en, ar, x]) => ({ label: pick(L, en, ar), href: address(blank, x), current: active(x) })), pick(L, "Views", "طرق العرض"))}
 <form method="get" action="/orders" class="ak-filters">
 <label class="ak-field ak-field--grow"><span>${t(L, "orders_find")}</span><input class="ak-input" name="q" value="${f.q}" placeholder="${t(L, "orders_ph")}" maxlength="60" enterkeyhint="search"></label>
@@ -156,7 +173,7 @@ ${f.sort !== "created_at" || f.dir !== "desc" ? html`<input type="hidden" name="
 <div class="ak-table-foot"><span>${f.q ? t(L, "orders_found", { n: rows.length, q: f.q }) : f.kind || f.status || f.channel || f.payment || f.village || f.from || f.to || f.before ? pick(L, `${rows.length} shown`, `المعروض: ${rows.length}`) : t(L, "orders_recent")}</span>
 ${button({ label: pick(L, "Download as CSV", "تنزيل CSV"), href: address(f, { before: "", open: "" }, "/orders.csv"), icon: "download", variant: "ghost" })}</div>
 ${dataTable({ caption: t(L, "orders_title"), columns, empty: empty({ title: t(L, "orders_none"), icon: "search" }),
-    rows: rows.map((o) => ({ selected: opened?.o.id === o.id, cells: [html`<a href="/orders/${o.id}" data-drawer="${address(f, { open: o.id })}"><strong>${o.short_code}</strong></a>${food.has(o.id) ? html` ${badge(pick(L, "Food", "أكل"), "gold", "food")}` : ""}`, ...f.cols.map((col) => cell(o, col))] })) })}
+    rows: rows.map((o) => ({ selected: opened?.o.id === o.id, cells: [html`<a href="/orders/${o.id}" data-drawer="${address(f, { open: o.id })}"><strong>${o.short_code}</strong></a>${food.has(o.id) ? html` ${badge(pick(L, "Food", "أكل"), "gold", "food")}` : ""}${o.is_test ? html` ${testMark(L)}` : ""}`, ...f.cols.map((col) => cell(o, col))] })) })}
 <div class="ak-table-foot"><span>${f.q && rows.length >= 100 ? pick(L, "The search shows its first 100 matches: add a filter to narrow it.", "البحث يعرض أول 100 نتيجة: أضف تصفية لتضييقها.") : ""}</span>
 ${more && last && f.sort === "created_at" && f.dir === "desc" ? button({ label: pick(L, "Older orders", "طلبات أقدم"), href: address(f, { before: new Date(last.created_at).toISOString(), open: "" }), icon: "chevron" }) : more ? html`<span>${pick(L, `The first ${PAGE} are shown: sort by time to page through the rest.`, `المعروض أول ${PAGE}: رتّب حسب الوقت لتصفّح البقية.`)}</span>` : ""}</div></div>
 ${opened ? drawer({ id: "order", title: opened.o.short_code, closeHref: address(f, { open: "" }), closeLabel: pick(L, "Close", "إغلاق"),
@@ -253,7 +270,7 @@ ${input({ name: "reason", label: pick(L, "Why (for the record)", "السبب (ل
   }
 
   return html`<div class="card"><dl class="facts">
-<dt>${pick(L, "Status", "الحالة")}</dt><dd>${statusPill(o.status, { lang: L, reason: o.cancel_reason })}</dd>
+<dt>${pick(L, "Status", "الحالة")}</dt><dd>${statusPill(o.status, { lang: L, reason: o.cancel_reason })}${o.is_test ? html` ${testMark(L)}${o.test_cleared_at ? html` <span class="muted">${pick(L, "cleared", "مُسح")} ${when_(o.test_cleared_at)}</span>` : ""}` : ""}</dd>
 <dt>${t(L, "customer")}</dt><dd>${x.customer}</dd>
 <dt>${t(L, "village")}</dt><dd>${o.is_pickup ? pick(L, "pickup at the hub", "استلام من المستودع") : x.village}</dd>
 <dt>${t(L, "channel")}</dt><dd>${o.channel}</dd>
@@ -332,6 +349,17 @@ async function cancel(c: Ctx) {
   }, `/orders/${order}`);
 }
 
+/** TEST1: clears every test order (test orders only; the database checks the role and logs it in test_mode_log). */
+async function clearTests(c: Ctx) {
+  const reason = text(c, "reason", 200);
+  if (reason.length < 3) throw new UserError(pick(c.lang, "Write why you clear them.", "اكتب سبب المسح."));
+  return act(c, "clear_test_orders", { reason }, async () => {
+    const r = await c.deps.db.rpc<{ cleared: number; money_or_stock_rows: number }>("clear_test_orders", { p_by: c.staff.partyId, p_reason: reason });
+    return pick(c.lang, `Cleared ${r.cleared} test order(s).${r.money_or_stock_rows ? ` Warning: ${r.money_or_stock_rows} stock or money row(s) belong to test orders: tell the build session.` : ""}`,
+      `مُسح ${r.cleared} طلب(ات) تجريبية.${r.money_or_stock_rows ? ` تنبيه: ${r.money_or_stock_rows} سجل مخزون أو مال يخص طلبات تجريبية: أبلغ جلسة البناء.` : ""}`);
+  }, "/orders");
+}
+
 export const ordersSection: Section = {
   nav: { href: "/orders", label: "Orders", roles: LEADS },
   routes: [
@@ -339,6 +367,7 @@ export const ordersSection: Section = {
     { method: "GET", path: "/orders.csv", roles: LEADS, handler: csv },
     { method: "GET", path: "/go", roles: ALL, handler: go },
     { method: "GET", path: "/orders/:ref", roles: LEADS, handler: one },
+    { method: "POST", path: "/orders/clear-tests", roles: LEADS, handler: clearTests },
     { method: "POST", path: "/orders/:id/eval", roles: LEADS, handler: file },
     { method: "POST", path: "/orders/:id/cancel", roles: LEADS, handler: cancel },
   ],

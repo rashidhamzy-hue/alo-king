@@ -10,6 +10,8 @@
 --     (probe_remit_cash, 0140): without that the riders' cash rose past the cap and the probe orders stopped at "confirmed" (15 Nov).
 --     Messages to them never reach WhatsApp (can_send answers probe_sink). PROBE_MODE=on in the staging Worker turns the cron's probe on.
 --   * FD2: the seeded test place, "Alo King test kitchen" (invented, testers only), through FD1's own functions (test-place.sql).
+--   * TEST1 (0271): this database is marked as staging (deployment_marker), the only way test mode can ever be switched on. The first
+--     time it is marked, test mode is switched on (the founder's decision of 23 November); after that the Settings page decides.
 \set ON_ERROR_STOP on
 insert into fx_rates(lbp_per_usd) select 89500 where not exists (select 1 from fx_rates);
 
@@ -54,10 +56,20 @@ begin
     'order_text', 'بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين') where key = 'probe';
 end $$;
 
+-- TEST1: the staging mark, and test mode on the first time only (a later "off" on the Settings page stays off).
+with marked as (insert into deployment_marker(environment) values ('staging') on conflict do nothing returning 1)
+update settings set value = value || '{"enabled": true}'::jsonb where key = 'test_mode' and exists (select 1 from marked);
+
+-- TEST1 (0272): the WhatsApp catalogue's product link and the website's chat button: the staging customer line, when none is set.
+update settings set value = value || '{"product_link": "https://wa.me/12036602328?text={sku}"}'::jsonb
+ where key = 'catalog' and coalesce(value->>'product_link', '') = '';
+
 -- FD2: the seeded test place (an invented kitchen, testers only; scripts/staging/test-place.sql). Idempotent.
 \ir test-place.sql
 
 select 'staging prepared: fx ' || (select count(*) from fx_rates) || ', hub ' || coalesce((select v.name_en from sources s join villages v on v.id = s.village_id where s.kind = 'dark_store'), 'none')
     || ', stocked products ' || (select count(*) from stock_levels where on_hand > 0)
     || ', probe parties ' || (select count(*) from parties where is_probe)
-    || ', probe enabled ' || (select value->>'enabled' from settings where key = 'probe');
+    || ', probe enabled ' || (select value->>'enabled' from settings where key = 'probe')
+    || ', test mode ' || case when test_mode_on() then 'on' else 'off' end
+    || ', testers ' || jsonb_array_length(coalesce(setting('testers')->'numbers', '[]'::jsonb));

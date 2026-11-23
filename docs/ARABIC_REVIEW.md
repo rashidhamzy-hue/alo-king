@@ -2552,3 +2552,6 @@ Model-written; not yet read by an Arabic reader. Console only (staff), never cus
 | يقول الفحص | The check says | not yet |
 | مختلف | disagrees | not yet |
 | غير متأكد | unsure | not yet |
+
+
+**Continued in `docs/ARABIC_REVIEW_2.md`** (this file reached the 300 KB limit on 23 November 2026; new tables go there, from TEST1).

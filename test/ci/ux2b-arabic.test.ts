@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const doc = readFileSync(join(repo, "docs/ARABIC_REVIEW.md"), "utf8");
+// TEST1: ARABIC_REVIEW.md reached the 300 KB file limit; its tables continue in ARABIC_REVIEW_2.md, read as one document.
+const doc = readFileSync(join(repo, "docs/ARABIC_REVIEW.md"), "utf8") + "\n" + readFileSync(join(repo, "docs/ARABIC_REVIEW_2.md"), "utf8");
 const FILES = ["approve", "intakeframe", "intake", "readiness", "moneyframe", "payments", "money", "refunds", "riders", "settings", "settingmeta"].map((f) => `apps/console/src/pages/${f}.ts`);
 
 /** A string literal starting at i (double quote, single quote or backtick, with ${…} nested), or null. */
