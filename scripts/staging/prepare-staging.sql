@@ -60,6 +60,10 @@ end $$;
 with marked as (insert into deployment_marker(environment) values ('staging') on conflict do nothing returning 1)
 update settings set value = value || '{"enabled": true}'::jsonb where key = 'test_mode' and exists (select 1 from marked);
 
+-- TEST1 (0272): the WhatsApp catalogue's product link and the website's chat button: the staging customer line, when none is set.
+update settings set value = value || '{"product_link": "https://wa.me/12036602328?text={sku}"}'::jsonb
+ where key = 'catalog' and coalesce(value->>'product_link', '') = '';
+
 -- FD2: the seeded test place (an invented kitchen, testers only; scripts/staging/test-place.sql). Idempotent.
 \ir test-place.sql
 
