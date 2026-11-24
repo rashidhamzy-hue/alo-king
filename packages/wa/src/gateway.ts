@@ -84,8 +84,12 @@ export function preflight(req: SendRequest): string | null {
   return null;
 }
 
-/** CAT2: refusals that mean "this interactive shape cannot go out", so the same words go out as text. Never STOP, the window or a gate. */
-const replaceable = (reason: string) => reason.startsWith("shape_") || reason === "interactive_body_too_long" || reason.startsWith("kapso_");
+/** CAT2: refusals that mean "this interactive shape cannot go out", so the same words go out as text. Never STOP, the window or a gate:
+ *  Kapso also refuses with 422 outside the 24-hour window (catalog-check run 45343575813), and Meta with 131047; any message would be
+ *  refused the same way, so nothing is replaced and no alarm is raised (the window is the rule, as in can_send()). */
+const WINDOW = /24-hour window|re-?engagement|131047|outside the (?:allowed )?window/i;
+const replaceable = (reason: string, detail = "") =>
+  (reason.startsWith("shape_") || reason === "interactive_body_too_long" || reason.startsWith("kapso_")) && !WINDOW.test(`${reason} ${detail}`);
 
 /**
  * CAT2 (staging, 24 Nov 04:22 UTC: «الكتالوج» got silence; Kapso refused both catalog_message sends with 422): an interactive message
@@ -93,7 +97,7 @@ const replaceable = (reason: string) => reason.startsWith("shape_") || reason ==
  * door (preflight, can_send, the outbox claim): a cta_url button with the link when the caller gave one, else the text.
  */
 async function replaceRefused(db: SupabaseClient, env: Parameters<typeof send>[1], req: SendRequest, reason: string, detail?: string): Promise<SendResult | null> {
-  if (req.msg.type !== "interactive" || req.isFallback || !replaceable(reason)) return null;
+  if (req.msg.type !== "interactive" || req.isFallback || !replaceable(reason, detail)) return null;
   const kind = String((req.msg.interactive as { type?: unknown }).type ?? "?");
   try {
     Sentry.captureMessage("reply_refused", { level: "error", tags: { where: "gateway", line: req.line, interactive: kind, reason: reason.slice(0, 60) },

@@ -1,9 +1,14 @@
-# Manual. CAT2: the catalogue message checked live on STAGING (scripts/qa/catalog-check.mjs): a scripted tester whose number is in Ofcom's
-# fiction range (+44 7700 900xxx, never assigned) writes «الكتالوج»; the staging Worker answers through its gateway and Kapso, for real, so
-# Kapso's answer (200, or its refusal) is recorded. No person can receive it. Spend: none (one undeliverable message).
+# Manual. CAT2: the catalogue message checked live on STAGING (scripts/qa/catalog-check.mjs): «الكتالوج» enters the staging Worker, which
+# answers through its gateway and Kapso, for real. With `tester`, the tester who wrote most recently (within 23 hours, so the window is
+# open) receives one catalogue message (Kapso refuses a closed window); no number is an input or printed. Without it, a fiction-range scripted tester proves the Worker's side only.
 name: catalog-check
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tester:
+        description: "Send to the tester who wrote most recently (within 23 hours); off: the fiction-range scripted tester"
+        type: boolean
+        default: false
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -16,6 +21,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      TESTER: ${{ inputs.tester }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
