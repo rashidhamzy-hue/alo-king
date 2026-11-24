@@ -62,7 +62,7 @@ export interface Sent { url: string; body: any }
 /** CAT2: `refuse` answers a payload as Kapso's proxy would refuse it (e.g. 422 "Invalid message payload"); refused sends are in `refused`. */
 export function recordKapso(media: Record<string, { bytes: Uint8Array; type: string }> = {}, refuse?: (body: any) => Response | null): Sent[] & { refused?: Sent[] } {
   const outbound: Sent[] & { refused?: Sent[] } = [];
-  outbound.refused = [];
+  Object.defineProperty(outbound, "refused", { value: [], enumerable: false });   // kept off toEqual([]) in other tests
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     if (media[url]) return new Response(media[url].bytes, { status: 200, headers: { "content-type": media[url].type } });
     const body = JSON.parse(String(init?.body));
