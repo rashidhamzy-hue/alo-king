@@ -247,6 +247,7 @@ D'ici là, rien ne change sur la page.`,
     one: "Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.",
   },
   catalogOffer: "🛒 *Le catalogue Alo King, en photos*\nTouchez le bouton ci-dessous pour l'ouvrir, ou écrivez « catalogue » à tout moment.",
+  catalogLink: { text: "🛒 *Le catalogue Alo King, en photos*\nOuvrez-le avec ce lien, ajoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.", label: "Ouvrir le catalogue" },
 
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *La commande ${code} a été annulée*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`

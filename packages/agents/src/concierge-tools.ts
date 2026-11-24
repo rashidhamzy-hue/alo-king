@@ -2,7 +2,7 @@
 // the model chooses what to call, the database decides what is true, the gateway decides what may be sent.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
-import type { SendResult } from "@ak/wa/gateway";
+import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
 import { buttonReplyText, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type CardAddress, type CardInput, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, type Lang } from "./messages";
@@ -88,7 +88,7 @@ export interface ToolContext {
   state: ConversationState;
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
   /** authored: set on text the model wrote, so the gateway checks it again (A2's second lock for 1.5 and 1.10). */
-  send: (msg: Outbound, opts?: { orderId?: string; authored?: Authored }) => Promise<SendResult>;
+  send: (msg: Outbound, opts?: { orderId?: string; authored?: Authored; fallback?: SendRequest["fallback"] }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
   /** The customer turn this runs in (SP1, G1-21): a retried turn finds the order its first attempt made, instead of a second. */
   turnKey?: string;
@@ -204,9 +204,10 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
   return data as T;
 }
 
-export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string, byModel = false): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string, byModel = false,
+                              fallback?: SendRequest["fallback"]): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.sent.count >= MAX_SENDS_PER_TURN) return { ok: false, error: "message_budget_reached_for_this_turn" };
-  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: authored(ctx) } : {}) });
+  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: authored(ctx) } : {}), ...(fallback ? { fallback } : {}) });
   if (!r.ok) return { ok: false, error: `not_sent:${r.refused}` };
   ctx.sent.count++; ctx.sent.texts.push(summary);
   return { ok: true };
@@ -419,7 +420,8 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       }
       if (!r.ok) return r;
       for (const msg of r.messages) {
-        const sent = await deliver(ctx, msg, r.summary);
+        // CAT2: if WhatsApp's catalogue message is refused, the gateway sends the catalogue's link in the customer's language.
+        const sent = await deliver(ctx, msg, r.summary, undefined, false, r.fallback);
         if (!sent.ok) return sent;
       }
       return { ok: true, messages: r.messages.length };

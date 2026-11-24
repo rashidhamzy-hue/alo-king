@@ -59,11 +59,16 @@ function fakeState() {
 
 export interface Sent { url: string; body: any }
 /** Replaces fetch with a recorder of what would have gone to Kapso. Media downloads are answered from `media`. */
-export function recordKapso(media: Record<string, { bytes: Uint8Array; type: string }> = {}): Sent[] {
-  const outbound: Sent[] = [];
+/** CAT2: `refuse` answers a payload as Kapso's proxy would refuse it (e.g. 422 "Invalid message payload"); refused sends are in `refused`. */
+export function recordKapso(media: Record<string, { bytes: Uint8Array; type: string }> = {}, refuse?: (body: any) => Response | null): Sent[] & { refused?: Sent[] } {
+  const outbound: Sent[] & { refused?: Sent[] } = [];
+  Object.defineProperty(outbound, "refused", { value: [], enumerable: false });   // kept off toEqual([]) in other tests
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     if (media[url]) return new Response(media[url].bytes, { status: 200, headers: { "content-type": media[url].type } });
-    outbound.push({ url, body: JSON.parse(String(init?.body)) });
+    const body = JSON.parse(String(init?.body));
+    const no = refuse?.(body);
+    if (no) { outbound.refused!.push({ url, body }); return no; }
+    outbound.push({ url, body });
     return new Response(JSON.stringify({ messages: [{ id: `wamid.out${Math.random()}` }] }), { status: 200 });
   }));
   return outbound;

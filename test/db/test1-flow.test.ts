@@ -168,7 +168,9 @@ describe("the test line itself", () => {
 describe("the WhatsApp catalogue's words (sim-020, sim-test 45133515061)", () => {
   it("are in the customer's language: a French customer's Browse tap got Arabic once the catalogue was connected", async () => {
     const { catalogMessages } = await import("@ak/agents/catalog-messages");
+    const { seedFeedItem } = await import("./catalog-seed");
     await db.pg.query(`update settings set value = value || '{"catalog_id": "1234567890"}' where key = 'catalog'`);
+    await seedFeedItem(db, "AK-0080");
     const t = flow(db, []);
     const body = async (lang: "ar" | "en" | "fr") => {
       const r = await catalogMessages(t.client, { lang });

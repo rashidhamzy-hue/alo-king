@@ -219,7 +219,7 @@ function render(m: Messages): Rendered[] {
   add("feedback.ask", fb.ask(CODE)); add("feedback.fineButton", fb.fineButton); add("feedback.problemButton", fb.problemButton);
   add("feedback.fine", fb.fine); add("feedback.problem", fb.problem(CODE));
   add("testMode.line", m.testMode.line); add("testMode.notOpen", m.testMode.notOpen);
-  add("catalog.all", m.catalog.all); add("catalog.list", m.catalog.list(m.lang === "ar" ? "الألبان والبيض" : "Dairy and eggs")); add("catalog.one", m.catalog.one); add("catalogOffer", m.catalogOffer);
+  add("catalog.all", m.catalog.all); add("catalog.list", m.catalog.list(m.lang === "ar" ? "الألبان والبيض" : "Dairy and eggs")); add("catalog.one", m.catalog.one); add("catalogOffer", m.catalogOffer); add("catalogLink.text", m.catalogLink.text); add("catalogLink.label", m.catalogLink.label);
   const n = m.notice;
   add("notice.orderCancelled", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time")); add("notice.orderCancelled.reopen", n.orderCancelled(CODE, L === "ar" ? "ما تأكّد الطلب بالوقت المحدد" : "the order was not confirmed in time", true)); add("notice.riderAtDoor", n.riderAtDoor(CODE)); add("notice.confirmReminder", n.confirmReminder(CODE));
   add("notice.paymentReceived", n.paymentReceived(CODE, L === "ar" ? "12.50$ نقداً" : L === "en" ? "12.50$ cash" : "12.50$ en espèces")); add("notice.onTheWay", n.onTheWay(CODE)); add("notice.onTheWay.cash", n.onTheWay(CODE, 7.27)); add("notice.riderWaiting", n.riderWaiting(CODE));
