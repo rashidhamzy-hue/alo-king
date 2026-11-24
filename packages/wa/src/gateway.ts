@@ -1,7 +1,8 @@
 // The Compliance Gateway. Nothing else in the codebase may call kapsoSend.
 // It refuses anything that could get a number restricted, and it keeps the message bill predictable.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
+import { ctaUrl, kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
+import { checkInteractive, plainOf } from "./contract";
 import * as Sentry from "@sentry/cloudflare";
 import { checkModelText } from "@ak/agents/output-guard";
 
@@ -27,6 +28,12 @@ export interface SendRequest {
                areas?: { names: string[]; served: boolean }[]; replyLanguage?: "ar" | "arabizi" | "en" | "fr" | null;
                /** B1f: whether a tool returned delivery times this turn, and the hours from the database. */
                times?: { quoted: boolean; hours?: { open: string; close: string } | null } };
+  /** CAT2: what to send instead when this interactive message is refused (by our shape check or by Kapso/Meta for good): the same
+   *  content in the customer's language. `link` first tries a cta_url button with `label`, then the text with the link. Absent, the
+   *  gateway makes the text from the message itself (contract.ts plainOf). Never used for a refusal by can_send (STOP, the window). */
+  fallback?: { text: string; link?: { label: string; url: string } };
+  /** Set by the gateway on its own fallback sends: a refused fallback is not replaced again. */
+  isFallback?: boolean;
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -70,6 +77,37 @@ export function preflight(req: SendRequest): string | null {
   if (req.msg.type === "interactive") {
     const body = (req.msg.interactive as { body?: { text?: string } }).body?.text ?? "";
     if (body.length > 1024) return "interactive_body_too_long";
+    // CAT2: the shape Kapso accepts (contract.ts). A shape it would refuse never leaves; the fallback says the same in text.
+    const shape = checkInteractive(req.msg);
+    if (shape) return `shape_${shape}`;
+  }
+  return null;
+}
+
+/** CAT2: refusals that mean "this interactive shape cannot go out", so the same words go out as text. Never STOP, the window or a gate. */
+const replaceable = (reason: string) => reason.startsWith("shape_") || reason === "interactive_body_too_long" || reason.startsWith("kapso_");
+
+/**
+ * CAT2 (staging, 24 Nov 04:22 UTC: «الكتالوج» got silence; Kapso refused both catalog_message sends with 422): an interactive message
+ * that is refused is never the end. Sentry hears "reply_refused" with Kapso's error, then the same content goes out through this same
+ * door (preflight, can_send, the outbox claim): a cta_url button with the link when the caller gave one, else the text.
+ */
+async function replaceRefused(db: SupabaseClient, env: Parameters<typeof send>[1], req: SendRequest, reason: string, detail?: string): Promise<SendResult | null> {
+  if (req.msg.type !== "interactive" || req.isFallback || !replaceable(reason)) return null;
+  const kind = String((req.msg.interactive as { type?: unknown }).type ?? "?");
+  try {
+    Sentry.captureMessage("reply_refused", { level: "error", tags: { where: "gateway", line: req.line, interactive: kind, reason: reason.slice(0, 60) },
+      extra: { dedupeKey: req.dedupeKey, kapso: (detail ?? "").slice(0, 300) }, fingerprint: ["reply_refused", kind, reason.slice(0, 40)] });
+  } catch { /* reporting never stops the fallback */ }
+  console.error(JSON.stringify({ level: "error", event: "reply_refused", interactive: kind, reason, key: req.dedupeKey }));
+  const text = req.fallback?.text ?? plainOf(req.msg);
+  const tries: Outbound[] = [];
+  if (req.fallback?.link) tries.push(ctaUrl(text ?? req.fallback.link.label, req.fallback.link.label, req.fallback.link.url));
+  if (text) tries.push({ type: "text", text: { body: req.fallback?.link && !text.includes(req.fallback.link.url) ? `${text}\n${req.fallback.link.url}` : text } });
+  const { fallback: _f, authored: _a, ...rest } = req;
+  for (const [n, msg] of tries.entries()) {
+    const r = await send(db, env, { ...rest, msg, dedupeKey: `${req.dedupeKey}:alt${n}`, isFallback: true });
+    if (r.ok) return r;
   }
   return null;
 }
@@ -80,7 +118,7 @@ export async function send(
   req: SendRequest,
 ): Promise<SendResult> {
   const local = preflight(req);
-  if (local) return refuse(db, req, local);
+  if (local) return (await replaceRefused(db, env, req, local)) ?? refuse(db, req, local);
 
   const isTemplate = req.msg.type === "template";
   // M1 (coordinator, 14 Nov): Meta can re-file a template as marketing after we submit it as utility. A template message goes out
@@ -123,7 +161,10 @@ export async function send(
     if (req.dedupeKey) await db.rpc("outbox_mark", { p_key: req.dedupeKey, p_wamid: null, p_error: String(err).slice(0, 300) });
     // This message can never go out as it is (Meta's code says so). Retrying the turn would fail the same way, three times,
     // and then hand a working conversation to a person. Record it and let the turn carry on (4.13).
-    if (err instanceof KapsoSendError && err.permanent) return refuse(db, req, `kapso_${err.code}`);
+    if (err instanceof KapsoSendError && err.permanent) {
+      const refused = await refuse(db, req, `kapso_${err.code}`, String(err.message));
+      return (await replaceRefused(db, env, req, `kapso_${err.code}`, `${err.httpStatus} ${err.message}`)) ?? refused;
+    }
     // Anything else (Kapso 5xx, 429, 402, a network error) means the message did not go out this time. That is the same
     // situation as an unavailable outbox: nothing sent, retry the whole turn. turn.ts already rethrows OutboxUnavailable so the
     // conversation object retries; before this, a passing Kapso error handed a working conversation to a person (found in 4.5).
@@ -151,7 +192,8 @@ export async function send(
   return { ok: true, wamid };
 }
 
-async function refuse(db: SupabaseClient, req: SendRequest, reason: string): Promise<SendResult> {
-  await db.from("agent_runs").insert({ agent: "compliance_gateway", order_id: req.orderId ?? null, outcome: "refused", trace: { reason, line: req.line, category: req.category } });
+async function refuse(db: SupabaseClient, req: SendRequest, reason: string, detail?: string): Promise<SendResult> {
+  await db.from("agent_runs").insert({ agent: "compliance_gateway", order_id: req.orderId ?? null, outcome: "refused",
+    trace: { reason, line: req.line, category: req.category, ...(detail ? { detail: detail.slice(0, 300) } : {}), ...(req.isFallback ? { fallback: true } : {}) } });
   return { ok: false, refused: reason };
 }

@@ -280,6 +280,9 @@ export interface Messages {
   catalog: { all: S; list: (category: S) => S; one: S };
   /** VOICE1: the catalogue's own button offered with the welcome and to a tester's first reply (WhatsApp words the button itself). */
   catalogOffer: S;
+  /** CAT2: when WhatsApp's catalogue message is refused, the same catalogue as a link (a cta_url button with `label`, else the text and
+   *  the link on its own line). Never silent. */
+  catalogLink: { text: S; label: S };
 
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours.
    *  CX2: inside the 24-hour window the free message goes; the template only outside it. */

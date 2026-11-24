@@ -2342,6 +2342,19 @@ Ajoutez-le au panier et envoyez-le. Nous vous envoyons la fiche à confirmer.
 Touchez le bouton ci-dessous pour l'ouvrir, ou écrivez « catalogue » à tout moment.
 ```
 
+## catalogLink.text
+
+```text
+🛒 *Le catalogue Alo King, en photos*
+Ouvrez-le avec ce lien, ajoutez au panier ce que vous voulez et envoyez-le. Nous vous envoyons la fiche à confirmer.
+```
+
+## catalogLink.label
+
+```text
+Ouvrir le catalogue
+```
+
 ## notice.orderCancelled
 
 ```text

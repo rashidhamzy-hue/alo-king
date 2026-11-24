@@ -247,6 +247,7 @@ Until then nothing changes on the page.`,
     one: "Add it to the cart and send it. We send you the order card to confirm.",
   },
   catalogOffer: "🛒 *The Alo King catalogue, with pictures*\nTap the button below to open it, or write \"catalogue\" any time.",
+  catalogLink: { text: "🛒 *The Alo King catalogue, with pictures*\nOpen it with this link, add what you want to the cart and send it. We send you the order card to confirm.", label: "Open the catalogue" },
 
   notice: {
     orderCancelled: (code, reason, reopenable) => `🕘 *Order ${code} was cancelled*\n${reason.charAt(0).toUpperCase()}${reason.slice(1)}.\n`

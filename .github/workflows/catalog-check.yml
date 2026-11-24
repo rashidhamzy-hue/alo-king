@@ -1,0 +1,32 @@
+# Manual. CAT2: the catalogue message checked live on STAGING (scripts/qa/catalog-check.mjs): a scripted tester whose number is in Ofcom's
+# fiction range (+44 7700 900xxx, never assigned) writes «الكتالوج»; the staging Worker answers through its gateway and Kapso, for real, so
+# Kapso's answer (200, or its refusal) is recorded. No person can receive it. Spend: none (one undeliverable message).
+name: catalog-check
+on:
+  workflow_dispatch: {}
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency: { group: catalog-check, cancel-in-progress: false }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler)
+        run: |
+          supabase link --project-ref lhgkvvdckwbfpdsftzqp
+          test -s supabase/.temp/pooler-url || { echo "no pooler url after link"; exit 1; }
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: The check
+        run: node scripts/qa/catalog-check.mjs | tee -a "$GITHUB_STEP_SUMMARY"

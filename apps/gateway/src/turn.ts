@@ -148,12 +148,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // orders its messages differently sends what is new and skips what already went; before, a message that took another's
   // place was dropped. The same words twice in one turn are told apart by their count.
   const keyCount = new Map<string, number>();
-  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"]): Promise<SendResult> => {
+  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"], fallback?: SendRequest["fallback"]): Promise<SendResult> => {
     const h = await contentHash(msg);
     const n = keyCount.get(h) ?? 0;
     keyCount.set(h, n + 1);
     return deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
-                       dedupeKey: replyKey(turnKey, h, n), ...(authored ? { authored } : {}) });
+                       dedupeKey: replyKey(turnKey, h, n), ...(authored ? { authored } : {}), ...(fallback ? { fallback } : {}) });
   };
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
@@ -168,7 +168,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
 
   const ctx: ToolContext = {
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state, turnKey,
-    send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
+    send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored, opts?.fallback), sent: { count: 0, texts: [] },
     openCaseIds: (conv.cases ?? []).map((c) => c.case_id),
     ...(deps.embedder ? { embedder: deps.embedder } : {}),
   };
@@ -648,7 +648,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   let catalogSent = false;
   if (!state.catalogOffered && !claimed && (welcome || tester) && (texts.length > 0 || transcripts.length > 0)) {
     const offer = await catalogOffer(db, state.lang).catch(() => null);
-    if (offer && (await sendRaw(offer.msg)).ok) { sent.push(offer.text); state.catalogOffered = true; catalogSent = true; }
+    if (offer && (await sendRaw(offer.msg, undefined, undefined, offer.fallback)).ok) { sent.push(offer.text); state.catalogOffered = true; catalogSent = true; }
   }
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
@@ -721,7 +721,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const one = texts.length === 1 && transcripts.length === 0 && pins === 0 ? texts[0]! : null;
     // VOICE1: «بدي شوف الكتالوج», "show me the catalogue", «le catalogue»: the catalogue by code, no model (said twice in one turn, once).
     if (one && catalogueAsked(one)) {
+      // CAT2: never silent. The catalogue (or, refused, its link) counts as sent; if nothing at all went out, the words to type.
       if (!catalogSent) await makeConciergeTools(ctx).show_catalog({});
+      if (sent.length === 0 && ctx.sent.texts.length === 0 && (await sendRaw({ type: "text", text: { body: T().support.browseInWords } })).ok) ctx.sent.texts.push(T().support.browseInWords);
       remember(); await record("ok", "catalog_words"); return { outcome: "answered", sent };
     }
     if (one && cancelWords(one)) {

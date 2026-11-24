@@ -2,6 +2,7 @@
 // Source of truth: https://docs.kapso.ai/docs/platform/webhooks/message-events
 import { z } from "zod";
 import { GraphApiError, WhatsAppClient } from "@kapso/whatsapp-cloud-api";
+import { cutChars } from "./contract";
 
 export type Line = "customer" | "ops";
 
@@ -88,16 +89,24 @@ export type Outbound =
   | { type: "template"; template: { name: string; language: { code: string }; components?: unknown[] } }
   | { type: "location"; location: { latitude: number; longitude: number; name?: string; address?: string } };
 
+// CAT2: every builder cuts by characters (never half an emoji) to the limits Kapso's schema states (contract.ts, LIMITS).
 export const buttons = (body: string, items: { id: string; title: string }[]): Outbound => ({
   type: "interactive",
   interactive: { type: "button", body: { text: body },
-    action: { buttons: items.slice(0, 3).map((b) => ({ type: "reply", reply: { id: b.id, title: b.title.slice(0, 20) } })) } },
+    action: { buttons: items.slice(0, 3).map((b) => ({ type: "reply", reply: { id: b.id, title: cutChars(b.title, 20) } })) } },
 });
 
 export const list = (body: string, button: string, rows: { id: string; title: string; description?: string }[]): Outbound => ({
   type: "interactive",
   interactive: { type: "list", body: { text: body },
-    action: { button: button.slice(0, 20), sections: [{ title: "Options", rows: rows.slice(0, 10).map((r) => ({ ...r, title: r.title.slice(0, 24) })) }] } },
+    action: { button: cutChars(button, 20), sections: [{ title: "Options", rows: rows.slice(0, 10).map((r) => ({ id: r.id, title: cutChars(r.title, 24),
+      ...(r.description ? { description: cutChars(r.description, 72) } : {}) })) }] } },
+});
+
+/** CAT2: a button that opens a link (Kapso's cta_url: name "cta_url", parameters display_text and url). */
+export const ctaUrl = (body: string, label: string, url: string): Outbound => ({
+  type: "interactive",
+  interactive: { type: "cta_url", body: { text: body }, action: { name: "cta_url", parameters: { display_text: cutChars(label, 20), url } } },
 });
 
 export const askLocation = (body: string): Outbound => ({

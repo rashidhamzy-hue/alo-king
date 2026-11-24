@@ -2342,6 +2342,19 @@ Add it to the cart and send it. We send you the order card to confirm.
 Tap the button below to open it, or write "catalogue" any time.
 ```
 
+## catalogLink.text
+
+```text
+🛒 *The Alo King catalogue, with pictures*
+Open it with this link, add what you want to the cart and send it. We send you the order card to confirm.
+```
+
+## catalogLink.label
+
+```text
+Open the catalogue
+```
+
 ## notice.orderCancelled
 
 ```text

@@ -10,6 +10,8 @@ import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Sent } from "./flow-kit";
+import { seedFeedItem } from "./catalog-seed";
+import { checkInteractive } from "@ak/wa/contract";
 import { runTurn } from "../../apps/gateway/src/turn";
 import cases from "../../evals/cases/voice1_places.json";
 
@@ -216,8 +218,8 @@ describe("3 a voice note: Scribe first, Kapso the fallback", () => {
 });
 
 describe("4 the catalogue's button", () => {
-  beforeAll(async () => { await db.pg.exec(`update settings set value = value || '{"catalog_id": "CAT_TEST"}'::jsonb where key = 'catalog';
-    update settings set value = '{"enabled": true}' where key = 'welcome';`); });
+  beforeAll(async () => { await db.pg.exec(`update settings set value = value || '{"catalog_id": "CAT_TEST", "product_link": "https://wa.me/12036602328?text={sku}"}'::jsonb where key = 'catalog';
+    update settings set value = '{"enabled": true}' where key = 'welcome';`); await seedFeedItem(db); });
   afterAll(async () => { await db.pg.exec(`update settings set value = value - 'catalog_id' where key = 'catalog';
     update settings set value = '{"enabled": false}' where key = 'welcome';`); });
   const catalogs = () => outbound.filter((o) => o.body.interactive?.type === "catalog_message");
@@ -228,6 +230,9 @@ describe("4 the catalogue's button", () => {
     await t.text("hello");
     expect(catalogs()).toHaveLength(1);
     expect(bodyOf(catalogs()[0]!)).toContain("The Alo King catalogue, with pictures");
+    // CAT2: the thumbnail Kapso requires, a SKU in Meta's catalogue (an approved picture and its feed JPEG).
+    expect(catalogs()[0]!.body.interactive.action).toEqual({ name: "catalog_message", parameters: { thumbnail_product_retailer_id: "AK-0103" } });
+    expect(checkInteractive(catalogs()[0]!.body)).toBeNull();
     await t.text("hello again");
     expect(catalogs()).toHaveLength(1);
   });
@@ -257,4 +262,31 @@ describe("4 the catalogue's button", () => {
       expect(catalogs()).toHaveLength(1);
       expect(bodyOf(catalogs()[0]!)).toContain(body);
     });
+
+  // CAT2 (staging, 24 Nov 04:22 UTC): «الكتالوج» ended "answered" with nothing sent, because Kapso refused the catalog_message (422).
+  const invalid = () => new Response(JSON.stringify({ error: "Invalid message payload" }), { status: 422, headers: { "content-type": "application/json" } });
+  it("CAT2: «الكتالوج» refused by Kapso: the catalogue's link as a button, in the customer's language; never silence", async () => {
+    outbound = recordKapso({}, (b) => (b.interactive?.type === "catalog_message" ? invalid() : null));
+    const t = flow(db, []);
+    await t.customer();
+    const r = await runTurn(t.deps, t.pending({ type: "text", text: { body: "الكتالوج" } }), { welcomed: true, catalogOffered: true, lang: "ar" } as any);
+    expect((outbound as any).refused).toHaveLength(1);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive).toMatchObject({ type: "cta_url", action: { name: "cta_url", parameters: { display_text: "افتح الكتالوج", url: "https://wa.me/c/12036602328" } } });
+    expect(bodyOf(outbound[0]!)).toContain("كتالوج ألو كينغ بالصور");
+    expect(r.outcome).toBe("answered");
+    expect(r.sent.length).toBeGreaterThan(0);
+  });
+  it("CAT2: the button refused too: the same words as text with the link, in English for an English customer", async () => {
+    outbound = recordKapso({}, (b) => (b.type === "interactive" ? invalid() : null));
+    const t = flow(db, []);
+    await t.customer();
+    const r = await runTurn(t.deps, t.pending({ type: "text", text: { body: "show me the catalogue" } }), { welcomed: true, catalogOffered: true, lang: "en" } as any);
+    expect((outbound as any).refused.map((s: Sent) => s.body.interactive.type)).toEqual(["catalog_message", "cta_url"]);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.type).toBe("text");
+    expect(outbound[0]!.body.text.body).toContain("The Alo King catalogue, with pictures");
+    expect(outbound[0]!.body.text.body).toContain("https://wa.me/c/12036602328");
+    expect(r.sent.length).toBeGreaterThan(0);
+  });
 });
