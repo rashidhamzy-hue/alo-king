@@ -168,6 +168,15 @@ describe("CAT2: the gateway never ends a reply in silence", () => {
     expect(seen).toEqual([]);
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
+  it("outside the 24-hour window (Kapso's 422, Meta's 131047): nothing is replaced and no alarm (catalog-check run 45343575813)", async () => {
+    const seen: any[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_u: string, init?: RequestInit) => { seen.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ error: "Cannot send non-template messages outside the 24-hour window." }), { status: 422, headers: { "content-type": "application/json" } }); }));
+    const r = await send(fakeDb(), env, catalogReq(LINK));
+    expect(r.ok).toBe(false);
+    expect(seen.map((b) => b.interactive?.type ?? b.type)).toEqual(["catalog_message"]);
+    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
   it("a refused text is not replaced (nothing simpler to send) and a refused replacement is not replaced again", async () => {
     const seen = kapso(() => true);
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
